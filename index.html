@@ -41,6 +41,7 @@
 
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/home.css">
+<link rel="stylesheet" href="css/overlays.css">
 </head>
 <body>
 
@@ -77,7 +78,7 @@
           <img class="icon-bell__clapper" src="assets/icon/bell-clapper.svg" alt="">
           <span class="icon-bell__badge"><i></i></span>
         </button>
-        <button type="button" class="icon-btn" aria-label="메뉴">
+        <button type="button" class="icon-btn" id="gnbOpenBtn" aria-label="메뉴">
           <img class="icon-btn__img" src="assets/icon/header-menu.svg" alt="">
         </button>
       </div>
@@ -124,7 +125,7 @@
         <div class="section-header">
           <div class="section-header__title">
             <h2>내 생활</h2>
-            <img class="section-header__plus" src="assets/icon/plus-small.svg" alt="">
+            <img class="section-header__plus" id="addWidgetPlus" src="assets/icon/plus-small.svg" alt="">
           </div>
           <div class="section-header__status">
             <div class="stat-bar stat-bar--love">
@@ -140,7 +141,7 @@
 
         <div class="module-grid">
           <div class="module-grid__row">
-            <article class="widget widget--medium">
+            <article class="widget widget--medium" data-widget-id="living-cost">
               <div class="widget__header">
                 <p class="widget__title">생활비</p>
                 <div class="ring">
@@ -153,7 +154,7 @@
               <p class="widget__secondary">예산 15.8만원 남음</p>
             </article>
 
-            <article class="widget widget--medium">
+            <article class="widget widget--medium" data-widget-id="rent">
               <div class="widget__header">
                 <p class="widget__title">주거</p>
                 <p class="widget__dday">D-7</p>
@@ -166,7 +167,7 @@
           </div>
 
           <div class="module-grid__row module-grid__row--small">
-            <article class="module-card">
+            <article class="module-card" data-widget-id="fridge">
               <p class="module-card__title">냉장고</p>
               <p class="module-card__value">우유 D-2</p>
             </article>
@@ -181,7 +182,7 @@
               </div>
             </article>
 
-            <div class="module-card module-card--add">
+            <div class="module-card module-card--add" id="addWidgetSlot" role="button" tabindex="0" aria-label="위젯 추가">
               <img src="assets/icon/plus-add.svg" alt="위젯 추가">
             </div>
           </div>
@@ -283,8 +284,370 @@
     </div>
   </nav>
 
+
+  <!-- ============ ① GNB 전체메뉴 (Figma gnb_open) ============ -->
+  <section class="layer gnb" id="gnb" hidden aria-label="전체메뉴">
+    <div class="gnb__header">
+      <div class="status-bar">
+        <p class="status-bar__time">9:41</p>
+        <img class="status-bar__icons" src="assets/icon/status-icons.svg" alt="">
+      </div>
+      <div class="nav-header">
+        <div class="gnb__title-button">
+          <button type="button" class="gnb__back" id="gnbBack" aria-label="뒤로">
+            <img src="assets/icon/gnb-back.svg" alt="">
+          </button>
+          <span class="gnb__title">전체메뉴</span>
+        </div>
+        <div class="nav-header__actions">
+          <button type="button" class="icon-btn icon-bell" aria-label="알림">
+            <img class="icon-bell__body" src="assets/icon/bell-body.svg" alt="">
+            <img class="icon-bell__clapper" src="assets/icon/bell-clapper.svg" alt="">
+            <span class="icon-bell__badge"><i></i></span>
+          </button>
+          <button type="button" class="gnb__close" id="gnbClose" aria-label="전체메뉴 닫기">
+            <img src="assets/icon/gnb-close.svg" alt="">
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="gnb__scroll">
+      <div class="gnb__content">
+        <div class="gnb-menu">
+          <div class="gnb-menu__item" id="gnbLiving" data-open="true">
+            <button type="button" class="gnb-menu__button" id="gnbLivingToggle" aria-expanded="true" aria-controls="gnbLivingSub">
+              <span class="gnb-menu__label">
+                <img class="gnb-menu__icon" src="assets/icon/gnb-nav-living.svg" alt="">
+                <span class="gnb-menu__name">생활</span>
+              </span>
+              <img class="gnb-menu__chevron" src="assets/icon/chevron-up.svg" alt="">
+            </button>
+            <div class="gnb-menu__sub" id="gnbLivingSub">
+              <a class="gnb-menu__sub-link" href="#">청소 · 위생</a>
+              <a class="gnb-menu__sub-link" href="#">인테리어 · 수납</a>
+              <a class="gnb-menu__sub-link" href="#">요리 · 식단</a>
+              <a class="gnb-menu__sub-link" href="#">1인가구 꿀템</a>
+            </div>
+          </div>
+
+          <div class="gnb-menu__item">
+            <a class="gnb-menu__button" href="#">
+              <span class="gnb-menu__label">
+                <img class="gnb-menu__icon" src="assets/icon/gnb-nav-money.svg" alt="">
+                <span class="gnb-menu__name">돈 관리</span>
+              </span>
+              <img class="gnb-menu__chevron" src="assets/icon/chevron-down.svg" alt="">
+            </a>
+          </div>
+
+          <div class="gnb-menu__item">
+            <a class="gnb-menu__button" href="#">
+              <span class="gnb-menu__label">
+                <img class="gnb-menu__icon" src="assets/icon/gnb-nav-community.svg" alt="">
+                <span class="gnb-menu__name">커뮤니티</span>
+              </span>
+              <img class="gnb-menu__chevron" src="assets/icon/chevron-down.svg" alt="">
+            </a>
+          </div>
+
+          <div class="gnb-menu__item">
+            <a class="gnb-menu__button" href="#">
+              <span class="gnb-menu__label">
+                <img class="gnb-menu__icon" src="assets/icon/gnb-nav-benefit.svg" alt="">
+                <span class="gnb-menu__name">혜택</span>
+              </span>
+              <img class="gnb-menu__chevron" src="assets/icon/chevron-down.svg" alt="">
+            </a>
+          </div>
+        </div>
+
+        <div class="gnb-mymenu">
+          <div class="gnb-mymenu__head">
+            <h2 class="gnb-mymenu__title">내 메뉴</h2>
+            <button type="button" class="gnb-mymenu__edit" id="myMenuEditBtn">편집</button>
+          </div>
+          <div class="shortcut-grid" id="gnbShortcutGrid"></div>
+        </div>
+
+        <div class="gnb__divider"></div>
+
+        <nav class="gnb-personal" aria-label="개인 메뉴">
+          <a class="gnb-personal__link" href="#">
+            마이페이지
+            <img class="gnb-personal__chevron" src="assets/icon/chevron-right-sm.svg" alt="">
+          </a>
+          <a class="gnb-personal__link" href="#">
+            설정
+            <img class="gnb-personal__chevron" src="assets/icon/chevron-right-sm.svg" alt="">
+          </a>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ② 내 메뉴 편집 Bottom Sheet (Figma gnb_my_menu_edit) ============ -->
+  <div class="layer" id="menuEditLayer" hidden>
+    <button type="button" class="layer-dim" id="menuEditDim" aria-label="닫기"></button>
+    <section class="bsheet menu-edit" role="dialog" aria-modal="true" aria-labelledby="menuEditTitle">
+      <div class="bsheet__grip"><span></span></div>
+
+      <div class="menu-edit__header">
+        <div class="menu-edit__heading">
+          <h2 class="menu-edit__title" id="menuEditTitle">내 메뉴 편집</h2>
+          <span class="menu-edit__badge" id="menuEditBadge">선택됨 4/4</span>
+        </div>
+        <button type="button" class="menu-edit__close" id="menuEditClose" aria-label="편집 닫기">
+          <img src="assets/icon/sheet-close.svg" alt="">
+        </button>
+      </div>
+
+      <div class="menu-edit__body">
+        <div class="menu-edit__notice">
+          <p class="menu-edit__notice-text">
+            <img src="assets/icon/sheet-info.svg" alt="">
+            <span>자주 쓰는 메뉴를 <b>최대 4개</b>까지 등록하세요.</span>
+          </p>
+          <span class="menu-edit__status" id="menuEditStatus">최대 개수 충족</span>
+        </div>
+
+        <div class="menu-edit__group">
+          <div class="menu-edit__group-head">
+            <h3 class="menu-edit__group-title">선택된 메뉴</h3>
+            <span class="menu-edit__group-hint">카드를 터치하여 해제</span>
+          </div>
+          <div class="shortcut-grid" id="menuEditSelected"></div>
+        </div>
+
+        <div class="menu-edit__group">
+          <div class="menu-edit__group-head">
+            <h3 class="menu-edit__group-title">추가 가능한 메뉴</h3>
+            <span class="menu-edit__group-hint">터치하여 추가</span>
+          </div>
+          <div class="shortcut-grid" id="menuEditAvailable"></div>
+        </div>
+      </div>
+
+      <div class="menu-edit__footer">
+        <button type="button" class="menu-edit__reset" id="menuEditReset">초기화</button>
+        <button type="button" class="menu-edit__save" id="menuEditSave">저장하기</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ③ 위젯 추가 Bottom Sheet (Figma add_widget) ============ -->
+  <div class="layer" id="addWidgetLayer" hidden>
+    <button type="button" class="layer-dim" id="addWidgetDim" aria-label="닫기"></button>
+    <section class="bsheet add-widget" role="dialog" aria-modal="true" aria-labelledby="addWidgetTitle">
+      <div class="add-widget__grip"><span></span></div>
+
+      <div class="add-widget__head">
+        <div>
+          <h2 class="add-widget__title" id="addWidgetTitle">위젯 추가</h2>
+          <p class="add-widget__sub">내 생활에 필요한 정보를 골라서 추가해보세요.</p>
+        </div>
+        <button type="button" class="add-widget__close" id="addWidgetClose" aria-label="위젯 추가 닫기">
+          <img src="assets/icon/widget-close.svg" alt="">
+        </button>
+      </div>
+
+      <div class="add-widget__search">
+        <img src="assets/icon/widget-search.svg" alt="">
+        <input type="search" id="addWidgetSearch" placeholder="위젯 검색하기" aria-label="위젯 검색하기">
+      </div>
+
+      <div class="add-widget__body" id="addWidgetBody">
+        <!-- 현재 사용 중인 위젯 -->
+        <section class="add-widget__section" data-section="inuse">
+          <div class="add-widget__section-head">
+            <h3 class="add-widget__section-title">현재 사용 중인 위젯</h3>
+            <span class="add-widget__section-count" id="addWidgetInUseCount">3/4</span>
+          </div>
+          <div class="wpick-grid">
+            <button type="button" class="wpick is-selected" data-widget-id="living-cost" data-widget-name="생활비">
+              <span class="wpick__card">
+                <span class="wpick__body">
+                  <span class="wpick__stat">
+                    <span class="wpick__row"><span class="wpick__name">생활비</span></span>
+                    <span class="wpick__main wpick__main--17">84.2만원</span>
+                    <span class="wpick__sub">15.8만원 남음</span>
+                  </span>
+                  <span class="wpick__ring"><span>84%</span></span>
+                </span>
+              </span>
+              <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+            </button>
+
+            <button type="button" class="wpick is-selected" data-widget-id="fridge" data-widget-name="냉장고">
+              <span class="wpick__card">
+                <span class="wpick__row"><span class="wpick__name">냉장고</span></span>
+                <span class="wpick__list">
+                  <span class="wpick__list-row"><b>우유</b><i>D-2</i></span>
+                  <span class="wpick__list-row"><span>계란</span><em>D-4</em></span>
+                </span>
+              </span>
+              <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+            </button>
+
+            <button type="button" class="wpick is-selected" data-widget-id="rent" data-widget-name="월세·관리비">
+              <span class="wpick__card">
+                <span class="wpick__row"><span class="wpick__name">월세·관리비</span></span>
+                <span class="wpick__main" style="align-self:center">65만원</span>
+                <span class="wpick__sub wpick__sub--accent" style="align-self:center">3일 후 납부</span>
+              </span>
+              <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+            </button>
+          </div>
+        </section>
+
+        <!-- 추천 위젯 -->
+        <section class="add-widget__section" data-section="recommend">
+          <div class="add-widget__section-head">
+            <h3 class="add-widget__section-title">추천 위젯</h3>
+            <span class="add-widget__section-count">4개</span>
+          </div>
+
+          <div class="add-widget__group">
+            <h4 class="add-widget__group-title">지출 분석</h4>
+            <div class="wpick-grid">
+              <button type="button" class="wpick wpick--large" data-widget-id="spend-analysis" data-widget-name="소비 분석">
+                <span class="wpick__card">
+                  <span class="wpick__row"><span class="wpick__name">소비 분석</span></span>
+                  <span class="wpick__bars">
+                    <span class="wpick__bar">
+                      <span class="wpick__bar-head"><b>주거</b><span>42%</span></span>
+                      <span class="wpick__bar-track"><span class="wpick__bar-fill wpick__bar-fill--primary" style="width:42%"></span></span>
+                    </span>
+                    <span class="wpick__bar">
+                      <span class="wpick__bar-head"><b>식비</b><span>28%</span></span>
+                      <span class="wpick__bar-track"><span class="wpick__bar-fill" style="width:28%"></span></span>
+                    </span>
+                    <span class="wpick__bar">
+                      <span class="wpick__bar-head"><b>생활</b><span>18%</span></span>
+                      <span class="wpick__bar-track"><span class="wpick__bar-fill" style="width:18%"></span></span>
+                    </span>
+                    <span class="wpick__bar">
+                      <span class="wpick__bar-head"><b>교통</b><span>12%</span></span>
+                      <span class="wpick__bar-track"><span class="wpick__bar-fill" style="width:12%"></span></span>
+                    </span>
+                  </span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="add-widget__group">
+            <h4 class="add-widget__group-title">혜택</h4>
+            <div class="wpick-grid">
+              <button type="button" class="wpick" data-widget-id="benefit" data-widget-name="혜택">
+                <span class="wpick__card">
+                  <span class="wpick__row"><span class="wpick__name">혜택</span></span>
+                  <span class="wpick__main wpick__main--18" style="align-self:center">3개</span>
+                  <span class="wpick__sub" style="align-self:center">지금 받을 수 있는 혜택</span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="add-widget__group">
+            <h4 class="add-widget__group-title">오늘 할 일</h4>
+            <div class="wpick-grid">
+              <button type="button" class="wpick wpick--small" data-widget-id="todo-s" data-widget-name="오늘 할 일">
+                <span class="wpick__card">
+                  <span class="wpick__row"><span class="wpick__name">오늘 할 일</span></span>
+                  <span class="wpick__main wpick__main--18" style="align-self:center;padding-top:6px"><b>2</b> <small>개 남음</small></span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+
+              <button type="button" class="wpick" data-widget-id="todo-m" data-widget-name="오늘 할 일">
+                <span class="wpick__card">
+                  <span class="wpick__row"><span class="wpick__name">오늘 할 일</span></span>
+                  <span class="wpick__todo">
+                    <span class="wpick__todo-row wpick__todo-row--done"><i></i>분리수거 배출</span>
+                    <span class="wpick__todo-row wpick__todo-row--done"><i></i>택배 수거 신청</span>
+                    <span class="wpick__todo-row"><i><img src="assets/icon/widget-checkbox.svg" alt=""></i>장보기</span>
+                  </span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="add-widget__group">
+            <h4 class="add-widget__group-title">청소</h4>
+            <div class="wpick-grid">
+              <button type="button" class="wpick wpick--small" data-widget-id="clean-s" data-widget-name="청소">
+                <span class="wpick__card">
+                  <span class="wpick__row wpick__row--icon">
+                    <img src="assets/icon/widget-clean-13.svg" alt="">
+                    <span class="wpick__name">청소</span>
+                  </span>
+                  <span class="wpick__main wpick__main--17" style="align-self:center;padding-top:6px">오늘</span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+
+              <button type="button" class="wpick" data-widget-id="clean-m" data-widget-name="다음 청소">
+                <span class="wpick__card">
+                  <span class="wpick__row wpick__row--icon">
+                    <img class="is-14" src="assets/icon/widget-clean-14.svg" alt="">
+                    <span class="wpick__name">다음 청소</span>
+                  </span>
+                  <span class="wpick__main" style="align-self:center">오늘 20:00</span>
+                  <span class="wpick__sub wpick__sub--accent" style="align-self:center">분리수거 배출</span>
+                </span>
+                <span class="wpick__mark"><img src="assets/icon/widget-check.svg" alt="선택됨"></span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <p class="add-widget__empty">검색 결과가 없어요.</p>
+
+        <div class="add-widget__cats" data-section="cats">
+          <button type="button" class="add-widget__cat">
+            <span class="add-widget__cat-name">생활</span>
+            <span class="add-widget__cat-meta">3개<img src="assets/icon/widget-chevron-right.svg" alt=""></span>
+          </button>
+          <button type="button" class="add-widget__cat">
+            <span class="add-widget__cat-name">돈 관리</span>
+            <span class="add-widget__cat-meta">3개<img src="assets/icon/widget-chevron-right.svg" alt=""></span>
+          </button>
+          <button type="button" class="add-widget__cat">
+            <span class="add-widget__cat-name">혜택</span>
+            <span class="add-widget__cat-meta">1개<img src="assets/icon/widget-chevron-right.svg" alt=""></span>
+          </button>
+          <button type="button" class="add-widget__cat">
+            <span class="add-widget__cat-name">커뮤니티</span>
+            <span class="add-widget__cat-meta">3개<img src="assets/icon/widget-chevron-right.svg" alt=""></span>
+          </button>
+          <button type="button" class="add-widget__cat">
+            <span class="add-widget__cat-name">마이</span>
+            <span class="add-widget__cat-meta">2개<img src="assets/icon/widget-chevron-right.svg" alt=""></span>
+          </button>
+        </div>
+
+        <div class="add-widget__tip" data-section="tip">
+          <p class="add-widget__tip-title">💡 위젯 추가 팁</p>
+          <p class="add-widget__tip-body">내 생활 영역에는 최대 4개의 위젯을 추가할 수 있어요. 자주 확인하고 싶은 정보부터 골라보세요.</p>
+        </div>
+      </div>
+
+      <div class="add-widget__footer">
+        <div class="add-widget__count">
+          <span>선택한 위젯</span>
+          <b id="addWidgetCount">3 / 4</b>
+        </div>
+        <button type="button" class="add-widget__done" id="addWidgetDone">완료하기</button>
+      </div>
+    </section>
+  </div>
 </div>
 
 <script src="js/home.js"></script>
+<script src="js/overlays.js"></script>
 </body>
 </html>
