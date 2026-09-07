@@ -8,6 +8,27 @@ System을 우선 존중한다.
 새로운 화면을 만드는 것보다 기존 구조를 정확히 이해하고 재사용하는 것을
 우선한다.
 
+## Technical Stack
+
+This project must be implemented using:
+
+- React
+- TypeScript
+- Vite
+- CSS
+
+Do not implement the project as a static HTML/CSS/JavaScript website.
+
+All screens must be built as reusable React components.
+
+Use React state and component props for UI interactions such as:
+- GNB open / close
+- widget add / edit
+- bottom sheet states
+- modal and overlay states
+
+Do not create separate static HTML files for individual UI states.
+
 ------------------------------------------------------------------------
 
 ## 2. Mandatory Source Order

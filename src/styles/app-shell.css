@@ -1,0 +1,22 @@
+/* JADUYA — React 마운트 셸
+ *
+ * 정적 버전은 .app 이 body 의 직계 자식이었고, body(flex, center)가 직접
+ * .app 을 가운데 정렬했다. React 에서는 그 사이에 #root 가 끼어들기 때문에
+ * home.css 의
+ *
+ *   @media (max-width: 401px), (max-height: 873px) {
+ *     .app { width: 100%; height: 100%; ... }
+ *   }
+ *
+ * 이 크기 없는 #root 를 기준으로 계산되어 .app 이 0×0 이 된다.
+ * #root 가 body 를 그대로 채우고 정렬을 이어받게 해서 정적 버전과
+ * 동일한 레이아웃 컨텍스트를 복원한다. 디자인 값은 건드리지 않는다.
+ */
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}

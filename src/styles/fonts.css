@@ -1,0 +1,234 @@
+/* JADUYA — @font-face
+ *
+ * 저장소의 fonts/ 에 실제로 존재하는 파일만 선언한다. 파일명에 적힌 웨이트를
+ * 그대로 CSS 웨이트로 매핑했고, 추측으로 만든 페이스는 없다.
+ *
+ *   Thin 100 / ExtraLight 200 / Light 300 / Regular 400 / Medium 500
+ *   SemiBold 600 / Bold 700 / ExtraBold 800 / Black·Heavy 900
+ *
+ * 실제 사용 중인 조합 (css/home.css, css/overlays.css 기준)
+ *   --font-a2z     : 500, 600
+ *   --font-suit    : 400, 500, 600, 700
+ *   --font-logo    : 400 (KERIS KEDU)
+ *   --font-display : 600 (Handon Samgyeopsal)
+ *   --font-asta    : 폰트 파일 없음 → --font-suit 로 폴백 (기존과 동일)
+ *   --font-system  : OS 시스템 폰트 (파일 없음)
+ *
+ * 경로는 저장소 루트의 fonts/ 를 상대 경로로 참조한다. Vite 가 번들 에셋으로
+ * 처리하므로 해시가 붙고 base(/jaduya/)도 자동으로 적용된다.
+ */
+
+/* ---------------- A2Z ---------------- */
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Thin.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Thin.woff") format("woff");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-ExtraLight.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-ExtraLight.woff") format("woff");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Light.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Regular.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Medium.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-SemiBold.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Bold.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-ExtraBold.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-ExtraBold.woff") format("woff");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "A2Z";
+  src: url("../../fonts/woff2/A2Z-Black.woff2") format("woff2"),
+       url("../../fonts/woff/A2Z-Black.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------- SUIT ---------------- */
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Thin.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Thin.woff") format("woff");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-ExtraLight.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-ExtraLight.woff") format("woff");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Light.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Regular.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Medium.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-SemiBold.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Bold.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-ExtraBold.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-ExtraBold.woff") format("woff");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SUIT";
+  src: url("../../fonts/woff2/SUIT-Heavy.woff2") format("woff2"),
+       url("../../fonts/woff/SUIT-Heavy.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------- KERIS KEDU (로고 전용) ----------------
+ * 파일: KERISKEDU_R(Regular) / KERISKEDU_B(Bold) / KERISKEDU_Line(아웃라인)
+ * Line 은 웨이트가 아니라 별도 아웃라인 스타일이고 현재 디자인에서 쓰는 곳이
+ * 없으므로 선언하지 않는다(번들에 포함시키지 않기 위해). 필요해지면
+ * font-family: "KERIS KEDU Line" 으로 추가한다.
+ */
+
+@font-face {
+  font-family: "KERIS KEDU";
+  src: url("../../fonts/woff2/KERISKEDU_R.woff2") format("woff2"),
+       url("../../fonts/woff/KERISKEDU_R.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "KERIS KEDU";
+  src: url("../../fonts/woff2/KERISKEDU_B.woff2") format("woff2"),
+       url("../../fonts/woff/KERISKEDU_B.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------- Handon Samgyeopsal (디스플레이) ----------------
+ * 파일명의 300g / 600g 은 CSS 웨이트가 아니라 제품명(고기 중량)이다.
+ * 두 컷만 존재하므로 얇은 컷 → 400, 굵은 컷 → 700 으로 선언한다.
+ * 디자인이 쓰는 font-weight: 600 은 600g 컷으로 해석된다.
+ */
+
+@font-face {
+  font-family: "Handon 3gyeopsal";
+  src: url("../../fonts/woff2/HandonSamgyeopsal-300g.woff2") format("woff2"),
+       url("../../fonts/woff/HandonSamgyeopsal-300g.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Handon 3gyeopsal";
+  src: url("../../fonts/woff2/HandonSamgyeopsal-600g.woff2") format("woff2"),
+       url("../../fonts/woff/HandonSamgyeopsal-600g.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
