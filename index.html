@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffecec">
+<title>자두야 — 홈</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+
+<div class="app" id="app" data-sheet-state="peek">
+
+  <!-- ============ Hero / World ============ -->
+  <div class="hero" aria-hidden="true">
+    <div class="hero__background">
+      <img src="assets/img/screen-background.png" alt="">
+    </div>
+    <div class="hero__illustration">
+      <img class="hero__tree" src="assets/img/hero-tree.png" alt="">
+      <img class="hero__ground" src="assets/img/hero-ground.png" alt="">
+      <img class="hero__character" src="assets/img/hero-character.png" alt="">
+      <img class="hero__accent" src="assets/img/hero-accent.png" alt="">
+      <img class="hero__cup" src="assets/img/hero-cup.png" alt="">
+    </div>
+  </div>
+
+  <!-- ============ Header ============ -->
+  <header class="header">
+    <div class="status-bar">
+      <p class="status-bar__time">9:41</p>
+      <img class="status-bar__icons" src="assets/icon/status-icons.svg" alt="">
+    </div>
+    <div class="nav-header">
+      <div class="nav-header__brand">
+        <img class="nav-header__logo" src="assets/icon/logo-mark.svg" alt="">
+        <span class="nav-header__name">자두야</span>
+      </div>
+      <div class="nav-header__actions">
+        <button type="button" class="icon-btn icon-bell" aria-label="알림">
+          <img class="icon-bell__body" src="assets/icon/bell-body.svg" alt="">
+          <img class="icon-bell__clapper" src="assets/icon/bell-clapper.svg" alt="">
+          <span class="icon-bell__badge"><i></i></span>
+        </button>
+        <button type="button" class="icon-btn" aria-label="메뉴">
+          <img class="icon-btn__img" src="assets/icon/header-menu.svg" alt="">
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ Hero copy ============ -->
+  <div class="greeting">
+    <p class="greeting__situation">입주까지 D-12</p>
+    <div class="greeting__body">
+      <h1 class="greeting__title">서준님,<br>나른한 오후예요.</h1>
+      <p class="greeting__sub">오늘도 하나씩 준비해봐요.</p>
+    </div>
+  </div>
+
+  <!-- ============ Tip box ============ -->
+  <div class="tip-box" id="tipBox">
+    <div class="tip-box__inner">
+      <img class="tip-box__icon" src="assets/img/tip-box-icon.png" alt="">
+      <p class="tip-box__text">첫날 박스는 따로 챙겨두세요</p>
+      <img class="tip-box__info" src="assets/icon/info.svg" alt="">
+      <button type="button" class="tip-box__close" id="tipBoxClose" aria-label="안내 닫기">
+        <img src="assets/icon/close-sm.svg" alt="">
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ Home dashboard sheet ============ -->
+  <section class="sheet" id="sheet" aria-label="홈 대시보드">
+    <div class="sheet__handle-wrap"
+         id="sheetHandle"
+         role="button"
+         tabindex="0"
+         aria-expanded="false"
+         aria-controls="sheetScroll"
+         aria-label="대시보드 펼치기">
+      <span class="sheet__handle"></span>
+    </div>
+
+    <div class="sheet__scroll" id="sheetScroll">
+
+      <!-- ---- ② 내 생활 (Personal Widget Canvas) ---- -->
+      <section class="my-life">
+        <div class="section-header">
+          <div class="section-header__title">
+            <h2>내 생활</h2>
+            <img class="section-header__plus" src="assets/icon/plus-small.svg" alt="">
+          </div>
+          <div class="section-header__status">
+            <div class="stat-bar stat-bar--love">
+              <span class="stat-bar__bar">1,200</span>
+              <img class="stat-bar__badge" src="assets/img/badge-love.png" alt="">
+            </div>
+            <div class="stat-bar stat-bar--level">
+              <span class="stat-bar__bar">Level.41</span>
+              <img class="stat-bar__badge" src="assets/img/badge-level.png" alt="">
+            </div>
+          </div>
+        </div>
+
+        <div class="module-grid">
+          <div class="module-grid__row">
+            <article class="widget widget--medium">
+              <div class="widget__header">
+                <p class="widget__title">생활비</p>
+                <div class="ring">
+                  <img class="ring__track" src="assets/icon/ring-track.svg" alt="">
+                  <img class="ring__progress" src="assets/icon/ring-progress.svg" alt="">
+                  <span class="ring__value">84%</span>
+                </div>
+              </div>
+              <p class="widget__value">84.2만원 사용</p>
+              <p class="widget__secondary">예산 15.8만원 남음</p>
+            </article>
+
+            <article class="widget widget--medium">
+              <div class="widget__header">
+                <p class="widget__title">주거</p>
+                <p class="widget__dday">D-7</p>
+              </div>
+              <div class="widget__stack">
+                <p class="widget__value">월세 55만원</p>
+                <p class="widget__secondary">9/5 납부</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="module-grid__row module-grid__row--small">
+            <article class="module-card">
+              <p class="module-card__title">냉장고</p>
+              <p class="module-card__value">우유 D-2</p>
+            </article>
+
+            <article class="module-card">
+              <p class="module-card__title">고정지출</p>
+              <div class="module-card__services">
+                <span class="service service--netflix">N</span>
+                <span class="service service--youtube"><img src="assets/icon/youtube-play.svg" alt=""></span>
+                <span class="service service--disney">D+</span>
+                <span class="service-more">+2</span>
+              </div>
+            </article>
+
+            <div class="module-card module-card--add">
+              <img src="assets/icon/plus-add.svg" alt="위젯 추가">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- ③ 자두의 발견 ---- -->
+      <section class="discovery">
+        <div class="discovery__top">
+          <h2>자두가 알려드려요</h2>
+        </div>
+
+        <div class="discovery__body">
+          <div class="discovery__row">
+            <div class="discovery__col">
+              <article class="today-card">
+                <p class="today-card__date">09.04 금요일</p>
+                <p class="today-card__note">오늘은 분리수거하는 날!</p>
+              </article>
+
+              <article class="info-card info-card--sale">
+                <div class="info-card__top">
+                  <div class="info-card__label-row">
+                    <p class="info-card__label">오늘의 장보기</p>
+                    <span class="info-card__ad">AD</span>
+                  </div>
+                  <div class="info-card__tit">
+                    <p class="info-card__headline">이마트 세일</p>
+                    <p class="info-card__period">9.3 – 9.5</p>
+                  </div>
+                </div>
+                <div class="info-card__foot">
+                  <p class="info-card__foot-label">신선식품</p>
+                  <p class="info-card__foot-value">최대 30%</p>
+                </div>
+              </article>
+            </div>
+
+            <!-- 장보기 일러스트는 카드 밖(row 기준)에 배치된다 — Figma 동일 -->
+            <div class="info-card__art info-card__art--basket" aria-hidden="true">
+              <img src="assets/img/discovery-sprite.png" alt="">
+            </div>
+
+            <article class="info-card info-card--weather">
+              <div class="info-card__top">
+                <p class="info-card__label">오늘의 외출 팁</p>
+                <div class="info-card__tit">
+                  <p class="info-card__headline">우산 챙기세요!</p>
+                  <p class="info-card__desc">소나기 소식이 있어요</p>
+                </div>
+              </div>
+              <p class="info-card__temp">최고 기온 24°</p>
+              <div class="info-card__art info-card__art--umbrella" aria-hidden="true">
+                <div class="info-card__art-rotate">
+                  <img src="assets/img/discovery-sprite.png" alt="">
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="carousel-dots" aria-hidden="true">
+            <span class="dot dot--active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ============ Tab bar ============ -->
+  <nav class="tab-bar" aria-label="주요 메뉴">
+    <div class="tab-bar__nav">
+      <a class="tab-item" href="#">
+        <img class="tab-item__icon" src="assets/icon/nav-life.svg" alt="">
+        <span class="tab-item__label">생활</span>
+      </a>
+      <a class="tab-item" href="#">
+        <img class="tab-item__icon" src="assets/icon/nav-money.svg" alt="">
+        <span class="tab-item__label">돈관리</span>
+      </a>
+      <a class="tab-item tab-item--home is-active" href="#" aria-current="page">
+        <img class="tab-item__icon tab-item__icon--home" src="assets/icon/nav-home.svg" alt="">
+        <span class="tab-item__label">홈</span>
+      </a>
+      <a class="tab-item" href="#">
+        <img class="tab-item__icon" src="assets/icon/nav-community.svg" alt="">
+        <span class="tab-item__label">커뮤니티</span>
+      </a>
+      <a class="tab-item" href="#">
+        <img class="tab-item__icon" src="assets/icon/nav-my.svg" alt="">
+        <span class="tab-item__label">마이</span>
+      </a>
+    </div>
+    <img class="tab-bar__mascot" src="assets/icon/nav-home-mascot-active.svg" alt="">
+    <div class="tab-bar__bottom">
+      <img class="tab-bar__home-indicator" src="assets/icon/home-indicator.svg" alt="">
+    </div>
+  </nav>
+
+</div>
+
+<script src="js/home.js"></script>
+</body>
+</html>
