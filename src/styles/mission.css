@@ -36,7 +36,17 @@
   font: 600 16px/1 var(--font-a2z);
 }
 
+.mission__info {
+  display: flex;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .mission__level h2 img {
+  display: block;
   width: 20px;
   height: 20px;
 }

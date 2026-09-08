@@ -4,9 +4,10 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
+import { LevelInfoPopover } from '../components/LevelInfoPopover';
 import { DEFAULT_MENU } from '../data/menuCatalog';
 import { DEFAULT_PERSONA } from '../data/personaHome';
-import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
+import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import {
   CATEGORY_CHIP,
   MISSIONS,
@@ -38,6 +39,20 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const filterRef = useRef<HTMLDivElement>(null);
+  /* 레벨 안내 팝오버 — info 버튼 위치를 재서 그 아래에 띄운다 */
+  const appRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLButtonElement>(null);
+  const [levelInfo, setLevelInfo] = useState<{ top: number; left: number } | null>(null);
+
+  const openLevelInfo = () => {
+    const button = infoRef.current?.getBoundingClientRect();
+    const app = appRef.current?.getBoundingClientRect();
+    if (!button || !app) return;
+    setLevelInfo({
+      top: button.bottom - app.top + 12,
+      left: button.left + button.width / 2 - app.left,
+    });
+  };
 
   const options = useMemo(() => categoryOptions(MISSIONS), []);
   const missions = useMemo(
@@ -70,7 +85,7 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
   };
 
   return (
-    <div className="mission app">
+    <div className="mission app" ref={appRef}>
       <SubPageHeader
         title="자취 미션"
         backLabel="마이페이지로"
@@ -83,7 +98,17 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
         <section className="mission__level" aria-labelledby="mission-level-title">
           <h2 id="mission-level-title">
             나의 자취 레벨
-            <img src={icon('info-warn.svg')} alt="" />
+            <button
+              type="button"
+              className="mission__info"
+              aria-label="자취 레벨 안내 보기"
+              aria-haspopup="dialog"
+              aria-expanded={levelInfo !== null}
+              ref={infoRef}
+              onClick={openLevelInfo}
+            >
+              <img src={icon('info-warn.svg')} alt="" />
+            </button>
           </h2>
           <div className="mission__level-row">
             <span className="mission__level-title">
@@ -260,6 +285,16 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
       <p className="mission__notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}
       </p>
+
+      {levelInfo && (
+        <LevelInfoPopover
+          stages={LEVEL_STAGE_LIST}
+          stage={level.stage}
+          anchorTop={levelInfo.top}
+          anchorLeft={levelInfo.left}
+          onClose={() => setLevelInfo(null)}
+        />
+      )}
 
       <BottomNavigation activeTab="my" />
       <GnbOverlay
