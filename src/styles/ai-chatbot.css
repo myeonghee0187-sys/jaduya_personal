@@ -1,0 +1,149 @@
+/* JADUYA — AI 챗봇 (플로팅 버튼 + 패널)
+ * 값은 tokens.css 의 디자인 토큰을 쓰고, 패널 셸은 overlays.css 의 .bsheet 를 재사용한다. */
+
+/* ================= 플로팅 버튼 ================= */
+
+.ai-fab {
+  position: absolute;
+  /* 헤더(30) / 시트(20) / 바텀네비(40) 위, 오버레이(60) 아래 */
+  z-index: 50;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  touch-action: none; /* 드래그 중 스크롤 제스처와 충돌하지 않게 */
+  filter: drop-shadow(0 6px 14px rgba(60, 50, 45, 0.24));
+  transition: left 200ms ease, right 200ms ease, top 200ms ease;
+}
+
+.ai-fab[hidden] {
+  display: none;
+}
+
+/* 드래그 중에는 손가락을 즉시 따라와야 하므로 트랜지션을 끈다 */
+.ai-fab.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.ai-fab img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ================= 패널 ================= */
+
+.ai-chat {
+  height: 72%;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--surface-cream);
+  padding: 0 var(--screen-margin) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+}
+
+.ai-chat__header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0 var(--space-sm);
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.ai-chat__title {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.ai-chat__close {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.ai-chat__close img {
+  width: 24px;
+  height: 24px;
+}
+
+.ai-chat__messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) 0;
+}
+
+.ai-chat__empty {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.ai-chat__input-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-warm);
+}
+
+.ai-chat__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-base);
+  font-family: var(--font-suit);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.ai-chat__input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.ai-chat__input::placeholder {
+  color: var(--text-primary);
+  opacity: 0.6;
+}
+
+.ai-chat__send {
+  flex: none;
+  height: 44px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  letter-spacing: -0.14px;
+  color: #fff;
+}
+
+.ai-chat__send:disabled {
+  background: var(--border-warm);
+  color: var(--surface-cream);
+  cursor: default;
+}

@@ -149,3 +149,90 @@
     height: 34px;
   }
 }
+
+/* ================= 실기기 모바일 viewport 대응 =================
+ *
+ * pointer: coarse (실제 터치 기기)에서만 적용된다. 데스크톱 웹 데모
+ * (pointer: fine)는 위 블록에서 이미 402×874 고정 프레임을 유지하므로
+ * 이 블록의 영향을 받지 않는다.
+ *
+ * 목적: large viewport 기준의 100% 높이가 모바일 브라우저 주소창/하단바
+ * 뒤로 콘텐츠를 밀어내는 문제, 402px 고정 폭이 그보다 좁은 실기기에서
+ * 잘리는 문제, Hero/시트/Tip Box 의 고정 px 배치가 짧은 화면에서 겹치는
+ * 문제를 dvh/%/flex/env() 로 해결한다. 디자인 값(색·폰트·radius·간격)은
+ * 바꾸지 않는다.
+ */
+@media (hover: none) and (pointer: coarse) {
+  /* (1) 높이 기준을 dvh 로 — 구형 폴백 다음에 dvh 를 덮어써 실제 보이는
+   * 높이에 맞춘다. */
+  html,
+  body,
+  #root {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .app {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: var(--frame-height);
+  }
+
+  /* (2) 402px 고정 폭 제거 — 실기기 폭에 맞춰 늘어나게 한다. */
+  .header,
+  .sheet,
+  .tab-bar,
+  .tab-bar__bottom {
+    width: 100%;
+  }
+
+  .tab-item {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* (3) 시트 위치를 화면 높이에서 역산 — peek/expanded 의 간격(299px)은
+   * 그대로 두고, 짧은 화면에서는 Hero 쪽 여유 공간만 줄어들게 한다. */
+  .app {
+    --sheet-top: calc(100% - 299px);
+  }
+
+  .app[data-sheet-state='expanded'] {
+    --sheet-top: min(113px, calc(100% - 299px));
+  }
+
+  /* (4) Hero 를 남은 높이에 맞추기 */
+  .hero {
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero__background {
+    width: 100%;
+    height: 100%;
+    top: 0;
+  }
+
+  .hero__illustration {
+    top: auto;
+    bottom: 362px; /* 시트 peek 높이 299px + 63px */
+  }
+
+  /* (5) Tip Box 가 탭바/시트와 겹치지 않게, 좌우 여백 기반으로 */
+  .tip-box {
+    top: auto;
+    bottom: 327px; /* 시트 peek 높이 299px + 28px */
+    left: var(--space-md);
+    right: var(--space-md);
+    width: auto;
+  }
+
+  .tip-box__inner {
+    left: 0;
+    right: 0;
+    width: auto;
+    transform: none;
+  }
+}

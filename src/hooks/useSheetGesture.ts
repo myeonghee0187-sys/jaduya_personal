@@ -8,6 +8,22 @@ import type { SheetState } from '../types';
 const SHEET_TOP: Record<SheetState, number> = { peek: 575, expanded: 113 };
 const DRAG_THRESHOLD = 40; // px
 
+/* 실기기(작은/짧은 화면)에서는 CSS 의 --sheet-top 이
+ * calc(100% - 299px) 로 화면 높이에서 역산되므로, 드래그 중에도
+ * 874px 프레임 기준 상수(SHEET_TOP) 를 그대로 쓰면 짧은 화면에서
+ * 시트가 튄다. .sheet 의 offsetParent(.app) 실제 높이를 기준으로
+ * peek/expanded px 를 CSS 와 동일한 공식(peek: 100% - 299px,
+ * expanded: min(113px, peek))으로 다시 계산한다. .app 을 찾을 수
+ * 없으면(테스트 환경 등) 기존 상수로 폴백한다. */
+function getSheetTop(sheet: HTMLElement | null): Record<SheetState, number> {
+  const parent = sheet?.offsetParent as HTMLElement | null;
+  const appHeight = parent?.clientHeight;
+  if (!appHeight) return SHEET_TOP;
+  const peek = appHeight - 299;
+  const expanded = Math.min(SHEET_TOP.expanded, peek);
+  return { peek, expanded };
+}
+
 interface DragInfo {
   id: number;
   startY: number;
@@ -61,8 +77,9 @@ export function useSheetGesture() {
     const delta = drag.y - drag.startY;
     if (Math.abs(delta) > 3) drag.moved = true;
 
-    const base = SHEET_TOP[stateRef.current];
-    const top = Math.min(SHEET_TOP.peek, Math.max(SHEET_TOP.expanded, base + delta));
+    const bounds = getSheetTop(sheetRef.current);
+    const base = bounds[stateRef.current];
+    const top = Math.min(bounds.peek, Math.max(bounds.expanded, base + delta));
     if (sheetRef.current) sheetRef.current.style.top = `${top}px`;
   }, []);
 
