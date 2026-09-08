@@ -315,7 +315,23 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap;
 }
 
-.tip-box__info { width: 18px; height: 18px; flex: none; }
+.tip-box__info { width: 18px; height: 18px; flex: none; padding: 0; }
+.tip-box__info img { width: 18px; height: 18px; }
+.tip-box__details {
+  position: absolute;
+  left: 83px;
+  top: 0;
+  z-index: 1;
+  width: 283px;
+  padding: 11px 14px 18px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 1.5px rgba(0, 0, 0, .06), 0 6px 9px rgba(0, 0, 0, .14);
+  color: var(--text-muted);
+  font-family: var(--font-suit);
+  font-size: 14px;
+  line-height: 1.4;
+}
 
 .tip-box__close { width: 24px; height: 24px; flex: none; }
 .tip-box__close img { width: 24px; height: 24px; }

@@ -20,3 +20,132 @@
   width: 100%;
   height: 100%;
 }
+
+/* ================= 가짜 iOS 상태바 표시 조건 =================
+ *
+ * .status-bar (9:41 / 신호 / Wi-Fi / 배터리) 는 iPhone 디바이스 프리뷰용
+ * 장식이다. 실제 모바일·앱 환경에는 OS 상태바가 이미 있으므로 중복해서
+ * 노출하지 않는다.
+ *
+ * 기본값은 "숨김" 이고, 아래 데스크톱 웹 프리뷰 미디어쿼리에서만 되살린다.
+ * (프레임 프리뷰 조건과 같은 조건으로 묶어야 두 규칙이 어긋나지 않는다.)
+ *
+ * 숨길 때 높이를 0 으로 만들지 않고 env(safe-area-inset-top) 만큼 남긴다.
+ * .status-bar 는 .header / .gnb__header 안에서 nav-header 바로 위에 놓인
+ * 흐름 요소라, 이 높이가 그대로 상단 Safe Area 스페이서가 된다.
+ * (index.html 에 viewport-fit=cover 가 이미 지정되어 있다.)
+ */
+
+.status-bar {
+  height: env(safe-area-inset-top, 0px);
+  padding: 0;
+}
+
+.status-bar__time,
+.status-bar__icons {
+  display: none;
+}
+
+/* ================= 하단 Safe Area / Home Indicator =================
+ *
+ * .tab-bar 는 nav(57px) + 하단 영역(34px) = 91px 로 그려져 있고,
+ * 하단 34px 안에 iPhone Home Indicator 이미지가 들어 있다.
+ * 이것도 상태바와 같은 디바이스 프리뷰용 장식이다.
+ *
+ * 기본값(실제 모바일·앱): 그려진 Home Indicator 를 숨기고 하단 영역 높이를
+ * env(safe-area-inset-bottom) 으로 대체한다. 인셋이 0 인 환경에서는 과도한
+ * 흰색 영역 없이 nav 만 남고, 노치 기기에서는 시스템 제스처 영역만큼만
+ * 탭바 배경이 연장되어 Bottom Navigation 이 겹치지 않는다.
+ *
+ * --tab-bar-h 는 .sheet__scroll 의 하단 padding 에도 쓰이므로
+ * 변수 하나만 바꿔 콘텐츠 여백까지 함께 맞춘다.
+ */
+
+.app {
+  --tab-bar-h: calc(57px + env(safe-area-inset-bottom, 0px));
+}
+
+.tab-bar__home-indicator {
+  display: none;
+}
+
+/* nav 바로 아래부터 탭바 끝까지 채워 인셋 구간에 빈 틈이 생기지 않게 한다. */
+.tab-bar__bottom {
+  top: 56px;
+  height: auto;
+}
+
+/* ================= Web preview frame (desktop) =================
+ *
+ * PC 웹 브라우저에서는 402 × 874 모바일 프레임을 그대로 유지하고
+ * 화면 가운데에 놓는다. 프레임 바깥은 웹 배경(#d9d3cc)으로 처리한다.
+ *
+ * home.css 의
+ *   @media (max-width: 401px), (max-height: 873px) { ... }
+ * 는 세로가 874px 보다 짧은 데스크톱(예: 1440×800)에서도 걸려
+ * .app 이 화면 높이만큼 늘어나고 웹 배경이 사라진다.
+ * 마우스 포인터를 쓰는 넓은 화면에서만 그 규칙을 되돌린다.
+ * 실제 모바일 기기(pointer: coarse)의 동작은 그대로 둔다.
+ *
+ * 프레임 내부 레이아웃/디자인 값은 건드리지 않는다.
+ */
+
+@media (pointer: fine) and (min-width: 402px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    background: #d9d3cc;
+  }
+
+  /* 뷰포트보다 프레임이 높을 때 위쪽이 잘리지 않도록
+   * 고정 높이 대신 min-height 로 늘어나게 둔다. */
+  #root {
+    height: auto;
+    min-height: 100%;
+    padding: 24px 0;
+  }
+
+  .app {
+    flex: 0 0 auto;
+    width: var(--frame-width);
+    max-width: var(--frame-width);
+    height: var(--frame-height);
+    max-height: var(--frame-height);
+
+    /* 웹에서만 쓰는 디바이스 컨테이너 마감.
+     * 실물 iPhone 베젤/목업은 만들지 않고 모서리와 그림자만 준다.
+     * overflow: hidden 은 home.css 의 .app 이 이미 갖고 있어
+     * 라운드 밖으로 내부 콘텐츠가 새지 않는다. */
+    border-radius: 30px;
+    box-shadow:
+      0 24px 60px rgba(60, 50, 45, 0.18),
+      0 2px 8px rgba(60, 50, 45, 0.08);
+  }
+
+  /* 데스크톱 웹에서는 iPhone 상태바까지 포함한 디바이스 프리뷰로 보여준다.
+   * home.css 의 원래 값(50px / 좌우 screen-margin)을 그대로 되돌린다. */
+  .status-bar {
+    height: 50px;
+    padding: 0 var(--screen-margin);
+  }
+
+  .status-bar__time,
+  .status-bar__icons {
+    display: block;
+  }
+
+  /* 웹 데모에서는 하단 Safe Area 34px + Home Indicator 표현을 유지한다.
+   * home.css 의 원래 값 그대로. */
+  .app {
+    --tab-bar-h: 91px;
+  }
+
+  .tab-bar__home-indicator {
+    display: block;
+  }
+
+  .tab-bar__bottom {
+    top: auto;
+    height: 34px;
+  }
+}

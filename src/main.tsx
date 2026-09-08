@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { AuthProvider } from './auth/AuthContext';
 
 /* 스타일 로드 순서 — 정적 버전과 동일한 캐스케이드를 유지한다.
  *   fonts     : @font-face 선언
@@ -13,6 +14,7 @@ import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/home.css';
 import './styles/overlays.css';
+import './styles/auth.css';
 import './styles/app-shell.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -21,7 +23,9 @@ if (!container) throw new Error('#root 를 찾을 수 없습니다.');
 
 createRoot(container).render(
   <StrictMode>
-    <App />
-    <SpeedInsights />
+    <AuthProvider>
+      <App />
+      <SpeedInsights />
+    </AuthProvider>
   </StrictMode>,
 );
