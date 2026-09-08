@@ -3,12 +3,14 @@
 
 /* ================= 플로팅 버튼 ================= */
 
+/* 지름은 AIChatbotButton.tsx 의 SIZE 상수(64)와 같아야 한다.
+ * 드래그 클램프와 좌/우 스냅 중심 계산이 그 값을 쓴다. */
 .ai-fab {
   position: absolute;
   /* 헤더(30) / 시트(20) / 바텀네비(40) 위, 오버레이(60) 아래 */
   z-index: 50;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-pill);

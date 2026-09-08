@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { icon } from '../lib/asset';
 import { AccountSwitchSheet } from './auth/AccountSwitchSheet';
@@ -11,9 +11,23 @@ interface BottomNavigationProps {
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
   const [selectedTab, setSelectedTab] = useState<TabId>('home');
-  /* 개발·발표용 계정 전환 — 마이 탭 hover 말풍선에서만 연다 */
+  /* 개발·발표용 계정 전환.
+   * hover 는 데스크톱 편의일 뿐이고, 실제 동작은 탭(클릭)으로 고정하는 pinned 상태가 담당한다.
+   * 터치 기기에는 hover 가 없으므로 pinned 없이는 열리지 않는다. */
   const [switchHover, setSwitchHover] = useState(false);
+  const [switchPinned, setSwitchPinned] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const myTabRef = useRef<HTMLDivElement>(null);
+
+  /* 바깥을 누르면 닫는다 (터치·마우스 공통) */
+  useEffect(() => {
+    if (!switchPinned) return;
+    const onOutside = (event: PointerEvent) => {
+      if (!myTabRef.current?.contains(event.target as Node)) setSwitchPinned(false);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [switchPinned]);
   const currentTab = activeTab ?? selectedTab;
   const tabs: Array<[TabId, string, string]> = [
     ['life', '생활', 'nav-life.svg'], ['money', '돈관리', 'nav-money.svg'],
@@ -32,7 +46,12 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
           const isActive = currentTab === id;
           const item = (
             <a className={`tab-item${id === 'home' ? ' tab-item--home' : ''}${isActive ? ' is-active' : ''}`} href="#" aria-current={isActive ? 'page' : undefined} onClick={(event) => selectTab(id, event)}>
-              <img className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}`} src={icon(asset)} alt="" />
+              {/* active 홈은 마스코트를 탭 안에서 라벨 바로 위에 쓴다 */}
+              <img
+                className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}`}
+                src={icon(id === 'home' ? (isActive ? 'nav-home-mascot-active.svg' : 'nav-home-mascot.svg') : asset)}
+                alt=""
+              />
               <span className="tab-item__label">{label}</span>
             </a>
           );
@@ -41,13 +60,23 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
           return (
             <div
               key={id}
+              ref={myTabRef}
               className="tab-item-wrap"
               onMouseEnter={() => setSwitchHover(true)}
               onMouseLeave={() => setSwitchHover(false)}
+              /* 탭(클릭/터치)으로 열고 닫는다 — hover 에 의존하지 않는다 */
+              onClick={() => setSwitchPinned((pinned) => !pinned)}
             >
               {item}
-              <div className="account-switch__bubble" hidden={!switchHover}>
-                <button type="button" onClick={() => setSwitchOpen(true)}>
+              <div className="account-switch__bubble" hidden={!(switchHover || switchPinned)}>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSwitchPinned(false);
+                    setSwitchOpen(true);
+                  }}
+                >
                   계정 전환
                 </button>
               </div>
@@ -55,7 +84,6 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
           );
         })}
       </div>
-      <img className="tab-bar__mascot" src={icon(currentTab === 'home' ? 'nav-home-mascot-active.svg' : 'nav-home-mascot.svg')} alt="" />
       <div className="tab-bar__bottom">
         <img className="tab-bar__home-indicator" src={icon('home-indicator.svg')} alt="" />
       </div>

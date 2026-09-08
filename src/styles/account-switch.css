@@ -71,14 +71,12 @@
   color: var(--text-primary);
 }
 
-.account-switch__bubble button:hover {
-  color: var(--brand-primary);
-}
 
-/* hover 가 없는 환경(실제 모바일)에서는 말풍선을 노출하지 않는다.
- * 모바일 진입점은 마이페이지가 생기면 AccountSwitchSheet 를 직접 열어 붙인다. */
-@media (hover: none) {
-  .account-switch__bubble {
-    display: none;
+/* 노출 여부는 React state(hidden 속성)가 결정한다.
+ * hover 는 데스크톱 보조 효과일 뿐이라 여기서 display 를 건드리지 않는다.
+ * (터치 기기에서는 마이 탭을 눌러 열고, 바깥을 눌러 닫는다.) */
+@media (hover: hover) and (pointer: fine) {
+  .account-switch__bubble button:hover {
+    color: var(--brand-primary);
   }
 }

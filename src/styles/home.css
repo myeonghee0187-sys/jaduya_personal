@@ -252,7 +252,7 @@ a { text-decoration: none; color: inherit; }
 .greeting__title {
   margin: 0;
   font-family: var(--font-a2z);
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 500;
   line-height: 1.2;
   color: var(--text-heading);
@@ -263,7 +263,7 @@ a { text-decoration: none; color: inherit; }
   margin: 0;
   word-break: keep-all;
   font-family: var(--font-suit);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 22px;
   color: var(--text-muted);
@@ -994,7 +994,7 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 13.41px 0 13.39px;
+  padding: 3px 13.41px 8px 13.39px;
   border-radius: 10px 10px 0 0;
   background: var(--surface-subtle);
 }
@@ -1010,7 +1010,19 @@ a { text-decoration: none; color: inherit; }
 }
 
 .tab-item__icon { width: 24px; height: 24px; }
-.tab-item__icon--home { width: 22px; height: 22px; }
+/* 홈 아이콘은 일반 탭(24px)과 별개로 크기를 고정한다.
+ * active / inactive 모두 57px 이고 이미지(마스코트)만 바뀐다.
+ * 레이아웃이 차지하는 높이는 22px 로 묶어(초과분 35px 은 margin-top 으로 위로만 흡수)
+ * 탭 높이·라벨 위치·아이콘-라벨 간격(4px)·바텀네비 높이를 두 상태에서 동일하게 유지한다. */
+.tab-item__icon--home {
+  width: 57px;
+  height: 57px;
+  /* 탭 안쪽 폭(64 - 16 = 48px)보다 커서 눌리는 걸 막는다.
+   * 전역 img { max-width: 100% } 도 함께 풀어야 한다. */
+  flex: none;
+  max-width: none;
+  margin-top: -35px; /* 57 - 22 */
+}
 
 .tab-item__label {
   padding-top: var(--space-2xs);
@@ -1028,13 +1040,6 @@ a { text-decoration: none; color: inherit; }
   color: var(--brand-primary);
 }
 
-.tab-bar__mascot {
-  position: absolute;
-  left: 170px;
-  top: -31px;
-  width: 62px;
-  height: 62px;
-}
 
 .tab-bar__bottom {
   position: absolute;
