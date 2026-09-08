@@ -18,9 +18,9 @@ interface MissionBase {
   description: string;
 }
 
-/** 진행중 / 완료 — 단계 진행도를 가진다 */
-interface SteppedMission extends MissionBase {
-  status: 'active' | 'done';
+/** 진행중 — 단계 진행도를 가진다 */
+interface ActiveMission extends MissionBase {
+  status: 'active';
   completed: number;
   total: number;
 }
@@ -31,7 +31,16 @@ interface AvailableMission extends MissionBase {
   estimatedTime: string;
 }
 
-export type Mission = SteppedMission | AvailableMission;
+/** 완료 — 진행도 대신 완료 시점과 부가 정보를 보여준다 */
+interface DoneMission extends MissionBase {
+  status: 'done';
+  /** 완료 시점 표시 문구 (예: 3일 전) */
+  completedAt: string;
+  /** 카드 우측 하단 부가 정보 (예: 배출 일정 알림 켜짐) */
+  secondaryInfo?: string;
+}
+
+export type Mission = ActiveMission | AvailableMission | DoneMission;
 
 export const MISSIONS: Mission[] = [
   {
@@ -73,6 +82,16 @@ export const MISSIONS: Mission[] = [
     description: '냉장고 속 식재료를 확인하고 필요한 재료를 정리해보세요',
     estimatedTime: '15분',
   },
+  {
+    id: 'recycle-day',
+    status: 'done',
+    category: '생활',
+    xp: 15,
+    title: '분리수거 요일 확인하기',
+    description: '우리 동네 재활용 배출 요일 및 시간 확인하기',
+    completedAt: '3일 전',
+    secondaryInfo: '배출 일정 알림 켜짐',
+  },
 ];
 
 /** 상태 탭 — '전체' 는 필터를 걸지 않는다 */
@@ -87,7 +106,8 @@ export const STATUS_TABS = [
 export const STATUS_CHIP: Record<MissionStatus, { label: string; background: string; color: string }> = {
   active: { label: '진행중', background: '#fbeceb', color: '#b43936' },
   available: { label: '시작가능', background: '#d9e0a6', color: '#232323' },
-  done: { label: '완료', background: '#e8e2d8', color: '#58413f' },
+  /* 완료 카드는 카테고리 chip 도 같은 회색을 쓴다 (Figma 2059:10016 / 2059:10018) */
+  done: { label: '완료됨', background: '#c8c8c8', color: '#757575' },
 };
 
 /** 카테고리 chip 배경 — 돈 관리 / 음식은 Figma 값 그대로 */
@@ -104,9 +124,10 @@ export function categoryOptions(missions: Mission[]): Array<MissionCategory | '�
   return ['전체', ...unique];
 }
 
-/** 0~100. 화면에서 퍼센트를 직접 쓰지 않게 여기서만 계산한다. */
+/** 0~100. 화면에서 퍼센트를 직접 쓰지 않게 여기서만 계산한다.
+ * 진행도를 가진 건 '진행중' 뿐이다. */
 export function missionProgress(mission: Mission): number {
-  if (mission.status === 'available') return 0;
+  if (mission.status !== 'active') return 0;
   if (mission.total <= 0) return 0;
   return Math.round((mission.completed / mission.total) * 100);
 }
