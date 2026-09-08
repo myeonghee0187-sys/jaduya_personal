@@ -261,6 +261,7 @@ a { text-decoration: none; color: inherit; }
 
 .greeting__sub {
   margin: 0;
+  word-break: keep-all;
   font-family: var(--font-suit);
   font-size: 16px;
   font-weight: 400;
@@ -298,13 +299,22 @@ a { text-decoration: none; color: inherit; }
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
   box-shadow: 0 4px 14px 0 rgba(46, 26, 36, 0.08);
+  cursor: pointer;
 }
 
 .tip-box__icon { width: 28px; height: 28px; flex: none; object-fit: cover; }
 
+.tip-box__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 0 0;
+  min-width: 0;
+}
+
 .tip-box__text {
   margin: 0;
-  flex: 1 0 0;
+  flex: 0 1 auto;
   min-width: 0;
   font-family: var(--font-suit);
   font-size: 14px;

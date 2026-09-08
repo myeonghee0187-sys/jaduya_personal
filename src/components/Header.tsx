@@ -3,10 +3,12 @@ import { BellButton } from './BellButton';
 import { StatusBar } from './StatusBar';
 
 interface HeaderProps {
-  onMenuClick: () => void;
+  onMenuClick?: () => void;
+  /** 인증 전 화면(로그인/회원가입)은 알림·전체메뉴를 노출하지 않는다 */
+  showActions?: boolean;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, showActions = true }: HeaderProps) {
   return (
     <header className="header">
       <StatusBar />
@@ -15,12 +17,14 @@ export function Header({ onMenuClick }: HeaderProps) {
           <img className="nav-header__logo" src={icon('logo-mark.svg')} alt="" />
           <span className="nav-header__name">자두야</span>
         </div>
-        <div className="nav-header__actions">
-          <BellButton />
-          <button type="button" className="icon-btn" aria-label="메뉴" onClick={onMenuClick}>
-            <img className="icon-btn__img" src={icon('header-menu.svg')} alt="" />
-          </button>
-        </div>
+        {showActions && (
+          <div className="nav-header__actions">
+            <BellButton />
+            <button type="button" className="icon-btn" aria-label="메뉴" onClick={onMenuClick}>
+              <img className="icon-btn__img" src={icon('header-menu.svg')} alt="" />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

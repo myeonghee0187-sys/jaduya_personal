@@ -1,14 +1,23 @@
-export function Greeting() {
+import type { HomeHeroContent } from '../types';
+
+/* Hero 위 인사 영역 — 레이아웃은 그대로 두고 문구만 persona 데이터에서 받는다. */
+interface GreetingProps {
+  /** 인사에 쓰는 이름 (성 제외) */
+  name: string;
+  hero: HomeHeroContent;
+}
+
+export function Greeting({ name, hero }: GreetingProps) {
   return (
     <div className="greeting">
-      <p className="greeting__situation">입주까지 D-12</p>
+      <p className="greeting__situation">{hero.situation}</p>
       <div className="greeting__body">
         <h1 className="greeting__title">
-          서준님,
+          {name}님,
           <br />
-          나른한 오후예요.
+          {hero.headline}
         </h1>
-        <p className="greeting__sub">오늘도 하나씩 준비해봐요.</p>
+        <p className="greeting__sub">{hero.sub}</p>
       </div>
     </div>
   );

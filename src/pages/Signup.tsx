@@ -2,13 +2,16 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Header } from '../components/Header';
 import { AuthField } from '../components/auth/AuthField';
+import { SignupTestSheet } from '../components/auth/SignupTestSheet';
+import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { useAuth } from '../auth/AuthContext';
-import { MOCK_USERS } from '../auth/mockUsers';
 import { icon } from '../lib/asset';
 
 /* 회원가입 화면 (Figma node 1864:5881 / 상태 예시 1908:7169) */
 interface SignupProps {
   onGoLogin: () => void;
+  /** 테스트 계정 시트에서 넘어온 경우 이메일을 채워 둔다 */
+  initialEmail?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,10 +22,10 @@ interface Agreements {
   marketing: boolean;
 }
 
-export function Signup({ onGoLogin }: SignupProps) {
+export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
   const { signup } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [nickname, setNickname] = useState('');
@@ -32,6 +35,8 @@ export function Signup({ onGoLogin }: SignupProps) {
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [duplicateEmail, setDuplicateEmail] = useState(false);
+  /* 개발·발표용 더미 정보 불러오기 시트 */
+  const [testSheetOpen, setTestSheetOpen] = useState(false);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const passwordValid = password.length >= 4;
@@ -53,6 +58,21 @@ export function Signup({ onGoLogin }: SignupProps) {
       : undefined;
   const confirmError = showConfirmError ? '비밀번호가 일치하지 않습니다.' : undefined;
 
+  /* 폼 값만 채운다. 가입 자체는 사용자가 회원가입 버튼을 눌러야 진행된다.
+   * validation 로직은 그대로 두고 입력값만 세팅하므로 버튼 활성 조건도 기존 그대로다. */
+  const applyTestProfile = (profile: SignupTestProfile) => {
+    setTestSheetOpen(false);
+    setEmail(profile.email);
+    setPassword(profile.password);
+    setPasswordConfirm(profile.password);
+    setNickname(profile.name);
+    /* 필수 약관만 체크하고 선택 항목은 그대로 둔다 */
+    setAgreements((prev) => ({ ...prev, terms: true, privacy: true }));
+    setDuplicateEmail(false);
+    setEmailTouched(false);
+    setConfirmTouched(false);
+  };
+
   const toggleAll = (checked: boolean) => {
     setAgreements({ terms: checked, privacy: checked, marketing: checked });
   };
@@ -71,17 +91,14 @@ export function Signup({ onGoLogin }: SignupProps) {
     if (!canSubmit) return;
 
     const key = email.trim().toLowerCase();
-    if (MOCK_USERS[key]) {
-      setDuplicateEmail(true);
-      return;
-    }
-
-    signup({ email: key, password, nickname: nickname.trim() });
+    /* 중복 판정은 AuthContext 가 한다 — 가입 전 데모 계정(이서준) 이메일은 허용된다 */
+    const ok = signup({ email: key, password, nickname: nickname.trim() });
+    if (!ok) setDuplicateEmail(true);
   };
 
   return (
     <div className="app auth">
-      <Header onMenuClick={() => {}} />
+      <Header showActions={false} />
       <div className="auth__body auth__body--signup">
         <div className="auth-intro">
           <h1 className="auth-intro__title">자두와 함께 시작해요</h1>
@@ -93,6 +110,15 @@ export function Signup({ onGoLogin }: SignupProps) {
             <AuthField
               id="signup-email"
               label="이메일"
+              labelExtra={
+                <button
+                  type="button"
+                  className="auth-testaccount"
+                  onClick={() => setTestSheetOpen(true)}
+                >
+                  테스트 정보 불러오기
+                </button>
+              }
               type="email"
               placeholder="이메일을 입력해주세요"
               value={email}
@@ -231,6 +257,12 @@ export function Signup({ onGoLogin }: SignupProps) {
           </div>
         </form>
       </div>
+
+      <SignupTestSheet
+        open={testSheetOpen}
+        onClose={() => setTestSheetOpen(false)}
+        onSelect={applyTestProfile}
+      />
     </div>
   );
 }
