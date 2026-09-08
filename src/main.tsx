@@ -23,6 +23,7 @@ import './styles/level-bar.css';
 import './styles/page-header.css';
 import './styles/mypage.css';
 import './styles/mission.css';
+import './styles/level-info.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

@@ -76,6 +76,22 @@ export const LEVEL_STAGES: Record<LevelStage, LevelStageDef> = {
   'ripe-plum': { step: 5, name: '잘 익은 자두', iconFile: 'level05_ripe_plum.webp' },
 };
 
+export interface ResolvedStage extends LevelStageDef {
+  stage: LevelStage;
+  /** img() 로 만든 절대 URL */
+  icon: string;
+}
+
+/** 성장 순서대로 정렬한 5단계 + 아이콘 경로.
+ * 로드맵처럼 전 단계를 함께 보여주는 화면이 쓴다 — 화면에서 파일명을 조합하지 않게 한다. */
+export const LEVEL_STAGE_LIST: ResolvedStage[] = (Object.keys(LEVEL_STAGES) as LevelStage[])
+  .map((stage) => ({
+    stage,
+    ...LEVEL_STAGES[stage],
+    icon: img(`level_icon/${LEVEL_STAGES[stage].iconFile}`),
+  }))
+  .sort((a, b) => a.step - b.step);
+
 /** 화면에 저장하는 레벨 원본 값 */
 export interface LevelSource {
   /** 하트 보유량 — Home stat bar 왼쪽 */

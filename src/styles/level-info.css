@@ -1,0 +1,211 @@
+/* JADUYA — 자취 레벨 안내 팝오버 (Figma 랭킹_레벨표식 2012:11018)
+ * .layer / .layer-dim 은 overlays.css 의 공통 레이어를 그대로 쓴다. */
+
+.level-info {
+  /* Figma 는 402 기준 좌우 15px. 좁은 화면에서도 같은 여백을 유지한다. */
+  --level-info-inset: 15px;
+  /* 레이어에서 시작한 스크롤이 뒤 화면/페이지로 넘어가지 않게 한다.
+   * (.layer 는 .mission__scroll 의 형제라 목록이 스크롤될 일은 없다) */
+  overscroll-behavior: contain;
+}
+
+/* Figma dim 은 rgba(0,0,0,.25) 로 공통 레이어보다 옅다 */
+.level-info .layer-dim {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.level-info__anchor {
+  position: absolute;
+  left: var(--level-info-inset);
+  right: var(--level-info-inset);
+  max-width: 372px;
+  margin: 0 auto;
+}
+
+/* info 버튼을 가리키는 삼각형 — 새 에셋 없이 CSS 로 그린다 */
+.level-info__pointer {
+  position: absolute;
+  top: -11px;
+  width: 0;
+  height: 0;
+  margin-left: -16px;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 12px solid var(--surface-subtle, #fcfaf7);
+}
+
+.level-info__card {
+  position: relative;
+  border-radius: 24px;
+  padding: 30px;
+  background: var(--surface-subtle, #fcfaf7);
+  box-shadow: 0 12px 32px rgba(60, 50, 45, 0.16);
+}
+
+.level-info__card:focus {
+  outline: none;
+}
+
+/* ================= 설명 ================= */
+
+.level-info__intro h2 {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 0 0 15px;
+  color: #3d302c;
+  font: 600 18px/1 var(--font-a2z);
+}
+
+.level-info__intro h2 img {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.level-info__intro p {
+  margin: 0;
+  padding: 0 0 26px 8px;
+  color: #a49173;
+  font: 400 12px/1.4 var(--font-suit);
+  /* 한글이 단어 중간에서 끊기지 않게 한다 */
+  word-break: keep-all;
+}
+
+/* ================= 로드맵 ================= */
+
+.level-info__roadmap-box {
+  border-top: 1px solid #d6d6d6;
+  padding-top: 26px;
+}
+
+.level-info__roadmap-box h3 {
+  margin: 0 0 20px;
+  color: #3d302c;
+  font: 600 18px/1 var(--font-a2z);
+}
+
+.level-info__roadmap {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 18px;
+  list-style: none;
+}
+
+.level-info__stage {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+/* 단계 사이 연결선 — 원 중심(위에서 30px)을 잇는다.
+ * 원이 불투명해서 선의 양 끝을 가린다. */
+.level-info__stage::after {
+  content: '';
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  right: calc(-50% - 6px);
+  height: 1px;
+  background: #c3615e;
+}
+
+/* 지나온 구간(completed·current 에서 나가는 선)만 진하고,
+ * next 이후로 나가는 선은 잠긴 색이다. */
+.level-info__stage.is-next::after,
+.level-info__stage.is-locked::after {
+  background: #e3e3e3;
+}
+
+.level-info__stage:last-child::after {
+  display: none;
+}
+
+/* 원의 지름이 40 / 60 으로 달라도 중심을 30px 에 맞춘다 */
+.level-info__circle-wrap {
+  position: relative;
+  z-index: 1;
+  height: 60px;
+  display: grid;
+  place-items: center;
+}
+
+.level-info__circle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.level-info__circle img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.level-info__step {
+  font: 500 10px/normal var(--font-asta);
+}
+
+.level-info__name {
+  font: 500 12px/normal var(--font-asta);
+  word-break: keep-all;
+}
+
+/* ---- 상태별 ---- */
+
+.level-info__stage.is-completed .level-info__circle,
+.level-info__stage.is-current .level-info__circle {
+  border-color: #c3615e;
+}
+
+.level-info__stage.is-completed .level-info__step,
+.level-info__stage.is-completed .level-info__name,
+.level-info__stage.is-current .level-info__step,
+.level-info__stage.is-current .level-info__name {
+  color: #c3615e;
+}
+
+.level-info__stage.is-current .level-info__circle img {
+  width: 22px;
+  height: 22px;
+}
+
+/* next — 가장 강조되는 상태 (60px dashed) */
+.level-info__stage.is-next .level-info__circle {
+  width: 60px;
+  height: 60px;
+  border: 2px dashed var(--brand-primary);
+}
+
+.level-info__stage.is-next .level-info__circle img {
+  width: 30px;
+  height: 30px;
+}
+
+.level-info__stage.is-next .level-info__step,
+.level-info__stage.is-next .level-info__name {
+  color: #e1b0af;
+}
+
+.level-info__stage.is-locked .level-info__circle img {
+  width: 21px;
+  height: 21px;
+  opacity: 0.3;
+}
+
+.level-info__stage.is-locked .level-info__step,
+.level-info__stage.is-locked .level-info__name {
+  color: #d6d6d6;
+}
