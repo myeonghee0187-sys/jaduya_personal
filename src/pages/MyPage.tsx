@@ -94,7 +94,14 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
               onClick={() => go('profile', '프로필 관리')}
             >
               프로필 관리
-              <img src={icon('chevron-right-sm.svg')} alt="" />
+              {/* 화살표는 버튼 텍스트 색(currentColor)으로 칠한다.
+                * 공용 chevron-right-sm.svg 는 fill 이 박혀 있고 다른 곳에서도 쓰므로
+                * 파일을 고치지 않고 이 버튼에서만 마스크로 색을 입힌다. */}
+              <i
+                className="mypage__profile-arrow"
+                style={{ maskImage: `url(${icon('chevron-right-sm.svg')})` }}
+                aria-hidden="true"
+              />
             </button>
           </div>
         </section>
