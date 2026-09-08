@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AIChatbot } from '../components/ai/AIChatbot';
 import { AddWidget } from '../components/AddWidget';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { DiscoverySection } from '../components/DiscoverySection';
@@ -93,6 +94,9 @@ export function Home() {
       </HomeSheet>
 
       <BottomNavigation />
+
+      {/* 전역 AI 챗봇 FAB + 패널 */}
+      <AIChatbot />
 
       <GnbOverlay
         open={layers.isOpen('gnb')}
