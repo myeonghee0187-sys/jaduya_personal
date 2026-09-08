@@ -10,7 +10,8 @@ import { AuthProvider } from './auth/AuthContext';
  *   overlays  : GNB / Bottom Sheet
  *   app-shell : #root 레이아웃 보정 (React 전용, 디자인 값 없음)
  *   level-bar : 공용 LevelBar 컴포넌트
- *   mypage    : 마이페이지 (.mypage.app 이 .app 을 덮어야 해서 마지막)
+ *   page-header : 하위 화면 공용 헤더
+ *   mypage / mission : 하위 화면 (.mypage.app / .mission.app 이 .app 을 덮어야 해서 마지막)
  */
 import './styles/fonts.css';
 import './styles/tokens.css';
@@ -19,7 +20,9 @@ import './styles/overlays.css';
 import './styles/auth.css';
 import './styles/app-shell.css';
 import './styles/level-bar.css';
+import './styles/page-header.css';
 import './styles/mypage.css';
+import './styles/mission.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

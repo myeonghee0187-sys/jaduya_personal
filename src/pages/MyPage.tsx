@@ -21,7 +21,8 @@ import { icon, img } from '../lib/asset';
 export type MyPageDestination = 'profile' | 'level' | 'activity' | 'settings' | 'support';
 
 interface MyPageProps {
-  onDetailNavigate?: (destination: MyPageDestination) => void;
+  /** 이동을 처리했으면 true. false/미지정이면 '준비 중' 안내를 그대로 띄운다. */
+  onDetailNavigate?: (destination: MyPageDestination) => boolean | void;
 }
 
 /* 마이페이지 — 개인 상태(프로필·레벨)와 활동을 한 화면에서 확인한다.
@@ -49,8 +50,9 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   }, [notice]);
 
   const go = (destination: MyPageDestination, label: string) => {
-    if (onDetailNavigate) onDetailNavigate(destination);
-    else setNotice(label + ' 화면은 준비 중이에요.');
+    /* 아직 화면이 없는 항목은 부모가 처리하지 않으므로 안내만 띄운다 */
+    if (onDetailNavigate?.(destination)) return;
+    setNotice(label + ' 화면은 준비 중이에요.');
   };
 
   return (

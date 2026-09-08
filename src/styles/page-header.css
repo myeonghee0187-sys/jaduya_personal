@@ -1,0 +1,67 @@
+/* JADUYA — 하위 화면 공용 헤더 (SubPageHeader)
+ * 값은 마이페이지 헤더와 동일하다. Figma navigation_header (1304:1717) */
+
+.page-header {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  background: rgba(252, 250, 247, 0.96);
+  box-shadow: 0 3px 4px rgba(51, 51, 51, 0.04);
+}
+
+.page-header__nav {
+  height: 50px;
+  padding: 0 var(--screen-margin);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.page-header__nav h1 {
+  margin: 0;
+  font: 500 20px/1 var(--font-a2z);
+  color: var(--brand-logo);
+}
+
+.page-header__back,
+.page-header__menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* gnb-back.svg 는 이미 왼쪽을 향한다 — 돌리지 않는다.
+ * preserveAspectRatio="none" 이라 원본 비율을 그대로 줘야 안 눌린다. */
+.page-header__back img {
+  width: 10.959px;
+  height: 19.613px;
+}
+
+.page-header__menu {
+  width: 28px;
+  height: 28px;
+}
+
+.page-header__menu img {
+  width: 24px;
+  height: 24px;
+}
+
+.page-header__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.page-header__actions .icon-btn {
+  width: 28px;
+  height: 28px;
+}
