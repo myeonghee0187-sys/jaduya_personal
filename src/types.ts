@@ -27,3 +27,25 @@ export interface WidgetDef {
 export interface LayerHistoryState {
   jaduyaLayers?: LayerName[];
 }
+
+/** Home 상단 인사 영역(Hero 위)의 persona 별 문구 */
+export interface HomeHeroContent {
+  /** 상단 상태 한 줄 (예: 입주까지 D-12) */
+  situation: string;
+  /** 인사 두 번째 줄. 첫 줄은 "{이름}님," 로 고정 */
+  headline: string;
+  /** 다음 행동 한 줄 */
+  sub: string;
+}
+
+/** TipBox 가 보여주는 팁 한 건 */
+export interface HomeTip {
+  title: string;
+  detail: string;
+}
+
+/** persona 별 Home 콘텐츠 묶음 */
+export interface HomePersonaContent {
+  hero: HomeHeroContent;
+  tips: HomeTip[];
+}

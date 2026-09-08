@@ -3,10 +3,24 @@
 
 export type Persona = 'worker' | 'beginner' | 'pet';
 
+/** 첫 맞춤 설정 결과.
+ * 설문 항목이 Figma 에서 확정되지 않아 answers 는 아직 비어 있는 형태로 둔다.
+ * 항목이 정해지면 answers 의 키를 확정하고 이 타입만 좁히면 된다. */
+export interface UserPreferences {
+  /** 맞춤 설정을 마친 시각 (ISO) */
+  completedAt: string;
+  /** 설문 항목 id → 선택한 값 목록 */
+  answers: Record<string, string[]>;
+}
+
 export interface AuthUser {
   name: string;
   email: string;
   persona: Persona;
+  /** 첫 맞춤 설정을 마쳤는지. false 면 Home 대신 맞춤 설정으로 보낸다. */
+  onboarded: boolean;
+  /** 맞춤 설정 결과 — Home 개인화에서 참조한다. 아직 없으면 null */
+  preferences: UserPreferences | null;
 }
 
 export interface MockAccount extends AuthUser {
@@ -23,6 +37,8 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     password: '1234',
     name: '김하린',
     persona: 'worker',
+    onboarded: true,
+    preferences: null,
     description: '직장인 자취러',
   },
   'seojun@jaduya.com': {
@@ -30,6 +46,8 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     password: '1234',
     name: '이서준',
     persona: 'beginner',
+    onboarded: true,
+    preferences: null,
     description: '자취 초보',
   },
   'ayoung@jaduya.com': {
@@ -37,13 +55,15 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     password: '1234',
     name: '조아영',
     persona: 'pet',
+    onboarded: true,
+    preferences: null,
     description: '반려동물과 함께 사는 자취러',
   },
 };
 
-/** 시트 노출 순서 고정 */
+/** 시트 노출 순서 고정 — 이서준 → 김하린 → 조아영 */
 export const TEST_ACCOUNTS: MockAccount[] = [
-  MOCK_USERS['harin@jaduya.com'],
   MOCK_USERS['seojun@jaduya.com'],
+  MOCK_USERS['harin@jaduya.com'],
   MOCK_USERS['ayoung@jaduya.com'],
 ];

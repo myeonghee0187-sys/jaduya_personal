@@ -12,6 +12,8 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
 import { DEFAULT_MENU, MAX_MENU } from '../data/menuCatalog';
 import { DEFAULT_WIDGETS, MAX_WIDGET } from '../data/widgetCatalog';
+import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
+import { useAuth } from '../auth/AuthContext';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
@@ -24,6 +26,10 @@ import { useSheetGesture } from '../hooks/useSheetGesture';
  *    └─ Add Widget Bottom Sheet
  */
 export function Home() {
+  /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
+  const { user } = useAuth();
+  const content = HOME_PERSONA_CONTENT[user?.persona ?? DEFAULT_PERSONA];
+
   const layers = useLayerStack();
   const sheet = useSheetGesture();
 
@@ -67,9 +73,9 @@ export function Home() {
 
       <Header onMenuClick={() => layers.open('gnb')} />
 
-      <Greeting />
+      <Greeting name={greetingName(user?.name ?? '')} hero={content.hero} />
 
-      <TipBox />
+      <TipBox tip={content.tips[0]} />
 
       <HomeSheet
         state={sheet.state}

@@ -5,16 +5,18 @@ import { AuthField } from '../components/auth/AuthField';
 import { TestAccountSheet } from '../components/auth/TestAccountSheet';
 import { useAuth } from '../auth/AuthContext';
 import { TEST_PASSWORD } from '../auth/mockUsers';
+import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
 import type { MockAccount } from '../auth/mockUsers';
 import { icon, img } from '../lib/asset';
 
 /* 로그인 화면 (Figma node 1864:5830) */
 interface LoginProps {
-  onGoSignup: () => void;
+  /** prefillEmail 이 있으면 회원가입 화면의 이메일을 채운 채로 연다 */
+  onGoSignup: (prefillEmail?: string) => void;
 }
 
 export function Login({ onGoSignup }: LoginProps) {
-  const { login } = useAuth();
+  const { login, demoSignedUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,8 +35,15 @@ export function Login({ onGoSignup }: LoginProps) {
     attemptLogin();
   };
 
+  /* 가입 전인 데모 계정(이서준)은 자동 입력 대신 회원가입으로 보낸다 */
+  const pendingSignupEmail = demoSignedUp ? null : DEMO_SIGNUP_EMAIL;
+
   const handleSelectAccount = (account: MockAccount) => {
     setSheetOpen(false);
+    if (account.email === pendingSignupEmail) {
+      onGoSignup(account.email);
+      return;
+    }
     setEmail(account.email);
     setPassword(TEST_PASSWORD);
     setError('');
@@ -42,7 +51,7 @@ export function Login({ onGoSignup }: LoginProps) {
 
   return (
     <div className="app auth">
-      <Header onMenuClick={() => {}} />
+      <Header showActions={false} />
       <div className="auth__body auth__body--login">
         <div className="auth__logo">
           <img className="auth__logo-img" src={img('auth-onboarding.svg')} width={147} height={70} alt="" />
@@ -119,14 +128,23 @@ export function Login({ onGoSignup }: LoginProps) {
 
           <div className="auth-signup-link">
             <span>아직 자두 계정이 없으신가요?</span>
-            <button type="button" className="auth-link" onClick={onGoSignup}>
+            <button type="button" className="auth-link" onClick={() => onGoSignup()}>
               회원가입
             </button>
           </div>
         </div>
       </div>
 
-      <TestAccountSheet open={sheetOpen} onClose={() => setSheetOpen(false)} onSelect={handleSelectAccount} />
+      <TestAccountSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onSelect={handleSelectAccount}
+        pendingSignupEmail={pendingSignupEmail}
+        onCreateAccount={() => {
+          setSheetOpen(false);
+          onGoSignup();
+        }}
+      />
     </div>
   );
 }
