@@ -391,6 +391,38 @@
   mask-size: contain;
 }
 
+/* 완료 카드 — 카드 골격은 그대로 두고 톤만 muted 로 (Figma 2059:10013) */
+.mission__card--done .mission__chip {
+  border-radius: 6px;
+  color: #757575;
+}
+
+.mission__card--done .mission__xp-badge {
+  color: #919191;
+}
+
+.mission__card--done .mission__card-title,
+.mission__card--done .mission__card-desc {
+  color: #5e5e5e;
+}
+
+.mission__card--done .mission__card-foot {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mission__done-at {
+  color: #919191;
+  font: 400 12px/1.4 var(--font-suit);
+}
+
+.mission__done-info {
+  flex: none;
+  color: #919191;
+  font: 500 11px/16.5px var(--font-suit);
+  text-align: right;
+}
+
 .mission__empty {
   margin: 48px 0;
   text-align: center;

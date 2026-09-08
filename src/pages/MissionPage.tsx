@@ -195,10 +195,13 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
             {missions.map((mission) => {
               const chip = STATUS_CHIP[mission.status];
               const isAvailable = mission.status === 'available';
+              const isDone = mission.status === 'done';
               return (
                 <article
                   key={mission.id}
-                  className={`mission__card${isAvailable ? ' mission__card--available' : ''}`}
+                  className={`mission__card${isAvailable ? ' mission__card--available' : ''}${
+                    isDone ? ' mission__card--done' : ''
+                  }`}
                 >
                   <div className="mission__card-top">
                     <span className="mission__chips">
@@ -210,7 +213,10 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
                       </span>
                       <span
                         className="mission__chip"
-                        style={{ background: CATEGORY_CHIP[mission.category] }}
+                        /* 완료 카드는 카테고리도 상태 chip 과 같은 회색 */
+                        style={{
+                          background: isDone ? chip.background : CATEGORY_CHIP[mission.category],
+                        }}
                       >
                         {mission.category}
                       </span>
@@ -225,7 +231,15 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
                   <p className="mission__card-desc">{mission.description}</p>
 
                   <div className="mission__card-foot">
-                    {isAvailable ? (
+                    {isDone ? (
+                      /* 완료 카드는 진행도·이어하기 대신 완료 시점과 부가 정보만 보여준다 */
+                      <>
+                        <span className="mission__done-at">완료 일시 : {mission.completedAt}</span>
+                        {mission.secondaryInfo && (
+                          <span className="mission__done-info">{mission.secondaryInfo}</span>
+                        )}
+                      </>
+                    ) : isAvailable ? (
                       <>
                         <span className="mission__time">예상 소요 시간: {mission.estimatedTime}</span>
                         <button
