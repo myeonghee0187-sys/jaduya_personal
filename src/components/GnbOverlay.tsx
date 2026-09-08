@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { icon } from '../lib/asset';
 import { findMenu } from '../data/menuCatalog';
+import { GNB_CATEGORIES, GNB_DEFAULT_OPEN } from '../data/gnbMenu';
 import { BellButton } from './BellButton';
 import { GnbMenuItem } from './GnbMenuItem';
 import { ShortcutCard } from './ShortcutCard';
 import { StatusBar } from './StatusBar';
+import { useAppNavigation } from '../navigation/AppNavigation';
 
 interface GnbOverlayProps {
   open: boolean;
@@ -16,8 +18,18 @@ interface GnbOverlayProps {
 
 /** ① GNB 전체메뉴 — Figma gnb_open (1432:4646) */
 export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProps) {
-  /* Figma 기준 '생활'만 펼쳐진 상태로 시작한다 */
-  const [livingOpen, setLivingOpen] = useState(true);
+  const navigation = useAppNavigation();
+  /* Figma 기준 '생활'만 펼쳐진 상태로 시작한다.
+   * 한 번에 한 카테고리만 열린다 — 다른 카테고리를 열면 이전 것은 닫힌다. */
+  const [openCategory, setOpenCategory] = useState<string | null>(GNB_DEFAULT_OPEN);
+
+  /* 아직 화면이 없는 메뉴는 route 가 null 이라 이동하지 않는다.
+   * route 가 생기면 gnbMenu.ts 의 값만 채우면 된다. */
+  const goTo = (route: string | null) => {
+    if (!route) return;
+    onClose();
+    if (route === 'my') navigation?.navigate('my');
+  };
 
   return (
     <section className="layer gnb" hidden={!open} aria-label="전체메뉴">
@@ -47,30 +59,47 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
       <div className="gnb__scroll">
         <div className="gnb__content">
           <div className="gnb-menu">
-            <GnbMenuItem
-              iconFile="gnb-nav-living.svg"
-              name="생활"
-              open={livingOpen}
-              onToggle={() => setLivingOpen((v) => !v)}
-              subId="gnbLivingSub"
-            >
-              <a className="gnb-menu__sub-link" href="#">
-                청소 · 위생
-              </a>
-              <a className="gnb-menu__sub-link" href="#">
-                인테리어 · 수납
-              </a>
-              <a className="gnb-menu__sub-link" href="#">
-                요리 · 식단
-              </a>
-              <a className="gnb-menu__sub-link" href="#">
-                1인가구 꿀템
-              </a>
-            </GnbMenuItem>
-
-            <GnbMenuItem iconFile="gnb-nav-money.svg" name="돈 관리" />
-            <GnbMenuItem iconFile="gnb-nav-community.svg" name="커뮤니티" />
-            <GnbMenuItem iconFile="gnb-nav-benefit.svg" name="혜택" />
+            {GNB_CATEGORIES.map((category) => {
+              const hasItems = category.items.length > 0;
+              if (!hasItems) {
+                /* 하위 메뉴 없음 — 화살표 없이 바로 이동 */
+                return (
+                  <GnbMenuItem
+                    key={category.id}
+                    iconFile={category.iconFile}
+                    name={category.name}
+                    onSelect={() => goTo(category.route)}
+                  />
+                );
+              }
+              return (
+                <GnbMenuItem
+                  key={category.id}
+                  iconFile={category.iconFile}
+                  name={category.name}
+                  open={openCategory === category.id}
+                  onToggle={() =>
+                    setOpenCategory((current) => (current === category.id ? null : category.id))
+                  }
+                  subId={`gnb-sub-${category.id}`}
+                >
+                  {category.items.map((item) => (
+                    <a
+                      key={item.id}
+                      className="gnb-menu__sub-link"
+                      href="#"
+                      data-menu-id={item.id}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        goTo(item.route);
+                      }}
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                </GnbMenuItem>
+              );
+            })}
           </div>
 
           <div className="gnb-mymenu">
@@ -91,7 +120,11 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
           <div className="gnb__divider" />
 
           <nav className="gnb-personal" aria-label="개인 메뉴">
-            <a className="gnb-personal__link" href="#">
+            <a className="gnb-personal__link" href="#" onClick={(event) => {
+              event.preventDefault();
+              onClose();
+              navigation?.navigate('my');
+            }}>
               마이페이지
               <img className="gnb-personal__chevron" src={icon('chevron-right-sm.svg')} alt="" />
             </a>

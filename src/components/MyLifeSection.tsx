@@ -1,19 +1,23 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { icon, img } from '../lib/asset';
-import { HOME_NATIVE_WIDGETS } from '../data/widgetCatalog';
+import { layoutWidgetIds } from '../data/personaWidgets';
+import type { PersonaWidgetLayout } from '../data/personaWidgets';
+import { MediumWidget, SmallWidget } from './HomeWidget';
 import { WidgetCard } from './WidgetCard';
 
 /* ② 내 생활 (Personal Widget Canvas)
  *
- * 정적 버전의 applyWidgetsToHome() 을 state 기반으로 재작성했다.
- *   - Home 마크업에 원래 있던 위젯(living-cost / rent / fridge)은 노출/숨김
- *   - 그 밖에 선택된 위젯은 WidgetCard(variant="home") 로 추가 행에 렌더링
- *   - 자식이 모두 숨겨진 기본 행은 접는다
+ * Figma Home Widget Container 342 × 194 규격 그대로:
+ *   Medium 167 × 114 × 2  +  Small 128.5 × 72 × 2  +  Add Slot 69 × 72
+ * 네 슬롯에 어떤 위젯이 들어갈지는 로그인한 persona 조합
+ * (data/personaWidgets.ts)이 정한다. 크기·gap·radius 는 바꾸지 않는다.
+ *   - 위젯 추가 시트에서 고른 위젯은 아래 추가 행에 렌더링
  *   - 저장을 한 번이라도 하면 캔버스 높이가 auto 로 풀린다(.is-custom)
- * 고정지출과 + 슬롯은 위젯 카탈로그가 관리하지 않으므로 항상 노출된다.
  */
 
 interface MyLifeSectionProps {
+  /** persona 별 위젯 조합 (Figma Home Widget Container 342 × 194) */
+  layout: PersonaWidgetLayout;
   /** 현재 Home 에 올라간 위젯 id 목록 */
   widgets: string[];
   /** 위젯 추가 시트에서 한 번이라도 저장했는지 */
@@ -21,15 +25,10 @@ interface MyLifeSectionProps {
   onAddWidget: () => void;
 }
 
-export function MyLifeSection({ widgets, isCustom, onAddWidget }: MyLifeSectionProps) {
-  const has = (id: string) => widgets.includes(id);
-
-  /* Home 마크업에 없는, 새로 선택된 위젯 */
-  const added = widgets.filter((id) => !HOME_NATIVE_WIDGETS.includes(id));
-
-  /* 기본 행: 자식이 모두 숨겨지면 행 자체를 접는다 */
-  const mediumRowHidden = !has('living-cost') && !has('rent');
-  /* 작은 행은 고정지출과 + 슬롯이 항상 있으므로 접히지 않는다 (정적 버전과 동일) */
+export function MyLifeSection({ layout, widgets, isCustom, onAddWidget }: MyLifeSectionProps) {
+  /* persona 조합에 이미 들어간 위젯은 추가 행에서 중복 노출하지 않는다 */
+  const inLayout = layoutWidgetIds(layout);
+  const added = widgets.filter((id) => !inLayout.includes(id));
 
   const handleSlotKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -63,49 +62,18 @@ export function MyLifeSection({ widgets, isCustom, onAddWidget }: MyLifeSectionP
       </div>
 
       <div className={`module-grid${isCustom ? ' is-custom' : ''}`}>
-        <div className="module-grid__row" hidden={mediumRowHidden}>
-          <article className="widget widget--medium" data-widget-id="living-cost" hidden={!has('living-cost')}>
-            <div className="widget__header">
-              <p className="widget__title">생활비</p>
-              <div className="ring">
-                <img className="ring__track" src={icon('ring-track.svg')} alt="" />
-                <img className="ring__progress" src={icon('ring-progress.svg')} alt="" />
-                <span className="ring__value">84%</span>
-              </div>
-            </div>
-            <p className="widget__value">84.2만원 사용</p>
-            <p className="widget__secondary">예산 15.8만원 남음</p>
-          </article>
-
-          <article className="widget widget--medium" data-widget-id="rent" hidden={!has('rent')}>
-            <div className="widget__header">
-              <p className="widget__title">주거</p>
-              <p className="widget__dday">D-7</p>
-            </div>
-            <div className="widget__stack">
-              <p className="widget__value">월세 55만원</p>
-              <p className="widget__secondary">9/5 납부</p>
-            </div>
-          </article>
+        {/* Medium 167 × 114 × 2 */}
+        <div className="module-grid__row">
+          {layout.medium.map((id) => (
+            <MediumWidget key={id} id={id} />
+          ))}
         </div>
 
+        {/* Small 128.5 × 72 × 2 + Add Slot 69 × 72 */}
         <div className="module-grid__row module-grid__row--small">
-          <article className="module-card" data-widget-id="fridge" hidden={!has('fridge')}>
-            <p className="module-card__title">냉장고</p>
-            <p className="module-card__value">우유 D-2</p>
-          </article>
-
-          <article className="module-card">
-            <p className="module-card__title">고정지출</p>
-            <div className="module-card__services">
-              <span className="service service--netflix">N</span>
-              <span className="service service--youtube">
-                <img src={icon('youtube-play.svg')} alt="" />
-              </span>
-              <span className="service service--disney">D+</span>
-              <span className="service-more">+2</span>
-            </div>
-          </article>
+          {layout.small.map((id) => (
+            <SmallWidget key={id} id={id} />
+          ))}
 
           <div
             className="module-card module-card--add"

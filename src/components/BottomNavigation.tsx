@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { icon } from '../lib/asset';
 import { AccountSwitchSheet } from './auth/AccountSwitchSheet';
+import { useAppNavigation } from '../navigation/AppNavigation';
 
 type TabId = 'life' | 'money' | 'home' | 'community' | 'my';
 interface BottomNavigationProps {
@@ -10,6 +11,7 @@ interface BottomNavigationProps {
 }
 
 export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationProps) {
+  const navigation = useAppNavigation();
   const [selectedTab, setSelectedTab] = useState<TabId>('home');
   /* 개발·발표용 계정 전환.
    * hover 는 데스크톱 편의일 뿐이고, 실제 동작은 탭(클릭)으로 고정하는 pinned 상태가 담당한다.
@@ -28,7 +30,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [switchPinned]);
-  const currentTab = activeTab ?? selectedTab;
+  const currentTab = activeTab ?? navigation?.page ?? selectedTab;
   const tabs: Array<[TabId, string, string]> = [
     ['life', '생활', 'nav-life.svg'], ['money', '돈관리', 'nav-money.svg'],
     ['home', '홈', 'nav-home.svg'], ['community', '커뮤니티', 'nav-community.svg'], ['my', '마이', 'nav-my.svg'],
@@ -37,6 +39,9 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     event.preventDefault();
     if (activeTab === undefined) setSelectedTab(tab);
     onTabChange?.(tab);
+    if (tab === 'home' || tab === 'my') {
+      navigation?.navigate(tab);
+    }
   };
   return (
     <>

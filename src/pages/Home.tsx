@@ -12,8 +12,9 @@ import { MyLifeSection } from '../components/MyLifeSection';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
 import { DEFAULT_MENU, MAX_MENU } from '../data/menuCatalog';
-import { DEFAULT_WIDGETS, MAX_WIDGET } from '../data/widgetCatalog';
+import { MAX_WIDGET } from '../data/widgetCatalog';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
+import { PERSONA_WIDGETS, layoutCatalogIds } from '../data/personaWidgets';
 import { useAuth } from '../auth/AuthContext';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
@@ -29,20 +30,23 @@ import { useSheetGesture } from '../hooks/useSheetGesture';
 export function Home() {
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
-  const content = HOME_PERSONA_CONTENT[user?.persona ?? DEFAULT_PERSONA];
+  const persona = user?.persona ?? DEFAULT_PERSONA;
+  const content = HOME_PERSONA_CONTENT[persona];
+  /* 내 생활 위젯 조합 (Figma Home Widget Container 342 × 194) */
+  const widgetLayout = PERSONA_WIDGETS[persona];
 
   const layers = useLayerStack();
   const sheet = useSheetGesture();
 
   /* 저장된 상태 */
   const [myMenu, setMyMenu] = useState<string[]>(DEFAULT_MENU);
-  const [myWidgets, setMyWidgets] = useState<string[]>(DEFAULT_WIDGETS);
+  const [myWidgets, setMyWidgets] = useState<string[]>(() => layoutCatalogIds(widgetLayout));
   /* 위젯 구성을 한 번이라도 저장했는지 (Home 캔버스 높이 해제 조건) */
   const [widgetsCustomized, setWidgetsCustomized] = useState(false);
 
   /* 시트 작업본 */
   const menuDraft = useDraftSelection(DEFAULT_MENU, MAX_MENU);
-  const widgetDraft = useDraftSelection(DEFAULT_WIDGETS, MAX_WIDGET);
+  const widgetDraft = useDraftSelection(layoutCatalogIds(widgetLayout), MAX_WIDGET);
 
   const openMenuEdit = () => {
     menuDraft.reset(myMenu);
@@ -86,6 +90,7 @@ export function Home() {
         handleProps={sheet.handleProps}
       >
         <MyLifeSection
+          layout={widgetLayout}
           widgets={myWidgets}
           isCustom={widgetsCustomized}
           onAddWidget={openAddWidget}

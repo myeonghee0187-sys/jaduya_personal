@@ -5,6 +5,20 @@ import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import type { OnboardingSelection } from './pages/Onboarding';
 import { Signup } from './pages/Signup';
+import { MyPage } from './pages/MyPage';
+import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
+
+function MainPages() {
+  const navigation = useAppNavigation();
+  const isMyPage = navigation?.page === 'my';
+  return (
+    <>
+      {/* Home을 유지해 왕복 이동 시 위젯과 시트 상태가 초기화되지 않게 한다. */}
+      <div hidden={isMyPage} style={isMyPage ? undefined : { display: 'contents' }}><Home /></div>
+      {isMyPage && <MyPage />}
+    </>
+  );
+}
 
 /* 라우터 라이브러리 없이 인증 상태 + 화면 상태로만 전환한다. */
 export default function App() {
@@ -28,7 +42,11 @@ export default function App() {
   /* 첫 맞춤 설정을 마치지 않은 신규 가입자만 온보딩으로 보낸다.
    * 김하린·조아영과 온보딩을 마친 이서준은 onboarded: true 라 바로 Home. */
   if (user) {
-    return user.onboarded ? <Home /> : <Onboarding onComplete={finishOnboarding} />;
+    return user.onboarded ? (
+      <AppNavigationProvider key={user.email}>
+        <MainPages />
+      </AppNavigationProvider>
+    ) : <Onboarding onComplete={finishOnboarding} />;
   }
   return view === 'login' ? (
     <Login
