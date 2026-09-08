@@ -15,6 +15,7 @@ import { DEFAULT_MENU, MAX_MENU } from '../data/menuCatalog';
 import { MAX_WIDGET } from '../data/widgetCatalog';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { PERSONA_WIDGETS, layoutCatalogIds } from '../data/personaWidgets';
+import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
@@ -34,6 +35,8 @@ export function Home() {
   const content = HOME_PERSONA_CONTENT[persona];
   /* 내 생활 위젯 조합 (Figma Home Widget Container 342 × 194) */
   const widgetLayout = PERSONA_WIDGETS[persona];
+  /* 하트·레벨은 마이페이지와 같은 원본을 쓴다 (data/personaProfile.ts) */
+  const level = resolveLevel(PERSONA_PROFILE[persona].level);
 
   const layers = useLayerStack();
   const sheet = useSheetGesture();
@@ -91,6 +94,8 @@ export function Home() {
       >
         <MyLifeSection
           layout={widgetLayout}
+          heartsLabel={level.heartsLabel}
+          levelLabel={level.levelLabel}
           widgets={myWidgets}
           isCustom={widgetsCustomized}
           onAddWidget={openAddWidget}

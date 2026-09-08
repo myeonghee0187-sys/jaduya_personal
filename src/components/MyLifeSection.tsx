@@ -18,6 +18,10 @@ import { WidgetCard } from './WidgetCard';
 interface MyLifeSectionProps {
   /** persona 별 위젯 조합 (Figma Home Widget Container 342 × 194) */
   layout: PersonaWidgetLayout;
+  /** 하트 표기 — data/personaProfile.ts 의 resolveLevel() 결과 (예: 1,200) */
+  heartsLabel: string;
+  /** 레벨 표기 — 같은 원본에서 계산한다. 마이페이지와 값이 어긋나면 안 된다 (예: Level.41) */
+  levelLabel: string;
   /** 현재 Home 에 올라간 위젯 id 목록 */
   widgets: string[];
   /** 위젯 추가 시트에서 한 번이라도 저장했는지 */
@@ -25,7 +29,14 @@ interface MyLifeSectionProps {
   onAddWidget: () => void;
 }
 
-export function MyLifeSection({ layout, widgets, isCustom, onAddWidget }: MyLifeSectionProps) {
+export function MyLifeSection({
+  layout,
+  heartsLabel,
+  levelLabel,
+  widgets,
+  isCustom,
+  onAddWidget,
+}: MyLifeSectionProps) {
   /* persona 조합에 이미 들어간 위젯은 추가 행에서 중복 노출하지 않는다 */
   const inLayout = layoutWidgetIds(layout);
   const added = widgets.filter((id) => !inLayout.includes(id));
@@ -51,11 +62,11 @@ export function MyLifeSection({ layout, widgets, isCustom, onAddWidget }: MyLife
         </div>
         <div className="section-header__status">
           <div className="stat-bar stat-bar--love">
-            <span className="stat-bar__bar">1,200</span>
+            <span className="stat-bar__bar">{heartsLabel}</span>
             <img className="stat-bar__badge" src={img('badge-love.png')} alt="" />
           </div>
           <div className="stat-bar stat-bar--level">
-            <span className="stat-bar__bar">Level.41</span>
+            <span className="stat-bar__bar">{levelLabel}</span>
             <img className="stat-bar__badge" src={img('badge-level.png')} alt="" />
           </div>
         </div>

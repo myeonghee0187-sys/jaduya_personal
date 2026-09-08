@@ -9,6 +9,7 @@ import { AuthProvider } from './auth/AuthContext';
  *   home      : Home 화면
  *   overlays  : GNB / Bottom Sheet
  *   app-shell : #root 레이아웃 보정 (React 전용, 디자인 값 없음)
+ *   mypage    : 마이페이지 (.mypage.app 이 .app 을 덮어야 해서 마지막)
  */
 import './styles/fonts.css';
 import './styles/tokens.css';
@@ -16,6 +17,7 @@ import './styles/home.css';
 import './styles/overlays.css';
 import './styles/auth.css';
 import './styles/app-shell.css';
+import './styles/mypage.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');
