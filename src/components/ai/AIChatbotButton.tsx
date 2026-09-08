@@ -8,7 +8,7 @@ import { img } from '../../lib/asset';
  * 그 사이드에서 세로 위치 유지.
  * 세로 범위는 헤더 아래 ~ 바텀네비 위로 제한한다. */
 
-const SIZE = 56; // 버튼 지름
+const SIZE = 64; // 버튼 지름
 const EDGE = 16; // 좌우 안전 여백
 const GAP = 8; // 헤더 / 바텀네비와의 최소 간격
 const MOVE_THRESHOLD = 5; // 이 값 이하로 움직이면 클릭으로 본다

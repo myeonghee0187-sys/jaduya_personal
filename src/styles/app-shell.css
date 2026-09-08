@@ -1,41 +1,82 @@
-/* JADUYA — React 마운트 셸
+/* JADUYA — 앱 셸 (환경별 레이아웃 레이어)
  *
- * 정적 버전은 .app 이 body 의 직계 자식이었고, body(flex, center)가 직접
- * .app 을 가운데 정렬했다. React 에서는 그 사이에 #root 가 끼어들기 때문에
- * home.css 의
+ * 구조 원칙
+ *   1. 기본 스타일 = 실제 모바일. 미디어쿼리 없이 여기부터 읽는다.
+ *      .app 은 width: 100% 로 기기 폭을 그대로 쓴다.
+ *   2. 화면이 충분히 넓을 때(>= 768px)만 402 × 874 기기 프리뷰로 바꾼다.
+ *      폭 하나로만 판별하므로 기기·브라우저별 예외가 없다.
+ *   3. hover / pointer 는 레이아웃 판별에 쓰지 않는다. hover 보조 효과 전용.
  *
- *   @media (max-width: 401px), (max-height: 873px) {
- *     .app { width: 100%; height: 100%; ... }
- *   }
- *
- * 이 크기 없는 #root 를 기준으로 계산되어 .app 이 0×0 이 된다.
- * #root 가 body 를 그대로 채우고 정렬을 이어받게 해서 정적 버전과
- * 동일한 레이아웃 컨텍스트를 복원한다. 디자인 값은 건드리지 않는다.
+ * 디자인 값(색·폰트·간격)은 home.css / tokens.css 소관이고 여기서는 건드리지 않는다.
  */
 
+/* ================= 1. 기본 = 실제 모바일 ================= */
+
+/* 정적 버전은 .app 이 body 직계 자식이라 body(flex, center)가 직접 정렬했다.
+ * React 는 그 사이에 #root 가 끼므로 #root 가 body 를 그대로 채우게 한다. */
 #root {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
 }
 
-/* ================= 가짜 iOS 상태바 표시 조건 =================
- *
- * .status-bar (9:41 / 신호 / Wi-Fi / 배터리) 는 iPhone 디바이스 프리뷰용
- * 장식이다. 실제 모바일·앱 환경에는 OS 상태바가 이미 있으므로 중복해서
- * 노출하지 않는다.
- *
- * 기본값은 "숨김" 이고, 아래 데스크톱 웹 프리뷰 미디어쿼리에서만 되살린다.
- * (프레임 프리뷰 조건과 같은 조건으로 묶어야 두 규칙이 어긋나지 않는다.)
- *
- * 숨길 때 높이를 0 으로 만들지 않고 env(safe-area-inset-top) 만큼 남긴다.
- * .status-bar 는 .header / .gnb__header 안에서 nav-header 바로 위에 놓인
- * 흐름 요소라, 이 높이가 그대로 상단 Safe Area 스페이서가 된다.
- * (index.html 에 viewport-fit=cover 가 이미 지정되어 있다.)
- */
+/* 모바일 브라우저의 주소창/하단바를 감안한 실제 보이는 높이.
+ * 100vh 는 large viewport 라 하단이 브라우저 UI 뒤로 밀린다. */
+html,
+body,
+#root {
+  height: 100vh;
+  height: 100dvh;
+}
 
+html,
+body {
+  /* 가로 스크롤 방지 안전장치 */
+  overflow-x: hidden;
+}
+
+.app {
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: var(--frame-height);
+}
+
+/* ---------- 402 기준 고정 px 레이아웃 토큰을 폭 비율로 ----------
+ * 30px / 342px 은 402 프레임 기준값이라 360px 기기에서는 30 + 342 = 372 가 되어
+ * 프레임을 넘고 .app 의 overflow: hidden 에 잘려 나간다.
+ * (% 로 두면 사용처의 부모 폭 기준이라 패딩이 있는 컨테이너에서 이중 축소된다.) */
+.app {
+  --screen-margin: calc(100vw * 30 / 402);
+  --content-width: calc(100vw * 342 / 402);
+  --widget-medium-w: calc((var(--content-width) - var(--widget-gap)) / 2);
+  --widget-small-w: calc(
+    (var(--content-width) - var(--widget-add-w) - var(--widget-gap) * 2) / 2
+  );
+}
+
+/* ---------- 402px 고정 폭 제거 ---------- */
+.header,
+.sheet,
+.tab-bar,
+.tab-bar__bottom {
+  width: 100%;
+}
+
+.tab-item {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---------- 상단: 가짜 iOS 상태바 대신 Safe Area ----------
+ * .status-bar (9:41 / 신호 / Wi-Fi / 배터리) 는 기기 프리뷰용 장식이다.
+ * 실제 기기에는 OS 상태바가 있으므로 중복 노출하지 않고, 높이를 0 이 아니라
+ * env(safe-area-inset-top) 으로 남겨 그대로 상단 Safe Area 스페이서로 쓴다.
+ * (.header / .gnb__header 안에서 nav-header 바로 위에 놓인 흐름 요소다.
+ *  index.html 에 viewport-fit=cover 가 지정되어 있다.) */
 .status-bar {
   height: env(safe-area-inset-top, 0px);
   padding: 0;
@@ -46,23 +87,14 @@
   display: none;
 }
 
-/* ================= 하단 Safe Area / Home Indicator =================
- *
- * .tab-bar 는 nav(57px) + 하단 영역(34px) = 91px 로 그려져 있고,
- * 하단 34px 안에 iPhone Home Indicator 이미지가 들어 있다.
- * 이것도 상태바와 같은 디바이스 프리뷰용 장식이다.
- *
- * 기본값(실제 모바일·앱): 그려진 Home Indicator 를 숨기고 하단 영역 높이를
- * env(safe-area-inset-bottom) 으로 대체한다. 인셋이 0 인 환경에서는 과도한
- * 흰색 영역 없이 nav 만 남고, 노치 기기에서는 시스템 제스처 영역만큼만
- * 탭바 배경이 연장되어 Bottom Navigation 이 겹치지 않는다.
- *
- * --tab-bar-h 는 .sheet__scroll 의 하단 padding 에도 쓰이므로
- * 변수 하나만 바꿔 콘텐츠 여백까지 함께 맞춘다.
- */
-
+/* ---------- 하단: 그려진 Home Indicator 대신 Safe Area ----------
+ * .tab-bar 는 nav(57px) + 하단 영역(34px) = 91px 이고 그 34px 안에 Home
+ * Indicator 이미지가 들어 있다. 실제 기기에서는 인디케이터를 숨기고 하단 영역을
+ * env(safe-area-inset-bottom) 으로 대체한다. 인셋이 0 이면 과도한 흰 영역 없이
+ * nav 만 남고, 제스처 영역이 있으면 그만큼만 탭바 배경이 연장된다.
+ * --tab-bar-h 는 .sheet__scroll 하단 padding 에도 쓰여 콘텐츠 여백까지 함께 맞는다. */
 .app {
-  --tab-bar-h: calc(57px + env(safe-area-inset-bottom, 0px));
+  --tab-bar-h: calc(65px + env(safe-area-inset-bottom, 0px));
 }
 
 .tab-bar__home-indicator {
@@ -71,34 +103,71 @@
 
 /* nav 바로 아래부터 탭바 끝까지 채워 인셋 구간에 빈 틈이 생기지 않게 한다. */
 .tab-bar__bottom {
-  top: 56px;
+  top: 64px;
   height: auto;
 }
 
-/* ================= Web preview frame (desktop) =================
+/* ---------- 세로 배치를 화면 높이에서 역산 ----------
+ * 시트 peek 높이(299px)는 그대로 두고 짧은 화면에서는 Hero 여유 공간만 줄인다. */
+.app {
+  --sheet-top: calc(100% - 299px);
+}
+
+.app[data-sheet-state='expanded'] {
+  --sheet-top: min(113px, calc(100% - 299px));
+}
+
+.hero {
+  width: 100%;
+  height: 100%;
+}
+
+.hero__background {
+  width: 100%;
+  height: 100%;
+  top: auto;
+  bottom: 0;
+}
+
+/* 시트 peek 높이 기준 고정 오프셋 — 펼침(expanded) 상태에서는 시트에 덮인다.
+ * 874 프레임에서는 각각 top 355 / 426 이 되어 디자인 값과 같다. */
+.hero__illustration {
+  top: auto;
+  bottom: 362px; /* 299 + 63 */
+}
+
+.tip-box {
+  top: auto;
+  bottom: 327px; /* 299 + 28 */
+  left: var(--space-md);
+  right: var(--space-md);
+  width: auto;
+}
+
+.tip-box__inner {
+  left: 0;
+  right: 0;
+  width: auto;
+  transform: none;
+}
+
+/* ================= 2. 넓은 화면 = 402 기기 프리뷰 =================
  *
- * PC 웹 브라우저에서는 402 × 874 모바일 프레임을 그대로 유지하고
- * 화면 가운데에 놓는다. 프레임 바깥은 웹 배경(#d9d3cc)으로 처리한다.
- *
- * home.css 의
- *   @media (max-width: 401px), (max-height: 873px) { ... }
- * 는 세로가 874px 보다 짧은 데스크톱(예: 1440×800)에서도 걸려
- * .app 이 화면 높이만큼 늘어나고 웹 배경이 사라진다.
- * 마우스 포인터를 쓰는 넓은 화면에서만 그 규칙을 되돌린다.
- * 실제 모바일 기기(pointer: coarse)의 동작은 그대로 둔다.
- *
- * 프레임 내부 레이아웃/디자인 값은 건드리지 않는다.
+ * 폭만으로 판별한다. 데스크톱 웹에서는 402 × 874 프레임을 화면 가운데에 놓고
+ * 바깥은 웹 배경으로 처리하며, 상태바 / Home Indicator 까지 포함해 기기처럼 보여준다.
+ * 이 블록의 값은 전부 home.css 의 원래 디자인 값이다.
  */
 
-@media (pointer: fine) and (min-width: 402px) {
-  html, body {
+@media (min-width: 768px) {
+  html,
+  body {
     height: auto;
     min-height: 100%;
+    overflow-x: visible;
     background: #d9d3cc;
   }
 
-  /* 뷰포트보다 프레임이 높을 때 위쪽이 잘리지 않도록
-   * 고정 높이 대신 min-height 로 늘어나게 둔다. */
+  /* 뷰포트보다 프레임이 높을 때 위쪽이 잘리지 않도록 고정 높이 대신 min-height */
   #root {
     height: auto;
     min-height: 100%;
@@ -112,18 +181,35 @@
     height: var(--frame-height);
     max-height: var(--frame-height);
 
+    /* 레이아웃 토큰은 402 기준 원래 값으로 되돌린다 */
+    --screen-margin: 30px;
+    --content-width: 342px;
+    --widget-medium-w: 167px;
+    --widget-small-w: 128.5px;
+    --tab-bar-h: 99px; /* nav 65 + Home Indicator 영역 34 */
+
     /* 웹에서만 쓰는 디바이스 컨테이너 마감.
-     * 실물 iPhone 베젤/목업은 만들지 않고 모서리와 그림자만 준다.
-     * overflow: hidden 은 home.css 의 .app 이 이미 갖고 있어
-     * 라운드 밖으로 내부 콘텐츠가 새지 않는다. */
+     * 실물 베젤/목업은 만들지 않고 모서리와 그림자만 준다.
+     * overflow: hidden 은 home.css 의 .app 이 이미 갖고 있다. */
     border-radius: 30px;
     box-shadow:
       0 24px 60px rgba(60, 50, 45, 0.18),
       0 2px 8px rgba(60, 50, 45, 0.08);
   }
 
-  /* 데스크톱 웹에서는 iPhone 상태바까지 포함한 디바이스 프리뷰로 보여준다.
-   * home.css 의 원래 값(50px / 좌우 screen-margin)을 그대로 되돌린다. */
+  .header,
+  .sheet,
+  .tab-bar,
+  .tab-bar__bottom {
+    width: var(--frame-width);
+  }
+
+  .tab-item {
+    width: 64px;
+    flex: none;
+  }
+
+  /* 상태바 / Home Indicator 를 포함한 기기 프리뷰 */
   .status-bar {
     height: 50px;
     padding: 0 var(--screen-margin);
@@ -134,12 +220,6 @@
     display: block;
   }
 
-  /* 웹 데모에서는 하단 Safe Area 34px + Home Indicator 표현을 유지한다.
-   * home.css 의 원래 값 그대로. */
-  .app {
-    --tab-bar-h: 91px;
-  }
-
   .tab-bar__home-indicator {
     display: block;
   }
@@ -148,91 +228,36 @@
     top: auto;
     height: 34px;
   }
-}
 
-/* ================= 실기기 모바일 viewport 대응 =================
- *
- * pointer: coarse (실제 터치 기기)에서만 적용된다. 데스크톱 웹 데모
- * (pointer: fine)는 위 블록에서 이미 402×874 고정 프레임을 유지하므로
- * 이 블록의 영향을 받지 않는다.
- *
- * 목적: large viewport 기준의 100% 높이가 모바일 브라우저 주소창/하단바
- * 뒤로 콘텐츠를 밀어내는 문제, 402px 고정 폭이 그보다 좁은 실기기에서
- * 잘리는 문제, Hero/시트/Tip Box 의 고정 px 배치가 짧은 화면에서 겹치는
- * 문제를 dvh/%/flex/env() 로 해결한다. 디자인 값(색·폰트·radius·간격)은
- * 바꾸지 않는다.
- */
-@media (hover: none) and (pointer: coarse) {
-  /* (1) 높이 기준을 dvh 로 — 구형 폴백 다음에 dvh 를 덮어써 실제 보이는
-   * 높이에 맞춘다. */
-  html,
-  body,
-  #root {
-    height: 100vh;
-    height: 100dvh;
-  }
-
-  .app {
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    max-height: var(--frame-height);
-  }
-
-  /* (2) 402px 고정 폭 제거 — 실기기 폭에 맞춰 늘어나게 한다. */
-  .header,
-  .sheet,
-  .tab-bar,
-  .tab-bar__bottom {
-    width: 100%;
-  }
-
-  .tab-item {
-    width: auto;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  /* (3) 시트 위치를 화면 높이에서 역산 — peek/expanded 의 간격(299px)은
-   * 그대로 두고, 짧은 화면에서는 Hero 쪽 여유 공간만 줄어들게 한다. */
-  .app {
-    --sheet-top: calc(100% - 299px);
-  }
-
-  .app[data-sheet-state='expanded'] {
-    --sheet-top: min(113px, calc(100% - 299px));
-  }
-
-  /* (4) Hero 를 남은 높이에 맞추기 */
+  /* Hero / Tip Box 는 402 × 874 디자인 좌표 그대로 */
   .hero {
-    width: 100%;
-    height: 100%;
+    width: 444px;
+    height: 871px;
   }
 
   .hero__background {
-    width: 100%;
-    height: 100%;
-    top: 0;
+    width: 402px;
+    height: 871px;
+    top: -110px;
+    bottom: auto;
   }
 
+  /* hero 높이가 871 로 돌아오므로 bottom 기준이 아니라 원래 top 값을 쓴다 */
   .hero__illustration {
-    top: auto;
-    bottom: 362px; /* 시트 peek 높이 299px + 63px */
+    top: 355px;
+    bottom: auto;
   }
 
-  /* (5) Tip Box 가 탭바/시트와 겹치지 않게, 좌우 여백 기반으로 */
   .tip-box {
-    top: auto;
-    bottom: 327px; /* 시트 peek 높이 299px + 28px */
-    left: var(--space-md);
-    right: var(--space-md);
-    width: auto;
+    left: 18px;
+    right: auto;
+    width: 366px;
   }
 
   .tip-box__inner {
-    left: 0;
-    right: 0;
-    width: auto;
-    transform: none;
+    left: calc(50% - 2px);
+    right: auto;
+    width: 362px;
+    transform: translateX(-50%);
   }
 }
