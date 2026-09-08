@@ -2,7 +2,7 @@
  *
  * 아이콘 경로가 카탈로그 데이터에서 문자열로 조립되기 때문에(정적 import 불가)
  * assets/ 는 public/ 에 두고 base 를 런타임에 붙인다.
- * import.meta.env.BASE_URL 은 dev 에서 '/jaduya/', build 에서도 '/jaduya/'.
+ * import.meta.env.BASE_URL 은 Vercel 루트 배포 기준으로 '/'.
  */
 export function asset(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`;
