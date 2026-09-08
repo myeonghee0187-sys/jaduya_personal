@@ -154,9 +154,16 @@
   cursor: pointer;
 }
 
-.mypage__profile-button img {
+/* 버튼 텍스트 색을 그대로 쓰되 화살표만 살짝 낮춰 위계를 준다 */
+.mypage__profile-arrow {
+  flex: none;
   width: 5px;
   height: 9px;
+  background: currentColor;
+  opacity: 0.65;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
 }
 
 /* ================= ② 자취 레벨 ================= */

@@ -1,0 +1,42 @@
+/* JADUYA — 공용 LevelBar
+ *
+ * Figma level_bar (2012:11344) 값 그대로:
+ *   root   drop-shadow 3px 3px 1.5px rgba(0,0,0,.25)
+ *   bar    left 11 / top 9 / radius 5 / padding 4px 8px 4px 24px / bg #fff
+ *   icon   33 × 33, left 0 / top 0 (bar 왼쪽 위에 겹친다)
+ *   text   Asta Sans Medium 11px #4a4a4a
+ *
+ * 폭은 Level 숫자 길이에 따라 늘어난다 — Level.5 도 Level.85 도 잘리지 않는다.
+ */
+.level-bar {
+  position: relative;
+  display: inline-block;
+  height: 33px;
+  padding-left: 11px;
+  filter: drop-shadow(3px 3px 1.5px rgba(0, 0, 0, 0.25));
+}
+
+.level-bar__bar {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 9px;
+  border-radius: 5px;
+  padding: 4px 8px 4px 24px;
+  background: var(--surface-base);
+  color: var(--text-badge);
+  font-family: var(--font-asta);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.level-bar__icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 33px;
+  height: 33px;
+  max-width: none;
+  object-fit: cover;
+}
