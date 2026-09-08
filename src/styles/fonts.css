@@ -9,7 +9,7 @@
  * 실제 사용 중인 조합 (css/home.css, css/overlays.css 기준)
  *   --font-a2z     : 500, 600
  *   --font-suit    : 400, 500, 600, 700
- *   --font-logo    : 400 (KERIS KEDU)
+ *   --font-logo    : 600 (KERIS KEDU Bold)
  *   --font-display : 600 (Handon Samgyeopsal)
  *   --font-asta    : 폰트 파일 없음 → --font-suit 로 폴백 (기존과 동일)
  *   --font-system  : OS 시스템 폰트 (파일 없음)
@@ -185,7 +185,7 @@
 }
 
 /* ---------------- KERIS KEDU (로고 전용) ----------------
- * 파일: KERISKEDU_R(Regular) / KERISKEDU_B(Bold) / KERISKEDU_Line(아웃라인)
+ * 파일: KERISKEDU_B(Bold) / KERISKEDU_Line(아웃라인)
  * Line 은 웨이트가 아니라 별도 아웃라인 스타일이고 현재 디자인에서 쓰는 곳이
  * 없으므로 선언하지 않는다(번들에 포함시키지 않기 위해). 필요해지면
  * font-family: "KERIS KEDU Line" 으로 추가한다.
@@ -193,18 +193,9 @@
 
 @font-face {
   font-family: "KERIS KEDU";
-  src: url("../../fonts/woff2/KERISKEDU_R.woff2") format("woff2"),
-       url("../../fonts/woff/KERISKEDU_R.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "KERIS KEDU";
   src: url("../../fonts/woff2/KERISKEDU_B.woff2") format("woff2"),
        url("../../fonts/woff/KERISKEDU_B.woff") format("woff");
-  font-weight: 700;
+  font-weight: 600;
   font-style: normal;
   font-display: swap;
 }

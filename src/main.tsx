@@ -14,6 +14,7 @@ import './styles/tokens.css';
 import './styles/home.css';
 import './styles/overlays.css';
 import './styles/app-shell.css';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root 를 찾을 수 없습니다.');
@@ -21,5 +22,6 @@ if (!container) throw new Error('#root 를 찾을 수 없습니다.');
 createRoot(container).render(
   <StrictMode>
     <App />
+    <SpeedInsights />
   </StrictMode>,
 );
