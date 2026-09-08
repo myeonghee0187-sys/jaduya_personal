@@ -6,6 +6,7 @@ import { icon, img } from '../lib/asset';
 export function TipBox() {
   const [closing, setClosing] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleClose = () => {
     setClosing(true);
@@ -17,11 +18,25 @@ export function TipBox() {
       <div className="tip-box__inner">
         <img className="tip-box__icon" src={img('tip-box-icon.png')} alt="" />
         <p className="tip-box__text">첫날 박스는 따로 챙겨두세요</p>
-        <img className="tip-box__info" src={icon('info.svg')} alt="" />
+        <button
+          type="button"
+          className="tip-box__info"
+          aria-label="첫날 박스 팁 자세히 보기"
+          aria-expanded={detailsOpen}
+          aria-controls="tip-box-details"
+          onClick={() => setDetailsOpen((open) => !open)}
+        >
+          <img src={icon('info.svg')} alt="" />
+        </button>
         <button type="button" className="tip-box__close" aria-label="안내 닫기" onClick={handleClose}>
           <img src={icon('close-sm.svg')} alt="" />
         </button>
       </div>
+      {detailsOpen && (
+        <div className="tip-box__details" id="tip-box-details" role="tooltip">
+          휴지·수건·충전기처럼 바로 쓸 물건을 한곳에 모아두면 편해요.
+        </div>
+      )}
     </div>
   );
 }
