@@ -10,11 +10,13 @@ interface GnbMenuItemProps {
   onToggle?: () => void;
   /** 아코디언 하위 영역의 id (aria-controls) */
   subId?: string;
+  /** 하위 메뉴가 없는 항목을 눌렀을 때 */
+  onSelect?: () => void;
   children?: ReactNode;
 }
 
 /** GNB 메인 메뉴 한 줄. 하위 링크가 있으면 아코디언, 없으면 단순 링크. */
-export function GnbMenuItem({ iconFile, name, open, onToggle, subId, children }: GnbMenuItemProps) {
+export function GnbMenuItem({ iconFile, name, open, onToggle, subId, onSelect, children }: GnbMenuItemProps) {
   const accordion = Boolean(children);
   const chevron = accordion && open ? 'chevron-up.svg' : 'chevron-down.svg';
 
@@ -24,14 +26,21 @@ export function GnbMenuItem({ iconFile, name, open, onToggle, subId, children }:
         <img className="gnb-menu__icon" src={icon(iconFile)} alt="" />
         <span className="gnb-menu__name">{name}</span>
       </span>
-      <img className="gnb-menu__chevron" src={icon(chevron)} alt="" />
+      {accordion && <img className="gnb-menu__chevron" src={icon(chevron)} alt="" />}
     </>
   );
 
   if (!accordion) {
     return (
       <div className="gnb-menu__item">
-        <a className="gnb-menu__button" href="#">
+        <a
+          className="gnb-menu__button"
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onSelect?.();
+          }}
+        >
           {label}
         </a>
       </div>

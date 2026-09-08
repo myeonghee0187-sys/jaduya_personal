@@ -1037,6 +1037,9 @@ a { text-decoration: none; color: inherit; }
 .tab-item--home .tab-item__label {
   font-size: 14px;
   font-weight: 700;
+}
+
+.tab-item.is-active .tab-item__label {
   color: var(--brand-primary);
 }
 
