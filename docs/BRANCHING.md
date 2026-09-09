@@ -15,15 +15,16 @@
 | 프로덕션 브랜치 | `main` — 여기에 머지되면 바로 라이브 |
 | 작업 브랜치 | `feat/<이름>-<화면>` — 짧게 쓰고 머지 후 삭제 |
 | main 에 직접 push | **금지.** 반드시 PR |
-| 머지 조건 | ① CI 초록불 ② Vercel Preview 확인 ③ 리뷰 1명 |
-| 머지 방식 | **Squash and merge** |
+| 머지 조건 | ① CI 초록불 ② 리뷰 1명 |
+| 머지 버튼 | **오너(@phin0107) 만 누른다** — 이유는 2절 ② |
+| 머지 방식 | **Create a merge commit** (Squash 금지) |
 | 각자 건드리지 않는 파일 | `package.json`, `package-lock.json`, `vite.config.ts`, `vercel.json`, `index.html` |
 
 ---
 
 ## 2. 지난번에 왜 계속 배포가 실패했나
 
-원인은 하나가 아니라 **세 가지가 겹쳤다.** 순서대로 확인한 내용이다.
+원인은 하나가 아니라 **네 가지가 겹쳤다.** 순서대로 확인한 내용이다.
 
 ### ① `package.json` + `package-lock.json` 이 통째로 삭제된 채 main 에 머지됐다
 
@@ -43,7 +44,36 @@ Supported file patterns: package-lock.json, npm-shrinkwrap.json, yarn.lock
 
 > **핵심**: `package.json` 과 `package-lock.json` 은 **한 세트**다. 하나만 복구하면 복구가 아니다.
 
-### ② PR 단계에 검사가 하나도 없었다
+### ② 팀원이 머지 버튼을 누르면 Vercel 이 프로덕션 배포를 차단한다
+
+**이건 `package.json` 과 완전히 별개의 원인이다.** Vercel 프로젝트(팀 `jieun`)는
+**커밋 author 가 프로젝트 접근 권한을 가진 사람일 때만** 배포한다. 권한이 없으면 이렇게 뜬다.
+
+```
+Deployment was blocked
+Git author <아이디> must have access to the project on Vercel to create deployments.
+```
+
+프로덕션 배포 14건을 커밋 author 와 대조한 결과다.
+
+| 커밋 | 배포 결과 | author |
+| --- | --- | --- |
+| `ce12a45` `328907c` `116fd71` 외 9건 | success | phin0107 |
+| `fd7fa94` (PR #21 머지) | **blocked** | tnqlsl0531-wq |
+| `4de74fa` (PR #20 머지) | **blocked** | myeonghee0187-sys |
+| `8d0de50` `0582649` | failure | (package.json 없던 시기 — ①번 원인) |
+
+**phin0107 이 author 인 배포는 전부 성공했고, 팀원이 author 인 배포는 전부 차단됐다.**
+
+GitHub 에서 머지 버튼을 누른 사람이 머지 커밋의 author 가 된다. 즉 팀원이 자기 PR 을
+직접 머지하면 **코드가 멀쩡해도 사이트가 갱신되지 않는다.**
+
+Preview 배포도 마찬가지다. `bhj95224-sudo`, `jin0484` 가 올린 브랜치의 Preview 는 전부 차단됐다.
+**팀원 5명은 애초에 자기 작업의 Preview URL 을 본 적이 없다.**
+
+대응은 6절 참고.
+
+### ③ PR 단계에 검사가 하나도 없었다
 
 기존 워크플로는 `on: push: branches: [main]` 이었다.
 즉 **머지된 다음에야** 빌드를 돌렸다. 깨진 코드가 main 에 들어가는 걸 막을 방법이 없었다.
@@ -51,7 +81,7 @@ Supported file patterns: package-lock.json, npm-shrinkwrap.json, yarn.lock
 → `.github/workflows/ci.yml` 을 추가해서 **PR 단계에서** `npm ci` + `typecheck` + `build` 를 돌린다.
 이제 package.json 이 없는 PR 은 머지 전에 빨간불이 뜬다.
 
-### ③ 쓰지도 않는 GitHub Pages 워크플로가 계속 실패해서 main 이 항상 빨간불이었다
+### ④ 쓰지도 않는 GitHub Pages 워크플로가 계속 실패해서 main 이 항상 빨간불이었다
 
 현재 저장소는 Pages 가 꺼져 있다 (`has_pages: false`). 그래서 최신 커밋까지 포함해 **7번 연속 실패** 중이었다.
 빌드는 멀쩡히 성공하는데 마지막 단계에서 이렇게 죽는다:
@@ -63,11 +93,10 @@ Get Pages site failed. Please verify that the repository has Pages enabled...
 빌드가 아니라 **Pages 설정 때문에** 실패한 것인데, 팀에서는 "또 배포 실패"로 읽혔다.
 → `deploy.yml` 을 삭제했다. 배포는 Vercel 이 한다.
 
-### 참고: Vercel 프로덕션은 지금 정상이다
+### 정리
 
-`ce12a45` 기준 Production 배포는 `success` 다. 다만 Preview 배포 중 일부가
-`Deployment was blocked` 로 실패한다 (오늘만 21건 배포). Vercel 대시보드에서 Hobby 플랜
-동시 빌드 / 일일 배포 한도를 확인해야 한다. → 6번 항목 참고.
+`ce12a45` 기준 Production 배포는 `success` 이고, 지금 라이브 사이트는 정상이다.
+남은 위험은 ②번 하나다. **머지를 누가 누르느냐가 배포 성공 여부를 결정한다.**
 
 ---
 
@@ -233,12 +262,36 @@ package.json, package-lock.json, vite.config.ts, vercel.json, index.html 은 수
 ### 구조
 
 ```
-feature 브랜치 push  →  Vercel Preview 배포  →  PR 에 Preview URL 자동 코멘트
+feature 브랜치 push  →  GitHub Actions CI (npm ci + typecheck + build)   ← 전원 동작
+        │                Vercel Preview 배포                            ← 오너만 동작
         │
-     PR 생성        →  GitHub Actions CI (npm ci + typecheck + build)
+   PR 생성 / 리뷰
         │
-   main 에 머지     →  Vercel Production 배포  →  https://jaduya.vercel.app
+ 오너가 머지 (merge commit)  →  Vercel Production  →  https://jaduya.vercel.app
 ```
+
+### 머지 규칙 (반드시 지킬 것)
+
+2절 ② 때문에 머지 방식이 배포 성공을 좌우한다.
+
+- **머지 버튼은 오너(@phin0107) 만 누른다.** 팀원이 누르면 머지 커밋 author 가 그 팀원이 되어
+  프로덕션 배포가 차단된다.
+- **`Create a merge commit` 을 쓴다. `Squash and merge` 는 쓰지 않는다.**
+  Squash 는 커밋 author 를 **PR 작성자**로 설정하기 때문에, 오너가 눌러도 팀원 PR 이면 차단된다.
+  merge commit 은 author 가 **버튼을 누른 사람**이라 안전하다.
+
+### Preview URL 을 팀원도 보려면
+
+현재 Vercel 계정은 1인 플랜이라 팀원 5명은 Preview 배포가 차단된다. 선택지는 이렇다.
+
+| 선택지 | 결과 | 비용 |
+| --- | --- | --- |
+| **A. 지금처럼 두고 로컬 검증** (추천) | 팀원은 `npm run dev` + `npm run build` 로 확인, CI 가 공용 안전망 | 0원 |
+| B. Vercel Pro 로 팀원 초대 | 전원 Preview URL | 인당 월 $20 |
+| C. 머지 후 프로덕션에서 확인 | 확인은 되지만 사고가 라이브에 먼저 노출됨 | 0원 |
+
+**A 를 권한다.** CI(GitHub Actions)는 계정 권한과 무관하게 전원에게 동작하므로,
+"빌드가 깨졌는지"는 모두가 PR 에서 확인할 수 있다. 화면 확인은 로컬에서 한다.
 
 ### 지금 설정 상태
 
@@ -266,8 +319,10 @@ feature 브랜치 push  →  Vercel Preview 배포  →  PR 에 Preview URL 자�
 
 ### 오너(@phin0107)가 확인할 것
 
+- [ ] **머지는 본인만** 누르고, **Create a merge commit** 을 쓴다 (가장 중요 — 2절 ②)
+- [ ] GitHub → Settings → General → Merge button 에서 **Allow squash merging 체크 해제**
+      (실수로 누를 수 없게 아예 막는다)
 - [ ] Vercel 프로젝트 → Settings → Git → **Production Branch = `main`** 확인
-- [ ] Vercel 대시보드에서 `Deployment was blocked` 원인 확인 (Hobby 플랜 동시 빌드 / 일일 배포 한도)
 - [ ] Settings → Node.js Version 을 **22.x** 로 맞춘다 (CI 와 동일하게)
 - [ ] GitHub → Settings → General → **Automatically delete head branches** 켜기 (현재 꺼져 있음)
 
@@ -367,4 +422,5 @@ Vercel 대시보드 → Deployments → 해당 배포 → **Redeploy** 를 누�
 - [ ] push 전에 `npm run build` 를 돌렸는가
 - [ ] `git status` 에 `package-lock.json` 이 예상 밖으로 올라와 있지 않은가
 - [ ] PR diff 에 내 화면과 무관한 파일이 섞여 있지 않은가
+- [ ] **머지 버튼을 내가 누르려고 하지 않았는가** (오너만 누른다)
 - [ ] 머지된 브랜치를 삭제했는가
