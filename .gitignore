@@ -2,3 +2,13 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# 빌드 도구 캐시 / 배포 도구 로컬 파일
+.vite
+.vercel
+*.log
+
+# 환경변수는 절대 커밋하지 않는다
+.env
+.env.*
+!.env.example
