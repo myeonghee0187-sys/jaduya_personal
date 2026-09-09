@@ -1,0 +1,12 @@
+# 여기 있는 파일이 잘못되면 배포 전체가 멈춘다. 반드시 오너 리뷰를 거친다.
+#
+# 주의: CODEOWNERS 자동 리뷰 요청은 public 저장소 또는 GitHub Pro/Team 에서만 동작한다.
+#       현재(private + free)는 문서상 규칙으로만 유효하다. docs/BRANCHING.md 참고.
+
+/package.json       @phin0107
+/package-lock.json  @phin0107
+/vercel.json        @phin0107
+/vite.config.ts     @phin0107
+/index.html         @phin0107
+/tsconfig*.json     @phin0107
+/.github/           @phin0107

@@ -1,0 +1,45 @@
+#!/bin/sh
+# JADUYA pre-commit hook
+#
+# 설치 (팀원 각자 최초 1회):
+#   git config core.hooksPath .githooks
+#
+# Claude / Codex / 사람 누가 커밋하든 동일하게 검사한다.
+# 급하게 우회해야 하면 git commit --no-verify 를 쓸 수 있지만, CI 에서 다시 걸린다.
+
+fail=0
+
+# 1) main 에서 직접 커밋 금지
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ "$branch" = "main" ]; then
+  echo "✗ main 에서는 직접 커밋할 수 없습니다."
+  echo "  git checkout -b feat/<이름>-<화면>   으로 브랜치를 먼저 만드세요."
+  fail=1
+fi
+
+# 2) package.json / package-lock.json 삭제 금지
+#    (2026-09-09: 이 두 파일이 삭제된 채 머지되어 Vercel 배포가 연속 실패했다)
+deleted=$(git diff --cached --name-only --diff-filter=D)
+for f in package.json package-lock.json; do
+  if printf '%s\n' "$deleted" | grep -qx "$f"; then
+    echo "✗ $f 을 삭제하려 합니다. 이 파일이 없으면 Vercel 배포가 실패합니다."
+    echo "  git restore --staged $f && git checkout -- $f"
+    fail=1
+  fi
+done
+
+# 3) 커밋 시점에 두 파일이 모두 존재하는지 확인
+for f in package.json package-lock.json; do
+  if [ ! -f "$f" ]; then
+    echo "✗ $f 이 작업 트리에 없습니다."
+    echo "  git checkout main -- package.json package-lock.json"
+    fail=1
+  fi
+done
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "자세한 내용: docs/BRANCHING.md"
+fi
+
+exit $fail

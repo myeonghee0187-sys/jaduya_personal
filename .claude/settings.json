@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Edit(package.json)",
+      "Write(package.json)",
+      "Edit(package-lock.json)",
+      "Write(package-lock.json)",
+      "Edit(vite.config.ts)",
+      "Write(vite.config.ts)",
+      "Edit(vercel.json)",
+      "Write(vercel.json)",
+      "Edit(index.html)",
+      "Write(index.html)",
+      "Edit(tsconfig*.json)",
+      "Write(tsconfig*.json)",
+      "Edit(.github/*)",
+      "Write(.github/*)",
+      "Bash(gh pr merge*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit -n *)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}
