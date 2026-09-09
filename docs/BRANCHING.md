@@ -165,6 +165,12 @@ npm run dev
 
 `npm install` 이 아니라 `npm ci` 다. lockfile 그대로 설치해서 **팀원 전원이 같은 버전**을 쓰게 한다.
 
+저장소를 처음 받았다면 **최초 1회** 이것도 실행한다. 안 하면 pre-commit 안전장치가 동작하지 않는다.
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ### 커밋하기 전에 (필수)
 
 ```bash
@@ -213,7 +219,27 @@ git push origin --delete feat/내이름-화면이름
 ## 5. AI 에이전트(Claude / Codex) 사용 규칙
 
 팀원마다 다른 에이전트를 쓰기 때문에, **에이전트가 저지르는 사고 유형**을 미리 막아야 한다.
-이번 `package.json` 삭제도 사람이 손으로 지운 것에 가깝지 않다.
+
+### 지침과 강제를 구분한다
+
+`CLAUDE.md` 와 `AGENTS.md` 에 규칙을 적어두는 것은 **지침**이다. 에이전트가 읽고 대체로 따르지만,
+반드시 지킨다는 보장은 없다. 그래서 실제로 막는 장치를 3겹으로 뒀다.
+
+| 층 | 무엇을 막나 | 적용 대상 | 우회 가능? |
+| --- | --- | --- | --- |
+| `CLAUDE.md` / `AGENTS.md` | (지침) 작업 범위, 브랜치 규칙 | Claude / Codex | 가능 |
+| `.claude/settings.json` | `package.json` · `package-lock.json` · `vite.config.ts` · `vercel.json` · `index.html` · `tsconfig*.json` · `.github/` **편집 자체를 거부**. `gh pr merge`, `git push --force`, `git commit --no-verify` 도 차단 | Claude Code (자동 적용) | 어려움 |
+| `.githooks/pre-commit` | `main` 직접 커밋, package 파일 삭제 커밋 | **전원** (에이전트 종류 무관) | `--no-verify` 로 가능 |
+| `.github/workflows/ci.yml` | package 파일 누락, 타입 에러, 빌드 실패 | **전원** | **불가능** |
+
+Codex 는 `.claude/settings.json` 을 읽지 않는다. 그래서 **pre-commit 훅과 CI 가 전원 공통 안전망**이다.
+훅은 최초 1회 `git config core.hooksPath .githooks` 를 실행해야 켜진다 (4절 참고).
+
+의존성 추가는 파일 편집이 아니라 명령으로 하면 막히지 않는다. 이게 의도된 동선이다.
+
+```bash
+npm install <패키지명>
+```
 
 ### 반드시 지킬 것
 

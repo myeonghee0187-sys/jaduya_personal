@@ -11,11 +11,14 @@ React + TypeScript + Vite · 배포 <https://jaduya.vercel.app>
 ```bash
 git clone https://github.com/phin0107/jaduya.git
 cd jaduya
+git config core.hooksPath .githooks
 npm ci
 npm run dev
 ```
 
 `npm install` 이 아니라 **`npm ci`** 를 쓴다. `package-lock.json` 그대로 설치해서 팀원 전원이 같은 버전을 쓰게 한다.
+
+`git config core.hooksPath .githooks` 는 **최초 1회만** 실행하면 된다. 이걸 해야 커밋 직전에 안전장치가 동작한다 (아래 참고).
 
 브라우저에서 <http://localhost:5173> 을 열고, **개발자도구 → 기기 모드 → 402 × 874** 로 맞춰서 확인한다.
 
@@ -41,6 +44,22 @@ npm run dev
 | [`PRD.md`](PRD.md) | 제품 요구사항 |
 
 팀원마다 다른 AI 에이전트(Claude / Codex)를 쓰기 때문에, 규칙은 개인 프롬프트가 아니라 **저장소 문서에 넣어서 모두의 에이전트가 같은 규칙을 읽게 한다.**
+
+## 안전장치 (3중)
+
+문서는 "지침"일 뿐이라 에이전트가 무시할 수 있다. 그래서 실제로 막는 장치를 3겹으로 뒀다.
+
+| 층 | 무엇이 막히나 | 적용 대상 |
+| --- | --- | --- |
+| `.claude/settings.json` | `package.json` · `package-lock.json` · `vite.config.ts` · `vercel.json` · `index.html` · `tsconfig*.json` · `.github/` 편집, `gh pr merge`, force push | Claude Code 사용자 (자동) |
+| `.githooks/pre-commit` | `main` 직접 커밋, package 파일 삭제 커밋 | **전원** (`core.hooksPath` 설정 후) |
+| `.github/workflows/ci.yml` | package 파일 누락, 타입 에러, 빌드 실패한 PR | **전원** (자동, 우회 불가) |
+
+의존성을 추가할 때는 파일을 편집하지 말고 명령을 쓴다. 이건 막히지 않는다.
+
+```bash
+npm install <패키지명>
+```
 
 ## 구조
 
