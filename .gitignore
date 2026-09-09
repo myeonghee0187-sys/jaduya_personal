@@ -12,3 +12,6 @@ dist
 .env
 .env.*
 !.env.example
+
+# 코드 분석 도구가 생성하는 캐시/리포트 (.graphifyignore 에도 이미 들어있다)
+graphify-out/
