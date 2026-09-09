@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-/** 'mission' 은 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
-export type AppPage = 'home' | 'my' | 'mission';
+/** 'mission' / 'saved' 는 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
+export type AppPage = 'home' | 'my' | 'mission' | 'saved';
 
 interface AppNavigationValue {
   page: AppPage;

@@ -7,6 +7,7 @@ import type { OnboardingSelection } from './pages/Onboarding';
 import { Signup } from './pages/Signup';
 import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
+import { SavedPage } from './pages/SavedPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 
 function MainPages() {
@@ -17,17 +18,25 @@ function MainPages() {
     <>
       {/* Home을 유지해 왕복 이동 시 위젯과 시트 상태가 초기화되지 않게 한다. */}
       <div hidden={!isHome} style={isHome ? { display: 'contents' } : undefined}><Home /></div>
-      {/* 마이페이지 '나의 자취 레벨 > 전체보기' → 자취 미션 */}
+      {/* 마이페이지 '나의 자취 레벨 > 전체보기' → 자취 미션,
+        * '나의 활동 > 전체보기' → 저장한 정보 */}
       {page === 'my' && (
         <MyPage
           onDetailNavigate={(to) => {
-            if (to !== 'level') return false;
-            navigation?.navigate('mission');
-            return true;
+            if (to === 'level') {
+              navigation?.navigate('mission');
+              return true;
+            }
+            if (to === 'activity') {
+              navigation?.navigate('saved');
+              return true;
+            }
+            return false;
           }}
         />
       )}
       {page === 'mission' && <MissionPage />}
+      {page === 'saved' && <SavedPage />}
     </>
   );
 }

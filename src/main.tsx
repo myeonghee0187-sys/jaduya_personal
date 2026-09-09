@@ -11,7 +11,7 @@ import { AuthProvider } from './auth/AuthContext';
  *   app-shell : #root 레이아웃 보정 (React 전용, 디자인 값 없음)
  *   level-bar : 공용 LevelBar 컴포넌트
  *   page-header : 하위 화면 공용 헤더
- *   mypage / mission : 하위 화면 (.mypage.app / .mission.app 이 .app 을 덮어야 해서 마지막)
+ *   mypage / mission / saved : 하위 화면 (.mypage.app / .mission.app 이 .app 을 덮어야 해서 마지막)
  */
 import './styles/fonts.css';
 import './styles/tokens.css';
@@ -23,6 +23,7 @@ import './styles/level-bar.css';
 import './styles/page-header.css';
 import './styles/mypage.css';
 import './styles/mission.css';
+import './styles/saved.css';
 import './styles/level-info.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 

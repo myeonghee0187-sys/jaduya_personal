@@ -31,6 +31,13 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
     if (route === 'my') navigation?.navigate('my');
   };
 
+  /* 내 메뉴 바로가기 — 화면이 있는 항목만 연결한다 */
+  const goToShortcut = (id: string) => {
+    if (id !== 'saved') return;
+    onClose();
+    navigation?.navigate('saved');
+  };
+
   return (
     <section className="layer gnb" hidden={!open} aria-label="전체메뉴">
       <div className="gnb__header">
@@ -112,7 +119,9 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
             <div className="shortcut-grid">
               {myMenu.map((id) => {
                 const item = findMenu(id);
-                return item ? <ShortcutCard key={id} item={item} /> : null;
+                return item ? (
+                  <ShortcutCard key={id} item={item} onSelect={() => goToShortcut(id)} />
+                ) : null;
               })}
             </div>
           </div>
