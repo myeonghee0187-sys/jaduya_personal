@@ -167,11 +167,12 @@ body {
     background: #d9d3cc;
   }
 
-  /* 뷰포트보다 프레임이 높을 때 위쪽이 잘리지 않도록 고정 높이 대신 min-height */
+  /* 뷰포트보다 프레임이 높을 때 위쪽이 잘리지 않도록 고정 높이 대신 min-height.
+   * 위아래 패딩은 넣지 않는다 — LoginShowcase 가 #root 를 100dvh 로 그대로 채우므로
+   * 패딩이 있으면 필요한 높이가 100dvh + 패딩만큼 넘쳐서 스크롤이 생긴다. */
   #root {
     height: auto;
     min-height: 100%;
-    padding: 24px 0;
   }
 
   .app {

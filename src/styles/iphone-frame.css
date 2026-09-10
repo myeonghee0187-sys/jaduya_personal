@@ -1,0 +1,198 @@
+/* JADUYA — IPhoneFrame.tsx 전용 스타일 (LoginShowcase 쇼케이스 컷에서만 쓴다).
+ *
+ * 사이징 원칙 (login-showcase.css 의 --phone-scale 스크롤 버그에서 배운 방식과 동일):
+ *   .iphone-frame(바깥) 은 "실제" px 크기(--iphone-outer-w/h * --phone-scale)를 가져서
+ *   그리드/플렉스가 축소된 크기 그대로 인식한다. .iphone-frame__device-body(안쪽) 는 402x874
+ *   고정 디자인 + 얇은 베젤을 자연 크기 그대로 두고 zoom 으로만 시각적으로 줄인다.
+ *   zoom 을 바깥 박스에 걸면 레이아웃이 축소 전 크기로 자리를 잡아 스크롤/센터링이 깨진다.
+ *
+ * --frame-width/--frame-height(402x874, tokens.css)는 그대로 두고 베젤만 --iphone-bezel
+ * 하나로 관리한다 — login-showcase.css 도 같은 --iphone-outer-w/h 를 참조해 두 값이 항상
+ * 일치한다(따로 계산해서 어긋나지 않도록). */
+
+:root {
+  --iphone-bezel: 9px;
+  --iphone-outer-w: calc(var(--frame-width) + var(--iphone-bezel) * 2);
+  --iphone-outer-h: calc(var(--frame-height) + var(--iphone-bezel) * 2);
+}
+
+.iphone-frame {
+  --phone-scale: 1;
+  position: relative;
+  height: calc(var(--iphone-outer-h) * var(--phone-scale));
+  /* width 는 강제 계산하지 않고 aspect-ratio 로만 유도한다 — 402x874 와 거의 같은 비율(420:892)
+   * 이라 실제 iPhone 세로 비율에서 벗어나지 않는다. 베젤 값을 바꾸면 이 비율도 같이 맞춘다. */
+  aspect-ratio: 420 / 892;
+  flex-shrink: 0;
+}
+
+/* ---------- device-shadow: 기기 아래 깔리는 그림자 (ambient + contact 2겹, 별도 레이어) ---------- */
+.iphone-frame__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -6%;
+  transform: translateX(-50%);
+  width: 86%;
+  height: 16%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    /* contact shadow — 기기 바로 아래, 좁고 살짝 진하게 */
+    radial-gradient(closest-side, rgba(20, 16, 14, 0.22), rgba(20, 16, 14, 0) 70%),
+    /* ambient shadow — 넓고 아주 옅게 퍼짐 */
+    radial-gradient(closest-side, rgba(20, 16, 14, 0.1), rgba(20, 16, 14, 0) 90%);
+  background-size:
+    55% 60%,
+    100% 100%;
+  background-position:
+    center top,
+    center center;
+  background-repeat: no-repeat;
+}
+
+/* ---------- device-body: 얇은 금속 프레임 (outer edge + bezel 겸용) ---------- */
+.iphone-frame__device-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--iphone-outer-w);
+  height: var(--iphone-outer-h);
+  zoom: var(--phone-scale);
+  z-index: 1;
+  border-radius: 58px;
+  /* 완전한 단색이 아니라 아주 미세한 명암만 — 과한 밴딩 없이 매트한 티타늄 느낌 */
+  background: linear-gradient(150deg, #3c3d40 0%, #1c1d1f 42%, #101011 100%);
+  box-shadow:
+    /* outer edge — 바깥 테두리를 감싸는 아주 얇은 크롬 라인 */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    /* bezel 안쪽으로 화면과 만나는 경계선 (살짝 어둡게 눌러 깊이감) */
+    inset 0 0 0 3px rgba(0, 0, 0, 0.35),
+    /* 좌우 측면 두께감 — 스프레드를 음수로 줘서 좌우 가장자리만 도드라지게 */
+    inset 1.5px 0 2px -1px rgba(255, 255, 255, 0.28),
+    inset -1.5px 0 2px -1px rgba(255, 255, 255, 0.28),
+    /* 위/아래 미세한 입체감 (과하지 않게) */
+    inset 0 1px 4px rgba(255, 255, 255, 0.06),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.4),
+    /* ambient — 넓고 부드럽게 */
+    0 36px 70px rgba(20, 16, 14, 0.16),
+    0 10px 24px rgba(20, 16, 14, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 오른쪽 측면 — 전원 버튼 (아주 미세하게, 실루엣 정도만) */
+.iphone-frame__device-body::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 200px;
+  width: 3px;
+  height: 88px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, #4a4b4e, #0d0d0e);
+}
+
+/* 왼쪽 측면 — 무음 스위치 (아주 미세하게) */
+.iphone-frame__device-body::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 128px;
+  width: 3px;
+  height: 26px;
+  border-radius: 2px 0 0 2px;
+  background: linear-gradient(180deg, #4a4b4e, #0d0d0e);
+}
+
+/* ---------- dynamic-island ----------
+ * screen 내부 상단 중앙, 작고 정교하게. StatusBar(9:41 좌측 / 아이콘 우측, home.css 의
+ * .status-bar justify-content:space-between) 는 중앙이 원래 비어 있어 겹치지 않는다. */
+.iphone-frame__dynamic-island {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 32px;
+  border-radius: 16px;
+  background: #050505;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ---------- screen: 실제 화면 영역만 담당 ---------- */
+.iphone-frame__screen {
+  position: relative;
+  width: var(--frame-width);
+  height: var(--frame-height);
+  border-radius: 49px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  z-index: 2;
+}
+
+/* 유리 느낌 — 아주 옅은 대각선 하이라이트 한 겹만. 콘텐츠 위에 얹히지만 클릭은 그대로 통과시킨다. */
+.iphone-frame__screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 22%,
+    rgba(255, 255, 255, 0) 78%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* IPhoneFrame 은 실제 페이지 폭과 무관하게 항상 "축소된 미리보기"다. app-shell.css 는
+ * 페이지 폭 768px 미만이면 "진짜 모바일 기기"로 보고 가짜 상태바(9:41/아이콘)를 접어버리는데,
+ * 그러면 다이나믹 아일랜드(고정 위치) 밑으로 로그인 로고가 붙어 겹쳐 보인다. 화면 안에서는
+ * 늘 데스크톱 프리뷰 값을 강제해서 실제 페이지 폭에 상관없이 상태바 자리를 항상 확보한다. */
+.iphone-frame__screen .status-bar {
+  height: 50px;
+  padding: 0 var(--screen-margin);
+}
+
+.iphone-frame__screen .status-bar__time,
+.iphone-frame__screen .status-bar__icons {
+  display: block;
+}
+
+/* Login/Signup 이 스스로 렌더하는 .app 은 402x874 화면 역할만 하면 되고,
+ * 프레임의 모서리·그림자·베젤은 device-body/screen 이 대신 맡는다.
+ * --screen-margin/--content-width 도 app-shell.css 에서 실제 페이지 폭(100vw) 기준으로
+ * 계산되는 값이라, 페이지 폭을 줄이면 로그인 폼 여백·너비가 같이 움직여 보였다. IPhoneFrame
+ * 은 항상 고정된 402px 디자인이어야 하므로 두 값을 402 기준 고정값으로 강제한다
+ * (--widget-medium-w/--widget-small-w 는 --content-width 를 참조해 계산되므로 자동으로 같이 고정된다). */
+.iphone-frame__screen .app {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
+  --screen-margin: 30px;
+  --content-width: 342px;
+}
+
+/* 태블릿·웹에서는 옆/아래의 Demo Account 패널이 같은 역할을 하므로
+ * 화면 안 이메일 라벨 옆 "테스트 계정 선택" 인라인 버튼은 중복이라 숨긴다.
+ * (모바일도 패널이 항상 숨겨져 있어 인라인 버튼이 유일한 진입점이라 보여준다) */
+.iphone-frame__screen .auth-testaccount {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .iphone-frame__screen .auth-testaccount {
+    display: inline;
+  }
+}
