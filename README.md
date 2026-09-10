@@ -53,13 +53,17 @@ npm run dev
 | --- | --- | --- |
 | `.claude/settings.json` | `package.json` · `package-lock.json` · `vite.config.ts` · `vercel.json` · `index.html` · `tsconfig*.json` · `.github/` 편집, `gh pr merge`, force push | Claude Code 사용자 (자동) |
 | `.githooks/pre-commit` | `main` 직접 커밋, package 파일 삭제 커밋 | **전원** (`core.hooksPath` 설정 후) |
-| `.github/workflows/ci.yml` | package 파일 누락, 타입 에러, 빌드 실패한 PR | **전원** (자동, 우회 불가) |
+| `.github/workflows/ci.yml` | package 파일 누락, 타입 에러, 빌드 실패를 **빨간불로 표시** | **전원** (자동) |
 
 의존성을 추가할 때는 파일을 편집하지 말고 명령을 쓴다. 이건 막히지 않는다.
 
 ```bash
 npm install <패키지명>
 ```
+
+> **CI 는 표시만 한다.** 저장소가 private + free 라 "빨간불이면 머지 불가"를 강제할 수 없다.
+> 그래서 **빨간불 PR 을 머지하지 않는 것**과 **머지 버튼은 @phin0107 만 누르는 것**이
+> 권고가 아니라 필수다. 자세한 내용은 [`docs/BRANCHING.md`](docs/BRANCHING.md) 7절.
 
 ## 구조
 

@@ -354,40 +354,59 @@ feature 브랜치 push  →  GitHub Actions CI (npm ci + typecheck + build)   �
 
 ---
 
-## 7. main 을 지키는 법 (지금 플랜에서 가능한 것 / 불가능한 것)
+## 7. main 을 지키는 법 (private 유지 기준)
 
-현재 저장소는 **private + free 플랜**이다. 이 조합에서는 GitHub 의 브랜치 보호(Branch protection)와
-Ruleset 을 쓸 수 없다. API 응답이 이렇게 온다:
+**2026-09-09 결정: 저장소는 private 으로 유지한다.**
+
+private + free 플랜에서는 GitHub 의 브랜치 보호(Branch protection)와 Ruleset 을 쓸 수 없다.
+API 응답이 이렇게 온다.
 
 ```
 Upgrade to GitHub Pro or make this repository public to enable this feature.
 ```
 
-즉 **"CI 실패하면 머지 버튼 비활성화"를 강제할 수단이 지금은 없다.** 선택지는 세 가지다.
+따라서 이 프로젝트에는 **서버측 강제가 없다.** 아래 3층으로 대체한다.
+
+### private 유지에서 "없는" 것
+
+- CI 빨간불인 PR 의 머지 버튼 비활성화 → **없음**
+- `main` 직접 push 서버측 차단 → **없음**
+- CODEOWNERS 자동 리뷰 요청 → **없음** (`.github/CODEOWNERS` 는 파일만 있고 동작하지 않는다)
+
+### 대신 이걸로 막는다
+
+| 층 | 막는 것 | 우회 가능? |
+| --- | --- | --- |
+| `.githooks/pre-commit` | `main` 직접 커밋, package 파일 삭제 커밋 | `--no-verify` 로 가능 |
+| `.claude/settings.json` | 핵심 파일 편집, `gh pr merge`, force push | 어려움 (Claude Code 한정) |
+| CI `typecheck + build` | 빌드 깨진 PR 을 **빨간불로 표시** | 사람이 무시하고 머지하면 통과 |
+
+**마지막 칸이 이 방식의 유일한 구멍이다.** 서버가 막아주지 않으므로, 아래 3가지는 권고가 아니라 필수다.
+
+### 반드시 지키는 3가지
+
+1. **머지 버튼은 @phin0107 만 누른다** — Vercel 배포 조건이기도 하다 (2절 ②)
+2. **빨간불 PR 은 절대 머지하지 않는다** — 서버가 막아주지 않는다
+3. **`package.json` / `package-lock.json` 이 diff 에 보이면** 반드시 확인하고 머지한다
+
+### 비용은 걱정하지 않아도 된다
+
+private + free 저장소의 GitHub Actions 무료 한도는 **월 2,000분**이다.
+이 프로젝트 CI 는 1회 약 20초라, 월 100개 PR 을 올려도 40분 정도다.
+
+### 나중에 다시 논의할 때를 위해
 
 | 선택지 | 얻는 것 | 비용 |
 | --- | --- | --- |
-| **A. 저장소를 public 으로 전환** (추천) | 브랜치 보호 · 필수 상태 체크 · CODEOWNERS 전부 무료로 활성화 | 코드가 공개된다 (현재 API 키·비밀값 **없음** — 확인함) |
+| A. public 전환 | 브랜치 보호 · 필수 상태 체크 · CODEOWNERS 무료 활성화 | 코드가 공개된다 (커밋된 비밀값은 없음 — 확인함) |
 | B. GitHub Pro 결제 | private 유지 + 보호 규칙 | 월 $4 |
-| C. 규칙으로만 운영 | 비용 0 | 강제력 없음 — 사람이 지켜야 함 |
+| **C. 규칙 + 로컬 차단** | 비용 0 | 서버측 강제 없음 ← **현재 방식** |
 
-**추천은 A다.** 이 프로젝트는 순수 프론트엔드 정적 사이트이고 커밋된 비밀값이 없다.
-public 으로 바꾸면 그 즉시 아래 설정이 가능해진다.
+A 또는 B 로 바꾸게 되면 `Settings → Branches → Add rule → main` 에서 아래를 켠다.
 
-Settings → Branches → Add rule → `main`
-
-- [x] Require a pull request before merging
-- [x] Require status checks to pass → **`typecheck + build`** 선택
-- [x] Require branches to be up to date before merging
-
-이렇게 설정하면 **package.json 이 없는 PR 은 머지 버튼 자체가 눌리지 않는다.**
-이번 사고가 구조적으로 재발 불가능해진다.
-
-C를 택한다면 최소한 이것만은 지킨다.
-
-- main 머지는 **오너(@phin0107) 만** 누른다
-- 빨간불인 PR 은 절대 머지하지 않는다
-- `package.json` / `package-lock.json` 이 diff 에 보이면 무조건 확인 후 머지
+- [ ] Require a pull request before merging
+- [ ] Require status checks to pass → **`typecheck + build`**
+- [ ] Require branches to be up to date before merging
 
 ---
 
