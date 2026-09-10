@@ -8,7 +8,7 @@ export type OnboardingSelection = { interests: string[]; stage: string };
 interface OnboardingProps { onComplete?: (selection: OnboardingSelection) => void; userName?: string; }
 
 export function Onboarding({ onComplete, userName }: OnboardingProps) {
-  const [step, setStep] = useState(0); const [selectedInterests, setSelectedInterests] = useState<string[]>([]); const [selectedStage, setSelectedStage] = useState('');
+  const [step, setStep] = useState(0); const [selectedInterests, setSelectedInterests] = useState<string[]>(['생활 꿀팁', '자취 준비']); const [selectedStage, setSelectedStage] = useState('자취 준비 중');
   const interests = ['생활 꿀팁', '돈 관리', '지원금·혜택', '자취 준비', '음식·장보기', '동네·커뮤니티']; const stages = ['자취 준비 중', '자취를 막 시작했어요', '자취에 조금 익숙해졌어요'];
   const canNext = step === 0 || (step === 1 ? selectedInterests.length > 0 : step === 2 ? !!selectedStage : true);
   const toggle = (value: string) => setSelectedInterests((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);

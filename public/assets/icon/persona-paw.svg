@@ -1,0 +1,6 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="7" cy="9.5" r="2" fill="currentColor"/>
+<circle cx="12" cy="6.8" r="2.2" fill="currentColor"/>
+<circle cx="17" cy="9.5" r="2" fill="currentColor"/>
+<path d="M12 12c-3.04 0-5.5 2.15-5.5 4.8 0 1.77 1.43 3.2 3.2 3.2.9 0 1.51-.4 2.3-.4s1.4.4 2.3.4c1.77 0 3.2-1.43 3.2-3.2 0-2.65-2.46-4.8-5.5-4.8Z" fill="currentColor"/>
+</svg>

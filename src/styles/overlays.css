@@ -635,6 +635,7 @@
   display: block;
   border-radius: var(--radius-xl);
   flex: none;
+  cursor: pointer;
 }
 
 .wpick[hidden] { display: none; }
