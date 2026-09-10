@@ -4,8 +4,8 @@ import { Header } from '../components/Header';
 import { AuthField } from '../components/auth/AuthField';
 import { TestAccountSheet } from '../components/auth/TestAccountSheet';
 import { useAuth } from '../auth/AuthContext';
-import { TEST_PASSWORD } from '../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
+import { resolveAccountSelection } from '../auth/resolveAccountSelection';
 import type { MockAccount } from '../auth/mockUsers';
 import { icon, img } from '../lib/asset';
 
@@ -13,12 +13,15 @@ import { icon, img } from '../lib/asset';
 interface LoginProps {
   /** prefillEmail 이 있으면 회원가입 화면의 이메일을 채운 채로 연다 */
   onGoSignup: (prefillEmail?: string) => void;
+  /** 외부(LoginShowcase 의 Demo Account 패널 등)에서 이메일/비밀번호를 채운 채로 열 때 사용 */
+  initialEmail?: string;
+  initialPassword?: string;
 }
 
-export function Login({ onGoSignup }: LoginProps) {
+export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: LoginProps) {
   const { login, demoSignedUp } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(initialEmail);
+  const [password, setPassword] = useState(initialPassword);
   const [error, setError] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -40,12 +43,13 @@ export function Login({ onGoSignup }: LoginProps) {
 
   const handleSelectAccount = (account: MockAccount) => {
     setSheetOpen(false);
-    if (account.email === pendingSignupEmail) {
-      onGoSignup(account.email);
+    const selection = resolveAccountSelection(account, demoSignedUp);
+    if (selection.target === 'signup') {
+      onGoSignup(selection.email);
       return;
     }
-    setEmail(account.email);
-    setPassword(TEST_PASSWORD);
+    setEmail(selection.email);
+    setPassword(selection.password);
     setError('');
   };
 
