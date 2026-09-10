@@ -39,7 +39,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     event.preventDefault();
     if (activeTab === undefined) setSelectedTab(tab);
     onTabChange?.(tab);
-    if (tab === 'home' || tab === 'my' || tab === 'life' || tab === 'community') {
+    if (tab === 'home' || tab === 'my' || tab === 'life' || tab === 'community' || tab === 'money') {
       navigation?.navigate(tab);
     }
   };

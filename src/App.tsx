@@ -9,6 +9,7 @@ import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
 import { SavedPage } from './pages/SavedPage';
 import { LifePage } from './pages/LifePage';
+import { MoneyPage } from './pages/MoneyPage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { AIChatPage } from './pages/AIChatPage';
@@ -43,6 +44,7 @@ function MainPages() {
       {page === 'mission' && <MissionPage />}
       {page === 'saved' && <SavedPage />}
       {page === 'life' && <LifePage />}
+      {page === 'money' && <MoneyPage />}
       {page === 'life-first' && <LifeFirstPage />}
       {page === 'community' && <CommunityPage />}
       {page === 'ai-chat' && <AIChatPage />}
