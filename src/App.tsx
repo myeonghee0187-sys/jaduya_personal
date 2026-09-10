@@ -10,7 +10,10 @@ import { MissionPage } from './pages/MissionPage';
 import { SavedPage } from './pages/SavedPage';
 import { LifePage } from './pages/LifePage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
+import { CommunityPage } from './pages/CommunityPage';
+import { AIChatPage } from './pages/AIChatPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
+import { BookmarkProvider } from './bookmarks/BookmarkContext';
 
 function MainPages() {
   const navigation = useAppNavigation();
@@ -41,6 +44,8 @@ function MainPages() {
       {page === 'saved' && <SavedPage />}
       {page === 'life' && <LifePage />}
       {page === 'life-first' && <LifeFirstPage />}
+      {page === 'community' && <CommunityPage />}
+      {page === 'ai-chat' && <AIChatPage />}
     </>
   );
 }
@@ -69,7 +74,10 @@ export default function App() {
   if (user) {
     return user.onboarded ? (
       <AppNavigationProvider key={user.email}>
-        <MainPages />
+        {/* 커뮤니티 북마크는 마이페이지와 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+        <BookmarkProvider>
+          <MainPages />
+        </BookmarkProvider>
       </AppNavigationProvider>
     ) : <Onboarding onComplete={finishOnboarding} />;
   }

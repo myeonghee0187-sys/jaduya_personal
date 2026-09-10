@@ -191,10 +191,17 @@
   gap: 16px;
 }
 
+/* 제목만 있는 줄 — 단계 선택은 아래 meta 줄로 내려갔다 */
 .contract-check__head {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 완료 상태(왼쪽) + 단계 선택(오른쪽) — 둘 다 제목보다 한 단계 낮은 정보다 */
+.contract-check__meta {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -203,27 +210,31 @@
 .stage-select {
   position: relative;
   flex: none;
+  /* 완료 개수가 없는 단계에서도 오른쪽에 붙는다 */
+  margin-left: auto;
 }
 
+/* pill 이 아니라 작은 텍스트 dropdown 이다 — 배경·테두리 없이 글자와 chevron 만 보인다.
+ * 보이는 건 작아도 누르는 영역은 32px 을 확보한다. */
 .stage-select__button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 34px;
-  padding: 8px 12px;
-  border: 1px solid var(--first-line);
-  border-radius: var(--radius-pill);
-  background: var(--surface-subtle);
-  color: var(--text-nav);
-  font: 700 12px/18px var(--font-suit);
+  min-height: 32px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: 500 13px/1.4 var(--font-suit);
   letter-spacing: -0.32px;
   cursor: pointer;
 }
 
+/* chevron 은 정사각이 아니라 원본 비율대로 둔다 */
 .stage-select__button img {
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 13px;
 }
 
 .stage-select__list {
@@ -231,7 +242,7 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 5;
-  min-width: 104px;
+  min-width: 112px;
   margin: 0;
   padding: 4px;
   overflow: hidden;
@@ -246,10 +257,10 @@
   width: 100%;
   border: 0;
   border-radius: var(--radius-s);
-  padding: 8px 10px;
+  padding: 9px 12px;
   background: none;
   color: var(--text-nav);
-  font: 400 12px/1.5 var(--font-suit);
+  font: 400 13px/1.4 var(--font-suit);
   text-align: left;
   cursor: pointer;
 }
@@ -258,6 +269,17 @@
   background: rgba(180, 57, 54, 0.06);
   color: var(--brand-primary);
   font-weight: 700;
+}
+
+/* 아직 항목이 없는 단계 안내 */
+.contract-check__empty {
+  margin: 0;
+  padding: 20px 12px;
+  border: 1px solid var(--first-line);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-suit);
+  text-align: center;
 }
 
 .contract-check__progress {
@@ -288,14 +310,17 @@
   transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 좁은 2열 대신 한 줄에 하나씩 — 제목과 설명이 넉넉하게 들어간다 */
+/* 좁은 2열 대신 한 줄에 하나씩 — 제목과 설명이 넉넉하게 들어간다.
+ * 전체를 감싸는 외곽선 없이 행 사이 divider 로만 구분한다. */
 .contract-check__list {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0 4px;
-  border: 1px solid var(--first-line);
-  border-radius: var(--radius-xl);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   list-style: none;
 }
 
@@ -310,7 +335,7 @@
   gap: 10px;
   width: 100%;
   border: 0;
-  padding: 16px 12px;
+  padding: 16px 2px;
   background: none;
   text-align: left;
   cursor: pointer;
@@ -360,7 +385,8 @@
   position: relative;
   isolation: isolate;
   width: calc(100% - 24px);
-  height: 196px;
+  /* 해결 방법이 붙으면서 조금 높아졌다 — 세로로 길어지지 않는 선에서만 늘린다 */
+  height: 244px;
   margin: 0 auto;
 }
 
@@ -403,6 +429,29 @@
   margin: 0;
   color: var(--text-black);
   font: 400 13px/1.6 var(--font-suit);
+  word-break: keep-all;
+}
+
+/* 배경 박스 없이 divider 와 글자 크기 차이로만 구분한다 */
+.regret-card__solution {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 4, 3, 0.08);
+}
+
+.regret-card__solution-label {
+  color: var(--text-nav);
+  font: 700 12px/1.4 var(--font-suit);
+}
+
+.regret-card__solution p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.5 var(--font-suit);
+  word-break: keep-all;
 }
 
 .regret__pager {

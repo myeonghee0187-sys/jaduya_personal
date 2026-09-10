@@ -19,51 +19,97 @@ const HOUSE_POINTS = [
   { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life-first-nearby.svg' },
 ] as const;
 
-/* 체크리스트를 보는 시점 — 지금은 단계별 데이터가 따로 없어 표시 상태만 바뀐다 */
+/* 체크리스트를 보는 시점 */
 const CONTRACT_STAGES = ['계약 전', '계약 시', '입주 전', '입주 후'] as const;
 type ContractStage = (typeof CONTRACT_STAGES)[number];
 
-/* 계약부터 입주까지 직접 확인하고 체크하는 항목 */
-const CONTRACT_CHECKS = [
-  { key: 'owner', name: '집주인 확인', desc: '등기부등본, 실소유자 여부', done: true },
-  { key: 'fee', name: '관리비 항목', desc: '포함 항목과 금액을 확인해요', done: true },
-  { key: 'terms', name: '특약사항', desc: '계약서에 꼭 확인해요', done: false },
-  { key: 'account', name: '송금 계좌', desc: '정확한 계좌를 다시 확인해요', done: false },
-] as const;
+interface ChecklistItem {
+  id: string;
+  title: string;
+  description: string;
+}
 
-/* 자취 선배들의 후회 — Stack 에 겹쳐 쌓이는 메모 카드 */
+/* 단계별 체크 항목 — 화면은 이 데이터만 보고 그린다 */
+const CHECKLIST_BY_STAGE: Record<ContractStage, ChecklistItem[]> = {
+  '계약 전': [
+    { id: 'budget', title: '예산 확인', description: '보증금·월세·관리비까지 계산해요' },
+    { id: 'registry', title: '등기부등본 확인', description: '소유자와 권리관계를 확인해요' },
+    { id: 'condition', title: '집 상태 점검', description: '채광·수압·하자·소음을 살펴봐요' },
+    { id: 'neighborhood', title: '주변 환경 확인', description: '교통과 편의시설을 확인해요' },
+  ],
+  '계약 시': [
+    { id: 'landlord', title: '계약자 확인', description: '임대인과 실제 소유자가 같은지 확인해요' },
+    { id: 'terms-detail', title: '계약 조건 확인', description: '보증금·월세·관리비·기간을 확인해요' },
+    { id: 'special-terms', title: '특약사항 작성', description: '합의한 내용을 계약서에 남겨요' },
+    { id: 'transfer', title: '송금 계좌 확인', description: '임대인 명의 계좌인지 확인해요' },
+  ],
+  '입주 전': [
+    { id: 'owner', title: '집주인 확인', description: '등기부등본, 실소유자 여부' },
+    { id: 'fee', title: '관리비 항목', description: '포함 항목과 금액을 확인해요' },
+    { id: 'terms', title: '특약사항', description: '계약서에 꼭 확인해요' },
+    { id: 'account', title: '송금 계좌', description: '정확한 계좌를 다시 확인해요' },
+  ],
+  '입주 후': [
+    { id: 'move-in-report', title: '전입신고', description: '새 주소로 전입신고를 완료해요' },
+    { id: 'home-condition', title: '집 상태 기록', description: '하자와 계량기를 사진으로 남겨요' },
+    { id: 'utilities', title: '공과금 정리', description: '전기·가스·수도 납부를 확인해요' },
+    { id: 'living-service', title: '생활 서비스', description: '인터넷과 배송지를 새 주소로 변경해요' },
+  ],
+};
+
+/* 체크 상태는 단계마다 따로 쌓인다 — 입주 전에서 체크한 게 입주 후로 넘어가지 않는다 */
+const INITIAL_CHECKED: Record<ContractStage, string[]> = {
+  '계약 전': [],
+  '계약 시': [],
+  '입주 전': ['owner', 'fee'],
+  '입주 후': [],
+};
+
+/* 자취 선배들의 후회 — Stack 에 겹쳐 쌓이는 메모 카드.
+ * 후회로 끝내지 않고 바로 해볼 수 있는 방법까지 한 장에 담는다. */
 const REGRETS = [
   {
     key: 'living',
     category: '생활 준비',
     tone: 'pink',
-    text: '인터넷과 필요한 생활용품을 미리 준비하지 않아서 입주하고 며칠 동안 생각보다 많이 불편했어요.',
+    regret:
+      '인터넷과 필요한 생활용품을 미리 준비하지 않아서 입주하고 며칠 동안 생각보다 많이 불편했어요.',
+    solution: '입주 1~2주 전 인터넷 설치를 예약하고, 첫날 필요한 생필품을 미리 준비해두세요.',
   },
   {
     key: 'contract',
     category: '계약 확인',
     tone: 'cream',
-    text: '계약할 때 관리비에 어떤 항목이 포함되는지 자세히 확인하지 않아서 생각보다 생활비가 많이 들었어요.',
+    regret:
+      '계약할 때 관리비에 어떤 항목이 포함되는지 자세히 확인하지 않아 생각보다 생활비가 많이 들었어요.',
+    solution: '계약 전에 관리비 포함 항목과 별도 납부 항목을 구분해 확인하세요.',
   },
   {
     key: 'environment',
     category: '주변 환경',
     tone: 'green',
-    text: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 미리 확인할 걸 후회했어요.',
+    regret: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 후회했어요.',
+    solution: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
   },
 ] as const;
 
 interface RegretCardProps {
   category: string;
-  text: string;
+  regret: string;
+  solution: string;
   tone: string;
 }
 
-function RegretCard({ category, text, tone }: RegretCardProps) {
+function RegretCard({ category, regret, solution, tone }: RegretCardProps) {
   return (
     <div className={`regret-card regret-card--${tone}`}>
       <span className="regret-card__category">{category}</span>
-      <p className="regret-card__text">{text}</p>
+      <p className="regret-card__text">{regret}</p>
+      {/* 후회 다음에 바로 해볼 방법 — 별도 박스 없이 divider 와 타이포로만 나눈다 */}
+      <div className="regret-card__solution">
+        <span className="regret-card__solution-label">💡 이렇게 해보세요</span>
+        <p>{solution}</p>
+      </div>
     </div>
   );
 }
@@ -73,9 +119,8 @@ function RegretCard({ category, text, tone }: RegretCardProps) {
 export function LifeFirstPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
-  const [checked, setChecked] = useState<string[]>(
-    CONTRACT_CHECKS.filter((item) => item.done).map((item) => item.key),
-  );
+  const [checkedByStage, setCheckedByStage] =
+    useState<Record<ContractStage, string[]>>(INITIAL_CHECKED);
   const [regretTop, setRegretTop] = useState(0);
   const [stage, setStage] = useState<ContractStage>('입주 전');
   const [stageOpen, setStageOpen] = useState(false);
@@ -91,11 +136,20 @@ export function LifeFirstPage() {
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [stageOpen]);
 
+  /* 지금 고른 단계의 항목과 체크 상태만 화면에 쓴다 */
+  const items = CHECKLIST_BY_STAGE[stage];
+  const checked = checkedByStage[stage];
   const done = checked.length;
-  const progress = Math.round((done / CONTRACT_CHECKS.length) * 100);
+  const progress = items.length ? Math.round((done / items.length) * 100) : 0;
 
-  const toggleCheck = (key: string) =>
-    setChecked((prev) => (prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key]));
+  const toggleCheck = (id: string) =>
+    setCheckedByStage((prev) => {
+      const current = prev[stage];
+      return {
+        ...prev,
+        [stage]: current.includes(id) ? current.filter((key) => key !== id) : [...current, id],
+      };
+    });
 
   /* Stack 은 배열의 마지막 카드를 맨 앞에 놓으므로 뒤집어 넘겨 1번이 먼저 보이게 한다.
    * cards 가 바뀌면 순서가 초기화되므로 한 번만 만든다. */
@@ -105,7 +159,8 @@ export function LifeFirstPage() {
         <RegretCard
           key={regret.key}
           category={regret.category}
-          text={regret.text}
+          regret={regret.regret}
+          solution={regret.solution}
           tone={regret.tone}
         />
       )),
@@ -164,9 +219,18 @@ export function LifeFirstPage() {
         <section className="contract-check">
           <div className="contract-check__head">
             <h2>계약부터 입주까지 챙겨봐요</h2>
+          </div>
 
-            {/* 상태 텍스트가 아니라 고를 수 있는 단계라는 게 보이도록 pill + chevron 으로 둔다 */}
-            <div className="stage-select" ref={stageRef}>
+          {/* 완료 상태와 단계 선택을 한 줄에 두어 제목과 위계를 나눈다.
+            * 항목이 없는 단계에서도 다시 단계를 바꿀 수 있어야 해서 이 줄은 항상 그린다. */}
+          <div className="contract-check__progress">
+            <div className="contract-check__meta">
+              {items.length > 0 && (
+                <span className="contract-check__count">
+                  {done}/{items.length} 완료
+                </span>
+              )}
+              <div className="stage-select" ref={stageRef}>
               <button
                 type="button"
                 className="stage-select__button"
@@ -193,46 +257,49 @@ export function LifeFirstPage() {
                   </li>
                 ))}
               </ul>
+              </div>
             </div>
+
+            {items.length > 0 && (
+              <span
+                className="contract-check__bar"
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="계약 체크 진행률"
+              >
+                <span className="contract-check__bar-fill" style={{ width: `${progress}%` }} />
+              </span>
+            )}
           </div>
 
-          <div className="contract-check__progress">
-            <span className="contract-check__count">
-              {done}/{CONTRACT_CHECKS.length} 완료
-            </span>
-            <span
-              className="contract-check__bar"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="계약 체크 진행률"
-            >
-              <span className="contract-check__bar-fill" style={{ width: `${progress}%` }} />
-            </span>
-          </div>
-
+          {/* 항목이 없는 단계는 목록 대신 안내만 보여준다 */}
+          {items.length === 0 ? (
+            <p className="contract-check__empty">체크리스트 준비 중이에요.</p>
+          ) : (
           <ul className="contract-check__list">
-            {CONTRACT_CHECKS.map((item) => {
-              const isDone = checked.includes(item.key);
+            {items.map((item) => {
+              const isDone = checked.includes(item.id);
               return (
-                <li key={item.key}>
+                <li key={item.id}>
                   <button
                     type="button"
                     className={`contract-item${isDone ? ' is-done' : ''}`}
                     aria-pressed={isDone}
-                    onClick={() => toggleCheck(item.key)}
+                    onClick={() => toggleCheck(item.id)}
                   >
                     <img src={icon(isDone ? 'life-check-on.svg' : 'life-check-off.svg')} alt="" />
                     <span className="contract-item__text">
-                      <strong>{item.name}</strong>
-                      <em>{item.desc}</em>
+                      <strong>{item.title}</strong>
+                      <em>{item.description}</em>
                     </span>
                   </button>
                 </li>
               );
             })}
           </ul>
+          )}
         </section>
 
         {/* ============ ③ 자취 선배들의 후회 — 넘겨보는 콘텐츠 ============ */}
