@@ -8,6 +8,8 @@ import { Signup } from './pages/Signup';
 import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
 import { SavedPage } from './pages/SavedPage';
+import { LifePage } from './pages/LifePage';
+import { LifeFirstPage } from './pages/LifeFirstPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 
 function MainPages() {
@@ -37,6 +39,8 @@ function MainPages() {
       )}
       {page === 'mission' && <MissionPage />}
       {page === 'saved' && <SavedPage />}
+      {page === 'life' && <LifePage />}
+      {page === 'life-first' && <LifeFirstPage />}
     </>
   );
 }
