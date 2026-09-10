@@ -12,6 +12,7 @@ import { AuthProvider } from './auth/AuthContext';
  *   level-bar : 공용 LevelBar 컴포넌트
  *   page-header : 하위 화면 공용 헤더
  *   mypage / mission / saved : 하위 화면 (.mypage.app / .mission.app 이 .app 을 덮어야 해서 마지막)
+ *   life      : 생활 메인 (.life.app 이 .app 을 덮어야 해서 마지막)
  */
 import './styles/fonts.css';
 import './styles/tokens.css';
@@ -25,6 +26,8 @@ import './styles/mypage.css';
 import './styles/mission.css';
 import './styles/saved.css';
 import './styles/level-info.css';
+import './styles/life.css';
+import './styles/life-first.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

@@ -1,0 +1,451 @@
+/* JADUYA — 생활 > 첫 자취 (Figma daily_first 2258:14995)
+ *
+ * main.tsx 에서 app-shell.css 다음에 읽는다 (.life-first.app 이 .app 을 덮어야 한다).
+ * 색은 tokens.css 를 우선 쓰고, 이 화면에만 있는 아주 연한 tint 만 지역 변수로 둔다. */
+
+.life-first {
+  --first-line: #ece1ce;
+  --first-tint-light: #fdf9f1;
+  --first-tint-water: #f7f5f1;
+  --first-tint-storage: #f5f7e7;
+  --first-tint-nearby: #f9f0ee;
+  --first-panel: #fffdfa;
+  --first-divider: rgba(224, 205, 173, 0.45);
+  --first-card-cream: #f9f5ef;
+  --first-card-green: #f5f7e7;
+  --first-card-pink: #f7ebeb;
+
+  display: flex;
+  flex-direction: column;
+  color: var(--text-black);
+  font-family: var(--font-suit);
+}
+
+/* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
+.life-first.app {
+  background: var(--surface-subtle);
+}
+
+/* ================= 하위 탭 ================= */
+
+.life-first__tabs {
+  display: flex;
+  flex: none;
+  width: 100%;
+}
+
+.life-first__tab {
+  flex: 1;
+  padding: 12px 14px 13px;
+  border-bottom: 1px solid #737373;
+  color: #737373;
+  font: 700 14px/16px var(--font-suit);
+  text-align: center;
+}
+
+.life-first__tab.is-active {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+/* 헤더·탭·탭바는 고정이고 이 영역만 스크롤한다 */
+.life-first__scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 40px var(--screen-margin) calc(var(--tab-bar-h, 91px) + 40px);
+  scrollbar-width: none;
+}
+
+.life-first__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.life-first h2 {
+  margin: 0;
+  color: var(--text-black);
+  font: 700 20px/1.3 var(--font-a2z);
+}
+
+/* ================= ① 좋은 집인지 살펴봐요 ================= */
+
+.house-check {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.house-check__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.house-check__head p {
+  margin: 0;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+/* 항목마다 카드를 두지 않고, 큰 패널 하나 안에 2 × 2 로 정리한다 */
+.house-check__panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--first-line);
+  border-radius: var(--radius-xl);
+  background: var(--first-panel);
+  list-style: none;
+}
+
+/* 버튼이 아니라 읽는 정보 블록이다 — 개별 카드 배경·외곽선·그림자·cursor 를 두지 않고,
+ * 아이콘 왼쪽 + 텍스트 오른쪽으로 두어 '확인할 목록' 처럼 읽히게 한다.
+ * 칸 구분은 패널 안쪽의 아주 연한 divider 만 담당한다. */
+.house-point {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  cursor: default;
+}
+
+.house-point:nth-child(odd) {
+  border-right: 1px solid var(--first-divider);
+}
+
+.house-point:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--first-divider);
+}
+
+/* 색 tint 는 카드가 아니라 아이콘 뒤 원형에만 아주 옅게 준다 */
+.house-point__badge {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+}
+
+.house-point__badge img {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.house-point__badge--light {
+  background: var(--first-tint-light);
+}
+
+.house-point__badge--water {
+  background: var(--first-tint-water);
+}
+
+.house-point__badge--storage {
+  background: var(--first-tint-storage);
+}
+
+.house-point__badge--nearby {
+  background: var(--first-tint-nearby);
+}
+
+.house-point__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.house-point__text strong {
+  color: var(--text-nav);
+  font: 700 13px/1.35 var(--font-suit);
+  letter-spacing: -0.325px;
+}
+
+.house-point__text em {
+  color: var(--text-secondary);
+  font: 400 11px/1.4 var(--font-suit);
+  font-style: normal;
+  /* 좁은 칸에서 '드는 / 지' 처럼 낱말이 쪼개지지 않게 한다 */
+  word-break: keep-all;
+}
+
+/* ================= ② 계약부터 입주까지 챙겨봐요 ================= */
+
+.contract-check {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contract-check__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- 단계 선택 dropdown ---------- */
+
+.stage-select {
+  position: relative;
+  flex: none;
+}
+
+.stage-select__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 1px solid var(--first-line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-nav);
+  font: 700 12px/18px var(--font-suit);
+  letter-spacing: -0.32px;
+  cursor: pointer;
+}
+
+.stage-select__button img {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.stage-select__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  min-width: 104px;
+  margin: 0;
+  padding: 4px;
+  overflow: hidden;
+  border: 1px solid var(--first-line);
+  border-radius: var(--radius-m);
+  background: var(--surface-base);
+  box-shadow: 0 6px 16px rgba(60, 50, 45, 0.1);
+  list-style: none;
+}
+
+.stage-select__list button {
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+  background: none;
+  color: var(--text-nav);
+  font: 400 12px/1.5 var(--font-suit);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage-select__list button.is-selected {
+  background: rgba(180, 57, 54, 0.06);
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.contract-check__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contract-check__count {
+  color: var(--text-nav);
+  font: 700 12px/1.4 var(--font-suit);
+}
+
+.contract-check__bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--first-line);
+}
+
+.contract-check__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 좁은 2열 대신 한 줄에 하나씩 — 제목과 설명이 넉넉하게 들어간다 */
+.contract-check__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid var(--first-line);
+  border-radius: var(--radius-xl);
+  list-style: none;
+}
+
+.contract-check__list li + li {
+  border-top: 1px solid var(--first-divider);
+}
+
+/* 여기는 실제로 누르는 영역이라 버튼처럼 보여도 된다 — 행 전체가 클릭 영역이다 */
+.contract-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  padding: 16px 12px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.contract-item img {
+  flex: none;
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.contract-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contract-item__text strong {
+  color: var(--text-black);
+  font: 700 13px/1.35 var(--font-suit);
+  letter-spacing: -0.325px;
+}
+
+.contract-item__text em {
+  color: var(--text-secondary);
+  font: 400 11px/1.4 var(--font-suit);
+  font-style: normal;
+}
+
+.contract-item.is-done .contract-item__text strong {
+  color: var(--text-nav);
+}
+
+/* ================= ③ 자취 선배들은 이걸 후회했어요 ================= */
+
+.regret {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Stack 은 부모 크기를 그대로 쓴다. 뒤 카드가 기울어져도 넘치지 않게 좌우 여유를 준다.
+ * position/isolation 으로 Stack 의 absolute 레이어와 쌓임 맥락을 이 상자 안에 가둔다. */
+.regret__stack {
+  position: relative;
+  isolation: isolate;
+  width: calc(100% - 24px);
+  height: 196px;
+  margin: 0 auto;
+}
+
+/* 메모 카드는 긴 문장이 들어가므로 좌측 정렬이 읽기 편하다 */
+.regret-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  border-radius: 20px;
+  text-align: left;
+}
+
+.regret-card--pink {
+  background: var(--first-card-pink);
+}
+
+.regret-card--cream {
+  background: var(--first-card-cream);
+}
+
+.regret-card--green {
+  background: var(--first-card-green);
+}
+
+/* 카테고리는 작은 label 이지 CTA 가 아니다 */
+.regret-card__category {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-nav);
+  font: 700 12px/1.4 var(--font-suit);
+}
+
+.regret-card__text {
+  margin: 0;
+  color: var(--text-black);
+  font: 400 13px/1.6 var(--font-suit);
+}
+
+.regret__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: -8px;
+}
+
+.regret__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--first-line);
+  transition:
+    width 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms ease;
+}
+
+.regret__dot.is-active {
+  width: 18px;
+  background: var(--brand-primary);
+}
+
+/* 화면에는 보이지 않고 스크린리더만 읽는 현재 위치 */
+.regret__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Stack 원본의 기본 radius 를 이 화면 카드에 맞춘다 */
+.regret__stack .stack-card {
+  border-radius: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contract-check__bar-fill,
+  .regret__dot {
+    transition: none;
+  }
+}
