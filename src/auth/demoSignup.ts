@@ -28,3 +28,13 @@ export function markDemoSignupDone(): void {
     /* 저장 실패는 무시 — 세션 상태로만 동작 */
   }
 }
+
+/** 데모 쇼케이스에서 "새 계정으로 시작하기"를 눌렀을 때 이서준을 다시 가입 전 상태로
+ * 되돌리기 위한 초기화 — 실제 로그인 화면(TestAccountSheet)에는 이 진입점이 없다. */
+export function resetDemoSignupDone(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* 저장 실패는 무시 — 세션 상태로만 동작 */
+  }
+}

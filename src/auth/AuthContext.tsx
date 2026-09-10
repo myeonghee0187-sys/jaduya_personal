@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MOCK_USERS } from './mockUsers';
-import { DEMO_SIGNUP_EMAIL, isDemoSignupDone, markDemoSignupDone } from './demoSignup';
+import { DEMO_SIGNUP_EMAIL, isDemoSignupDone, markDemoSignupDone, resetDemoSignupDone } from './demoSignup';
 import type { AuthUser, UserPreferences } from './mockUsers';
 
 /* 로그인/회원가입 상태 전역 관리.
@@ -24,6 +24,9 @@ interface AuthValue {
   logout(): void;
   /** 데모 신규 사용자(이서준)가 회원가입을 마쳤는지 — 시트 표시/동작 분기용 */
   demoSignedUp: boolean;
+  /** 이서준을 다시 가입 전 상태로 되돌린다(쇼케이스의 "새 계정으로 시작하기" 전용) —
+   * localStorage 뿐 아니라 demoSignedUp 상태도 즉시 갱신해서 새로고침 없이 반영된다. */
+  resetDemoSignup(): void;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -133,6 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout() {
         setUser(null);
         saveStoredUser(null);
+      },
+      resetDemoSignup() {
+        resetDemoSignupDone();
+        setDemoSignedUp(false);
       },
     }),
     [user, signedUpUsers, demoSignedUp],

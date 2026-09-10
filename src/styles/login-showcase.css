@@ -1,11 +1,17 @@
 /* JADUYA — 사이트 기본 화면(쇼케이스 컷). LoginShowcase.tsx 전용, 다른 화면 스타일과 공유하지 않는다.
+ * 실제 모바일 기기 폭(768px 미만)에서는 LoginShowcase 가 이 마크업 자체를 렌더하지 않고
+ * App 을 그대로 전체화면으로 보여준다(LoginShowcase.tsx 의 useIsDesktop 분기 참고) —
+ * 이 파일의 규칙은 768px 이상(태블릿/웹)에서만 의미가 있다.
  * 폰 목업(IPhoneFrame) 자체의 스타일은 iphone-frame.css 소관 — 여기서는 페이지 레이아웃
  * (상단바 / 스테이지 배치 / Demo Account 패널 / --phone-scale 값)만 다룬다.
  *
- * 3단 반응형 — 모든 단계에서 IPhoneFrame 은 항상 보인다, Demo Account 패널만 768px 이상에서 노출:
- *   768px 미만(모바일): 폰만 중앙에, 폭에 맞춰 축소
- *   768~1023px(태블릿): 폰 위 + 패널 아래, 세로 스택
- *   1024px~(웹): 폰 좌 + 패널 우, 가로 배치
+ * 2단 반응형(768px 이상에서만):
+ *   768~1699px(태블릿/좁은 웹): 카피 숨김, 폰 + 패널만 나란히(항상 가로 배치, 세로로 안
+ *     쌓임) — 폰/패널 크기는 데스크톱과 동일하게 유지한다.
+ *   1700px~(넓은 웹): 카피 + 폰 + 패널이 한 줄에 들어간다. 카피(540px)·패널(332px) 폭이
+ *     서로 달라 그리드 좌우 칸을 대칭(540px)으로 맞춰야 폰이 정중앙에 오는데, 그 폭
+ *     (540+gap+폰+gap+540 ≈ 1530px대)이 실제로 한 줄에 들어가려면 1700px 정도는 필요하다
+ *     (1440px 는 폰 크기만 보면 넉넉해 보이지만 대칭 그리드 폭까지는 부족해서 넘친다).
  * 배경은 새로 만들지 않고 Home 히어로에 이미 쓰는 screen-background.png(하늘/언덕 일러스트,
  * Hero.tsx 참고)를 그대로 재사용한다 — 새 색·장식을 임의로 추가하지 않는다는 원칙(AGENTS.md)에 따라
  * 임의로 만든 색 블롭 배경 대신 기존 브랜드 무드보드 에셋을 쓴다. */
@@ -21,6 +27,9 @@
   overflow: hidden;
   background: var(--surface-warm);
   box-sizing: border-box;
+  /* 한글은 기본 word-break 규칙상 단어 중간(음절 사이)에서도 줄바꿈될 수 있다 —
+   * keep-all 로 항상 띄어쓰기에서만 끊기게 한다(자식 전체에 상속). */
+  word-break: keep-all;
 }
 
 /* ---------- 배경 (Home 히어로와 같은 무드보드 에셋) ---------- */
@@ -58,8 +67,10 @@
   aspect-ratio: 44 / 24.556;
 }
 
+/* 로고 워드마크는 항상 KERIS KEDU 전용(Figma "스타일 가이드 > Typography" 확인) —
+ * 다른 제목류에 쓰는 A2Z 를 쓰면 안 된다. */
 .login-showcase__brand-name {
-  font-family: var(--font-a2z);
+  font-family: var(--font-logo);
   font-weight: 700;
   font-size: 22px;
   color: var(--brand-primary);
@@ -102,289 +113,294 @@
   background: var(--brand-secondary);
 }
 
-/* ---------- 스테이지 (폰 + 패널) ----------
- * 기본값 = 태블릿(768~1023px) 레이아웃: 폰 위, 패널 아래로 세로 스택.
- * 1024px 이상(웹)에서는 아래 미디어쿼리가 가로 배치로 덮어쓴다. */
+/* ---------- 스테이지 (카피 + 폰 + 패널) ----------
+ * 넓은 웹(1700px~): 카피 + 폰 + 패널이 한 줄에 다 들어간다.
+ * 태블릿/좁은 웹(768~1699px): 카피는 아예 숨기고(display:none) 폰 + 패널 "둘만" 남긴 뒤
+ * flex-wrap:nowrap 으로 절대 세로로 안 쌓이게 못 박는다. 폰/패널이 서로 떨어지거나
+ * 아래로 떨어지는 문제는 "형제 요소가 남는 공간을 보고 알아서 줄바꿈"하는 방식에
+ * 기대서 생긴 것이라, 아예 카피를 렌더 트리에서 빼고 나머지 두 개만 고정폭으로 두는
+ * 쪽이 훨씬 안전하다. */
 .login-showcase__stage {
   position: relative;
   z-index: 1;
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: clamp(16px, 3vh, 32px);
+  gap: clamp(24px, 4vw, 72px);
 }
 
-/* ---------- 폰 목업 크기 (--phone-scale, 실제 스타일은 iphone-frame.css) ----------
- * 기본값 = 태블릿(768~1023px): 패널이 폰 아래에 오므로 세로 공간을 나눠 써야 한다. */
-.iphone-frame {
-  --phone-scale: 0.58;
-}
-
-@media (max-height: 760px) {
-  .iphone-frame {
-    --phone-scale: 0.46;
-  }
-}
-
-/* 모바일(768px 미만): 400px 안팎 폭 기기에서 좌우 페이지 패딩(아래에서 줄임)을 빼고도
- * 여유 있게 맞춘다. 세로는 실제 기기 높이 편차(667~900px 이상)가 커서 3단으로 나눈다 —
- * 뒤에 오는 규칙일수록 더 낮은 높이를 잡아 우선한다(같은 특이도라 소스 순서로 덮어씀). */
-@media (max-width: 767.98px) {
-  .login-showcase {
-    padding: 16px 12px;
-  }
-
-  .iphone-frame {
-    --phone-scale: 0.75; /* 키 큰 기기(대략 860px 초과) 기본값 */
-  }
-}
-
-@media (max-width: 767.98px) and (max-height: 860px) {
-  .iphone-frame {
-    --phone-scale: 0.65;
-  }
-}
-
-@media (max-width: 767.98px) and (max-height: 700px) {
-  .iphone-frame {
-    --phone-scale: 0.6;
-  }
-}
-
-/* ---------- Demo Account 패널 ----------
- * 모바일(768px 미만)에서는 숨긴다 — IPhoneFrame 만 화면 중앙에 남는다.
- * 태블릿 기본값: 폰 아래에 폭 넓은 스트립 형태. 웹(1024px~)에서는 오른쪽 고정폭 카드로 바뀐다. */
-@media (max-width: 767.98px) {
-  .login-showcase__panel {
-    display: none;
-  }
-}
-
-.login-showcase__panel {
-  width: 100%;
-  max-width: 560px;
-  flex-shrink: 0;
-  background: var(--surface-cream);
-  border-radius: var(--radius-xl);
-  padding: 18px 20px;
-  box-shadow:
-    0 24px 48px rgba(60, 50, 45, 0.14),
-    0 2px 8px rgba(60, 50, 45, 0.06);
-}
-
-.login-showcase__panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.login-showcase__panel-title {
-  font-family: var(--font-a2z);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.login-showcase__panel-info {
-  width: 18px;
-  height: 18px;
-  opacity: 0.6;
-}
-
-.login-showcase__panel-desc {
-  font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  margin: 0 0 18px;
-}
-
-/* 태블릿 기본값: 계정 3개를 가로로 나열 */
-.login-showcase__accounts {
-  list-style: none;
-  margin: 0 0 8px;
-  padding: 0;
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  text-align: center;
-}
-
-.login-showcase__accounts li {
-  flex: 1;
-  min-width: 0;
-}
-
-.login-showcase__account {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: var(--radius-l);
-  background: var(--surface-widget);
-  border: 1px solid transparent;
-  cursor: pointer;
-  text-align: left;
-}
-
-/* 가로 배치에서는 아바타+텍스트를 세로로 쌓고 화살표는 생략한다 */
-.login-showcase__accounts .login-showcase__account {
-  flex-direction: column;
-  gap: 6px;
-}
-
-.login-showcase__accounts .login-showcase__account-text {
-  align-items: center;
-  text-align: center;
-}
-
-.login-showcase__accounts .login-showcase__chevron {
-  display: none;
-}
-
-.login-showcase__account:hover {
-  background: #f2ece2;
-}
-
-.login-showcase__account--selected {
-  background: #fbeceb;
-  border-color: var(--brand-primary);
-}
-
-.login-showcase__avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.login-showcase__account-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.login-showcase__account-name {
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.login-showcase__account-desc {
-  font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.login-showcase__chevron {
-  width: 16px;
-  height: 16px;
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.login-showcase__new {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border-radius: var(--radius-l);
-  border: 1px dashed var(--border-warm);
-  background: none;
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.login-showcase__new-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--surface-widget);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.login-showcase__new-icon img {
-  width: 12px;
-  height: 12px;
-}
-
-.login-showcase__new-arrow {
-  width: 14px;
-  height: 14px;
-  margin-left: auto;
-  opacity: 0.5;
-}
-
-/* ================= 웹 (1024px 이상): 가로 배치, 폰이 항상 정중앙 =================
- * 3열 그리드에서 좌/우 바깥 열 폭을 똑같이 고정해 두면(패널이 있든 없든) 가운데 열의
- * 폰이 뷰포트 정중앙에 온다. 오른쪽 열엔 패널을 넣고, 왼쪽 열은 비워 대칭만 맞춘다. */
-@media (min-width: 1024px) {
+/* 카피(540px)와 패널(332px)의 폭이 서로 달라서, 그룹 전체를 flex 로 정렬(center 든
+ * flex-start 든)하면 그 폭 차이만큼 가운데 칸(폰)이 항상 한쪽으로 치우친다. 3열 그리드로
+ * 바꾸고 좌/우 바깥 칸 폭을 똑같이(카피 폭 기준 540px) 맞추면 폰이 실제 콘텐츠 폭과
+ * 무관하게 항상 정중앙에 온다 — 카피는 왼쪽 칸 안에서 왼쪽 정렬, 패널은 오른쪽 칸 안에서
+ * 왼쪽 정렬(=폰과 가깝게, 남는 여백은 패널 바깥쪽으로). 이 대칭 그리드(540+gap+폰+gap+540)
+ * 가 실제로 한 줄에 다 들어가려면 1700px 는 돼야 해서 1440px 이 아니라 1700px 을 쓴다. */
+@media (min-width: 1700px) {
   .login-showcase__stage {
     display: grid;
-    grid-template-columns: 320px auto 320px;
-    column-gap: clamp(32px, 6vw, 96px);
-    align-items: center;
+    grid-template-columns: 540px auto 540px;
+    column-gap: clamp(20px, 3vw, 56px);
     justify-content: center;
+  }
+
+  .login-showcase__intro {
+    grid-column: 1;
+    justify-self: start;
   }
 
   .iphone-frame {
     grid-column: 2;
     justify-self: center;
-    --phone-scale: 0.86;
-  }
-
-  @media (max-height: 760px) {
-    .iphone-frame {
-      --phone-scale: 0.66;
-    }
   }
 
   .login-showcase__panel {
     grid-column: 3;
     justify-self: start;
-    width: 320px;
-    max-width: 320px;
+  }
+}
+
+@media (max-width: 1699.98px) {
+  .login-showcase__stage {
+    flex-wrap: nowrap;
+    /* 카피를 뺐어도 폰(.86 배율, 약 361px) + 패널(고정 332px)만으로 768px 폭에서
+     * 빠듯하다 — 여기서만 gap 하한을 더 좁혀서 세로로 안 쌓이고 확실히 한 줄에 들어가게 한다 */
+    gap: clamp(16px, 2.5vw, 56px);
   }
 
-  /* 웹에서는 계정 리스트를 세로로, 원래 형태(아바타 좌측 정렬 + 화살표)로 되돌린다 */
-  .login-showcase__accounts {
-    flex-direction: column;
-    text-align: left;
+  /* 같은 이유로 페이지 좌우 패딩도 이 구간에서만 살짝 좁힌다(세로 패딩은 그대로 둠) */
+  .login-showcase {
+    padding-left: clamp(16px, 2vw, 40px);
+    padding-right: clamp(16px, 2vw, 40px);
   }
+}
 
-  .login-showcase__accounts li {
-    flex: none;
-  }
+/* ---------- 왼쪽 마케팅 카피 ----------
+ * 1700px 미만에서는 공간이 부족하므로 아예 숨긴다 — 폰과 패널의 실제 크기를 데스크톱과
+ * 동일하게 유지하는 게 우선이라, 카피를 줄여서 셋 다 욱여넣지 않는다.
+ * max-width 는 540px — 52px 크기의 "자취하는 모든 순간,"이 한 줄에 다 들어가는 데
+ * 필요한 최소 폭을 계산해서 넣은 값이다(420px 였을 때 이 줄이 중간에서 잘렸었다). */
+.login-showcase__intro {
+  display: none;
+  max-width: 540px;
+  text-align: left;
+}
 
-  .login-showcase__accounts .login-showcase__account {
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  .login-showcase__accounts .login-showcase__account-text {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .login-showcase__accounts .login-showcase__chevron {
+@media (min-width: 1700px) {
+  .login-showcase__intro {
     display: block;
   }
+}
+
+.login-showcase__eyebrow {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: clamp(16px, 1vw, 18px);
+  letter-spacing: -0.01em;
+  color: var(--brand-primary);
+  margin: 0 0 12px;
+}
+
+/* 왼쪽 영역이 "브랜드 소개"로 확실히 읽히도록 데스크톱 기준 44~52px 큰 제목 —
+ * intro 의 max-width(420px)는 그대로라 폭에는 영향 없고 세로만 커진다. */
+.login-showcase__headline {
+  font-family: var(--font-a2z);
+  font-weight: 800;
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1.12;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.login-showcase__headline-accent {
+  color: var(--brand-primary);
+}
+
+.login-showcase__lead {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: clamp(16px, 1vw, 18px);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 20px 0 0;
+}
+
+/* ---------- 폰 목업 크기 (--phone-scale, 실제 스타일은 iphone-frame.css) ----------
+ * 768px(태블릿)부터 이미 데스크톱과 같은 크기를 쓴다 — 폰을 줄이는 대신 카피를 숨기고
+ * (위 .login-showcase__intro) 폰+패널을 나란히 배치하는 쪽으로 공간을 확보했기 때문에
+ * 더 이상 태블릿 전용으로 축소할 필요가 없다. */
+.iphone-frame {
+  --phone-scale: 0.86;
+}
+
+@media (max-height: 760px) {
+  .iphone-frame {
+    --phone-scale: 0.66;
+  }
+}
+
+/* ---------- Demo Account 패널 ----------
+ * 고정폭 floating panel(약 332px) — 아이폰 옆에서 그 자체로 존재감 있는 쇼케이스 UI가
+ * 되도록 배경 일러스트가 은은히 비치는 반투명 표면 + 아주 부드러운 그림자를 쓴다.
+ * (2026-XX 리디자인: 캐러셀/페이지네이션 제거, 탭 3개를 항상 다 보여주고 탭 클릭이
+ * 곧 선택이다 — 아래 프로필 미리보기는 한 명만 보여준다.) */
+.login-showcase__panel {
+  flex: 0 0 332px;
+  width: 332px;
+  background: rgba(255, 253, 250, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  padding: 28px 26px;
+  box-shadow:
+    0 36px 70px rgba(60, 50, 45, 0.16),
+    0 6px 18px rgba(60, 50, 45, 0.08);
+}
+
+.login-showcase__panel-title {
+  font-family: var(--font-a2z);
+  font-weight: 800;
+  font-size: 27px;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.login-showcase__panel-desc {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 13px 0 0;
+}
+
+/* 페르소나 탭 3개 — 항상 전부 보여주고, 탭 클릭이 곧 선택이다(캐러셀/화살표 없음).
+ * Label L 역할(버튼·탭): SUIT SemiBold */
+.login-showcase__tabs {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0 16px;
+}
+
+.login-showcase__tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 56px;
+  padding: 0 6px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.65);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.login-showcase__tab-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.login-showcase__tab--active {
+  background: #fdeceb;
+  border-color: rgba(180, 57, 54, 0.3);
+  color: var(--brand-primary);
+}
+
+/* 프로필 미리보기 — 선택된 계정 한 명만, 옅은 코랄 톤 surface 하나 안에
+ * 아바타 → 이름 → 페르소나 → 설명 순서로 쌓는다(작은 카드 여러 개 금지). */
+.login-showcase__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 22px 16px 20px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(180, 57, 54, 0.09), rgba(180, 57, 54, 0.03));
+}
+
+.login-showcase__profile-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 12px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.55);
+}
+
+.login-showcase__profile-name {
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.login-showcase__profile-tag {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--brand-primary);
+  margin: 3px 0 0;
+}
+
+.login-showcase__profile-desc {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 10px 0 0;
+  /* ACCOUNT_BLURBS 안 \n 을 그대로 줄바꿈으로 렌더 — 항상 자연스럽게 2줄로 떨어진다 */
+  white-space: pre-line;
+}
+
+/* CTA — 패널 폭을 압도하지 않는 적당한 크기의 pill 버튼. Label L 역할: SUIT SemiBold */
+.login-showcase__cta {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+
+.login-showcase__cta:active {
+  filter: brightness(0.94);
+}
+
+.login-showcase__new-link {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  background: none;
+  border: none;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }

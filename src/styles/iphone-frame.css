@@ -153,21 +153,11 @@
   z-index: 4;
 }
 
-/* IPhoneFrame 은 실제 페이지 폭과 무관하게 항상 "축소된 미리보기"다. app-shell.css 는
- * 페이지 폭 768px 미만이면 "진짜 모바일 기기"로 보고 가짜 상태바(9:41/아이콘)를 접어버리는데,
- * 그러면 다이나믹 아일랜드(고정 위치) 밑으로 로그인 로고가 붙어 겹쳐 보인다. 화면 안에서는
- * 늘 데스크톱 프리뷰 값을 강제해서 실제 페이지 폭에 상관없이 상태바 자리를 항상 확보한다. */
-.iphone-frame__screen .status-bar {
-  height: 50px;
-  padding: 0 var(--screen-margin);
-}
-
-.iphone-frame__screen .status-bar__time,
-.iphone-frame__screen .status-bar__icons {
-  display: block;
-}
-
-/* Login/Signup 이 스스로 렌더하는 .app 은 402x874 화면 역할만 하면 되고,
+/* IPhoneFrame 은 이제 데스크톱/태블릿(768px 이상)에서만 렌더된다(LoginShowcase.tsx 의
+ * useIsDesktop 분기). 그 폭에서는 app-shell.css 의 @media(min-width:768px) 규칙이 이미
+ * 상태바를 50px + 9:41/아이콘 표시로 처리해주므로, 여기서 따로 강제할 필요가 없다.
+ *
+ * Login/Signup 이 스스로 렌더하는 .app 은 402x874 화면 역할만 하면 되고,
  * 프레임의 모서리·그림자·베젤은 device-body/screen 이 대신 맡는다.
  * --screen-margin/--content-width 도 app-shell.css 에서 실제 페이지 폭(100vw) 기준으로
  * 계산되는 값이라, 페이지 폭을 줄이면 로그인 폼 여백·너비가 같이 움직여 보였다. IPhoneFrame
@@ -184,15 +174,12 @@
   --content-width: 342px;
 }
 
-/* 태블릿·웹에서는 옆/아래의 Demo Account 패널이 같은 역할을 하므로
- * 화면 안 이메일 라벨 옆 "테스트 계정 선택" 인라인 버튼은 중복이라 숨긴다.
- * (모바일도 패널이 항상 숨겨져 있어 인라인 버튼이 유일한 진입점이라 보여준다) */
-.iphone-frame__screen .auth-testaccount {
+/* 옆/아래의 Demo Account 패널이 같은 역할을 하므로 로그인 화면 안 이메일 라벨 옆
+ * "테스트 계정 선택" 인라인 버튼은 중복이라 숨긴다 — IPhoneFrame 은 이제 768px 이상에서만
+ * 뜨므로 이 규칙은 항상 적용된다(모바일 전용 예외는 필요 없다).
+ * .auth__body--login 으로 범위를 좁혀야 한다 — Signup 화면의 "테스트 정보 불러오기"도
+ * 같은 클래스(auth-testaccount)를 쓰는데, 그건 Demo Account 와 겹치는 기능이 아니라서
+ * 셀렉터를 넓게 잡으면 같이 숨어버린다. */
+.iphone-frame__screen .auth__body--login .auth-testaccount {
   display: none;
-}
-
-@media (max-width: 767.98px) {
-  .iphone-frame__screen .auth-testaccount {
-    display: inline;
-  }
 }
