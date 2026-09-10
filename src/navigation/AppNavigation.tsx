@@ -4,7 +4,17 @@ import type { ReactNode } from 'react';
 /** 'mission' / 'saved' 는 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
 /** 'life' 는 탭바 '생활' 의 메인 화면이다 */
 /** 'life-first' 는 생활 아래 하위 화면이다 (탭바는 '생활' active 를 유지한다) */
-export type AppPage = 'home' | 'my' | 'mission' | 'saved' | 'life' | 'life-first' | 'community' | 'ai-chat';
+/** 'money' 는 탭바 '돈관리' 의 메인 화면이다 */
+export type AppPage =
+  | 'home'
+  | 'my'
+  | 'mission'
+  | 'saved'
+  | 'life'
+  | 'life-first'
+  | 'community'
+  | 'ai-chat'
+  | 'money';
 
 interface AppNavigationValue {
   page: AppPage;
