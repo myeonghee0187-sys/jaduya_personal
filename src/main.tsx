@@ -33,6 +33,8 @@ import './styles/saved.css';
 import './styles/level-info.css';
 import './styles/life.css';
 import './styles/life-first.css';
+import './styles/community.css';
+import './styles/ai-chat-page.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

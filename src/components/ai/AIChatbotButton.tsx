@@ -90,7 +90,8 @@ export function AIChatbotButton({ onClick, hidden = false }: AIChatbotButtonProp
       moved: false,
     };
     ref.current.setPointerCapture(event.pointerId);
-    setFreePos({ left: rect.left - appRect.left, top: rect.top - appRect.top });
+    /* 여기서 자유 좌표로 바꾸지 않는다. 누르자마자 left/top 배치로 전환하면
+     * 단순 탭에서도 버튼이 한 번 튀었다가 되돌아온다. 실제로 움직인 뒤에 전환한다. */
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -109,7 +110,8 @@ export function AIChatbotButton({ onClick, hidden = false }: AIChatbotButtonProp
     }
     info.left = left;
     info.top = nextTop;
-    setFreePos({ left, top: nextTop });
+    /* 임계값을 넘어 '드래그' 로 판정된 뒤에만 자유 좌표로 따라간다 */
+    if (info.moved) setFreePos({ left, top: nextTop });
   };
 
   const finishDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {

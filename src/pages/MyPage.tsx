@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -15,7 +15,9 @@ import {
   PERSONA_PROFILE,
   resolveLevel,
 } from '../data/personaProfile';
-import type { ActivityTab } from '../data/personaProfile';
+import type { ActivityItem, ActivityTab } from '../data/personaProfile';
+import { COMMUNITY_POSTS } from '../data/communityPosts';
+import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { icon, img } from '../lib/asset';
 
 export type MyPageDestination = 'profile' | 'level' | 'activity' | 'settings' | 'support';
@@ -40,7 +42,23 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
   const name = user?.name ?? '자두';
-  const items = profile.activity[activity];
+
+  /* 커뮤니티에서 북마크한 글을 '저장' 탭 맨 앞에 함께 보여준다.
+   * 저장 여부는 커뮤니티와 같은 전역 상태를 보므로 한쪽에서 해제하면 바로 사라진다. */
+  const { savedPostIds } = useBookmarks();
+  const savedPosts = useMemo<ActivityItem[]>(
+    () =>
+      COMMUNITY_POSTS.filter((post) => savedPostIds.includes(post.id)).map((post) => ({
+        id: `community-${post.id}`,
+        category: '커뮤니티',
+        icon: 'menu-board.svg',
+        title: post.title,
+        desc: post.preview,
+        date: post.time,
+      })),
+    [savedPostIds],
+  );
+  const items = activity === '저장' ? [...savedPosts, ...profile.activity[activity]] : profile.activity[activity];
 
   /* 안내는 잠깐만 띄우고 스스로 사라진다 — 닫는 동작을 따로 만들지 않는다 */
   useEffect(() => {
