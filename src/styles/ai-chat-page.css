@@ -208,10 +208,16 @@
   list-style: none;
 }
 
-/* 말풍선 — 왼쪽 위 모서리만 각지게 둔다 */
 .ai-chat-page__prompts li {
+  display: flex;
+  max-width: 100%;
+}
+
+/* 말풍선 버튼 — 왼쪽 위 모서리만 각지게 둔다 */
+.ai-chat-page__prompt {
   max-width: 100%;
   overflow: hidden;
+  border: 0;
   border-radius: 0 18px 18px 18px;
   padding: 8px 12px;
   background: linear-gradient(
@@ -221,8 +227,10 @@
   );
   color: var(--brand-primary);
   font: 400 16px/1.4 var(--ai-hand);
+  text-align: left;
   /* 좁은 폭에서 낱말이 쪼개지지 않게 한다 */
   word-break: keep-all;
+  cursor: pointer;
 }
 
 /* ---------- 입력창 ---------- */

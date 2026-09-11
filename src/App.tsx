@@ -14,6 +14,8 @@ import { MoneyPage } from './pages/MoneyPage';
 import { MoneyBudgetPage } from './pages/MoneyBudgetPage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
 import { LifeHomecarePage } from './pages/LifeHomecarePage';
+import { LifeHousePage } from './pages/LifeHousePage';
+import { LifeEatPage } from './pages/LifeEatPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { CommunityQuestionPage } from './pages/CommunityQuestionPage';
 import { AIChatPage } from './pages/AIChatPage';
@@ -53,6 +55,8 @@ function MainPages() {
       {page === 'money-budget' && <MoneyBudgetPage />}
       {page === 'life-first' && <LifeFirstPage />}
       {page === 'life-homecare' && <LifeHomecarePage />}
+      {page === 'life-house' && <LifeHousePage />}
+      {page === 'life-eat' && <LifeEatPage />}
       {page === 'community' && <CommunityPage />}
       {page === 'community-question' && <CommunityQuestionPage />}
       {page === 'ai-chat' && <AIChatPage />}

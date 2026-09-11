@@ -35,6 +35,8 @@ import './styles/level-info.css';
 import './styles/life.css';
 import './styles/life-first.css';
 import './styles/life-homecare.css';
+import './styles/life-house.css';
+import './styles/life-eat.css';
 import './styles/community.css';
 import './styles/ai-chat-page.css';
 import './styles/money.css';

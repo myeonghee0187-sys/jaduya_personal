@@ -6,8 +6,8 @@ import type { AppPage } from '../../navigation/AppNavigation';
 const TABS: Array<{ key: string; label: string; page?: AppPage }> = [
   { key: 'first', label: '첫 자취', page: 'life-first' },
   { key: 'homecare', label: '홈케어', page: 'life-homecare' },
-  { key: 'house', label: '살림' },
-  { key: 'food', label: '먹거리' },
+  { key: 'house', label: '살림', page: 'life-house' },
+  { key: 'food', label: '먹거리', page: 'life-eat' },
 ];
 
 interface CategoryTabsProps {
