@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 /** 'mission' / 'saved' 는 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
 /** 'life' 는 탭바 '생활' 의 메인 화면이다 */
-/** 'life-first' 는 생활 아래 하위 화면이다 (탭바는 '생활' active 를 유지한다) */
+/** 'life-first' / 'life-homecare' 는 생활 아래 하위 화면이다 (탭바는 '생활' active 를 유지한다) */
 /** 'money' 는 탭바 '돈관리' 의 메인 화면이다 */
 /** 'money-budget' 는 돈관리 아래 예산 설정 화면이다 (탭바는 '돈관리' active 를 유지한다) */
 /** 'community-question' 은 커뮤니티 '질문' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
@@ -14,6 +14,7 @@ export type AppPage =
   | 'saved'
   | 'life'
   | 'life-first'
+  | 'life-homecare'
   | 'community'
   | 'community-question'
   | 'ai-chat'

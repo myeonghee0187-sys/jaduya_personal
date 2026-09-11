@@ -414,8 +414,14 @@ export function LifePage() {
                 type="button"
                 className="life-category__card"
                 aria-label={`${item.title} — ${item.sub}`}
-                /* 첫 자취만 화면이 있다 — 나머지는 아직 route 를 만들지 않는다 */
-                onClick={item.key === 'first' ? () => navigation?.navigate('life-first') : undefined}
+                /* 첫 자취·홈케어만 화면이 있다 — 나머지는 아직 route 를 만들지 않는다 */
+                onClick={
+                  item.key === 'first'
+                    ? () => navigation?.navigate('life-first')
+                    : item.key === 'homecare'
+                      ? () => navigation?.navigate('life-homecare')
+                      : undefined
+                }
               >
                 <span className={`life-category__thumb life-category__thumb--${item.key}`}>
                   <img src={img(`life/${item.file}`)} alt="" />
