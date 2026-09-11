@@ -38,7 +38,11 @@ interface DragInfo {
  * 상태는 pointerup 에서 한 번만 커밋한다.
  */
 export function useSheetGesture() {
-  const [state, setState] = useState<SheetState>('peek');
+  /* Figma 디자인상 Home 진입 시 기본 모습은 시트가 헤더 바로 아래까지 올라온
+   * "expanded"(내 생활 위젯 + 자두가 알려드려요까지 보이는 모습)다 — peek(히어로만
+   * 보이고 시트는 살짝 걸쳐 있는 상태)은 그 상태에서 아래로 내렸을 때의 모습이라
+   * 기본값이 아니다. peek ↔ expanded 를 오가는 드래그/토글 로직 자체는 그대로다. */
+  const [state, setState] = useState<SheetState>('expanded');
   const stateRef = useRef<SheetState>(state);
   stateRef.current = state;
 

@@ -57,12 +57,11 @@ a { text-decoration: none; color: inherit; }
   --my-life-gap: 16px;
 }
 
-/* .app 자체의 크기(width/height/max-*)는 app-shell.css 가 항상 다시 정하므로 여기서는
- * 손대지 않는다 — 이 미디어쿼리는 402px 보다 좁거나 짧은 화면에서 .app 바깥 여백(레터박스)
- * 배경을 핑크(--screen-base)로 맞추는 역할만 한다. */
-@media (max-width: 401px), (max-height: 873px) {
-  html, body { background: var(--screen-base); }
-}
+/* 예전엔 여기서 402px 보다 좁거나 짧은 화면의 .app 바깥 여백(레터박스) 배경을
+ * 핑크(--screen-base)로 맞췄었다 — 지금은 app-shell.css 가 실제 모바일 폭(360~402)에서
+ * .app 을 가로·세로 모두 뷰포트에 정확히 맞추므로 그런 레터박스 틈이 생기지 않아
+ * 이 규칙이 화면에 보일 일이 없다. 죽은 코드일 뿐 아니라, iOS Safari 가 이 선언값을
+ * 실제로 읽어 노치 영역을 핑크로 칠하는 원인이 되기도 해서 제거했다. */
 
 /* ================= Hero / World ================= */
 
@@ -260,6 +259,17 @@ a { text-decoration: none; color: inherit; }
   gap: var(--space-xs);
   width: 255px;
   transition: opacity 240ms ease;
+}
+
+/* expanded 시트는 원래(데스크톱 헤더 100px 기준) top:135px 인 인사말보다 위(113px)에서
+ * 시작해 인사말을 완전히 덮는다 — 그런데 실제 모바일은 --header-h 가 50px 로 더 작아
+ * 인사말이 85px 에서 시작해, 시트 top(113px)보다 위쪽 틈(85~113px)에 첫 줄이 삐져나와
+ * 보였다. z-index 로 "가리는" 대신, Figma 가 보여주는 대로 expanded 에서는 인사말 자체를
+ * 숨긴다 — 위치를 기기별로 정교하게 맞추는 것보다 안전하고, 원래 있던 opacity 트랜지션도
+ * 그대로 살아난다. */
+.app[data-sheet-state="expanded"] .greeting {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .greeting__situation {

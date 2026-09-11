@@ -148,7 +148,14 @@ body {
 
 .hero__background {
   width: 100%;
-  height: 100%;
+  /* iOS Safari 는 viewport-fit=cover + 100dvh 조합에서 최초 렌더링 시 상단 safe-area
+   * 만큼을 순간적으로 빼고 계산하는 경우가 있다 — 그 오차만큼 히어로가 노치 뒤쪽까지
+   * 못 덮어서, 그 틈으로 .app 의 배경색(핑크)이 실제로 보인다(색을 맞추는 게 아니라
+   * 이미지 자체가 항상 화면 끝까지 덮이게 하는 게 목적). bottom:0 은 그대로 두고
+   * height 만 60px 더 키워 위쪽으로 여유(overscan)를 준다 — 캐릭터 위는 원래도
+   * 하늘이 넉넉한 그림이라 조금 더 올려 잘려도 비율이 깨지지 않고, .app 의
+   * overflow:hidden 이 넘치는 부분을 그냥 잘라주므로 실제 레이아웃엔 영향이 없다. */
+  height: calc(100% + 60px);
   top: auto;
   bottom: 0;
 }
