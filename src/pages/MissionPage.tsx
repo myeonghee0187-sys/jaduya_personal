@@ -3,9 +3,9 @@ import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { LevelInfoPopover } from '../components/LevelInfoPopover';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import {
@@ -17,6 +17,7 @@ import {
   missionProgress,
 } from '../data/missions';
 import type { Mission, MissionCategory, MissionStatus } from '../data/missions';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /** 미션 상세 화면이 생기면 여기로 연결한다. 지금은 화면이 없어 route 를 만들지 않는다. */
@@ -34,6 +35,7 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
   const level = resolveLevel(PERSONA_PROFILE[persona].level);
 
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const [status, setStatus] = useState<MissionStatus | null>(null);
   const [category, setCategory] = useState<MissionCategory | '전체'>('전체');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -311,14 +313,17 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
       )}
 
       <BottomNavigation activeTab="my" />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
+      />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => {
-          setGnbOpen(false);
-          setNotice('내 메뉴 편집은 홈에서 이용할 수 있어요.');
-        }}
+        onEditMenu={myMenu.openEdit}
       />
     </div>
   );

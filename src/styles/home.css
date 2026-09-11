@@ -310,10 +310,10 @@ a { text-decoration: none; color: inherit; }
 
 .tip-box {
   position: absolute;
-  left: 18px;
+  left: var(--screen-margin);
   top: 426px;
   z-index: 10;
-  width: 366px;
+  width: var(--content-width);
   height: 121px;
   transition: opacity 200ms ease;
 }
@@ -328,7 +328,7 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  width: 362px;
+  width: calc(var(--content-width) - 4px);
   padding: 10px 16px 10px 18px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
@@ -382,6 +382,9 @@ a { text-decoration: none; color: inherit; }
   font-family: var(--font-suit);
   font-size: 14px;
   line-height: 1.4;
+  /* 한글은 기본 word-break 규칙상 단어 중간에서도 줄바꿈될 수 있다 —
+   * keep-all 로 항상 띄어쓰기에서만 끊기게 한다 */
+  word-break: keep-all;
 }
 
 .tip-box__close { width: 24px; height: 24px; flex: none; }
@@ -475,7 +478,7 @@ a { text-decoration: none; color: inherit; }
 .section-header__title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1px;
 }
 
 .section-header__title h2 {
@@ -486,6 +489,8 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-heading-alt);
 }
 
+/* 제목 옆 "+"는 클릭 가능한 버튼이 아니라 장식용 텍스트다 —
+ * 실제 위젯 추가는 아래 module-card--add(점선 박스)가 담당한다. */
 .section-header__plus { width: 12px; height: 12px; }
 
 .section-header__status {

@@ -920,6 +920,16 @@
 
 .add-widget__cat-meta img { width: 16px; height: 16px; }
 
+.add-widget__cat-chevron { transition: transform 200ms ease; }
+
+.add-widget__cat.is-open .add-widget__cat-chevron { transform: rotate(90deg); }
+
+.add-widget__cat-panel { padding: 4px var(--screen-margin) 16px; }
+
+.add-widget__cat-panel[hidden] { display: none; }
+
+.add-widget__cat-panel > .wpick-grid { padding: 8px 0 0; }
+
 .add-widget__tip {
   margin: 20px var(--screen-margin) 4px;
   padding: 14px;

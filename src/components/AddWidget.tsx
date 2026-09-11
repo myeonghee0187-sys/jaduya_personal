@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { icon } from '../lib/asset';
 import { MAX_WIDGET, WIDGET_CATALOG } from '../data/widgetCatalog';
+import { layoutCatalogEntries } from '../data/personaWidgets';
+import type { PersonaWidgetLayout } from '../data/personaWidgets';
 import { useDraftSelection } from '../hooks/useDraftSelection';
+import type { WidgetCategory, WidgetSize } from '../types';
 import { BottomSheet } from './BottomSheet';
 import { WidgetCard } from './WidgetCard';
 
@@ -13,26 +16,33 @@ const RECOMMEND_GROUPS: { title: string; ids: string[] }[] = [
   { title: '청소', ids: ['clean-s', 'clean-m'] },
 ];
 
-const IN_USE_IDS = ['living-cost', 'fridge', 'rent'];
-
-const CATEGORIES = [
-  { name: '생활', count: '3개' },
-  { name: '돈 관리', count: '3개' },
-  { name: '혜택', count: '1개' },
-  { name: '커뮤니티', count: '3개' },
-  { name: '마이', count: '2개' },
-];
+/** IA 순서대로 카테고리별 위젯을 묶는다 — 위젯 추가 시트의 카테고리 아코디언 */
+const CATEGORY_ORDER: WidgetCategory[] = ['생활', '돈 관리', '혜택', '커뮤니티', '마이'];
+const CATEGORY_GROUPS = CATEGORY_ORDER.map((name) => ({
+  name,
+  ids: WIDGET_CATALOG.filter((w) => w.category === name).map((w) => w.id),
+})).filter((g) => g.ids.length > 0);
 
 interface AddWidgetProps {
   open: boolean;
   draft: ReturnType<typeof useDraftSelection>;
+  /** 로그인한 persona 의 Home 위젯 배치 — '현재 사용 중인 위젯'을 Home과 같은 크기로 보여주는 데 쓴다 */
+  layout: PersonaWidgetLayout;
   onClose: () => void;
   onDone: () => void;
 }
 
 /** ③ 위젯 추가 Bottom Sheet — Figma add_widget (1693:6166) */
-export function AddWidget({ open, draft, onClose, onDone }: AddWidgetProps) {
+export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetProps) {
   const [query, setQuery] = useState('');
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
+
+  /* 현재 Home 캔버스 기본 슬롯(medium/small)에 배정된 크기 — 카탈로그 기본 크기 대신 이 크기로 보여준다 */
+  const baseSizeById = useMemo(() => {
+    const map = new Map<string, WidgetSize>();
+    layoutCatalogEntries(layout).forEach(({ id, size }) => map.set(id, size));
+    return map;
+  }, [layout]);
 
   /* 검색: 위젯 이름 기준 필터. 원본과 동일하게 소문자 부분일치. */
   const matches = useMemo(() => {
@@ -47,14 +57,15 @@ export function AddWidget({ open, draft, onClose, onDone }: AddWidgetProps) {
   const searching = query.trim().length > 0;
   const hits = matches.size;
 
-  const inUseVisible = IN_USE_IDS.some((id) => matches.has(id));
+  /* '현재 사용 중인 위젯' = 지금 draft 에 들어있는 위젯 전체(기본 슬롯 + 추가한 것) */
+  const inUseVisible = draft.draft.some((id) => matches.has(id));
   const visibleGroups = RECOMMEND_GROUPS.map((g) => ({
     ...g,
     visible: g.ids.some((id) => matches.has(id)),
   }));
   const recommendVisible = visibleGroups.some((g) => g.visible);
 
-  const renderCard = (id: string) => (
+  const renderCard = (id: string, sizeOverride?: WidgetSize) => (
     <WidgetCard
       key={id}
       id={id}
@@ -62,8 +73,12 @@ export function AddWidget({ open, draft, onClose, onDone }: AddWidgetProps) {
       selected={draft.has(id)}
       hiddenBySearch={!matches.has(id)}
       onToggle={draft.toggle}
+      size={sizeOverride}
     />
   );
+
+  /* '현재 사용 중인' 카드만 Home 캔버스에 실제 배정된 크기(medium/small)로 보여준다 */
+  const renderInUseCard = (id: string) => renderCard(id, baseSizeById.get(id));
 
   return (
     <BottomSheet
@@ -113,7 +128,7 @@ export function AddWidget({ open, draft, onClose, onDone }: AddWidgetProps) {
               {draft.count}/{MAX_WIDGET}
             </span>
           </div>
-          <div className="wpick-grid">{IN_USE_IDS.map(renderCard)}</div>
+          <div className="wpick-grid">{draft.draft.map((id) => renderInUseCard(id))}</div>
         </section>
 
         {/* 추천 위젯 */}
@@ -130,23 +145,43 @@ export function AddWidget({ open, draft, onClose, onDone }: AddWidgetProps) {
           {visibleGroups.map((group) => (
             <div className="add-widget__group" key={group.title} hidden={!group.visible}>
               <h4 className="add-widget__group-title">{group.title}</h4>
-              <div className="wpick-grid">{group.ids.map(renderCard)}</div>
+              <div className="wpick-grid">{group.ids.map((id) => renderCard(id))}</div>
             </div>
           ))}
         </section>
 
         <p className="add-widget__empty">검색 결과가 없어요.</p>
 
+        {/* 카테고리 아코디언 — 한 번에 하나만 펼쳐진다 (GNB 메뉴와 같은 패턴) */}
         <div className="add-widget__cats" data-section="cats" hidden={searching}>
-          {CATEGORIES.map((cat) => (
-            <button type="button" className="add-widget__cat" key={cat.name}>
-              <span className="add-widget__cat-name">{cat.name}</span>
-              <span className="add-widget__cat-meta">
-                {cat.count}
-                <img src={icon('widget-chevron-right.svg')} alt="" />
-              </span>
-            </button>
-          ))}
+          {CATEGORY_GROUPS.map((cat) => {
+            const isOpen = openCategory === cat.name;
+            return (
+              <div className="add-widget__cat-group" key={cat.name}>
+                <button
+                  type="button"
+                  className={`add-widget__cat${isOpen ? ' is-open' : ''}`}
+                  aria-expanded={isOpen}
+                  onClick={() =>
+                    setOpenCategory((current) => (current === cat.name ? null : cat.name))
+                  }
+                >
+                  <span className="add-widget__cat-name">{cat.name}</span>
+                  <span className="add-widget__cat-meta">
+                    {cat.ids.length}개
+                    <img
+                      className="add-widget__cat-chevron"
+                      src={icon('widget-chevron-right.svg')}
+                      alt=""
+                    />
+                  </span>
+                </button>
+                <div className="add-widget__cat-panel" hidden={!isOpen}>
+                  <div className="wpick-grid">{cat.ids.map((id) => renderCard(id))}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="add-widget__tip" data-section="tip" hidden={searching}>

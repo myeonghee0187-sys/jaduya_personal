@@ -4,8 +4,8 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { BellButton } from '../components/BellButton';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { StatusBar } from '../components/StatusBar';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import {
   ACTIVITY_EMPTY,
@@ -18,6 +18,7 @@ import {
 import type { ActivityItem, ActivityTab } from '../data/personaProfile';
 import { COMMUNITY_POSTS } from '../data/communityPosts';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 export type MyPageDestination = 'profile' | 'level' | 'activity' | 'settings' | 'support';
@@ -38,6 +39,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   /* Home stat bar 와 같은 원본에서 계산한다 */
   const level = resolveLevel(profile.level);
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const [activity, setActivity] = useState<ActivityTab>('저장');
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
@@ -285,12 +287,15 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
       <BottomNavigation activeTab="my" />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => {
-          setGnbOpen(false);
-          setNotice('내 메뉴 편집은 홈에서 이용할 수 있어요.');
-        }}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
     </div>
   );

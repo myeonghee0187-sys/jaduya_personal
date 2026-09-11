@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { ConsumptionRadar, type RadarCategory } from '../components/money/ConsumptionRadar';
 import { EmergencyRing } from '../components/money/EmergencyRing';
 import { ScratchReveal } from '../components/money/ScratchReveal';
-import { DEFAULT_MENU } from '../data/menuCatalog';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 /* 돈 관리 상단 탭 — Figma IA 그대로 4개. 이제 4개 모두 실제 화면이 있다. */
@@ -333,6 +334,7 @@ const FUND_GUIDE = {
 export function MoneyPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const [tab, setTab] = useState<Tab>('이번 달');
   /* 이번 달 쓸 수 있는 돈 카드 — 여러 금융앱처럼 기본값은 가려진 상태(true)로 시작한다.
    * Figma에는 아직 없는 인터랙션이라 자릿수와 무관한 고정 마스크(● ● ●)만 쓴다. */
@@ -1033,9 +1035,15 @@ export function MoneyPage() {
       <BottomNavigation activeTab="money" />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => setGnbOpen(false)}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
       <AIChatbot />
     </div>

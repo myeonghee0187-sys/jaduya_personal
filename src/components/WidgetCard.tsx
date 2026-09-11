@@ -208,6 +208,153 @@ function WidgetCardBody({ id }: { id: string }) {
         </span>
       );
 
+    case 'budget-s':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">예산</span>
+          </span>
+          <span
+            className="wpick__main wpick__main--17"
+            style={{ alignSelf: 'center', paddingTop: 6 }}
+          >
+            15.8만원
+          </span>
+        </span>
+      );
+
+    case 'fixed-cost':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">고정지출</span>
+          </span>
+          <span className="module-card__services" style={{ alignSelf: 'center' }}>
+            <span className="service service--netflix">N</span>
+            <span className="service service--youtube">
+              <img src={icon('youtube-play.svg')} alt="" />
+            </span>
+            <span className="service service--disney">D+</span>
+            <span className="service-more">+2</span>
+          </span>
+        </span>
+      );
+
+    case 'deposit':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">보증금 안전</span>
+          </span>
+          <span className="wpick__main" style={{ alignSelf: 'center' }}>
+            안전해요
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            등기부 변동 없음
+          </span>
+        </span>
+      );
+
+    case 'neighborhood':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">동네 소식</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            새 소식 3개
+          </span>
+        </span>
+      );
+
+    case 'popular-post':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">인기 글</span>
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center', fontWeight: 600 }}>
+            자취 꿀템 모음
+          </span>
+        </span>
+      );
+
+    case 'mate':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">자두메이트</span>
+          </span>
+          <span className="wpick__main" style={{ alignSelf: 'center' }}>
+            Lv.4
+          </span>
+          <span className="wpick__bar-track" style={{ alignSelf: 'stretch' }}>
+            <span className="wpick__bar-fill wpick__bar-fill--primary" style={{ width: '60%' }} />
+          </span>
+          <span className="wpick__sub">다음 레벨까지 120exp</span>
+        </span>
+      );
+
+    case 'saved-content':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">저장한 콘텐츠</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            12개
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            자취 꿀팁 모음
+          </span>
+        </span>
+      );
+
+    case 'vet':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">병원 일정</span>
+          </span>
+          <span className="wpick__main" style={{ alignSelf: 'center' }}>
+            예방접종
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            행복동물병원 14:00
+          </span>
+        </span>
+      );
+
+    case 'pet-cost':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">반려 지출</span>
+          </span>
+          <span
+            className="wpick__main wpick__main--17"
+            style={{ alignSelf: 'center', paddingTop: 6 }}
+          >
+            12만원
+          </span>
+        </span>
+      );
+
+    case 'pet-supply':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">사료</span>
+          </span>
+          <span
+            className="wpick__main wpick__main--17"
+            style={{ alignSelf: 'center', paddingTop: 6 }}
+          >
+            D-6
+          </span>
+        </span>
+      );
+
     default:
       return null;
   }
@@ -219,6 +366,8 @@ interface WidgetCardProps {
   selected?: boolean;
   hiddenBySearch?: boolean;
   onToggle?: (id: string) => void;
+  /** 카탈로그 기본 크기 대신 실제 배치 크기로 보여줘야 할 때(예: Home 캔버스에 이미 올라간 위젯) 지정 */
+  size?: WidgetSize;
 }
 
 export function WidgetCard({
@@ -227,11 +376,12 @@ export function WidgetCard({
   selected = false,
   hiddenBySearch = false,
   onToggle,
+  size,
 }: WidgetCardProps) {
   const def = WIDGET_CATALOG.find((w) => w.id === id);
   if (!def) return null;
 
-  const sizeClass = SIZE_CLASS[def.size];
+  const sizeClass = SIZE_CLASS[size ?? def.size];
 
   if (variant === 'home') {
     /* Home '내 생활'에 추가된 카드 — 체크 배지 없이 카드만 */
