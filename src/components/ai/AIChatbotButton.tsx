@@ -39,9 +39,13 @@ interface AIChatbotButtonProps {
   /** 드래그가 아닌 '클릭' 으로 판정됐을 때만 호출된다 */
   onClick: () => void;
   hidden?: boolean;
+  /** 최초 배치를 기본(바텀네비 바로 위)보다 이만큼(px) 위로 올린다.
+   * 커뮤니티 글쓰기 버튼처럼 그 자리에 이미 다른 플로팅 버튼이 있을 때만 쓴다.
+   * 최초 배치에만 영향을 주고, 이후 드래그/리사이즈 동작은 그대로다. */
+  initialLift?: number;
 }
 
-export function AIChatbotButton({ onClick, hidden = false }: AIChatbotButtonProps) {
+export function AIChatbotButton({ onClick, hidden = false, initialLift = 0 }: AIChatbotButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const [side, setSide] = useState<Side>('right');
   /* 세로 위치. null 이면 아직 측정 전 — 기본값(바텀네비 바로 위)으로 배치한다. */
@@ -64,8 +68,9 @@ export function AIChatbotButton({ onClick, hidden = false }: AIChatbotButtonProp
   const settle = useCallback(() => {
     const bounds = readBounds(ref.current);
     if (!bounds) return;
-    setTop((current) => clamp(current ?? bounds.maxTop, bounds.minTop, bounds.maxTop));
-  }, []);
+    const defaultTop = bounds.maxTop - initialLift;
+    setTop((current) => clamp(current ?? defaultTop, bounds.minTop, bounds.maxTop));
+  }, [initialLift]);
 
   useEffect(() => {
     settle();
