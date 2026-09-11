@@ -107,6 +107,28 @@
   justify-content: space-between;
 }
 
+.money-budget__title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.money-budget__visibility {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.money-budget__visibility img {
+  width: 16px;
+  height: 16px;
+}
+
 .money-budget__title {
   font-family: var(--font-suit);
   font-weight: 400;
@@ -132,7 +154,6 @@
 .money-budget__edit img {
   width: 14px;
   height: 14px;
-  filter: brightness(0) invert(1);
 }
 
 .money-budget__amount {
@@ -258,7 +279,6 @@
 .money-section__more img {
   width: 14px;
   height: 14px;
-  opacity: 0.6;
 }
 
 /* ---------- 이번 달 돈 흐름 ---------- */

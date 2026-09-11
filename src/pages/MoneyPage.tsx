@@ -334,6 +334,10 @@ export function MoneyPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('이번 달');
+  /* 이번 달 쓸 수 있는 돈 카드 — 여러 금융앱처럼 기본값은 가려진 상태(true)로 시작한다.
+   * Figma에는 아직 없는 인터랙션이라 자릿수와 무관한 고정 마스크(● ● ●)만 쓴다. */
+  const [budgetHidden, setBudgetHidden] = useState(true);
+  const MASKED = '● ● ●';
   const [ioType, setIoType] = useState<IncomeExpense>('지출');
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [selectedDay, setSelectedDay] = useState(TODAY_DAY);
@@ -394,20 +398,37 @@ export function MoneyPage() {
 
             <section className="money-budget">
               <div className="money-budget__head">
-                <span className="money-budget__title">이번 달 쓸 수 있는 돈</span>
+                <span className="money-budget__title-group">
+                  <span className="money-budget__title">이번 달 쓸 수 있는 돈</span>
+                  <button
+                    type="button"
+                    className="money-budget__visibility"
+                    aria-label={budgetHidden ? '금액 보기' : '금액 가리기'}
+                    aria-pressed={budgetHidden}
+                    onClick={() => setBudgetHidden((v) => !v)}
+                  >
+                    <img src={icon(budgetHidden ? 'eye-slash.svg' : 'eye.svg')} alt="" />
+                  </button>
+                </span>
                 <button
                   type="button"
                   className="money-budget__edit"
                   onClick={() => navigation?.navigate('money-budget')}
                 >
                   예산 설정
-                  <img src={icon('chevron-right-sm.svg')} alt="" />
+                  <img src={icon('chevron-right-white.svg')} alt="" />
                 </button>
               </div>
-              <p className="money-budget__amount">{SPENDABLE.toLocaleString()}원</p>
+              <p className="money-budget__amount">
+                {budgetHidden ? `${MASKED}원` : `${SPENDABLE.toLocaleString()}원`}
+              </p>
               <div className="money-budget__foot">
-                <span className="money-budget__cap">예산 {BUDGET.toLocaleString()}원</span>
-                <span className="money-budget__percent">{BUDGET_USED_PERCENT}% 사용</span>
+                <span className="money-budget__cap">
+                  예산 {budgetHidden ? `${MASKED}원` : `${BUDGET.toLocaleString()}원`}
+                </span>
+                <span className="money-budget__percent">
+                  {budgetHidden ? '●●% 사용' : `${BUDGET_USED_PERCENT}% 사용`}
+                </span>
               </div>
               <div className="money-budget__bar">
                 <div className="money-budget__bar-fill" style={{ width: `${BUDGET_USED_PERCENT}%` }} />
@@ -418,7 +439,7 @@ export function MoneyPage() {
               <span>오늘 쓸 수 있는 돈</span>
               <span className="money-today__value">
                 {TODAY_SPENDABLE.toLocaleString()}원
-                <img src={icon('chevron-right-sm.svg')} alt="" />
+                <img src={icon('chevron-right-gray.svg')} alt="" />
               </span>
             </button>
 
@@ -452,7 +473,7 @@ export function MoneyPage() {
                   onClick={() => setNotice('예정된 지출 화면은 준비 중이에요.')}
                 >
                   더보기
-                  <img src={icon('chevron-right-sm.svg')} alt="" />
+                  <img src={icon('chevron-right-thin.svg')} alt="" />
                 </button>
               </div>
               <div className="money-upcoming">
@@ -470,7 +491,7 @@ export function MoneyPage() {
                 <h2 className="money-section__title">비상금</h2>
                 <button type="button" className="money-section__more" onClick={() => setTab('비상금')}>
                   관리
-                  <img src={icon('chevron-right-sm.svg')} alt="" />
+                  <img src={icon('chevron-right-thin.svg')} alt="" />
                 </button>
               </div>
               <div className="money-emergency">

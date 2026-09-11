@@ -180,8 +180,8 @@
 /* ---------- 왼쪽 마케팅 카피 ----------
  * 1700px 미만에서는 공간이 부족하므로 아예 숨긴다 — 폰과 패널의 실제 크기를 데스크톱과
  * 동일하게 유지하는 게 우선이라, 카피를 줄여서 셋 다 욱여넣지 않는다.
- * max-width 는 540px — 52px 크기의 "자취하는 모든 순간,"이 한 줄에 다 들어가는 데
- * 필요한 최소 폭을 계산해서 넣은 값이다(420px 였을 때 이 줄이 중간에서 잘렸었다). */
+ * max-width 540px 는 "자취하는 모든 순간,"이 한 줄에 다 들어가는 데 필요한 폭이다
+ * (헤드라인 크기를 28~38px 로 낮춘 뒤에도 여전히 넉넉해서 그대로 둔다). */
 .login-showcase__intro {
   display: none;
   max-width: 540px;
@@ -203,13 +203,17 @@
   margin: 0 0 12px;
 }
 
-/* 왼쪽 영역이 "브랜드 소개"로 확실히 읽히도록 데스크톱 기준 44~52px 큰 제목 —
- * intro 의 max-width(420px)는 그대로라 폭에는 영향 없고 세로만 커진다. */
+/* 시각 우선순위는 ①iPhone 목업 ②오른쪽 카드 ③왼쪽 카피 순이어야 하는데, 카피가
+ * 뜨는 1700px 이상에서는 4vw 가 이미 52px 상한을 넘어서(1700px 에서 4vw=68px) 항상
+ * 고정 52px 로 렌더됐다 — 오른쪽 패널 제목(.login-showcase__panel-title, 27px)의
+ * 거의 두 배라 카피가 화면에서 가장 큰/진한 글자가 되어 목업보다 시선을 더 끌었다.
+ * 문구·구조는 그대로 두고 크기만 줄인다(28~38px, 그래도 "브랜드 헤드라인"으로는
+ * 충분히 커 보이되 목업·카드를 압도하지 않는 수준). */
 .login-showcase__headline {
   font-family: var(--font-a2z);
   font-weight: 800;
-  font-size: clamp(32px, 4vw, 52px);
-  line-height: 1.12;
+  font-size: clamp(28px, 2vw, 38px);
+  line-height: 1.16;
   color: var(--text-heading);
   margin: 0;
 }
@@ -230,15 +234,38 @@
 /* ---------- 폰 목업 크기 (--phone-scale, 실제 스타일은 iphone-frame.css) ----------
  * 768px(태블릿)부터 이미 데스크톱과 같은 크기를 쓴다 — 폰을 줄이는 대신 카피를 숨기고
  * (위 .login-showcase__intro) 폰+패널을 나란히 배치하는 쪽으로 공간을 확보했기 때문에
- * 더 이상 태블릿 전용으로 축소할 필요가 없다. */
+ * 더 이상 태블릿 전용으로 축소할 필요가 없다.
+ *
+ * 예전에는 0.86 / 0.66 두 단계만 있고 전환 기준(max-height:760px)이 상단바·패딩·gap을
+ * 빼먹은 "뷰포트 높이" 그대로였다 — 그래서 실제 남는 세로 공간이 0.86 크기의 폰(892px ×
+ * 0.86 = 767.12px)보다 작은데도 아직 0.86 을 써야 하는 761~830px 구간이 생겨,
+ * .login-showcase 의 overflow:hidden 이 그 초과분을 잘라냈다(하단 잘림 버그).
+ *
+ * 지금은 실제 쓸 수 있는 세로 공간(100dvh - 상하 padding - topbar - gap)을 직접 계산해서
+ * 그 값과 892px(폭 X) 목업 원본 높이의 비율을 --phone-scale 로 쓴다 — 두 단계 점프 대신
+ * 연속적으로 줄어들고, 남는 공간이 있으면(0.86 목업이 다 들어가면) 항상 0.86 그대로 유지된다.
+ *   - 9dvh  ≈ 상하 padding(각 clamp(16px,3vh,40px)) + topbar-stage gap(clamp(16px,3vh,32px))
+ *            을 합친 3×3vh. 760~990px 테스트 구간에서는 셋 다 vh 쪽 값이라 정확히 맞는다.
+ *   - 36px ≈ topbar 높이(로고 44×24.556 를 64px 폭으로 그린 실측 높이 35.7px)
+ *   - 0.66 / 0.86 을 그대로 하한/상한으로 남겨 아주 낮은 높이에서도 폰이 지나치게
+ *     작아지지 않게 하고(하한), 공간이 충분하면 원래 크기를 넘어서 커지지 않게 한다(상한).
+ * .login-showcase 의 overflow:hidden 은 그대로 둔다 — 잘림의 원인은 "크기 계산이 틀려서
+ * 실제로 넘쳤던 것"이지 클리핑 자체가 문제가 아니었으므로, overflow:visible 로 바꿔
+ * 문제를 감추지 않고 크기 계산을 고쳤다. */
 .iphone-frame {
-  --phone-scale: 0.86;
-}
-
-@media (max-height: 760px) {
-  .iphone-frame {
-    --phone-scale: 0.66;
-  }
+  /* 하한을 0.66 로 고정해뒀더니, "정확히 딱 맞는 크기"(91dvh - 36px)가 0.66*892=588.72px
+   * 보다 작아지는 구간(브라우저 높이 약 624~686px)에서는 하한이 실제로 들어갈 공간보다
+   * 커서 다시 하단이 잘렸다(2차 수정 때 확인된 761~830px 구간과 같은 종류의 문제가
+   * 더 낮은 높이대에서 재발). "가능한 크게, 부족할 때만 필요한 만큼만" 원칙에 맞게
+   * 하한을 0.35(실제로는 거의 도달하지 않는, 계산값이 음수/0에 가까워지는 것만 막는
+   * 안전장치 수준)까지 낮춰서 그 사이 구간도 계속 "딱 맞는 크기"로 연속 축소되게 한다. */
+  --phone-scale: calc(
+    clamp(
+      calc(var(--iphone-outer-h) * 0.35),
+      calc(91dvh - 36px),
+      calc(var(--iphone-outer-h) * 0.86)
+    ) / var(--iphone-outer-h)
+  );
 }
 
 /* ---------- Demo Account 패널 ----------
@@ -292,9 +319,9 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 56px;
+  height: 44px;
   padding: 0 6px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.65);
   font-family: var(--font-suit);
@@ -306,9 +333,19 @@
   cursor: pointer;
 }
 
+/* currentColor 를 따라가야 해서 <img> 대신 mask-image 로 그린다 —
+ * <img src="...svg"> 는 별도 문서 취급이라 부모 버튼의 color(active/inactive)가 전달되지 않는다. */
 .login-showcase__tab-icon {
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
 .login-showcase__tab--active {
@@ -324,17 +361,17 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 22px 16px 20px;
+  padding: 18px 16px 16px;
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(180, 57, 54, 0.09), rgba(180, 57, 54, 0.03));
 }
 
 .login-showcase__profile-avatar {
-  width: 84px;
-  height: 84px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.55);
 }
 
@@ -360,7 +397,7 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   /* ACCOUNT_BLURBS 안 \n 을 그대로 줄바꿈으로 렌더 — 항상 자연스럽게 2줄로 떨어진다 */
   white-space: pre-line;
 }
