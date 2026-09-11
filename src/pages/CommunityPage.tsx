@@ -30,25 +30,14 @@ export function CommunityPage() {
   const [liked, setLiked] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const [fabOpen, setFabOpen] = useState(false);
-  const fabRef = useRef<HTMLDivElement>(null);
+  /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
+  const [notice, setNotice] = useState('');
 
-  /* 바깥을 누르거나 Escape 를 누르면 Speed Dial 을 닫는다 */
   useEffect(() => {
-    if (!fabOpen) return;
-    const onOutside = (event: PointerEvent) => {
-      if (!fabRef.current?.contains(event.target as Node)) setFabOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setFabOpen(false);
-    };
-    document.addEventListener('pointerdown', onOutside);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onOutside);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [fabOpen]);
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 2400);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   /* 바깥을 누르면 필터를 닫는다 (터치·마우스 공통) */
   useEffect(() => {
@@ -231,37 +220,22 @@ export function CommunityPage() {
         </section>
       </main>
 
-      {/* Speed Dial — 열면 '내가 쓴 글' · '글쓰기' 가 위로 펼쳐진다.
-        * 두 화면은 아직 없어 route 를 만들지 않는다. */}
-      <div className={`community-fab${fabOpen ? ' is-open' : ''}`} ref={fabRef}>
-        {/* 닫혀 있어도 DOM 에 남겨 둬야 퇴장 애니메이션이 잘리지 않는다.
-          * 숨김은 CSS(visibility/pointer-events)가 맡아 클릭·포커스도 함께 막힌다. */}
-        <div className="community-fab__actions" aria-hidden={!fabOpen}>
-          <button type="button" className="community-fab__action community-fab__action--wide">
-            <img src={icon('community-book.svg')} alt="" />
-            내가 쓴 글
-          </button>
-          <button type="button" className="community-fab__action">
-            <img src={icon('community-pencil.svg')} alt="" />
-            글쓰기
-          </button>
-        </div>
+      {/* 글쓰기 — 항상 보이는 단일 버튼. '내가 쓴 글'과의 Speed Dial 토글은 없앴다.
+        * 글쓰기 화면은 아직 없어 route 를 만들지 않고 토스트로 안내한다. */}
+      <div className="community-fab">
         <button
           type="button"
           className="community-fab__button"
-          aria-expanded={fabOpen}
-          aria-label={fabOpen ? '글쓰기 메뉴 닫기' : '글쓰기 메뉴 열기'}
-          onClick={() => setFabOpen((open) => !open)}
+          onClick={() => setNotice('글쓰기 화면은 준비 중이에요.')}
         >
-          {/* 다른 두 아이콘과 같은 흰색이 되도록 currentColor 로 칠한다 */}
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M11 13H6C5.71667 13 5.47933 12.904 5.288 12.712C5.09667 12.52 5.00067 12.2827 5 12C4.99933 11.7173 5.09533 11.48 5.288 11.288C5.48067 11.096 5.718 11 6 11H11V6C11 5.71667 11.096 5.47933 11.288 5.288C11.48 5.09667 11.7173 5.00067 12 5C12.2827 4.99933 12.5203 5.09533 12.713 5.288C12.9057 5.48067 13.0013 5.718 13 6V11H18C18.2833 11 18.521 11.096 18.713 11.288C18.905 11.48 19.0007 11.7173 19 12C18.9993 12.2827 18.9033 12.5203 18.712 12.713C18.5207 12.9057 18.2833 13.0013 18 13H13V18C13 18.2833 12.904 18.521 12.712 18.713C12.52 18.905 12.2827 19.0007 12 19C11.7173 18.9993 11.48 18.9033 11.288 18.712C11.096 18.5207 11 18.2833 11 18V13Z"
-              fill="currentColor"
-            />
-          </svg>
+          <img src={icon('community-pencil.svg')} alt="" />
+          글쓰기
         </button>
       </div>
+
+      <p className="community-notice" role="status" aria-live="polite" hidden={!notice}>
+        {notice}
+      </p>
 
       <BottomNavigation activeTab="community" />
       <GnbOverlay
@@ -270,7 +244,8 @@ export function CommunityPage() {
         onClose={() => setGnbOpen(false)}
         onEditMenu={() => setGnbOpen(false)}
       />
-      <AIChatbot />
+      {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
+      <AIChatbot initialLift={84} />
     </div>
   );
 }
