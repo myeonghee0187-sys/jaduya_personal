@@ -552,6 +552,9 @@ a { text-decoration: none; color: inherit; }
   gap: var(--space-2xs);
   flex: 1 0 0;
   min-width: 0;
+  /* 짝(medium 2개 중 1개)이 위젯 추가 시트에서 꺼지면 flex:1 이 남은 폭을 혼자
+   * 다 차지해 카드가 부자연스럽게 늘어난다 — Figma 규격 폭을 넘지 않게 막는다. */
+  max-width: var(--widget-medium-w);
   height: var(--widget-medium-h);
   padding: var(--card-padding-m);
   border: 1px solid var(--border-widget);
@@ -656,6 +659,10 @@ a { text-decoration: none; color: inherit; }
   gap: 7px;
   flex: 1 0 0;
   min-width: 0;
+  /* small 위젯도 medium과 같은 이유로 짝이 꺼지면 혼자 늘어난다 — 규격 폭 고정.
+   * module-card--add-wide(작은 위젯이 0개일 때 "+"가 행을 채우는 빈 상태)는 예외라
+   * 그 쪽에서 다시 해제한다. */
+  max-width: var(--widget-small-w);
   height: var(--widget-small-h);
   padding: 12px 14px;
   border: 1px solid var(--border-warm);

@@ -66,7 +66,7 @@ const LAYOUT_TO_CATALOG: Partial<Record<MediumWidgetId | SmallWidgetId, string>>
   'living-cost': 'living-cost',
   rent: 'rent',
   fridge: 'fridge',
-  'fridge-s': 'fridge',
+  'fridge-s': 'fridge-s',
   todo: 'todo-m',
   'todo-s': 'todo-s',
   'clean-s': 'clean-s',

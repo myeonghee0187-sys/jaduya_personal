@@ -56,6 +56,21 @@ function WidgetCardBody({ id }: { id: string }) {
         </span>
       );
 
+    case 'fridge-s':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">냉장고</span>
+          </span>
+          <span
+            className="wpick__main wpick__main--17"
+            style={{ alignSelf: 'center', paddingTop: 6 }}
+          >
+            우유 D-2
+          </span>
+        </span>
+      );
+
     case 'rent':
       return (
         <span className="wpick__card">
@@ -368,6 +383,8 @@ interface WidgetCardProps {
   onToggle?: (id: string) => void;
   /** 카탈로그 기본 크기 대신 실제 배치 크기로 보여줘야 할 때(예: Home 캔버스에 이미 올라간 위젯) 지정 */
   size?: WidgetSize;
+  /** true면 선택할 수 없다 — 다른 크기 형제 위젯이 이미 고정 슬롯에 들어가 있을 때 등 */
+  disabled?: boolean;
 }
 
 export function WidgetCard({
@@ -377,6 +394,7 @@ export function WidgetCard({
   hiddenBySearch = false,
   onToggle,
   size,
+  disabled = false,
 }: WidgetCardProps) {
   const def = WIDGET_CATALOG.find((w) => w.id === id);
   if (!def) return null;
@@ -404,6 +422,7 @@ export function WidgetCard({
       data-widget-name={def.name}
       aria-pressed={selected}
       hidden={hiddenBySearch}
+      disabled={disabled}
       onClick={() => onToggle?.(id)}
     >
       <WidgetCardBody id={id} />

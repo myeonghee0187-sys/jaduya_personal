@@ -1,4 +1,4 @@
-import type { WidgetDef } from '../types';
+import type { WidgetDef, WidgetSize } from '../types';
 
 /** 위젯 추가 시트가 다루는 위젯 — Figma add_widget (1693:6166) 기준
  *
@@ -8,6 +8,7 @@ export const WIDGET_CATALOG: WidgetDef[] = [
   /* 현재 사용 중인 위젯 */
   { id: 'living-cost', name: '생활비', size: 'medium', category: '돈 관리' },
   { id: 'fridge', name: '냉장고', size: 'medium', category: '생활' },
+  { id: 'fridge-s', name: '냉장고', size: 'small', category: '생활' },
   { id: 'rent', name: '월세·관리비', size: 'medium', category: '돈 관리' },
   /* 추천 위젯 */
   { id: 'spend-analysis', name: '소비 분석', size: 'large', category: '돈 관리' },
@@ -38,3 +39,9 @@ export const DEFAULT_WIDGETS = ['living-cost', 'fridge', 'rent'];
 export const HOME_NATIVE_WIDGETS = ['living-cost', 'rent', 'fridge'];
 
 export const MAX_WIDGET = 4;
+
+/** 위젯이 캔버스에서 차지하는 칸 수 — Large(342×114)는 Medium 2개와 같은 폭을 쓰므로 2칸이다.
+ *  '4개'는 개수가 아니라 이 칸 수의 합으로 판단한다. */
+export function widgetWeight(size: WidgetSize): number {
+  return size === 'large' ? 2 : 1;
+}
