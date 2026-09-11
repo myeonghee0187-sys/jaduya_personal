@@ -460,68 +460,17 @@
 
 /* ================= 글쓰기 버튼 ================= */
 
-/* Speed Dial — 오른쪽 아래에 뜨지만, 기본 위치가 겹치지 않도록 AI 챗봇(64px) 위에 놓는다.
- * Figma button_hover (2012:11551): 컨테이너 136px, 항목 사이 20px, 아래에서 위로 쌓인다. */
+/* 항상 떠 있는 단일 버튼 — 바텀네비 바로 위 자리를 쓰고, AI 챗봇은 이 버튼 위로 올려 시작한다
+ * (AIChatbot 의 initialLift 로 겹치지 않게 조정, CommunityPage.tsx 참고). */
 .community-fab {
   position: absolute;
-  right: 18px;
-  bottom: calc(var(--tab-bar-h, 91px) + 92px);
+  right: 16px;
+  bottom: calc(var(--tab-bar-h, 91px) + 8px);
   z-index: 4;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 20px;
-  width: 136px;
 }
 
-.community-fab__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 20px;
-  width: 100%;
-}
-
-/* 닫힘: + 버튼 뒤쪽에 숨어 있다가 열릴 때 위로 올라온다.
- * visibility 를 함께 transition 해 퇴장 애니메이션이 잘리지 않고,
- * 숨은 동안에는 클릭·키보드 포커스도 들어가지 않는다. */
-.community-fab__action {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(16px) scale(0.94);
-  transition:
-    opacity 220ms ease-out,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 220ms;
-}
-
-.community-fab.is-open .community-fab__action {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-}
-
-/* 아주 짧은 stagger — 열릴 때는 아래(글쓰기)부터, 닫힐 때는 위부터 */
-.community-fab__action:nth-child(1) {
-  transition-delay: 0ms;
-}
-
-.community-fab__action:nth-child(2) {
-  transition-delay: 50ms;
-}
-
-.community-fab.is-open .community-fab__action:nth-child(1) {
-  transition-delay: 50ms;
-}
-
-.community-fab.is-open .community-fab__action:nth-child(2) {
-  transition-delay: 0ms;
-}
-
-/* 액션 알약 — 56px 높이, radius 28, Base/Point 배경, 아이콘 24 + A2Z SemiBold 16 흰 글자 */
-.community-fab__action {
+.community-fab__button {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -530,7 +479,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 28px;
-  padding: 0 17px;
+  padding: 0 20px;
   background: var(--brand-green);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   color: var(--surface-base);
@@ -539,51 +488,26 @@
   cursor: pointer;
 }
 
-.community-fab__action--wide {
-  width: 100%;
-}
-
-.community-fab__action img {
+.community-fab__button img {
   flex: none;
   display: block;
   width: 24px;
   height: 24px;
 }
 
-.community-fab__button {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: 28px;
-  background: var(--brand-green);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
-  cursor: pointer;
-}
+/* ================= 준비 중 안내 ================= */
 
-/* 액션 아이콘과 같은 흰색 (SVG 는 currentColor 로 칠한다) */
-.community-fab__button {
+.community-notice {
+  position: absolute;
+  left: var(--screen-margin);
+  right: var(--screen-margin);
+  bottom: calc(var(--tab-bar-h, 91px) + 12px);
+  z-index: 5;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  background: rgba(59, 51, 46, 0.9);
   color: var(--surface-base);
-}
-
-.community-fab__button svg {
-  display: block;
-  width: 24px;
-  height: 24px;
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* 열리면 + 를 45도 돌려 닫기(×)로 읽히게 한다 (색은 그대로 흰색) */
-.community-fab.is-open .community-fab__button svg {
-  transform: rotate(45deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .community-fab__button svg,
-  .community-fab__action {
-    transition: none;
-  }
+  font-size: 13px;
+  text-align: center;
 }
