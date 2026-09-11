@@ -276,7 +276,7 @@
 .post-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--cm-card-border);
@@ -285,109 +285,22 @@
   background: rgba(255, 255, 255, 0.6);
 }
 
-.post-card__chips {
+/* ---------- 상단: 작성자 / 좋아요·댓글·북마크 ---------- */
+
+.post-card__header {
   display: flex;
   align-items: center;
-  gap: 5px;
-  width: 100%;
-  padding-bottom: 7px;
-}
-
-.post-card__chip {
-  flex: none;
-  max-width: 40%;
-  overflow: hidden;
-  border-radius: var(--radius-s);
-  padding: 4px 8px;
-  font: 400 11px/1.5 var(--font-suit);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.post-card__chip--tag {
-  background: var(--cm-tag-bg);
-  color: var(--cm-tag-text);
-}
-
-.post-card__chip--category {
-  background: var(--cm-category-bg);
-  color: var(--cm-category-text);
-}
-
-/* 아이콘을 mask 로 깔고 배경색으로 상태를 바꾼다 (filter 로 색을 흉내내지 않는다) */
-.post-card__bookmark {
-  flex: none;
-  display: block;
-  width: 24px;
-  height: 24px;
-  /* 오른쪽 끝에 붙는다 */
-  margin-left: auto;
-  border: 0;
-  padding: 0;
-  background-color: var(--cm-icon-off);
-  cursor: pointer;
-  mask: url('/assets/icon/community-bookmark.svg') center / 24px 24px no-repeat;
-  -webkit-mask: url('/assets/icon/community-bookmark.svg') center / 24px 24px no-repeat;
-  transition: background-color 160ms ease;
-}
-
-.post-card__bookmark.is-saved {
-  background-color: var(--brand-primary);
-}
-
-.post-card__body {
-  display: flex;
-  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
   width: 100%;
-}
-
-.post-card__thumb {
-  flex: none;
-  display: block;
-  width: 130px;
-  height: 100px;
-  border-radius: var(--radius-m);
-  object-fit: cover;
-}
-
-/* 좁은 폭에서도 제목·본문이 썸네일을 밀어내지 않게 한다 */
-.post-card__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding-top: 5px;
-}
-
-.post-card__title {
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-nav);
-  font: 600 14px/1.3 var(--font-suit);
-  letter-spacing: -0.14px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.post-card__preview {
-  margin: 0;
-  overflow: hidden;
-  color: var(--cm-preview);
-  font: 500 12px/1.3 var(--font-suit);
-  letter-spacing: -0.12px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
 }
 
 .post-card__author {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 5px 0 0;
+  min-width: 0;
+  margin: 0;
   overflow: hidden;
   color: var(--cm-meta);
   font: 500 12px/1.3 var(--font-suit);
@@ -401,20 +314,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: var(--radius-pill);
   background: var(--cm-badge-bg);
-  font-size: 11px;
+  font-size: 9px;
   line-height: 1;
 }
 
-/* stat 사이 간격은 개별 margin 없이 이 gap 하나로만 만든다 */
-.post-card__stats {
+.post-card__meta {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding-top: 5px;
+  gap: 8px;
 }
 
 .post-card__stat {
@@ -452,10 +364,107 @@
   font-variant-numeric: tabular-nums;
 }
 
-.post-card__stats img {
+.post-card__meta img {
   display: block;
   width: 16px;
   height: 16px;
+}
+
+/* 아이콘을 mask 로 깔고 배경색으로 상태를 바꾼다 (filter 로 색을 흉내내지 않는다) */
+.post-card__bookmark {
+  flex: none;
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  padding: 0;
+  background-color: var(--cm-icon-off);
+  cursor: pointer;
+  mask: url('/assets/icon/community-bookmark.svg') center / 24px 24px no-repeat;
+  -webkit-mask: url('/assets/icon/community-bookmark.svg') center / 24px 24px no-repeat;
+  transition: background-color 160ms ease;
+}
+
+.post-card__bookmark.is-saved {
+  background-color: var(--brand-primary);
+}
+
+/* ---------- 하단: 제목·미리보기·chip / 정사각 썸네일 ---------- */
+
+.post-card__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.post-card__thumb {
+  flex: none;
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-m);
+  object-fit: cover;
+}
+
+/* 좁은 폭에서도 제목·본문이 썸네일을 밀어내지 않게 한다 */
+.post-card__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.post-card__title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-nav);
+  font: 600 14px/1.3 var(--font-suit);
+  letter-spacing: -0.14px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.post-card__preview {
+  margin: 0;
+  overflow: hidden;
+  color: var(--cm-preview);
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.post-card__chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.post-card__chip {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  padding: 4px 8px;
+  font: 400 11px/1.5 var(--font-suit);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.post-card__chip--tag {
+  background: var(--cm-tag-bg);
+  color: var(--cm-tag-text);
+}
+
+.post-card__chip--category {
+  background: var(--cm-category-bg);
+  color: var(--cm-category-text);
 }
 
 /* ================= 글쓰기 버튼 ================= */
