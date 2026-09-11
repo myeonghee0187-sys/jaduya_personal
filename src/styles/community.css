@@ -140,7 +140,7 @@
   min-width: 0;
   border: 0;
   border-bottom: 1px solid #737373;
-  padding: 12px 6px 13px;
+  padding: 12px 6px 14px;
   background: none;
   color: #737373;
   font: 400 14px/16px var(--font-suit);
@@ -152,8 +152,8 @@
 .community-tabs__tab:nth-child(-n + 2) {
   flex: none;
   width: auto;
-  padding-right: 10px;
-  padding-left: 10px;
+  padding-right: 14px;
+  padding-left: 14px;
 }
 
 .community-tabs__tab.is-active {
