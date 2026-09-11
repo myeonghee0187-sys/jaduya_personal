@@ -1,0 +1,374 @@
+/* JADUYA — 생활 > 홈케어 (Figma daily_care 2008:9698)
+ *
+ * main.tsx 에서 life-first.css 다음에 읽는다 (.daily-care.app 이 .app 을 덮어야 한다).
+ * 색은 tokens.css 를 우선 쓰고, 이 화면에만 있는 값(Oat Cream, Roasted Plum 등)은
+ * life-first.css 와 같은 방식으로 지역 변수에 둔다. */
+
+.daily-care {
+  --dc-oat-2: #f3ebde; /* divider */
+  --dc-oat-3: #ece1ce; /* 칩·카드 테두리 */
+  /* Timeline Track(비활성 레일) 지정 색 — #F4E3D8 고정. dc-oat-3 를 그대로 쓰면 페이지 배경
+   * (--surface-subtle #fcfaf7)과 명도 차이가 거의 없어(대비비 ~1.24:1) 카드 테두리처럼 사각형
+   * 실루엣이 있는 곳에서는 티가 나도, 얇은 세로 직선 하나만 있는 Timeline에서는 거의 안 보인다.
+   * 색 자체를 더 진하게 바꾸는 대신(지정 색 고정) Rail 두께를 2px→3px 로 늘려 같은 색이라도
+   * 지각되는 면적을 넓힌다(얇은 선일수록 같은 색상차도 훨씬 덜 보이는 것은 인지적 특성이라
+   * 폭을 넓히는 쪽이 안전하다) — 다른 카드·칩 테두리에 쓰이는 dc-oat-3 는 그대로 둔다. */
+  --dc-timeline-track: #f4e3d8;
+  --dc-text-strong: #2a211c; /* 질문·라벨 텍스트 */
+  --dc-white: #fffdfb; /* 타임라인 원 배경 */
+
+  display: flex;
+  flex-direction: column;
+  color: var(--text-black);
+  font-family: var(--font-suit);
+}
+
+/* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
+.daily-care.app {
+  background: var(--surface-subtle);
+}
+
+/* ================= 하위 탭 ================= */
+
+.dc-tabs {
+  display: flex;
+  flex: none;
+  width: 100%;
+}
+
+.dc-tabs__tab {
+  flex: 1;
+  padding: 12px 14px 13px;
+  border: 0;
+  border-bottom: 1px solid #737373;
+  background: none;
+  color: #737373;
+  font: 700 14px/16px var(--font-suit);
+  text-align: center;
+  cursor: pointer;
+}
+
+span.dc-tabs__tab {
+  cursor: default;
+}
+
+.dc-tabs__tab.is-active {
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--brand-primary);
+  color: var(--brand-primary);
+  cursor: default;
+}
+
+/* 헤더·탭·탭바는 고정이고 이 영역만 스크롤한다 */
+.daily-care__scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 40px var(--screen-margin) calc(var(--tab-bar-h, 91px) + 40px);
+  scrollbar-width: none;
+}
+
+.daily-care__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.daily-care h2 {
+  margin: 0;
+  color: var(--text-black);
+  font: 700 20px/1.3 var(--font-a2z);
+}
+
+.dc-divider {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: 0;
+  /* hr 는 height 가 아니라 border 로 두께를 잡아야 크롬에서 실제로 그려진다 */
+  border-top: 1px solid var(--dc-oat-2);
+}
+
+.dc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ================= ① 문제 유형 ================= */
+
+.dc-section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dc-section__head h2 {
+  display: flex;
+  flex-direction: column;
+}
+
+.dc-section__head p {
+  margin: 0;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+/* ---------- 칩 공용 ---------- */
+
+.dc-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dc-chip {
+  border: 0;
+  background: none;
+  color: var(--text-black);
+  font: 400 13px/1.5 var(--font-suit);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+/* 문제 유형 칩 — radius 12px */
+.dc-chip--type {
+  padding: 8px 13px;
+  border: 1px solid var(--dc-oat-3);
+  border-radius: var(--radius-m);
+}
+
+.dc-chip--type.is-selected {
+  border-color: transparent;
+  background: var(--brand-secondary);
+}
+
+/* 위치·상태 칩 — pill, radius 17px */
+.dc-chip--pill {
+  padding: 7px 12px;
+  border: 1px solid var(--dc-oat-3);
+  border-radius: 17px;
+  font-weight: 500;
+  letter-spacing: -0.13px;
+}
+
+.dc-chip--pill.is-selected {
+  border-color: transparent;
+  background: var(--brand-secondary);
+}
+
+/* ================= ② 상황 선택 ================= */
+
+.dc-question {
+  margin: 0;
+  color: var(--dc-text-strong);
+  font: 600 18px/1.25 var(--font-suit);
+}
+
+.dc-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dc-field__label {
+  margin: 0;
+  color: var(--dc-text-strong);
+  font: 700 15px/1.4 var(--font-suit);
+  letter-spacing: -0.3px;
+}
+
+/* ================= ③ 해결 가이드 ================= */
+
+.dc-guide-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 37px;
+}
+
+.dc-guide-meta {
+  margin: 0;
+  color: var(--text-nav);
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+}
+
+.dc-guide-head h2 {
+  margin: 0;
+  color: var(--text-black);
+  font: 600 18px/1.25 var(--font-suit);
+}
+
+.dc-empty {
+  margin: 0;
+  padding: 20px 12px;
+  border: 1px solid var(--dc-oat-3);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-suit);
+  text-align: center;
+}
+
+/* ---------- 타임라인 ---------- */
+
+/* Rail(track·progress)과 <ol> 을 함께 감싸는 wrapper. Rail 은 <ol> 의 자식이 아니라
+ * 이 wrapper 의 형제로 둔다 — <ol> 의 direct child 는 항상 <li> 만 유지된다.
+ * Rail 은 STEP 마다 나뉘지 않는 "하나의 연속된 선" 두 겹(track/progress)이고, 그 top·
+ * height 는 GuideTimeline.tsx 가 실제 DOM 위치(STEP01 마커 중심 ~ 마지막 서비스 카드 하단)를
+ * 측정해 인라인 style 로 준다 — 카드 높이가 달라도, STEP 사이 gap 이 얼마든 절대 끊기지
+ * 않는다(고정 px 를 가정하지 않는다). */
+.dc-timeline-wrapper {
+  position: relative;
+}
+
+.dc-timeline__track,
+.dc-timeline__progress {
+  position: absolute;
+  left: 7.5px;
+  width: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.dc-timeline__track {
+  background: var(--dc-timeline-track);
+}
+
+.dc-timeline__progress {
+  background: var(--brand-green);
+  pointer-events: none;
+}
+
+.dc-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 57px;
+  margin: 0;
+  padding-left: 30px;
+  list-style: none;
+}
+
+.dc-timeline__row {
+  position: relative;
+}
+
+.dc-timeline__marker {
+  position: absolute;
+  top: 2px;
+  left: -30px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--dc-white);
+  border: 2px solid var(--brand-secondary);
+}
+
+.dc-timeline__marker.is-first {
+  border: 0;
+  background: var(--brand-secondary);
+}
+
+.dc-timeline__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dc-timeline__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-black);
+}
+
+.dc-timeline__num {
+  font: 600 16px/1 var(--font-asta);
+}
+
+.dc-timeline__head h3 {
+  margin: 0;
+  font: 700 15px/1.4 var(--font-suit);
+  letter-spacing: -0.3px;
+}
+
+/* ---------- 01~03 단계 카드 ---------- */
+
+.dc-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+  border: 1px solid var(--dc-oat-3);
+  border-radius: var(--radius-xl);
+}
+
+.dc-step-card__heading {
+  margin: 0;
+  color: var(--text-black);
+  font: 500 15px/1.5 var(--font-suit);
+  letter-spacing: -0.375px;
+}
+
+.dc-step-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.dc-step-card__body p {
+  margin: 0;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+/* ---------- 04 서비스 링크 ---------- */
+
+.dc-services {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.dc-service-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--dc-oat-3);
+  border-radius: 16px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+@media (hover: hover) {
+  .dc-service-card:hover {
+    border-color: var(--brand-secondary);
+  }
+}
+
+.dc-service-card__title {
+  color: var(--text-nav);
+  font: 600 16px/1 var(--font-suit);
+}
+
+.dc-service-card__arrow {
+  flex: none;
+  display: block;
+  width: 8px;
+  height: 14px;
+}
