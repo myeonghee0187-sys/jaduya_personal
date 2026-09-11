@@ -38,19 +38,34 @@ body {
 
 .app {
   width: 100%;
-  max-width: none;
+  /* 모바일 지원 범위는 360~402px 이고 402px 가 Figma 디자인 기준이다 — 402px 를
+   * 넘는 폭(태블릿을 가로로 들었을 때 등, 768px 미만이라 아직 데스크톱 프리뷰로는
+   * 안 바뀌는 구간)에서 .app 자체가 계속 커지며 디자인이 확대되지 않도록 여기서
+   * 막는다. #root 가 이미 flex 로 가운데 정렬하므로, 402px 보다 넓을 때는 그냥
+   * 402px 폭으로 화면 중앙에 고정된다(768px 이상의 데스크톱 프리뷰와 같은 원리). */
+  max-width: var(--frame-width);
   height: 100vh;
   height: 100dvh;
-  max-height: var(--frame-height);
+  /* 세로는 캡을 두지 않는다 — max-height:874px 를 실기기에도 걸어두면 430×932 같은
+   * (874보다 큰) 실제 폰에서 위아래에 레터박스(빈 여백)가 생겨 "화면을 꽉 채운 앱"이
+   * 아니라 브라우저 안에 떠 있는 것처럼 보인다. 폭은 402px 를 넘으면 디자인이 그대로
+   * 확대되어 어색해지지만, 세로는 --sheet-top/--hero-illustration-scale 등이 이미
+   * dvh 기반이라 더 긴 화면도 그대로 자연스럽게 늘어난다 — 402×874 기준 화면(딱 맞는
+   * 경우)과 360×803(더 짧은 경우)에는 원래도 영향이 없던 값이라 회귀가 없다.
+   * 데스크톱 iPhone 목업 프리뷰(min-width:768px)는 아래에서 다시 874px 로 고정한다. */
 }
 
 /* ---------- 402 기준 고정 px 레이아웃 토큰을 폭 비율로 ----------
  * 30px / 342px 은 402 프레임 기준값이라 360px 기기에서는 30 + 342 = 372 가 되어
  * 프레임을 넘고 .app 의 overflow: hidden 에 잘려 나간다.
- * (% 로 두면 사용처의 부모 폭 기준이라 패딩이 있는 컨테이너에서 이중 축소된다.) */
+ * (% 로 두면 사용처의 부모 폭 기준이라 패딩이 있는 컨테이너에서 이중 축소된다.)
+ *
+ * 100vw 를 그대로 쓰면 .app 이 402px 에서 멈춰도 토큰은 실제 뷰포트 폭(예: 500px)
+ * 기준으로 계속 커져서 .app 폭을 넘는 콘텐츠가 만들어진다 — min() 으로 402px 를
+ * 넘는 부분을 잘라 .app 자체의 max-width 와 항상 같은 기준을 쓰게 한다. */
 .app {
-  --screen-margin: calc(100vw * 30 / 402);
-  --content-width: calc(100vw * 342 / 402);
+  --screen-margin: calc(min(100vw, var(--frame-width)) * 30 / 402);
+  --content-width: calc(min(100vw, var(--frame-width)) * 342 / 402);
   --widget-medium-w: calc((var(--content-width) - var(--widget-gap)) / 2);
   --widget-small-w: calc(
     (var(--content-width) - var(--widget-add-w) - var(--widget-gap) * 2) / 2
@@ -85,6 +100,15 @@ body {
 .status-bar__time,
 .status-bar__icons {
   display: none;
+}
+
+/* tokens.css 의 --header-h(100px)는 Figma 값(상태바 50 + 로고헤더 50) 그대로다.
+ * 실제 기기에서는 상태바가 위 .status-bar 처럼 safe-area 로 바뀌므로, 그 안에 얹혀
+ * 실제로 헤더가 차지하는 높이도 같이 다시 계산한다 — 노치 없는 기기는 50px, 노치가
+ * 있으면 그만큼 더 커진다. .greeting 처럼 헤더 아래 여백을 --header-h 기준으로 잡는
+ * 요소가 이 값을 그대로 따라간다. */
+.app {
+  --header-h: calc(env(safe-area-inset-top, 0px) + 50px);
 }
 
 /* ---------- 하단: 그려진 Home Indicator 대신 Safe Area ----------
@@ -130,10 +154,23 @@ body {
 }
 
 /* 시트 peek 높이 기준 고정 오프셋 — 펼침(expanded) 상태에서는 시트에 덮인다.
- * 874 프레임에서는 각각 top 355 / 426 이 되어 디자인 값과 같다. */
+ * 874 프레임에서는 각각 top 355 / 426 이 되어 디자인 값과 같다.
+ *
+ * 인사말(.greeting)은 헤더 아래 top 로 고정되고 일러스트는 시트 위 bottom 으로
+ * 고정되니, 뷰포트가 짧아질수록 이 둘의 간격만 줄어든다 — 402×874 에서는 인사말
+ * 하단과 일러스트 상단 사이에 78px 여유가 있지만(729 * 0.12 정도), 그 여유가 0 이
+ * 되는 지점(대략 725px 높이) 아래로는 텍스트를 밀어내는 대신 장식 일러스트 쪽을
+ * 줄인다 — 402×874 / 360×803 두 확인 기준 높이에서는 scale 이 항상 1 로 고정돼
+ * Figma 크기 그대로다. */
+.app {
+  --hero-illustration-scale: clamp(0.6, calc((100dvh - 588px) / 157), 1);
+}
+
 .hero__illustration {
   top: auto;
   bottom: 362px; /* 299 + 63 */
+  transform: scale(var(--hero-illustration-scale));
+  transform-origin: bottom right;
 }
 
 .tip-box {
@@ -188,6 +225,7 @@ body {
     --widget-medium-w: 167px;
     --widget-small-w: 128.5px;
     --tab-bar-h: 99px; /* nav 65 + Home Indicator 영역 34 */
+    --header-h: 100px; /* 상태바 50 + 로고헤더 50 — 실기기용 safe-area 계산을 되돌린다 */
 
     /* 웹에서만 쓰는 디바이스 컨테이너 마감.
      * 실물 베젤/목업은 만들지 않고 모서리와 그림자만 준다.

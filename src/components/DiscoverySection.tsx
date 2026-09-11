@@ -32,11 +32,12 @@ export function DiscoverySection() {
                 <p className="info-card__foot-value">최대 30%</p>
               </div>
             </article>
-          </div>
 
-          {/* 장보기 일러스트는 카드 밖(row 기준)에 배치된다 — Figma 동일 */}
-          <div className="info-card__art info-card__art--basket" aria-hidden="true">
-            <img src={img('discovery-sprite.png')} alt="" />
+            {/* 장보기 일러스트는 카드 밖(컬럼 기준)에 배치된다 — Figma 동일.
+             * 컬럼 기준으로 앵커링해 컬럼이 좁아져도 옆 날씨 카드 쪽으로 번지지 않는다. */}
+            <div className="info-card__art info-card__art--basket" aria-hidden="true">
+              <img src={img('discovery-sprite.png')} alt="" />
+            </div>
           </div>
 
           <article className="info-card info-card--weather">

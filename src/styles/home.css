@@ -57,14 +57,11 @@ a { text-decoration: none; color: inherit; }
   --my-life-gap: 16px;
 }
 
+/* .app 자체의 크기(width/height/max-*)는 app-shell.css 가 항상 다시 정하므로 여기서는
+ * 손대지 않는다 — 이 미디어쿼리는 402px 보다 좁거나 짧은 화면에서 .app 바깥 여백(레터박스)
+ * 배경을 핑크(--screen-base)로 맞추는 역할만 한다. */
 @media (max-width: 401px), (max-height: 873px) {
   html, body { background: var(--screen-base); }
-  .app {
-    width: 100%;
-    max-width: var(--frame-width);
-    height: 100%;
-    max-height: var(--frame-height);
-  }
 }
 
 /* ================= Hero / World ================= */
@@ -178,9 +175,35 @@ a { text-decoration: none; color: inherit; }
   width: 28px;
   height: 28px;
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.icon-btn__img { width: 28px; height: 28px; }
+/* 햄버거 ⇄ X 모핑 아이콘 — Header(icon-btn) 와 GnbOverlay(gnb__close) 가 같은 구조를 공유해
+ * 같은 좌표에서 선이 회전해 X 가 되는 것처럼 보이게 한다.
+ * 치수는 Figma "header/menu" 컴포넌트의 dehaze 글리프 실측값(18.41 × 14.47px)을 그대로 따른다. */
+.burger {
+  position: relative;
+  display: block;
+  width: 18.41px;
+  height: 14.47px;
+  flex: none;
+}
+
+.burger__bar {
+  position: absolute;
+  left: 0;
+  width: 18.41px;
+  height: 2.28px;
+  border-radius: 1.14px;
+  background: var(--text-heading);
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 180ms ease;
+}
+
+.burger__bar:nth-child(1) { top: 0; }
+.burger__bar:nth-child(2) { top: 6.1px; }
+.burger__bar:nth-child(3) { top: 12.19px; }
 
 .icon-bell__body {
   position: absolute;
@@ -226,7 +249,11 @@ a { text-decoration: none; color: inherit; }
 .greeting {
   position: absolute;
   left: var(--screen-margin);
-  top: 135px;
+  /* Figma 기준 135px = 헤더 100px(상태바 50 + 로고헤더 50) + 여백 35px.
+   * --header-h 를 그대로 쓰면 데스크톱(iPhone 목업, --header-h:100px 그대로)에서는
+   * 지금과 똑같이 135px 이고, 실제 모바일(app-shell.css 가 --header-h 를 실제 안전영역
+   * 기준으로 다시 계산하는 곳)에서는 그 실제 헤더 높이를 따라간다. */
+  top: calc(var(--header-h) + 35px);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -330,9 +357,13 @@ a { text-decoration: none; color: inherit; }
 .tip-box__details {
   position: absolute;
   left: 83px;
+  /* width 를 고정 283px 로 두면 360px 폭 화면(tip-box 실폭 328px)에서 안내창
+   * 오른쪽 끝이 .tip-box 를 22px, .app 을 넘어서 overflow:hidden 에 잘렸다.
+   * right 로 바꿔 .tip-box(부모) 오른쪽 끝 기준 8px 안쪽까지만 차지하게 하면
+   * 360~402px 어느 폭에서도 항상 부모 안에 들어간다. */
+  right: 8px;
   top: 0;
   z-index: 1;
-  width: 283px;
   padding: 11px 14px 18px;
   border-radius: 12px;
   background: #fff;
@@ -400,7 +431,10 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   flex-direction: column;
   gap: var(--sheet-section-gap);
-  padding: var(--sheet-pad-top) var(--screen-margin) var(--tab-bar-h);
+  /* 아래 padding 을 --tab-bar-h 와 똑같이 두면 끝까지 스크롤했을 때 마지막 콘텐츠가
+   * 탭바 상단에 여백 0px 로 딱 붙는다(계산상 안 잘리지만 눈으로 보기엔 붙어 보인다) —
+   * 12px 여유를 더해 탭바 위에 항상 살짝 뜬 여백이 남게 한다. */
+  padding: var(--sheet-pad-top) var(--screen-margin) calc(var(--tab-bar-h) + 12px);
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -730,10 +764,15 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__col {
+  position: relative; /* info-card__art--basket 의 위치 기준 */
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  flex: 1 0 0;
+  /* flex-basis:0 은 이 컬럼(패딩 없음)과 오른쪽 .info-card--weather(패딩+보더 34px)의
+   * "flex base size" 를 border-box 로 맞추지 못해(패딩만큼 바닥값이 생겨) 둘이 150px vs
+   * 184px 로 34px 나 차이나게 갈라졌다 — basis 를 0 대신 50% 로 주면 그 바닥값보다 커서
+   * 두 컬럼이 거의 정확히 절반씩(gap 8px 를 뺀 나머지) 나뉜다. */
+  flex: 1 1 50%;
   min-width: 0;
 }
 
@@ -758,6 +797,7 @@ a { text-decoration: none; color: inherit; }
   line-height: 1.3;
   letter-spacing: -0.14px;
   color: var(--text-body);
+  white-space: nowrap;
 }
 
 .today-card__note {
@@ -767,6 +807,7 @@ a { text-decoration: none; color: inherit; }
   font-weight: 400;
   line-height: 1.4;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .info-card {
@@ -788,10 +829,13 @@ a { text-decoration: none; color: inherit; }
 }
 
 .info-card--weather {
-  flex: none;
+  /* 예전에는 width:165px 고정이라, 좁은 화면에서 왼쪽 discovery__col 만 눌리고 이쪽은
+   * 그대로였다 — discovery__col 과 같은 flex:1 1 50% 로 맞춰 두 컬럼이 같은 비율로
+   * 줄어들게 한다(basis 를 0 이 아니라 50% 로 쓰는 이유는 discovery__col 쪽 주석 참고). */
+  flex: 1 1 50%;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  width: 165px;
   height: 235px;
   padding: 16px var(--card-padding-m) 5px;
 }
@@ -906,8 +950,14 @@ a { text-decoration: none; color: inherit; }
 
 .info-card__art { position: absolute; overflow: hidden; pointer-events: none; }
 
+/* discovery__row(전체 342px) 기준 right:177px 고정 오프셋이었던 것을 discovery__col
+ * (오늘 날짜 + 오늘의 장보기 카드를 담은 왼쪽 컬럼) 기준으로 바꿨다. 342px 기준 컬럼 폭이
+ * 169px 이었고 이미지 오른쪽 끝(row 기준 165px)이 컬럼 오른쪽 끝보다 4px 안쪽이었던
+ * 관계를 그대로 옮긴 값이 right:4px 다 — 컬럼이 좁아져도 옆 날씨 카드 영역으로는 절대
+ * 번지지 않고, 컬럼 자체 폭 안에서만 오늘의 장보기 카드 위로 겹쳐 보인다(Figma 의도한
+ * "카드 밖으로 살짝 삐져나오는" 정도의 겹침이 유지된다). */
 .info-card__art--basket {
-  right: 177px;
+  right: 4px;
   bottom: 14px;
   width: 88px;
   height: 108px;
@@ -971,6 +1021,33 @@ a { text-decoration: none; color: inherit; }
 .dot + .dot { margin-left: 6px; }
 
 .dot--active { background: var(--brand-secondary); }
+
+/* 좁은 화면(384px 이하)에서는 discovery__row 를 2열 대신 세로로 쌓는다.
+ * discovery__col(오늘 날짜 → 오늘의 장보기)이 이미 위→아래 순서라, 행 자체만
+ * column 으로 바꾸면 "오늘 날짜 → 오늘의 장보기 → 오늘의 외출 팁" 순서가 그대로
+ * 나온다(마크업 순서를 따로 바꿀 필요가 없다). 두 컬럼 모두 flex:1 1 50% 였던 걸
+ * flex:none; width:100% 으로 풀어 세로 스택에서 폭 전체를 쓰게 한다.
+ *
+ * .info-card--sale{flex:1 0 0} 은 원래 discovery__row 의 align-items:stretch 가
+ * discovery__col 을 weather 카드 높이(235px)에 맞춰 늘려준 덕에 "늘어난 여유 공간을
+ * 채우는" 용도였다 — row 를 column 으로 바꾸면 그 여유 공간 자체가 없어져서 flex-grow 가
+ * 채울 게 없어 카드가 min-height:0 까지 찌그러진다(overflow:hidden 이라 내용도 잘림).
+ * 세로 스택에서는 자기 콘텐츠 높이 그대로 나오도록 flex:none 으로 풀어준다. */
+@media (max-width: 384px) {
+  .discovery__row {
+    flex-direction: column;
+  }
+
+  .discovery__col,
+  .info-card--weather {
+    flex: none;
+    width: 100%;
+  }
+
+  .info-card--sale {
+    flex: none;
+  }
+}
 
 /* ================= Tab bar ================= */
 

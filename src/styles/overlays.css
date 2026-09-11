@@ -42,6 +42,30 @@
   background: #fffaf5;
   display: flex;
   flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  /* 진입은 천천히 감속(ease-out), 퇴장은 빠르게 가속(ease-in) — 비대칭 타이밍이 더 자연스럽다 */
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
+}
+
+/* [hidden] 은 UA 기본값이 display:none 이라 애니메이션이 걸릴 자리가 없다.
+ * display 는 항상 flex 로 유지하고 opacity/transform/visibility 로만 전환한다. */
+.gnb[hidden] {
+  display: flex;
+  opacity: 0;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.4, 0, 1, 1), transform 220ms cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gnb,
+  .gnb[hidden],
+  .burger__bar {
+    transition-duration: 0s;
+  }
 }
 
 .gnb__header {
@@ -80,12 +104,34 @@
 }
 
 .gnb__close {
-  width: 24px;
-  height: 24px;
+  /* Header 의 .icon-btn(28px)과 같은 크기로 맞춰 햄버거 버튼과 위치가 어긋나지 않게 한다 */
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
 }
 
-.gnb__close img { width: 24px; height: 24px; }
+/* 닫힌 상태(.gnb[hidden])의 bar 는 Header 햄버거와 완전히 같은 모양이라,
+ * GNB 가 열리는 순간 이 bar 들이 회전해 X 가 되는 것처럼 보인다.
+ * 화면 슬라이드보다 살짝 늦게 시작해서(80ms) 층위감을 준다. */
+.gnb:not([hidden]) .burger--morph .burger__bar {
+  transition-delay: 80ms;
+}
+
+.gnb:not([hidden]) .burger--morph .burger__bar:nth-child(1) {
+  transform: translateY(6.1px) rotate(45deg);
+}
+
+.gnb:not([hidden]) .burger--morph .burger__bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.gnb:not([hidden]) .burger--morph .burger__bar:nth-child(3) {
+  transform: translateY(-6.1px) rotate(-45deg);
+}
 
 .gnb__scroll {
   flex: 1 1 auto;

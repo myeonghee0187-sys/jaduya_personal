@@ -7,6 +7,8 @@ import { useAuth } from '../auth/AuthContext';
 import { TEST_ACCOUNTS, TEST_PASSWORD } from '../auth/mockUsers';
 import type { MockAccount, Persona } from '../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
+import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
+import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { icon, img } from '../lib/asset';
 
 /** IPhoneFrame 쇼케이스는 데스크톱/태블릿(768px 이상) 전용이다.
@@ -73,14 +75,17 @@ export function LoginShowcase() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   /* Demo Account 클릭으로 채울 값 — 기본은 비워 둬서 처음 열었을 때는 빈 로그인 폼 그대로다 */
   const [loginPrefill, setLoginPrefill] = useState<{ email: string; password: string } | null>(null);
-  const [signupPrefillEmail, setSignupPrefillEmail] = useState('');
+  const [signupPrefillProfile, setSignupPrefillProfile] = useState<SignupTestProfile | undefined>(undefined);
 
   const activeAccount = TEST_ACCOUNTS[selectedIndex] ?? TEST_ACCOUNTS[0];
   const isPendingSignupAccount = activeAccount.email === DEMO_SIGNUP_EMAIL;
 
   const handleConfirmAccount = (account: MockAccount) => {
+    /* 로그인된 상태에서 다른 계정을 고르면, 먼저 로그아웃해서 폰 목업이
+     * 다시 Login/Signup 화면으로 돌아가야 prefill 이 실제로 보인다. */
+    if (user) logout();
     if (account.email === DEMO_SIGNUP_EMAIL) {
-      setSignupPrefillEmail(account.email);
+      setSignupPrefillProfile(SIGNUP_TEST_PROFILES.seojunDemo);
       setAuthView('signup');
       return;
     }
@@ -89,15 +94,15 @@ export function LoginShowcase() {
   };
 
   /* "새 계정으로 시작하기" — 로그인되어 Home 이 떠 있어도 로그아웃하고
-   * 항상 첫 로그인 화면(빈 Login)으로 되돌아간다. 이서준의 데모 가입 여부도 같이
+   * 항상 빈 회원가입 화면으로 되돌아간다. 이서준의 데모 가입 여부도 같이
    * 리셋해서, 반복 테스트할 때마다 DevTools 로 localStorage 를 직접 지울 필요가 없게 한다. */
   const handleStartNewAccount = () => {
     if (user) logout();
     resetDemoSignup();
     setLoginPrefill(null);
-    setSignupPrefillEmail('');
+    setSignupPrefillProfile(undefined);
     setSelectedIndex(0);
-    setAuthView('login');
+    setAuthView('signup');
   };
 
   /* 실제 모바일 기기 폭 — 프레임/Demo Account 없이 앱을 그대로 전체화면으로 보여준다.
@@ -151,8 +156,8 @@ export function LoginShowcase() {
           ) : authView === 'login' ? (
             <Login
               key={loginPrefill?.email ?? 'default'}
-              onGoSignup={(prefillEmail) => {
-                setSignupPrefillEmail(prefillEmail ?? '');
+              onGoSignup={(profile) => {
+                setSignupPrefillProfile(profile);
                 setAuthView('signup');
               }}
               initialEmail={loginPrefill?.email}
@@ -160,68 +165,71 @@ export function LoginShowcase() {
             />
           ) : (
             <Signup
-              key={signupPrefillEmail || 'default'}
+              key={signupPrefillProfile?.email ?? 'default'}
               onGoLogin={() => setAuthView('login')}
-              initialEmail={signupPrefillEmail}
+              initialProfile={signupPrefillProfile}
             />
           )}
         </IPhoneFrame>
 
-        {/* 로그인/회원가입 화면일 때만 보여준다 — 온보딩·Home 등 로그인 이후(user 있음)에는
-         * 미리보기 선택이 더 이상 의미가 없으므로 숨긴다. */}
-        {!user && (
-          <div className="login-showcase__panel">
-            <h2 className="login-showcase__panel-title">
-              어떤 자취생활을
-              <br />
-              시작해볼까요?
-            </h2>
-            <p className="login-showcase__panel-desc">
-              원하는 라이프스타일을 선택하고
-              <br />
-              자두야의 실제 화면을 미리 경험해보세요.
-            </p>
+        {/* 로그인 여부와 무관하게 항상 보여준다 — 로그인 후에도 탭으로 다른 계정
+         * 미리보기를 계속 고를 수 있고, CTA 를 누르면 로그아웃 후 그 계정으로
+         * 전환하는 Login/Signup 화면으로 돌아간다(handleConfirmAccount 참고). */}
+        <div className="login-showcase__panel">
+          <h2 className="login-showcase__panel-title">
+            어떤 자취생활을
+            <br />
+            시작해볼까요?
+          </h2>
+          <p className="login-showcase__panel-desc">
+            원하는 라이프스타일을 선택하고
+            <br />
+            자두야의 실제 화면을 미리 경험해보세요.
+          </p>
 
-            <div className="login-showcase__tabs" role="tablist">
-              {TEST_ACCOUNTS.map((account, index) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === selectedIndex}
-                  className={`login-showcase__tab${index === selectedIndex ? ' login-showcase__tab--active' : ''}`}
-                  onClick={() => setSelectedIndex(index)}
-                >
-                  <img className="login-showcase__tab-icon" src={icon(PERSONA_ICON[account.persona])} alt="" />
-                  {PERSONA_LABEL[account.persona]}
-                </button>
-              ))}
-            </div>
-
-            <div className="login-showcase__profile">
-              <img
-                className="login-showcase__profile-avatar"
-                src={img(`profile_${activeAccount.email.split('@')[0]}.png`)}
-                alt=""
-              />
-              <h3 className="login-showcase__profile-name">{activeAccount.name}</h3>
-              <p className="login-showcase__profile-tag">{PERSONA_LABEL[activeAccount.persona]}</p>
-              <p className="login-showcase__profile-desc">{ACCOUNT_BLURBS[activeAccount.email]}</p>
-            </div>
-
-            <button
-              type="button"
-              className="login-showcase__cta"
-              onClick={() => handleConfirmAccount(activeAccount)}
-            >
-              {isPendingSignupAccount ? '회원가입하기' : '이 계정으로 시작하기'}
-            </button>
-
-            <button type="button" className="login-showcase__new-link" onClick={handleStartNewAccount}>
-              새 계정으로 시작하기
-            </button>
+          <div className="login-showcase__tabs" role="tablist">
+            {TEST_ACCOUNTS.map((account, index) => (
+              <button
+                key={account.email}
+                type="button"
+                role="tab"
+                aria-selected={index === selectedIndex}
+                className={`login-showcase__tab${index === selectedIndex ? ' login-showcase__tab--active' : ''}`}
+                onClick={() => setSelectedIndex(index)}
+              >
+                <span
+                  className="login-showcase__tab-icon"
+                  style={{ maskImage: `url(${icon(PERSONA_ICON[account.persona])})`, WebkitMaskImage: `url(${icon(PERSONA_ICON[account.persona])})` }}
+                  aria-hidden="true"
+                />
+                {PERSONA_LABEL[account.persona]}
+              </button>
+            ))}
           </div>
-        )}
+
+          <div className="login-showcase__profile">
+            <img
+              className="login-showcase__profile-avatar"
+              src={img(`profile_${activeAccount.email.split('@')[0]}.png`)}
+              alt=""
+            />
+            <h3 className="login-showcase__profile-name">{activeAccount.name}</h3>
+            <p className="login-showcase__profile-tag">{PERSONA_LABEL[activeAccount.persona]}</p>
+            <p className="login-showcase__profile-desc">{ACCOUNT_BLURBS[activeAccount.email]}</p>
+          </div>
+
+          <button
+            type="button"
+            className="login-showcase__cta"
+            onClick={() => handleConfirmAccount(activeAccount)}
+          >
+            {isPendingSignupAccount ? '회원가입하기' : '이 계정으로 시작하기'}
+          </button>
+
+          <button type="button" className="login-showcase__new-link" onClick={handleStartNewAccount}>
+            새 계정으로 시작하기
+          </button>
+        </div>
       </div>
     </div>
   );
