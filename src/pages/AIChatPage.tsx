@@ -7,14 +7,14 @@ import { icon, img } from '../lib/asset';
 /* 사용자 조건 칩 — Figma chip_row (2271:33681) */
 const USER_CHIPS = ['신림1동', '월세', '원룸'] as const;
 
-/* 추천 질문 — Figma prompt_list (2271:33715) */
+/* 추천 질문 — Figma prompt_list (3151:20224) */
 const PROMPTS = [
   '“싱크대 밑에서 물이 새는데 어떡해?”',
   '“전입신고 처음인데 순서대로 알려줘.”',
   '“내 조건에 맞는 지원금 뭐 있어?”',
 ] as const;
 
-/* 자두AI — Figma chatbot_default_first (2271:33675).
+/* 자두AI — Figma chatbot_default_first (3151:20185).
  * 이번 단계는 화면과 진입/복귀까지다. 실제 AI 응답·음성·첨부는 연결하지 않는다. */
 export function AIChatPage() {
   const navigation = useAppNavigation();
@@ -64,22 +64,22 @@ export function AIChatPage() {
 
       <div className="ai-chat-page__body">
         <div className="ai-chat-page__intro">
-          <img className="ai-chat-page__mole" src={img('ai/ai-mole.svg')} alt="" />
           <p className="ai-chat-page__headline">
             무슨 이야기부터 해볼까요?
             <br />
             사소한 궁금증도 좋아요!
           </p>
+          <img className="ai-chat-page__mole" src={img('ai/ai-mole.svg')} alt="" />
         </div>
 
-        <ul className="ai-chat-page__prompts">
-          {PROMPTS.map((prompt) => (
-            <li key={prompt}>
-              <img src={icon('ai-bullet.svg')} alt="" />
-              {prompt}
-            </li>
-          ))}
-        </ul>
+        <div className="ai-chat-page__prompt-block">
+          <p className="ai-chat-page__prompt-caption">시작이 어렵다면 선택해보세요!</p>
+          <ul className="ai-chat-page__prompts">
+            {PROMPTS.map((prompt) => (
+              <li key={prompt}>{prompt}</li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <form className="ai-chat-page__input-area" onSubmit={onSubmit}>

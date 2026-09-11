@@ -223,3 +223,16 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* ---------------- Ownglyph 위시리스트 (손글씨) ----------------
+ * 자두AI 추천 질문 말풍선 전용. 컷이 하나라 Regular 400 으로만 선언한다.
+ */
+
+@font-face {
+  font-family: "Ownglyph wiseelist";
+  src: url("../../fonts/woff2/wishlist.woff2") format("woff2"),
+       url("../../fonts/woff/wishlist.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
