@@ -43,10 +43,11 @@ export const PERSONA_WIDGETS: Record<Persona, PersonaWidgetLayout> = {
     small: ['fridge-s', 'clean-s'],
   },
 
-  /* 김하린 · 직장인 월세 자취 — 생활비/고정비 관리 */
+  /* 김하린 · 직장인 월세 자취 — 생활비/고정비 관리
+   * Figma Main home_2(2628:27073) 예시가 냉장고("우유 D-2") + 고정지출 순서라 그대로 맞춘다. */
   worker: {
     medium: ['living-cost', 'rent'],
-    small: ['fixed-cost', 'budget-s'],
+    small: ['fridge-s', 'fixed-cost'],
   },
 
   /* 조아영 · 반려동물과 함께 자취 — 생활비 + 반려생활 */

@@ -57,7 +57,11 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
               aria-label="전체메뉴 닫기"
               onClick={onClose}
             >
-              <img src={icon('gnb-close.svg')} alt="" />
+              <span className="burger burger--morph" aria-hidden="true">
+                <span className="burger__bar" />
+                <span className="burger__bar" />
+                <span className="burger__bar" />
+              </span>
             </button>
           </div>
         </div>

@@ -10,8 +10,9 @@ import { icon } from '../lib/asset';
 /* 회원가입 화면 (Figma node 1864:5881 / 상태 예시 1908:7169) */
 interface SignupProps {
   onGoLogin: () => void;
-  /** 테스트 계정 시트에서 넘어온 경우 이메일을 채워 둔다 */
-  initialEmail?: string;
+  /** 테스트 계정 시트/페르소나 경로로 넘어온 경우 이 프로필로 폼을 미리 채운다
+   * (화면 안의 "테스트 정보 불러오기"를 누른 것과 동일한 값 — 이메일/비밀번호/닉네임 + 필수 약관) */
+  initialProfile?: SignupTestProfile;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,14 +23,19 @@ interface Agreements {
   marketing: boolean;
 }
 
-export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
+export function Signup({ onGoLogin, initialProfile }: SignupProps) {
   const { signup } = useAuth();
 
-  const [email, setEmail] = useState(initialEmail);
-  const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [agreements, setAgreements] = useState<Agreements>({ terms: false, privacy: false, marketing: false });
+  const [email, setEmail] = useState(initialProfile?.email ?? '');
+  const [password, setPassword] = useState(initialProfile?.password ?? '');
+  const [passwordConfirm, setPasswordConfirm] = useState(initialProfile?.password ?? '');
+  const [nickname, setNickname] = useState(initialProfile?.name ?? '');
+  /* 프로필로 들어온 경우 "테스트 정보 불러오기"와 동일하게 필수 약관만 자동 체크해 둔다 */
+  const [agreements, setAgreements] = useState<Agreements>({
+    terms: Boolean(initialProfile),
+    privacy: Boolean(initialProfile),
+    marketing: false,
+  });
 
   const [emailTouched, setEmailTouched] = useState(false);
   const [confirmTouched, setConfirmTouched] = useState(false);
@@ -120,7 +126,7 @@ export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
                 </button>
               }
               type="email"
-              placeholder="이메일을 입력해주세요"
+              placeholder="예: jaduya@example.com"
               value={email}
               error={emailError}
               onChange={(e) => {
@@ -133,7 +139,7 @@ export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
               id="signup-password"
               label="비밀번호"
               type="password"
-              placeholder="비밀번호를 입력해주세요"
+              placeholder="영문, 숫자 조합 4자 이상"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -141,7 +147,7 @@ export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
               id="signup-password-confirm"
               label="비밀번호 확인"
               type="password"
-              placeholder="비밀번호를 다시 입력해주세요"
+              placeholder="비밀번호를 다시 한 번 입력해주세요"
               value={passwordConfirm}
               error={confirmError}
               onChange={(e) => setPasswordConfirm(e.target.value)}
@@ -151,7 +157,7 @@ export function Signup({ onGoLogin, initialEmail = '' }: SignupProps) {
               id="signup-nickname"
               label="닉네임"
               type="text"
-              placeholder="자두에서 사용 할 닉네임을 알려주세요"
+              placeholder="예: 자두러버"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
             />

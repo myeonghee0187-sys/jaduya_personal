@@ -21,7 +21,11 @@ export function Header({ onMenuClick, showActions = true }: HeaderProps) {
           <div className="nav-header__actions">
             <BellButton />
             <button type="button" className="icon-btn" aria-label="메뉴" onClick={onMenuClick}>
-              <img className="icon-btn__img" src={icon('header-menu.svg')} alt="" />
+              <span className="burger" aria-hidden="true">
+                <span className="burger__bar" />
+                <span className="burger__bar" />
+                <span className="burger__bar" />
+              </span>
             </button>
           </div>
         )}

@@ -5,6 +5,7 @@ import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import type { OnboardingSelection } from './pages/Onboarding';
 import { Signup } from './pages/Signup';
+import type { SignupTestProfile } from './auth/signupTestProfiles';
 import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
 import { SavedPage } from './pages/SavedPage';
@@ -60,8 +61,8 @@ function MainPages() {
 export default function App() {
   const { user, completeOnboarding } = useAuth();
   const [view, setView] = useState<'login' | 'signup'>('login');
-  /* 테스트 계정 시트에서 넘어올 때 회원가입 이메일을 미리 채운다 */
-  const [signupEmail, setSignupEmail] = useState('');
+  /* 테스트 계정 시트에서 넘어올 때 회원가입 화면을 미리 채울 프로필 */
+  const [signupProfile, setSignupProfile] = useState<SignupTestProfile | undefined>(undefined);
 
   /* 온보딩 결과를 AuthContext 의 UserPreferences 형태로 옮겨 저장한다.
    * 저장이 끝나면 onboarded 가 true 가 되어 아래 분기가 Home 으로 넘어간다. */
@@ -89,12 +90,12 @@ export default function App() {
   }
   return view === 'login' ? (
     <Login
-      onGoSignup={(prefillEmail) => {
-        setSignupEmail(prefillEmail ?? '');
+      onGoSignup={(profile) => {
+        setSignupProfile(profile);
         setView('signup');
       }}
     />
   ) : (
-    <Signup onGoLogin={() => setView('login')} initialEmail={signupEmail} />
+    <Signup onGoLogin={() => setView('login')} initialProfile={signupProfile} />
   );
 }

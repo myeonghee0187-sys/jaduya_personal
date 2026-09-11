@@ -7,12 +7,14 @@ import { useAuth } from '../auth/AuthContext';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
 import { resolveAccountSelection } from '../auth/resolveAccountSelection';
 import type { MockAccount } from '../auth/mockUsers';
+import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
+import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { icon, img } from '../lib/asset';
 
 /* 로그인 화면 (Figma node 1864:5830) */
 interface LoginProps {
-  /** prefillEmail 이 있으면 회원가입 화면의 이메일을 채운 채로 연다 */
-  onGoSignup: (prefillEmail?: string) => void;
+  /** profile 이 있으면 회원가입 화면을 "테스트 정보 불러오기"를 누른 것과 동일하게 채운 채로 연다 */
+  onGoSignup: (profile?: SignupTestProfile) => void;
   /** 외부(LoginShowcase 의 Demo Account 패널 등)에서 이메일/비밀번호를 채운 채로 열 때 사용 */
   initialEmail?: string;
   initialPassword?: string;
@@ -45,7 +47,7 @@ export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: L
     setSheetOpen(false);
     const selection = resolveAccountSelection(account, demoSignedUp);
     if (selection.target === 'signup') {
-      onGoSignup(selection.email);
+      onGoSignup(SIGNUP_TEST_PROFILES.seojunDemo);
       return;
     }
     setEmail(selection.email);
