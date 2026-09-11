@@ -39,12 +39,11 @@ function MediumBody({ id }: { id: MediumWidgetId }) {
       return (
         <>
           <div className="widget__header">
-            <p className="widget__title">주거</p>
-            <p className="widget__dday">D-7</p>
+            <p className="widget__title">월세·관리비</p>
           </div>
           <div className="widget__stack">
-            <p className="widget__value">월세 55만원</p>
-            <p className="widget__secondary">9/5 납부</p>
+            <p className="widget__value">65만원</p>
+            <p className="widget__secondary">3일 후 납부</p>
           </div>
         </>
       );
@@ -68,11 +67,22 @@ function MediumBody({ id }: { id: MediumWidgetId }) {
         <>
           <div className="widget__header">
             <p className="widget__title">오늘 할 일</p>
-            <p className="widget__dday">2개</p>
           </div>
-          <div className="widget__stack">
-            <p className="widget__value">장보기</p>
-            <p className="widget__secondary">분리수거 배출 완료</p>
+          <div className="wpick__todo">
+            <span className="wpick__todo-row wpick__todo-row--done">
+              <i />
+              분리수거 배출
+            </span>
+            <span className="wpick__todo-row wpick__todo-row--done">
+              <i />
+              택배 수거 신청
+            </span>
+            <span className="wpick__todo-row">
+              <i>
+                <img src={icon('widget-checkbox.svg')} alt="" />
+              </i>
+              장보기
+            </span>
           </div>
         </>
       );
@@ -167,7 +177,10 @@ function SmallBody({ id }: { id: SmallWidgetId }) {
     case 'clean-s':
       return (
         <>
-          <p className="module-card__title">청소</p>
+          <p className="module-card__title" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <img src={icon('widget-clean-13.svg')} alt="" style={{ width: 13, height: 13 }} />
+            청소
+          </p>
           <p className="module-card__value">오늘</p>
         </>
       );

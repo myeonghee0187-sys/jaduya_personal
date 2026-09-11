@@ -4,10 +4,11 @@ import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { greetingName } from '../data/personaHome';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { img } from '../lib/asset';
 
 /* 생활 카테고리 4종 — 이미지는 정사각 원본이라 카드 안에서 크롭 위치를 따로 잡는다.
@@ -75,6 +76,7 @@ export function LifePage() {
   /* 인사말 이름은 Home·마이페이지와 같은 기준을 쓴다 (성 제외) */
   const name = greetingName(user?.name ?? '자두');
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const tipsRef = useRef<HTMLDivElement>(null);
   /* 퀴즈: 답을 고르기 전에는 결과를 감춰 둔다 */
   const [quizAnswer, setQuizAnswer] = useState<QuizAnswer | null>(null);
@@ -592,9 +594,15 @@ export function LifePage() {
       <BottomNavigation activeTab="life" />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => setGnbOpen(false)}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
       <AIChatbot />
     </div>

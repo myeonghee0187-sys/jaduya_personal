@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import Stack from '../components/Stack/Stack';
-import { DEFAULT_MENU } from '../data/menuCatalog';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /* 생활 하위 탭 — 첫 자취만 화면이 있어서 나머지는 아직 이동하지 않는다 */
@@ -119,6 +120,7 @@ function RegretCard({ category, regret, solution, tone }: RegretCardProps) {
 export function LifeFirstPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const [checkedByStage, setCheckedByStage] =
     useState<Record<ContractStage, string[]>>(INITIAL_CHECKED);
   const [regretTop, setRegretTop] = useState(0);
@@ -334,9 +336,15 @@ export function LifeFirstPage() {
       <BottomNavigation activeTab="life" />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => setGnbOpen(false)}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
       <AIChatbot />
     </div>

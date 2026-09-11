@@ -38,6 +38,10 @@ interface DragInfo {
  * 상태는 pointerup 에서 한 번만 커밋한다.
  */
 export function useSheetGesture() {
+  /* Home 진입 시 기본 모습은 히어로(마스코트 일러스트 + 팁박스)가 먼저 보이는
+   * "peek" 상태다 — 시트를 위로 드래그하거나 스크롤하면 "expanded"(내 생활 위젯 +
+   * 자두가 알려드려요까지 보이는 모습)로 넘어간다. peek ↔ expanded 를 오가는
+   * 드래그/토글 로직 자체는 그대로다. */
   const [state, setState] = useState<SheetState>('peek');
   const stateRef = useRef<SheetState>(state);
   stateRef.current = state;

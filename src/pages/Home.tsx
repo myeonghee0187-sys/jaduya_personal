@@ -11,7 +11,6 @@ import { HomeSheet } from '../components/HomeSheet';
 import { MyLifeSection } from '../components/MyLifeSection';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
-import { DEFAULT_MENU, MAX_MENU } from '../data/menuCatalog';
 import { MAX_WIDGET } from '../data/widgetCatalog';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { PERSONA_WIDGETS, layoutCatalogIds } from '../data/personaWidgets';
@@ -20,12 +19,13 @@ import { useAuth } from '../auth/AuthContext';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
+import { useMyMenu } from '../menu/MyMenuContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
  *   Home
  *    ├─ GNB Open
- *    │   └─ My Menu Edit Bottom Sheet
+ *    │   └─ My Menu Edit Bottom Sheet (menu/MyMenuContext — 모든 화면이 공유)
  *    └─ Add Widget Bottom Sheet
  */
 export function Home() {
@@ -40,26 +40,16 @@ export function Home() {
 
   const layers = useLayerStack();
   const sheet = useSheetGesture();
+  /* GNB "내 메뉴" 선택 + 편집 시트 — 다른 화면과 공유하는 전역 상태 */
+  const myMenu = useMyMenu();
 
   /* 저장된 상태 */
-  const [myMenu, setMyMenu] = useState<string[]>(DEFAULT_MENU);
   const [myWidgets, setMyWidgets] = useState<string[]>(() => layoutCatalogIds(widgetLayout));
   /* 위젯 구성을 한 번이라도 저장했는지 (Home 캔버스 높이 해제 조건) */
   const [widgetsCustomized, setWidgetsCustomized] = useState(false);
 
   /* 시트 작업본 */
-  const menuDraft = useDraftSelection(DEFAULT_MENU, MAX_MENU);
   const widgetDraft = useDraftSelection(layoutCatalogIds(widgetLayout), MAX_WIDGET);
-
-  const openMenuEdit = () => {
-    menuDraft.reset(myMenu);
-    layers.open('menuEdit');
-  };
-
-  const saveMenu = () => {
-    setMyMenu(menuDraft.draft.slice());
-    layers.close();
-  };
 
   const openAddWidget = () => {
     widgetDraft.reset(myWidgets);
@@ -110,21 +100,22 @@ export function Home() {
 
       <GnbOverlay
         open={layers.isOpen('gnb')}
-        myMenu={myMenu}
+        myMenu={myMenu.myMenu}
         onClose={layers.close}
-        onEditMenu={openMenuEdit}
+        onEditMenu={myMenu.openEdit}
       />
 
       <MyMenuEdit
-        open={layers.isOpen('menuEdit')}
-        draft={menuDraft}
-        onClose={layers.close}
-        onSave={saveMenu}
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
 
       <AddWidget
         open={layers.isOpen('addWidget')}
         draft={widgetDraft}
+        layout={widgetLayout}
         onClose={layers.close}
         onDone={doneAddWidget}
       />

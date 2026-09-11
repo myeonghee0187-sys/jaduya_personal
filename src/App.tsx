@@ -21,6 +21,7 @@ import { CommunityQuestionPage } from './pages/CommunityQuestionPage';
 import { AIChatPage } from './pages/AIChatPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
+import { MyMenuProvider } from './menu/MyMenuContext';
 
 function MainPages() {
   const navigation = useAppNavigation();
@@ -87,9 +88,11 @@ export default function App() {
   if (user) {
     return user.onboarded ? (
       <AppNavigationProvider key={user.email}>
-        {/* 커뮤니티 북마크는 마이페이지와 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+        {/* 커뮤니티 북마크·GNB "내 메뉴" 는 여러 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
         <BookmarkProvider>
-          <MainPages />
+          <MyMenuProvider>
+            <MainPages />
+          </MyMenuProvider>
         </BookmarkProvider>
       </AppNavigationProvider>
     ) : <Onboarding onComplete={finishOnboarding} />;

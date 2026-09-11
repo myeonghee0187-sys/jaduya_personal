@@ -1,7 +1,8 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { icon, img } from '../lib/asset';
-import { layoutWidgetIds } from '../data/personaWidgets';
+import { activeLayoutSlots, layoutWidgetIds } from '../data/personaWidgets';
 import type { PersonaWidgetLayout } from '../data/personaWidgets';
+import { WIDGET_CATALOG } from '../data/widgetCatalog';
 import { MediumWidget, SmallWidget } from './HomeWidget';
 import { WidgetCard } from './WidgetCard';
 
@@ -40,6 +41,12 @@ export function MyLifeSection({
   /* persona 조합에 이미 들어간 위젯은 추가 행에서 중복 노출하지 않는다 */
   const inLayout = layoutWidgetIds(layout);
   const added = widgets.filter((id) => !inLayout.includes(id));
+  /* Large(342×114)는 medium 2개 폭을 쓰기 때문에 항상 맨 위에 단독 행으로 둔다 */
+  const isLarge = (id: string) => WIDGET_CATALOG.find((w) => w.id === id)?.size === 'large';
+  const addedLarge = added.filter(isLarge);
+  const addedRest = added.filter((id) => !isLarge(id));
+  /* 고정 슬롯 중 위젯 추가 시트에서 꺼둔 것은 Home에서도 자리째 사라진다 */
+  const active = activeLayoutSlots(layout, widgets);
 
   const handleSlotKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -53,12 +60,7 @@ export function MyLifeSection({
       <div className="section-header">
         <div className="section-header__title">
           <h2>내 생활</h2>
-          <img
-            className="section-header__plus"
-            src={icon('plus-small.svg')}
-            alt=""
-            onClick={onAddWidget}
-          />
+          <img className="section-header__plus" src={icon('plus-small.svg')} alt="" aria-hidden="true" />
         </div>
         <div className="section-header__status">
           <div className="stat-bar stat-bar--love">
@@ -73,16 +75,28 @@ export function MyLifeSection({
       </div>
 
       <div className={`module-grid${isCustom ? ' is-custom' : ''}`}>
-        {/* Medium 167 × 114 × 2 */}
-        <div className="module-grid__row">
-          {layout.medium.map((id) => (
-            <MediumWidget key={id} id={id} />
-          ))}
-        </div>
+        {/* Large 342 × 114 — medium 2개 폭을 쓰므로 항상 맨 위, 최대 1개 */}
+        {addedLarge.length > 0 && (
+          <div className="module-grid__row" data-home-large-row="">
+            {addedLarge.map((id) => (
+              <WidgetCard key={id} id={id} variant="home" />
+            ))}
+          </div>
+        )}
 
-        {/* Small 128.5 × 72 × 2 + Add Slot 69 × 72 */}
+        {/* Medium 167 × 114 — 최대 2개, 위젯 추가 시트에서 끄면 자리째 사라진다 */}
+        {active.medium.length > 0 && (
+          <div className="module-grid__row">
+            {active.medium.map((id) => (
+              <MediumWidget key={id} id={id} />
+            ))}
+          </div>
+        )}
+
+        {/* Small 128.5 × 72 + Add Slot 69 × 72 — Add Slot은 위젯 추가 시트를 여는
+         * 유일한 진입점이라 개수와 무관하게 항상 보여준다 */}
         <div className="module-grid__row module-grid__row--small">
-          {layout.small.map((id) => (
+          {active.small.map((id) => (
             <SmallWidget key={id} id={id} />
           ))}
 
@@ -98,9 +112,9 @@ export function MyLifeSection({
           </div>
         </div>
 
-        {added.length > 0 && (
+        {addedRest.length > 0 && (
           <div className="module-grid__row" data-home-extra-row="">
-            {added.map((id) => (
+            {addedRest.map((id) => (
               <WidgetCard key={id} id={id} variant="home" />
             ))}
           </div>

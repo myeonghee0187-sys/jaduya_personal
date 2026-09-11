@@ -137,8 +137,13 @@ body {
   --sheet-top: calc(100% - 299px);
 }
 
+/* 113px = Figma 헤더 100px + 여백 13px 가 합쳐진 값이었다 — 헤더 100px 은 실제
+ * 모바일에서 --header-h(50~109px, safe-area 에 따라 가변)로 바뀌는데 이 상수는 그대로
+ * 남아 있어서, 노치 없는 기기는 헤더-시트 사이 틈이 13px 대신 63px 로 5배 벌어져
+ * 보였다. "고정 여백 13px"만 남기고 헤더 높이는 --header-h 를 그대로 따라가게 한다 —
+ * 데스크톱(--header-h:100px 고정)에서는 100+13=113 으로 지금과 완전히 동일하다. */
 .app[data-sheet-state='expanded'] {
-  --sheet-top: min(113px, calc(100% - 299px));
+  --sheet-top: min(calc(var(--header-h) + 13px), calc(100% - 299px));
 }
 
 .hero {
@@ -148,7 +153,14 @@ body {
 
 .hero__background {
   width: 100%;
-  height: 100%;
+  /* iOS Safari 는 viewport-fit=cover + 100dvh 조합에서 최초 렌더링 시 상단 safe-area
+   * 만큼을 순간적으로 빼고 계산하는 경우가 있다 — 그 오차만큼 히어로가 노치 뒤쪽까지
+   * 못 덮어서, 그 틈으로 .app 의 배경색(핑크)이 실제로 보인다(색을 맞추는 게 아니라
+   * 이미지 자체가 항상 화면 끝까지 덮이게 하는 게 목적). bottom:0 은 그대로 두고
+   * height 만 60px 더 키워 위쪽으로 여유(overscan)를 준다 — 캐릭터 위는 원래도
+   * 하늘이 넉넉한 그림이라 조금 더 올려 잘려도 비율이 깨지지 않고, .app 의
+   * overflow:hidden 이 넘치는 부분을 그냥 잘라주므로 실제 레이아웃엔 영향이 없다. */
+  height: calc(100% + 60px);
   top: auto;
   bottom: 0;
 }
@@ -176,8 +188,8 @@ body {
 .tip-box {
   top: auto;
   bottom: 327px; /* 299 + 28 */
-  left: var(--space-md);
-  right: var(--space-md);
+  left: var(--screen-margin);
+  right: var(--screen-margin);
   width: auto;
 }
 
@@ -288,15 +300,15 @@ body {
   }
 
   .tip-box {
-    left: 18px;
+    left: var(--screen-margin);
     right: auto;
-    width: 366px;
+    width: var(--content-width);
   }
 
   .tip-box__inner {
     left: calc(50% - 2px);
     right: auto;
-    width: 362px;
+    width: calc(var(--content-width) - 4px);
     transform: translateX(-50%);
   }
 }

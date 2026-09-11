@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { SavedCard } from '../components/SavedCard';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { SAVED_FILTERS, SAVED_ITEMS, sortByLatest } from '../data/savedItems';
 import type { SavedFilter, SavedItem } from '../data/savedItems';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 const SORT_OPTIONS = ['최신 저장순', '오래된 저장순'] as const;
@@ -18,6 +19,7 @@ type SortOption = (typeof SORT_OPTIONS)[number];
 export function SavedPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
   const [filter, setFilter] = useState<SavedFilter>('전체');
   const [sort, setSort] = useState<SortOption>('최신 저장순');
   const [sortOpen, setSortOpen] = useState(false);
@@ -172,13 +174,15 @@ export function SavedPage() {
       <BottomNavigation activeTab="my" />
       <GnbOverlay
         open={gnbOpen}
-        myMenu={DEFAULT_MENU}
+        myMenu={myMenu.myMenu}
         onClose={() => setGnbOpen(false)}
-        onEditMenu={() => {
-          setGnbOpen(false);
-          setUndoId(null);
-          setNotice('내 메뉴 편집은 홈에서 이용할 수 있어요.');
-        }}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
       />
     </div>
   );

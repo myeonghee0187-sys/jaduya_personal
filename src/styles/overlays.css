@@ -685,6 +685,7 @@
 }
 
 .wpick[hidden] { display: none; }
+.wpick:disabled { opacity: 0.45; cursor: default; }
 
 .wpick__card {
   display: flex;
@@ -920,6 +921,16 @@
 
 .add-widget__cat-meta img { width: 16px; height: 16px; }
 
+.add-widget__cat-chevron { transition: transform 200ms ease; }
+
+.add-widget__cat.is-open .add-widget__cat-chevron { transform: rotate(90deg); }
+
+.add-widget__cat-panel { padding: 4px var(--screen-margin) 16px; }
+
+.add-widget__cat-panel[hidden] { display: none; }
+
+.add-widget__cat-panel > .wpick-grid { padding: 8px 0 0; }
+
 .add-widget__tip {
   margin: 20px var(--screen-margin) 4px;
   padding: 14px;
@@ -957,10 +968,37 @@
 .add-widget__body.is-empty .add-widget__empty { display: block; }
 
 .add-widget__footer {
+  position: relative;
   flex: none;
   padding: 12px var(--screen-margin) 20px;
   border-top: 1px solid var(--border-warm);
   background: var(--surface-cream);
+}
+
+/* 크기 제한에 걸려 못 담을 때 잠깐 떴다 사라지는 경고 — 토스트 컴포넌트가 따로 없어 재사용 가능한 최소 형태로 둔다 */
+.add-widget__warning {
+  position: absolute;
+  left: var(--screen-margin);
+  right: var(--screen-margin);
+  bottom: 100%;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.add-widget__warning.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .add-widget__count {
