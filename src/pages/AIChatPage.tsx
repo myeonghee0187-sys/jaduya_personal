@@ -8,10 +8,11 @@ import { icon, img } from '../lib/asset';
 const USER_CHIPS = ['신림1동', '월세', '원룸'] as const;
 
 /* 추천 질문 — Figma prompt_list (3151:20224) */
+/* 따옴표는 말풍선 표기라 본문에서 붙인다 — 입력창에는 문장만 들어간다 */
 const PROMPTS = [
-  '“싱크대 밑에서 물이 새는데 어떡해?”',
-  '“전입신고 처음인데 순서대로 알려줘.”',
-  '“내 조건에 맞는 지원금 뭐 있어?”',
+  '싱크대 밑에서 물이 새는데 어떡해?',
+  '전입신고 처음인데 순서대로 알려줘.',
+  '내 조건에 맞는 지원금 뭐 있어?',
 ] as const;
 
 /* 자두AI — Figma chatbot_default_first (3151:20185).
@@ -76,7 +77,15 @@ export function AIChatPage() {
           <p className="ai-chat-page__prompt-caption">시작이 어렵다면 선택해보세요!</p>
           <ul className="ai-chat-page__prompts">
             {PROMPTS.map((prompt) => (
-              <li key={prompt}>{prompt}</li>
+              <li key={prompt}>
+                <button
+                  type="button"
+                  className="ai-chat-page__prompt"
+                  onClick={() => setDraft(prompt)}
+                >
+                  {`“${prompt}”`}
+                </button>
+              </li>
             ))}
           </ul>
         </div>
