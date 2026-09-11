@@ -92,3 +92,60 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
 
 /** 상단 탭 */
 export const COMMUNITY_TABS = ['전체', '질문', '자취 꿀팁', '지역 후기', '소비 비교'] as const;
+
+/* 질문 페이지 게시글 — Figma question (2012:7334) 의 QuestionList 내용 그대로.
+ * 카드 UI 는 community_home 과 동일하게 CommunityPostCard 하나로 그린다. */
+export const QUESTION_POSTS: CommunityPost[] = [
+  {
+    id: 'question-fee',
+    hashtag: '#자취 요리·식비',
+    category: '질문',
+    title: '이번 달 관리비 3만원 아꼈어요',
+    preview: '가스비 절약 습관 5가지 공유합니다~',
+    badge: '🍳',
+    author: '자취5년차',
+    time: '2시간 전',
+    likes: 8,
+    comments: 14,
+    thumb: 'post-question-cooking.webp',
+  },
+  {
+    id: 'question-closet',
+    hashtag: '#인테리어·수납',
+    category: '질문',
+    title: '옷장 없는 원룸인데 행거 어떤 거 쓰세요?',
+    preview: '튼튼한 거 찾고 있는데 다이소 제품은 어떨지 궁금해요',
+    badge: '🪟',
+    author: '미니멀라이프',
+    time: '5시간 전',
+    likes: 12,
+    comments: 19,
+    thumb: 'post-question-closet.webp',
+  },
+  {
+    id: 'question-mailbox',
+    hashtag: '#생활 문제 해결',
+    category: '질문',
+    title: '우편함 자물쇠 비번 모르는데 어디에 물어봐야 하나요',
+    preview: '이사 온 지 얼마 안 돼서 전 세입자 정보도 없어요',
+    badge: '📮',
+    author: '이사준비중',
+    time: '어제',
+    likes: 4,
+    comments: 6,
+    thumb: 'post-question-hallway.webp',
+  },
+  {
+    id: 'question-tax',
+    hashtag: '#고정비·관리비',
+    category: '질문',
+    title: '누진세 구간 어떻게 확인하나요? 이번 달 유독 많이 나왔어요',
+    preview: '작년이랑 비교하고 싶은데 고지서 보는 법을 모르겠어요',
+    badge: '💡',
+    author: '짠테크입문',
+    time: '2일 전',
+    likes: 21,
+    comments: 27,
+    thumb: 'post-question-bill.webp',
+  },
+];

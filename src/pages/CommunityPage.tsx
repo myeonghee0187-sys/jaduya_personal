@@ -127,7 +127,10 @@ export function CommunityPage() {
               type="button"
               className={`community-tabs__tab${name === tab ? ' is-active' : ''}`}
               aria-current={name === tab ? 'page' : undefined}
-              onClick={() => setTab(name)}
+              onClick={() => {
+                if (name === '질문') navigation?.navigate('community-question');
+                else setTab(name);
+              }}
             >
               {name}
             </button>
