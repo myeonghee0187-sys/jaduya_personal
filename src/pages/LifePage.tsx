@@ -412,13 +412,17 @@ export function LifePage() {
                 type="button"
                 className="life-category__card"
                 aria-label={`${item.title} — ${item.sub}`}
-                /* 첫 자취·홈케어만 화면이 있다 — 나머지는 아직 route 를 만들지 않는다 */
+                /* 네 카테고리 모두 화면이 있다 */
                 onClick={
                   item.key === 'first'
                     ? () => navigation?.navigate('life-first')
                     : item.key === 'homecare'
                       ? () => navigation?.navigate('life-homecare')
-                      : undefined
+                      : item.key === 'house'
+                        ? () => navigation?.navigate('life-house')
+                        : item.key === 'food'
+                          ? () => navigation?.navigate('life-eat')
+                          : undefined
                 }
               >
                 <span className={`life-category__thumb life-category__thumb--${item.key}`}>
