@@ -1,4 +1,4 @@
-/* JADUYA — 자두AI (Figma chatbot_default_first 2271:33675)
+/* JADUYA — 자두AI (Figma chatbot_default_first 3151:20185)
  *
  * main.tsx 에서 app-shell.css 다음에 읽는다 (.ai-chat-page.app 이 .app 을 덮어야 한다).
  * tokens.css 에 없는 이 화면 전용 색만 지역 변수로 둔다. */
@@ -11,7 +11,10 @@
   --ai-chip-line: #d7bc60;
   --ai-chip-row-bg: #fef5d6;
   --ai-chip-edit-bg: #fdebae;
-  --ai-prompt: #6c2220;
+  --ai-prompt-caption: #97641b;
+  --ai-prompt-bg-from: #ffeda4;
+  --ai-prompt-bg-to: #ffe0ac;
+  --ai-hand: "Ownglyph wiseelist", "SUIT", "Pretendard", "Apple SD Gothic Neo", sans-serif;
   --ai-headline: #240b0b;
   --ai-input-line: #e8c4c3;
 
@@ -147,9 +150,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 52px;
+  gap: 64px;
   overflow-y: auto;
-  padding: 90px 16px;
+  padding: 76px 16px 62px;
   scrollbar-width: none;
 }
 
@@ -161,7 +164,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 17px;
+  gap: 18px;
   width: 100%;
 }
 
@@ -175,35 +178,51 @@
   width: 100%;
   margin: 0;
   color: var(--ai-headline);
-  font: 700 24px/1.25 var(--font-display);
+  /* 두 줄 사이 4px — 30px 줄상자에 4px 을 더한 값이다 */
+  font: 700 24px/34px var(--font-display);
   text-align: center;
+}
+
+.ai-chat-page__prompt-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.ai-chat-page__prompt-caption {
+  margin: 0;
+  color: var(--ai-prompt-caption);
+  font: 300 14px/1.2 var(--font-suit);
 }
 
 .ai-chat-page__prompts {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 22px;
   width: 100%;
   margin: 0;
-  padding: 0 0 0 40px;
+  padding: 0;
   list-style: none;
 }
 
+/* 말풍선 — 왼쪽 위 모서리만 각지게 둔다 */
 .ai-chat-page__prompts li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--ai-prompt);
-  font: 400 16px/1.4 var(--font-suit);
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 0 18px 18px 18px;
+  padding: 8px 12px;
+  background: linear-gradient(
+    95deg,
+    var(--ai-prompt-bg-from) 11.21%,
+    var(--ai-prompt-bg-to) 93.13%
+  );
+  color: var(--brand-primary);
+  font: 400 16px/1.4 var(--ai-hand);
   /* 좁은 폭에서 낱말이 쪼개지지 않게 한다 */
   word-break: keep-all;
-}
-
-.ai-chat-page__prompts img {
-  flex: none;
-  display: block;
-  width: 4px;
-  height: 4px;
 }
 
 /* ---------- 입력창 ---------- */
