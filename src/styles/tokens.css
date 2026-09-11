@@ -42,6 +42,7 @@
   --brand-secondary: #fbdd78;
   --brand-green: #a2b123;
   --brand-orange: #c7753b;
+  --brand-rose: #c3615e;
 
   /* ---------- Color / Surface ---------- */
   --surface-warm: #faf8f5;
@@ -63,6 +64,7 @@
   --text-secondary: #74716d;
   --text-body: #252525;
   --text-muted: #6b6b6b;
+  --text-tertiary: #a39f9a;
   --text-black: #110403;
   --text-heading: #1f1c21;
   --text-heading-alt: #211914;

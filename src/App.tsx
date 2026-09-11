@@ -10,6 +10,7 @@ import { MissionPage } from './pages/MissionPage';
 import { SavedPage } from './pages/SavedPage';
 import { LifePage } from './pages/LifePage';
 import { MoneyPage } from './pages/MoneyPage';
+import { MoneyBudgetPage } from './pages/MoneyBudgetPage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { AIChatPage } from './pages/AIChatPage';
@@ -45,6 +46,7 @@ function MainPages() {
       {page === 'saved' && <SavedPage />}
       {page === 'life' && <LifePage />}
       {page === 'money' && <MoneyPage />}
+      {page === 'money-budget' && <MoneyBudgetPage />}
       {page === 'life-first' && <LifeFirstPage />}
       {page === 'community' && <CommunityPage />}
       {page === 'ai-chat' && <AIChatPage />}
