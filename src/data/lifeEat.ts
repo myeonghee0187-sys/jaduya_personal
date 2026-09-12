@@ -193,6 +193,17 @@ export function saveAddedFridgeItems(ownerKey: string, items: readonly FridgeIte
   }
 }
 
+/** 이 계정의 냉장고 진행 상태를 지운다 (데모 '처음부터 시작하기' 전용).
+ * 기본 재료 목록(FRIDGE_ITEMS)은 코드 상수라 그대로 남고 다음 진입 때 다시 채워진다. */
+export function clearFridgeStorage(ownerKey: string): void {
+  try {
+    localStorage.removeItem(INGREDIENT_STORAGE_PREFIX + ownerKey);
+    localStorage.removeItem(ACTIVE_STORAGE_PREFIX + ownerKey);
+  } catch {
+    /* 삭제 실패는 무시 */
+  }
+}
+
 /** 첫 표시일에만 Figma의 D-1/D-2를 실제 날짜로 고정한다. */
 export function createDefaultFridgeItems(now = new Date()): FridgeItem[] {
   const today = dateDay(localDateString(now));

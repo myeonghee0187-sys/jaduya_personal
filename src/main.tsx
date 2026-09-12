@@ -29,6 +29,7 @@ import './styles/login-showcase.css';
 import './styles/level-bar.css';
 import './styles/page-header.css';
 import './styles/mypage.css';
+import './styles/profile-settings.css';
 import './styles/mission.css';
 import './styles/saved.css';
 import './styles/level-info.css';
