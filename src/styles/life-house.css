@@ -1,4 +1,4 @@
-/* JADUYA — 생활 > 살림 (Figma daily_living 2289:24128)
+/* JADUYA — 생활 > 살림 (Figma daily_living 3084:23432)
  *
  * main.tsx 에서 life-homecare.css 다음에 읽는다 (.life-house.app 이 .app 을 덮어야 한다).
  * 색은 tokens.css 를 우선 쓰고, 이 화면에만 있는 값(Oat Cream 옅은 단계, Roasted Plum 옅은
@@ -7,12 +7,11 @@
 .life-house {
   --lh-oat-1: #f9f5ef; /* 검색창 배경 */
   --lh-oat-2: #f3ebde; /* 루틴 항목 구분선 */
-  --lh-oat-7: #a49173; /* placeholder·살림 팁 부제 */
+  --lh-oat-7: #a49173; /* 검색창 placeholder */
   --lh-oat-10: #49381c; /* 검색 결과 본문 */
   --lh-plum-3: #ddac89; /* D-9 처럼 여유 있는 칩 배경 */
   --lh-plum-7: #774623; /* 검색 결과 태그·닫기 아이콘 */
   --lh-primary-9-5: #120605; /* 검색 결과 상단 메타 텍스트(Primary/9.5) */
-  --lh-gray: #919191; /* 살림 팁 "더보기"(Gray/919191) */
 
   display: flex;
   flex-direction: column;
@@ -83,25 +82,57 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
+  /* Figma Input 은 342×40 이고 stroke 가 안쪽이다 — 1px border 만큼 padding 에서 뺀다
+   * (아이콘 좌측 16px, 아이콘-텍스트 12px 간격은 바깥 모서리 기준으로 유지된다) */
+  padding: 7px 15px;
   border: 1px solid var(--brand-orange);
   border-radius: var(--radius-m);
   background: var(--lh-oat-1);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+/* 입력 중에는 테두리 색은 그대로 두고 아주 옅은 링만 더한다 — Figma 보다 화려해지지 않는 선 */
+.lh-search:focus-within {
+  border-color: var(--brand-orange);
+  box-shadow: 0 0 0 2px rgba(199, 117, 59, 0.08);
+}
+
+/* 아이콘이 실제 검색 실행 버튼이다 — 크기·위치는 그대로 두고 눌리기만 하게 만든다 */
+.lh-search__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .lh-search__icon {
   flex: none;
   width: 24px;
   height: 24px;
+  transition: transform 160ms ease;
+}
+
+.lh-search:focus-within .lh-search__icon {
+  transform: scale(1.04);
 }
 
 .lh-search input {
   flex: 1;
   min-width: 0;
+  padding: 0;
   border: 0;
   outline: 0;
   background: none;
   color: var(--text-black);
+  /* Figma 의 CaretCursor(#49381c) 를 실제 입력 캐럿 색으로 옮긴다 */
+  caret-color: var(--lh-oat-10);
   font: 400 13px/1.5 var(--font-suit);
 }
 
@@ -109,12 +140,34 @@
   color: var(--lh-oat-7);
 }
 
+/* 왼쪽 Accent Line 은 border 대신 ::before 로 그린다 — 결과가 바뀔 때 위에서 아래로
+ * 짧게 그어지게 하려면 transform 을 걸 수 있는 요소가 필요하다.
+ * padding-left 14px = 기존 border 2px + padding 12px 이라 텍스트 위치는 그대로다. */
 .lh-result {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: 12px;
-  border-left: 2px solid var(--brand-orange);
+  gap: 12px;
+  padding-left: 14px;
+}
+
+.lh-result::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--brand-orange);
+  transform-origin: top;
+  animation: lh-accent-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes lh-accent-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
 }
 
 .lh-result__meta {
@@ -125,8 +178,9 @@
 
 .lh-result__head {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .lh-result__name {
@@ -145,14 +199,6 @@
   letter-spacing: -0.12px;
 }
 
-.lh-result__tag button {
-  display: flex;
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-}
-
 .lh-result__tag img {
   width: 13px;
   height: 13px;
@@ -164,14 +210,13 @@
   font: 400 10px/1.4 var(--font-suit);
 }
 
+/* 검색 실패 — 결과와 같은 자리에, 같은 들여쓰기로 보여준다 */
 .lh-empty {
   margin: 0;
-  padding: 20px 12px;
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-xl);
+  padding-left: 14px;
+  border-left: 2px solid var(--lh-oat-2);
   color: var(--text-secondary);
   font: 400 13px/1.5 var(--font-suit);
-  text-align: center;
 }
 
 /* ================= ② 잊기 전에 챙겨요 ================= */
@@ -180,13 +225,23 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  border: 0;
+  background: none;
+  padding: 0;
   color: var(--brand-primary);
   font: 500 11px/1.5 var(--font-suit);
+  cursor: pointer;
 }
 
-.lh-add img {
+/* 아이콘 색이 텍스트(primary) 를 따라가야 해서 <img> 대신 mask 로 그린다.
+ * community.css 의 북마크 아이콘과 같은 방식이다(base 는 '/'). */
+.lh-add__icon {
+  flex: none;
   width: 10px;
   height: 10px;
+  background-color: currentColor;
+  mask: url('/assets/icon/life-house-plus.svg') center / 10px 10px no-repeat;
+  -webkit-mask: url('/assets/icon/life-house-plus.svg') center / 10px 10px no-repeat;
 }
 
 .lh-routines {
@@ -205,6 +260,22 @@
   gap: 4px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--lh-oat-2);
+}
+
+/* 행 전체가 '오늘 관리 완료' 버튼이다 — 배경 카드를 새로 만들지 않고
+ * 기존 텍스트 레이아웃을 그대로 감싸기만 한다. */
+.lh-routine__tap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .lh-routine__top {
@@ -229,6 +300,7 @@
 }
 
 .lh-routine__dday {
+  position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -260,21 +332,34 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--lh-gray);
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--brand-primary);
   font: 500 11px/1.5 var(--font-suit);
+  cursor: pointer;
 }
 
-.lh-more img {
+.lh-more__icon {
+  flex: none;
   width: 10px;
   height: 10px;
+  background-color: currentColor;
+  mask: url('/assets/icon/life-house-arrow.svg') center / 10px 10px no-repeat;
+  -webkit-mask: url('/assets/icon/life-house-arrow.svg') center / 10px 10px no-repeat;
 }
 
+/* 카드 전체가 하나의 버튼이다 — 이미지·제목·설명·여백 어디를 눌러도 상세로 간다 */
 .lh-tip {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 16px 0;
+  gap: 4px;
   width: 100%;
+  border: 0;
+  background: none;
+  padding: 16px 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .lh-tip__photo {
@@ -287,19 +372,312 @@
 .lh-tip__box {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 5px;
+  padding-top: 5px;
+  width: 100%;
 }
 
 .lh-tip__title {
   margin: 0;
-  color: var(--text-nav);
+  display: block;
+  color: var(--text-black);
   font: 700 15px/1.4 var(--font-suit);
   letter-spacing: -0.3px;
 }
 
 .lh-tip__subtitle {
   margin: 0;
-  color: var(--lh-oat-7);
+  display: block;
+  color: var(--text-nav);
   font: 500 12px/1.3 var(--font-suit);
   letter-spacing: -0.12px;
+}
+
+/* 결과 하단 안내 — 지자체마다 기준이 달라 단정하지 않는다. 강조하지 않는 caption. */
+.lh-result__notice {
+  margin: 0;
+  color: var(--lh-oat-7);
+  font: 400 10px/1.4 var(--font-suit);
+}
+
+/* ================= ② 루틴 확장 패널 (Inline Accordion) ================= */
+
+/* 새 카드가 아니라 기존 구분선·여백 구조 안에서 열린다.
+ * height 애니메이션이 걸리므로 넘치는 동안 잘라 둔다. */
+.lh-panel {
+  overflow: hidden;
+}
+
+.lh-panel__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-m);
+  background: var(--lh-oat-1);
+}
+
+.lh-panel__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.lh-panel__facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lh-panel__facts dt {
+  color: var(--lh-oat-7);
+  font: 400 12px/1.5 var(--font-suit);
+}
+
+.lh-panel__facts dd {
+  margin: 0;
+  color: var(--text-black);
+  font: 600 12px/1.5 var(--font-suit);
+}
+
+.lh-panel__facts dd.is-urgent {
+  color: var(--brand-orange);
+}
+
+/* 완료 버튼 — Primary Red 는 이 화면에서 너무 무거워서 살림 Accent 를 쓴다.
+ * 높이 44px 로 탭 영역을 확보한다. */
+/* 보이는 높이는 38px 로 줄이고, 위아래 3px 여백까지 합쳐 탭 영역 44px 을 유지한다
+ * (::after 로 히트 영역만 넓힌다 — 배경이 커 보이지 않게) */
+.lh-panel__done {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 38px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-orange);
+  color: #fffdfb;
+  font: 600 13px/1.4 var(--font-suit);
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.lh-panel__done::after {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
+
+.lh-panel__done.is-done {
+  background: var(--lh-plum-3);
+  color: var(--text-black);
+}
+
+/* 완료 CTA 보다 훨씬 약한 secondary action — 밑줄로 누를 수 있다는 것만 알리고
+ * 색은 라벨과 같은 muted 톤으로 낮춘다 */
+.lh-panel__edit {
+  align-self: center;
+  min-height: 28px;
+  border: 0;
+  background: none;
+  padding: 0 8px;
+  color: var(--lh-oat-7);
+  font: 500 12px/1.5 var(--font-suit);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ================= 살림 전용 Bottom Sheet ================= */
+
+/* 공용 .layer(60) 와 AI 버튼(50)·바텀네비(40) 위에 둔다 —
+ * 시트가 떠 있는 동안 그 둘이 위로 올라오지 않는다. */
+.lh-sheet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+}
+
+.lh-sheet-dim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(17, 4, 3, 0.22);
+  cursor: pointer;
+}
+
+.lh-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 100%;
+  padding: 0 var(--screen-margin) 28px;
+  border-radius: 28px 28px 0 0;
+  background: var(--surface-subtle);
+  box-shadow: 0 -8px 24px rgba(17, 4, 3, 0.08);
+  overflow-y: auto;
+}
+
+.lh-sheet__grip {
+  display: flex;
+  justify-content: center;
+  flex: none;
+  padding: 12px 0 0;
+}
+
+.lh-sheet__grip span {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+}
+
+.lh-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lh-sheet__title {
+  margin: 0;
+  color: var(--text-black);
+  font: 700 18px/1.3 var(--font-a2z);
+}
+
+.lh-sheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin-right: -6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lh-sheet__close img {
+  width: 13px;
+  height: 13px;
+}
+
+.lh-sheet__desc {
+  margin: -8px 0 0;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+.lh-sheet__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lh-sheet__label {
+  color: var(--text-nav);
+  font: 500 13px/1.5 var(--font-suit);
+}
+
+.lh-sheet__input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-base);
+  color: var(--text-black);
+  caret-color: var(--lh-oat-10);
+  font: 400 14px/1.5 var(--font-suit);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.lh-sheet__input::placeholder {
+  color: var(--lh-oat-7);
+}
+
+.lh-sheet__input:focus {
+  outline: 0;
+  border-color: var(--brand-orange);
+  box-shadow: 0 0 0 2px rgba(199, 117, 59, 0.08);
+}
+
+/* 홈케어의 .dc-chip--pill 과 같은 규격(7/12, radius 17, 선택 시 brand-secondary).
+ * 그쪽 테두리 색은 .daily-care 안에서만 사는 지역 변수라 값만 맞춰 둔다. */
+.lh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lh-chip {
+  padding: 7px 12px;
+  border: 1px solid #ece1ce;
+  border-radius: 17px;
+  background: none;
+  color: var(--text-black);
+  font: 500 13px/1.5 var(--font-suit);
+  letter-spacing: -0.13px;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.lh-chip.is-selected {
+  border-color: transparent;
+  background: var(--brand-secondary);
+}
+
+.lh-sheet__submit {
+  margin-top: 4px;
+  flex: none;
+  height: 50px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  color: #fffdfb;
+  font: 600 15px/1.5 var(--font-suit);
+  cursor: pointer;
+  transition: opacity 160ms ease;
+}
+
+.lh-sheet__submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ================= 모션 최소화 ================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .lh-search,
+  .lh-search__icon,
+  .lh-sheet__input,
+  .lh-sheet__submit,
+  .lh-chip,
+  .lh-panel__done {
+    transition-duration: 0s;
+  }
+
+  .lh-search:focus-within .lh-search__icon {
+    transform: none;
+  }
+
+  .lh-result::before {
+    animation: none;
+  }
 }

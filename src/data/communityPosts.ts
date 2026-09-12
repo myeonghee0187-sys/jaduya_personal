@@ -91,7 +91,10 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
 ];
 
 /** 상단 탭 */
-export const COMMUNITY_TABS = ['전체', '질문', '자취 꿀팁', '지역 후기', '소비 비교'] as const;
+/** 다른 화면(생활 > 살림의 살림 팁)에서도 이 탭을 지정해 들어오므로 이름을 한 곳에 둔다 */
+export const COMMUNITY_TIP_TAB = '자취 꿀팁';
+
+export const COMMUNITY_TABS = ['전체', '질문', COMMUNITY_TIP_TAB, '지역 후기', '소비 비교'] as const;
 
 /* 질문 페이지 게시글 — Figma question (2012:7334) 의 QuestionList 내용 그대로.
  * 카드 UI 는 community_home 과 동일하게 CommunityPostCard 하나로 그린다. */

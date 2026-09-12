@@ -22,7 +22,14 @@ export function CommunityPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [tab, setTab] = useState<string>(COMMUNITY_TABS[0]);
+  /* 다른 화면에서 탭을 지정해 들어올 수 있다 (예: 살림 > 살림 팁 → '자취 꿀팁').
+   * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
+  const requestedTab = navigation?.options.tab;
+  const [tab, setTab] = useState<string>(() =>
+    requestedTab && (COMMUNITY_TABS as readonly string[]).includes(requestedTab)
+      ? requestedTab
+      : COMMUNITY_TABS[0],
+  );
   const [keyword, setKeyword] = useState('');
   const [level, setLevel] = useState<string>(LEVEL_FILTERS[0]);
   const [sort, setSort] = useState<string>(SORT_FILTERS[0]);

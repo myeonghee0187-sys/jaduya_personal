@@ -23,17 +23,35 @@ export type AppPage =
   | 'money'
   | 'money-budget';
 
+/** 이동하면서 도착 화면에 넘기는 값. 도착 화면이 초기 상태를 잡는 데만 쓴다. */
+export interface NavigateOptions {
+  /** 탭이 있는 화면(커뮤니티 등)에서 처음 열 탭 이름 */
+  tab?: string;
+}
+
 interface AppNavigationValue {
   page: AppPage;
-  navigate: (page: AppPage) => void;
+  options: NavigateOptions;
+  navigate: (page: AppPage, options?: NavigateOptions) => void;
 }
 
 const AppNavigationContext = createContext<AppNavigationValue | null>(null);
 
 /** 기존 인증 화면과 같은 state 기반 전환. 미구현 화면의 route는 만들지 않는다. */
 export function AppNavigationProvider({ children }: { children: ReactNode }) {
-  const [page, setPage] = useState<AppPage>('home');
-  const value = useMemo(() => ({ page, navigate: setPage }), [page]);
+  const [route, setRoute] = useState<{ page: AppPage; options: NavigateOptions }>({
+    page: 'home',
+    options: {},
+  });
+  /* navigate(page) 형태의 기존 호출은 그대로 동작한다 — options 는 선택값이다 */
+  const value = useMemo(
+    () => ({
+      page: route.page,
+      options: route.options,
+      navigate: (page: AppPage, options: NavigateOptions = {}) => setRoute({ page, options }),
+    }),
+    [route],
+  );
   return <AppNavigationContext.Provider value={value}>{children}</AppNavigationContext.Provider>;
 }
 
