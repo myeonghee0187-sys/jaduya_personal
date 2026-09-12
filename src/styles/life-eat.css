@@ -46,18 +46,22 @@
 /* ================= 인트로 ================= */
 
 .le-intro {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .le-intro p {
+  min-height: 20px;
+  word-break: keep-all;
   margin: 0;
   color: var(--text-nav);
   font: 400 13px/1.5 var(--font-suit);
 }
 
 .le-section {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -79,11 +83,35 @@
 /* ================= ① 곧 먹어야 해요 ================= */
 
 .le-add {
+  position: relative;
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   color: var(--brand-primary);
   font: 500 11px/1.5 var(--font-suit);
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* 시안의 위치를 유지하면서 터치 영역을 넓힌다. */
+.le-add::after {
+  content: '';
+  position: absolute;
+  inset: -14px -4px;
+}
+
+.le-add:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 4px;
+}
+
+.le-add:active {
+  opacity: 0.7;
 }
 
 .le-add img {
@@ -92,6 +120,7 @@
 }
 
 .le-items {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -104,26 +133,36 @@
 .le-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   padding-bottom: 12px;
   border-bottom: 1px solid #f3ebde;
 }
 
-.le-item__top {
+.le-item__info {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 .le-item__name {
+  min-height: 23px;
+  overflow-wrap: anywhere;
   color: var(--text-black);
   font: 500 15px/1.5 var(--font-suit);
   letter-spacing: -0.375px;
+  transition: color 200ms ease;
+}
+
+.le-item.is-selected .le-item__name {
+  color: var(--brand-primary);
 }
 
 .le-item__dday {
   flex: none;
+  height: 26px;
+  white-space: nowrap;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -138,14 +177,25 @@
 }
 
 .le-item__detail {
+  min-height: 16px;
+  overflow-wrap: anywhere;
   margin: 0;
   color: var(--le-point-9);
   font: 500 12px/1.3 var(--font-suit);
   letter-spacing: -0.12px;
 }
 
+.le-item__detail--mixed {
+  min-height: 17px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
 .le-item__detail--numeric {
-  font-family: var(--font-asta);
+  font: 400 12px/1.4 var(--font-asta);
+  letter-spacing: 0;
 }
 
 /* ================= ② 남은 재료부터 비워봐요 ================= */
@@ -158,6 +208,11 @@
 }
 
 .le-recipe {
+  position: relative;
+  appearance: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -168,55 +223,377 @@
   border-radius: var(--radius-m);
   background: var(--le-point-0-5);
   text-align: center;
+  transition: background-color 200ms ease;
+}
+
+.le-recipe::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 200ms ease;
 }
 
 .le-recipe__photo {
+  position: relative;
+  flex: none;
   width: 60px;
   height: 60px;
+  overflow: hidden;
   border-radius: var(--radius-m);
+}
+
+.le-recipe__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+}
+
+/* Figma의 계란 볶음밥 이미지 확대율과 위치를 유지한다. */
+.le-recipe--egg-rice .le-recipe__photo img {
+  position: absolute;
+  top: -2.8%;
+  left: -4.5%;
+  max-width: none;
+  width: 106.18%;
+  height: 106.18%;
+}
+
+.le-recipe__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
 }
 
 .le-recipe__title {
   margin: 0;
+  word-break: keep-all;
   color: var(--text-black);
   font: 700 15px/1.4 var(--font-suit);
   letter-spacing: -0.3px;
 }
 
 .le-recipe__tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
   margin: 0;
   color: var(--text-black);
   font: 400 10px/1.4 var(--font-suit);
 }
 
+.le-recipe__tags span {
+  white-space: nowrap;
+  transition: color 200ms ease;
+}
+
 /* ================= ③ 이렇게 보관해봐요! ================= */
 
+.le-section--keep {
+  /* 공통 비례 여백은 유지하고, 보관 팁 섹션만 좁은 화면에서도 좌우 30px로 맞춘다. */
+  margin-inline: calc(30px - var(--screen-margin));
+  width: calc(100% - 60px + var(--screen-margin) + var(--screen-margin));
+  padding-bottom: 40px;
+}
+
 .le-keep {
+  box-sizing: border-box;
+  height: auto;
+  min-height: 143px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  align-items: stretch;
+  /* 테두리를 포함한 안쪽 여백이 Figma처럼 16px이 되도록 맞춘다. */
+  padding: 15px;
   border: 1px solid var(--brand-secondary);
   border-radius: 16px;
   width: 100%;
 }
 
 .le-keep__meta {
+  min-height: 17px;
+  overflow-wrap: break-word;
   margin: 0;
   color: var(--le-point-9);
   font: 400 12px/1.4 var(--font-suit);
 }
 
 .le-keep__quote {
-  margin: 0;
+  /* 문구의 실제 높이 뒤에서 다음 문단 간격이 시작되게 한다. */
+  margin: 24px 0 0;
+  text-wrap: balance;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   color: var(--text-nav);
   font: 700 15px/1.4 var(--font-suit);
   letter-spacing: -0.3px;
 }
 
 .le-keep__body {
-  margin: 0;
+  margin: 16px 0 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   color: var(--le-point-9);
-  font: 400 10px/1.4 var(--font-suit);
+  font: 400 10px/1.5 var(--font-suit);
+}
+
+/* ================= 재료 추가 시트 ================= */
+
+.life-eat .lh-sheet__title {
+  font: 700 18px/1.3 var(--font-a2z);
+}
+
+.le-ingredient-form,
+.le-date-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.le-ingredient-form .lh-sheet__input,
+.le-date-form .lh-sheet__input {
+  min-width: 0;
+  min-height: 45px;
+  caret-color: var(--text-black);
+}
+
+.le-ingredient-form .lh-sheet__input::placeholder,
+.le-date-form .lh-sheet__input::placeholder {
+  color: var(--text-secondary);
+}
+
+.le-ingredient-form__hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.5 var(--font-suit);
+  word-break: keep-all;
+}
+
+.le-save-note {
+  margin: 0;
+  color: var(--brand-primary);
+  font: 400 12px/1.5 var(--font-suit);
+  word-break: keep-all;
+}
+
+.le-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ================= 재료 관리와 레시피 연결 ================= */
+
+.le-item__trigger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.le-item__trigger:disabled {
+  cursor: default;
+}
+
+.le-item__trigger:focus-visible,
+.le-item__action:focus-visible,
+.le-recipe:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-s);
+}
+
+.le-item__panel {
+  overflow: hidden;
+}
+
+.le-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.le-item__action {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-widget-card);
+  color: var(--text-nav);
+  font: 500 13px/1.5 var(--font-suit);
+  cursor: pointer;
+}
+
+.le-item__action--done {
+  border-color: var(--brand-green);
+  color: var(--le-point-9);
+}
+
+.le-item__action.is-done {
+  background: var(--le-point-0-5);
+}
+
+.le-item__action:disabled {
+  cursor: default;
+}
+
+.le-item__dday > span {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.le-item__dday[data-urgency='later'],
+.le-item__dday[data-urgency='undated'] {
+  background: var(--le-point-0-5);
+  color: var(--le-point-9);
+}
+
+.le-item__dday[data-urgency='today'],
+.le-item__dday[data-urgency='overdue'] {
+  background: var(--brand-primary);
+}
+
+.le-recipe.is-related::after {
+  border-color: var(--brand-green);
+}
+
+.le-recipe__tags .is-related {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.le-keep__content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.le-keep__content .le-keep__body {
+  /* 데이터의 표시용 개행 대신 현재 카드 폭에 따라 자연스럽게 줄바꿈한다. */
+  white-space: normal;
+}
+
+.le-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-suit);
+  word-break: keep-all;
+}
+
+.le-recipe-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.le-recipe-sheet__meta,
+.le-recipe-sheet__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+.le-recipe-sheet__heading {
+  margin: 0 0 8px;
+  color: var(--text-black);
+  font: 600 14px/1.5 var(--font-suit);
+}
+
+.le-recipe-sheet__ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+.le-recipe-sheet__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-nav);
+  font: 400 13px/1.6 var(--font-suit);
+}
+
+.le-recipe-sheet__steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.le-recipe-sheet__steps li > span:last-child {
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.le-recipe-sheet__step-number {
+  flex: none;
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+/* 라벨이 교차하는 동안 같은 칩 안에 공간을 예약한다. */
+.le-item__dday .le-item__dday-content {
+  position: relative;
+  display: inline-grid;
+  min-width: 34px;
+}
+
+.le-item__dday-sizer {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+
+.le-item__dday-sizer.is-compact {
+  width: 34px;
+}
+
+.le-item__dday-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .le-item__name,
+  .le-recipe,
+  .le-recipe::after,
+  .le-recipe__tags span {
+    transition: none;
+  }
 }
