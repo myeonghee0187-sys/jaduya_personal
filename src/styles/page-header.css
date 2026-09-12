@@ -40,18 +40,21 @@
 /* gnb-back.svg 는 이미 왼쪽을 향한다 — 돌리지 않는다.
  * preserveAspectRatio="none" 이라 원본 비율을 그대로 줘야 안 눌린다. */
 .page-header__back img {
-  width: 10.959px;
-  height: 19.613px;
+  width: var(--header-back-w);
+  height: var(--header-back-h);
 }
 
 .page-header__menu {
-  width: 28px;
-  height: 28px;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
 }
 
+/* header-menu.svg 는 28 viewBox 안에 24 글리프 박스가 들어 있는 구조라,
+ * 24px 로 그리면 안쪽 dehaze 글리프가 18.41 → 15.78px 로 줄어 Home 햄버거보다 작아 보인다.
+ * 원본 크기(28)로 그려야 글리프가 18.41 × 14.47 로 Home Header 와 같아진다. */
 .page-header__menu img {
-  width: 24px;
-  height: 24px;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
 }
 
 /* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
@@ -67,10 +70,10 @@
   justify-content: center;
   gap: var(--space-sm);
   width: 76px;
-  height: 28px;
+  height: var(--header-icon-btn);
 }
 
 .header-actions .icon-btn {
-  width: 28px;
-  height: 28px;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
 }

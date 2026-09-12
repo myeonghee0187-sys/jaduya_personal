@@ -165,8 +165,8 @@ a { text-decoration: none; color: inherit; }
 
 .icon-btn {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
   flex: none;
   display: flex;
   align-items: center;
@@ -179,19 +179,27 @@ a { text-decoration: none; color: inherit; }
 .burger {
   position: relative;
   display: block;
-  width: 18.41px;
+  /* 가로는 헤더 공통 글리프 폭(--header-glyph-w)을 쓴다 — bell 과 같은 크기감이 된다 */
+  width: var(--header-glyph-w);
   height: 14.47px;
   flex: none;
+  /* bar 한 줄의 길이. X 상태에서는 overlays.css 가 이 값만 바꾼다 */
+  --burger-bar-len: var(--header-glyph-w);
 }
 
+/* bar 는 항상 .burger 가로 중앙에 놓인다 — 길이가 바뀌어도 중심이 흔들리지 않는다 */
 .burger__bar {
   position: absolute;
-  left: 0;
-  width: 18.41px;
+  left: calc((var(--header-glyph-w) - var(--burger-bar-len)) / 2);
+  width: var(--burger-bar-len);
   height: 2.28px;
   border-radius: 1.14px;
   background: var(--text-heading);
-  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 180ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    width 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    left 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 180ms ease;
 }
 
 .burger__bar:nth-child(1) { top: 0; }
@@ -754,6 +762,14 @@ a { text-decoration: none; color: inherit; }
   width: var(--content-width);
 }
 
+/* 제목 왼쪽 · 추천 설정 링크 오른쪽 */
+.discovery__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
 .discovery__top h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -762,6 +778,32 @@ a { text-decoration: none; color: inherit; }
   line-height: 1;
   color: var(--text-black);
   white-space: nowrap;
+}
+
+/* 섹션 제목 위계를 넘지 않는 보조 링크 — 마이페이지 '전체보기'와 같은 무게로 둔다 */
+.discovery__settings {
+  flex: none;
+  border: 0;
+  padding: 4px 0 4px 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 13px/1.3 var(--font-suit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.discovery__settings:active {
+  opacity: 0.7;
+}
+
+.discovery__settings:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.discovery__settings:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
 }
 
 .discovery__body {
@@ -960,6 +1002,63 @@ a { text-decoration: none; color: inherit; }
   font-weight: 400;
   line-height: 1.4;
   color: var(--text-gray);
+}
+
+/* ---------- 외출 팁: 맞춤 추천 설정 전 ----------
+ * 카드 껍데기(.info-card--weather 167×235)는 설정 후와 완전히 같고 내용만 다르다.
+ * 카드가 이미 세로 space-between 이라 이 래퍼가 그 높이를 그대로 채운다. */
+.info-card__setup {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+/* 라벨 아래 문구 묶음이 남는 세로 공간을 먹어 버튼을 카드 바닥으로 민다 */
+.info-card__setup-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* 좁은 카드라 두 줄로 접히는데, 기본값은 '설정 전 / 이에요' 처럼 낱말 중간에서 끊긴다 */
+.info-card__setup .info-card__headline {
+  word-break: keep-all;
+}
+
+/* 두 줄짜리 안내라 기본 14px 는 좁은 카드에서 답답하다 — 한 단계만 줄인다 */
+.info-card__setup .info-card__desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.info-card__setup-cta {
+  flex: none;
+  width: 100%;
+  margin-bottom: 11px;
+  border: 0;
+  border-radius: var(--radius-m);
+  padding: 10px 0;
+  background: var(--brand-primary);
+  color: #fff;
+  font: 600 13px/1.3 var(--font-suit);
+  letter-spacing: -0.13px;
+  cursor: pointer;
+}
+
+.info-card__setup-cta:active {
+  opacity: 0.9;
+}
+
+.info-card__setup-cta:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.info-card__setup-cta:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 /* 두 일러스트는 하나의 스프라이트 이미지를 crop 하여 사용한다 (Figma 동일) */

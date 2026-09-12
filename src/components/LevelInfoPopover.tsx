@@ -4,8 +4,7 @@ import { icon } from '../lib/asset';
 
 /* 자취 레벨 안내 팝오버 — Figma 랭킹_레벨표식 (2012:11018)
  *
- * 로드맵 상태는 숫자 level 이 아니라 stage 로만 결정한다.
- * (Lv.41 + 씨앗 같은 조합도 정상이므로 level 로 계산하면 안 된다)
+ * 숫자 Level 과 stage 는 1:1 이라 step 이 곧 level 이다(personaProfile.ts 의 LEVEL_STAGES).
  * AuthContext 를 읽지 않고 부모가 준 값만 그린다. */
 
 export type RoadmapState = 'completed' | 'current' | 'next' | 'locked';
@@ -14,9 +13,9 @@ export type RoadmapState = 'completed' | 'current' | 'next' | 'locked';
 const STAGE_TINT: Record<LevelStage, string> = {
   seed: '#f6f0e6',
   sprout: '#dfead2',
-  blossom: '#f7ebeb',
-  'green-plum': '#ecefd1',
-  'ripe-plum': '#f0d7d7',
+  plum_blossom: '#f7ebeb',
+  green_plum: '#ecefd1',
+  ripe_plum: '#f0d7d7',
 };
 
 /** 현재 stage 기준 각 단계의 상태. step 비교만 하고 숫자 level 은 쓰지 않는다. */

@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
+/** 'living-profile' 은 마이페이지 '자취 프로필' 상세 화면이다 (하단 저장 CTA 를 쓰므로 탭바를 두지 않는다) */
 /** 'mission' / 'saved' 는 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
 /** 'life' 는 탭바 '생활' 의 메인 화면이다 */
 /** 'life-first' / 'life-homecare' / 'life-house' / 'life-eat' 는 생활 아래 하위 화면이다 (탭바는 '생활' active 를 유지한다) */
@@ -11,6 +12,7 @@ export type AppPage =
   | 'home'
   | 'my'
   | 'mission'
+  | 'living-profile'
   | 'saved'
   | 'life'
   | 'life-first'
@@ -27,6 +29,11 @@ export type AppPage =
 export interface NavigateOptions {
   /** 탭이 있는 화면(커뮤니티 등)에서 처음 열 탭 이름 */
   tab?: string;
+  /** 도착 화면에서 처음 보여줄 섹션 id (예: 자취 프로필의 'recommend') */
+  section?: string;
+  /** 뒤로가기로 돌아갈 화면. 없으면 도착 화면의 기본 상위 화면으로 간다.
+   * history 스택을 만들지 않고 "어디서 들어왔는지" 한 단계만 기억한다. */
+  returnTo?: AppPage;
 }
 
 interface AppNavigationValue {

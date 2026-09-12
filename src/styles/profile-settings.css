@@ -1,0 +1,293 @@
+/* ==========================================================================
+ * 마이페이지 > 자취 프로필 — Figma node 1565:7326 "profile_settings"
+ * 헤더·GNB 는 공용 컴포넌트를 그대로 쓰고 여기서는 본문과 하단 고정 CTA 만 다룬다.
+ * 폭 고정값 대신 grid + minmax 로 잡아 360px 에서도 3열/2열이 유지된다.
+ * ========================================================================== */
+
+.profile-settings.app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #fffaf5;
+}
+
+.profile-settings__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  /* 하단 고정 CTA(17 + 46 + 28) 뒤로 본문이 가려지지 않도록 여유를 둔다 */
+  padding: 24px var(--screen-margin) calc(115px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- 상단 안내 카드 ---------- */
+.profile-settings__hero,
+.profile-settings__note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: var(--radius-m);
+}
+
+.profile-settings__hero {
+  background: var(--brand-secondary);
+}
+
+.profile-settings__hero img {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.profile-settings__hero strong {
+  display: block;
+  font: 600 14px/1.3 var(--font-suit);
+  letter-spacing: -0.14px;
+  color: #1c1917;
+}
+
+.profile-settings__hero p {
+  margin: 1.25px 0 0;
+  font: 400 12px/1.4 var(--font-suit);
+  color: #57534e;
+}
+
+/* ---------- 섹션 ---------- */
+.profile-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eae3d6;
+}
+
+/* 관심 분야 ↔ 관심 주제 는 Figma 에서 48px 로 더 벌어져 있다 */
+.profile-settings__section--recommend {
+  gap: 48px;
+}
+
+.profile-settings__section--recommend .profile-settings__section-head {
+  margin-bottom: -24px;
+}
+
+.profile-settings__section-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 600 18px/1 var(--font-a2z);
+  color: #0c0c0c;
+}
+
+.profile-settings__step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: #2e2826;
+  font: 400 10px/1.4 var(--font-asta);
+  color: #ffffff;
+}
+
+.profile-settings__section-head p,
+.profile-settings__field > p {
+  margin: 8px 0 0;
+  font: 400 12px/1.4 var(--font-suit);
+  color: #78716c;
+}
+
+.profile-settings__field h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font: 600 16px/1 var(--font-a2z);
+  color: #1c1917;
+}
+
+/* 제목 옆 보조 텍스트 — 제목 위계를 넘지 않게 작고 옅게 둔다 */
+.profile-settings__pick-hint {
+  font: 400 12px/1.3 var(--font-suit);
+  font-style: normal;
+  letter-spacing: -0.12px;
+  color: #78716c;
+}
+
+/* ---------- 선택 그리드 ---------- */
+.profile-settings__grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.profile-settings__grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.profile-settings__grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* 자취 경험 / 주거 형태 / 관심 분야 — 가운데 정렬 단일 라벨 */
+.profile-settings__choice {
+  min-height: 44px;
+  padding: 11px 8px;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius-m);
+  background: #ffffff;
+  font: 400 14px/1.4 var(--font-suit);
+  color: #44403c;
+  text-align: center;
+  word-break: keep-all;
+  cursor: pointer;
+}
+
+.profile-settings__choice[aria-pressed='true'] {
+  border-color: rgba(180, 57, 54, 0.3);
+  background: #fdf2f2;
+  font-weight: 600;
+  letter-spacing: -0.14px;
+  color: var(--brand-primary);
+}
+
+/* 관심 분야는 미선택 배경이 살짝 어둡다(Figma btn_unselected) */
+.profile-settings__choice--category {
+  border-color: #e5e7eb;
+  background: #fafaf8;
+  color: var(--text-muted);
+}
+
+.profile-settings__choice--category[aria-pressed='true'] {
+  border-color: rgba(180, 57, 54, 0.3);
+  background: #f7ebeb;
+  color: var(--brand-primary);
+}
+
+/* ---------- 포커스 ----------
+ * 마우스로 누른 뒤 포커스 링이 남아 선택된 것처럼 보이지 않게 한다.
+ * 키보드 이동(:focus-visible)에는 링을 그대로 남긴다 — 선택 표시(연한 Primary 배경)와
+ * 헷갈리지 않도록 색이 아니라 바깥쪽 outline 으로만 준다. */
+.profile-settings__choice:focus:not(:focus-visible),
+.profile-settings__topic:focus:not(:focus-visible),
+.profile-settings__save:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.profile-settings__choice:focus-visible,
+.profile-settings__topic:focus-visible,
+.profile-settings__save:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- 관심 주제 태그 ---------- */
+.profile-settings__topic {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--radius-m);
+  background: #ffffff;
+  font: 400 14px/1.4 var(--font-suit);
+  color: #57534e;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-settings__topic span {
+  min-width: 0;
+  word-break: keep-all;
+}
+
+.profile-settings__topic img {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.profile-settings__topic[aria-pressed='true'] {
+  border-color: var(--brand-primary);
+  background: #fdf2f2;
+  font-weight: 600;
+  letter-spacing: -0.14px;
+  color: var(--brand-primary);
+}
+
+/* ---------- 하단 안내 카드 ---------- */
+.profile-settings__note {
+  background: #f7ebeb;
+}
+
+.profile-settings__note img {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.profile-settings__note strong {
+  display: block;
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+  color: #1c1917;
+}
+
+.profile-settings__note p {
+  margin: 4px 0 0;
+  font: 400 12px/1.4 var(--font-suit);
+  color: #57534e;
+}
+
+/* ---------- 하단 고정 CTA ---------- */
+.profile-settings__footer {
+  flex: none;
+  padding: 17px var(--screen-margin) calc(28px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #efebe4;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  background: rgba(250, 247, 242, 0.95);
+  backdrop-filter: blur(6px);
+}
+
+.profile-settings__save {
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  box-shadow:
+    0 4px 6px -1px rgba(180, 57, 54, 0.2),
+    0 2px 4px -2px rgba(180, 57, 54, 0.2);
+  font: 500 15px/22.5px var(--font-suit);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.profile-settings__save:active {
+  opacity: 0.9;
+}
+
+/* 저장 안내 — 고정 CTA 바로 위에 잠깐 뜬다 */
+.profile-settings__toast {
+  position: absolute;
+  left: var(--screen-margin);
+  right: var(--screen-margin);
+  bottom: calc(105px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  background: rgba(59, 51, 46, 0.9);
+  color: var(--surface-base);
+  font: 400 13px/1.4 var(--font-suit);
+  text-align: center;
+  /* 완료 메시지는 두 줄이라 \n 을 그대로 줄바꿈으로 쓴다 */
+  white-space: pre-line;
+}

@@ -93,7 +93,11 @@
   flex: none;
 }
 
-.gnb__back img { width: 10.959px; height: 19.613px; }
+/* 뒤로가기 chevron 은 SubPageHeader 와 같은 토큰을 쓴다 — 두 곳에 값을 적어두지 않는다 */
+.gnb__back img {
+  width: var(--header-back-w);
+  height: var(--header-back-h);
+}
 
 .gnb__title {
   font-family: var(--font-a2z);
@@ -104,9 +108,9 @@
 }
 
 .gnb__close {
-  /* Header 의 .icon-btn(28px)과 같은 크기로 맞춰 햄버거 버튼과 위치가 어긋나지 않게 한다 */
-  width: 28px;
-  height: 28px;
+  /* Header 의 .icon-btn 과 같은 크기로 맞춰 햄버거 버튼과 위치가 어긋나지 않게 한다 */
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,6 +120,14 @@
 /* 닫힌 상태(.gnb[hidden])의 bar 는 Header 햄버거와 완전히 같은 모양이라,
  * GNB 가 열리는 순간 이 bar 들이 회전해 X 가 되는 것처럼 보인다.
  * 화면 슬라이드보다 살짝 늦게 시작해서(80ms) 층위감을 준다. */
+/* X 는 45° 로 누운 두 변이라, 햄버거와 같은 18.41px 폭으로 보이려면 변이 더 길어야 한다.
+ * 회전한 막대의 화면상 가로폭 = (길이 + 두께) × cos45 이므로
+ *   18.41 = (L + 2.28) × 0.7071  →  L = 23.76px
+ * 개별 아이콘에 transform: scale 을 덧대지 않고 bar 길이 토큰 하나만 바꾼다. */
+.gnb:not([hidden]) .burger--morph {
+  --burger-bar-len: 23.76px;
+}
+
 .gnb:not([hidden]) .burger--morph .burger__bar {
   transition-delay: 80ms;
 }

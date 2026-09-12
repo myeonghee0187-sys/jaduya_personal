@@ -70,7 +70,7 @@ const ACCOUNT_BLURBS: Record<string, string> = {
  * CTA 를 눌러야 실제로 로그인 폼/회원가입 폼에 반영된다(자동 제출은 하지 않는다). */
 export function LoginShowcase() {
   const isDesktop = useIsDesktop();
-  const { user, logout, resetDemoSignup } = useAuth();
+  const { user, login, logout, resetDemoSignup, startFreshDemo, demoSignedUp } = useAuth();
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [selectedIndex, setSelectedIndex] = useState(0);
   /* Demo Account 클릭으로 채울 값 — 기본은 비워 둬서 처음 열었을 때는 빈 로그인 폼 그대로다 */
@@ -78,31 +78,47 @@ export function LoginShowcase() {
   const [signupPrefillProfile, setSignupPrefillProfile] = useState<SignupTestProfile | undefined>(undefined);
 
   const activeAccount = TEST_ACCOUNTS[selectedIndex] ?? TEST_ACCOUNTS[0];
-  const isPendingSignupAccount = activeAccount.email === DEMO_SIGNUP_EMAIL;
+  /* 이서준은 데모 가입을 마치기 전까지 로그인 대상이 아니라 항상 회원가입 플로우로 보낸다 */
+  const isPendingSignupAccount = activeAccount.email === DEMO_SIGNUP_EMAIL && !demoSignedUp;
+  const isCurrentAccount = user?.email === activeAccount.email;
 
-  const handleConfirmAccount = (account: MockAccount) => {
-    /* 로그인된 상태에서 다른 계정을 고르면, 먼저 로그아웃해서 폰 목업이
-     * 다시 Login/Signup 화면으로 돌아가야 prefill 이 실제로 보인다. */
+  /* App 을 다시 마운트해 폰 목업을 Home 부터 보여준다 —
+   * 계정별 진행 상태는 localStorage 에 있어 remount 로 사라지지 않는다.
+   * (App.tsx 는 이미 user.email 로 AppNavigationProvider 를 remount 한다) */
+  const [appKey, setAppKey] = useState(0);
+  const showHome = () => setAppKey((key) => key + 1);
+
+  /* 가입 전 이서준 — 로그인시키지 않고 회원가입 화면으로 보낸다 */
+  const goSignupAsSeojun = () => {
     if (user) logout();
-    if (account.email === DEMO_SIGNUP_EMAIL) {
-      setSignupPrefillProfile(SIGNUP_TEST_PROFILES.seojunDemo);
-      setAuthView('signup');
-      return;
-    }
-    setLoginPrefill({ email: account.email, password: TEST_PASSWORD });
-    setAuthView('login');
+    setSignupPrefillProfile(SIGNUP_TEST_PROFILES.seojunDemo);
+    setLoginPrefill(null);
+    setAuthView('signup');
   };
 
-  /* "새 계정으로 시작하기" — 로그인되어 Home 이 떠 있어도 로그아웃하고
-   * 항상 빈 회원가입 화면으로 되돌아간다. 이서준의 데모 가입 여부도 같이
-   * 리셋해서, 반복 테스트할 때마다 DevTools 로 localStorage 를 직접 지울 필요가 없게 한다. */
-  const handleStartNewAccount = () => {
-    if (user) logout();
-    resetDemoSignup();
-    setLoginPrefill(null);
-    setSignupPrefillProfile(undefined);
-    setSelectedIndex(0);
-    setAuthView('signup');
+  /* 메인 CTA — 최초 시작 / 다른 계정으로 변경 / 현재 계정 계속 보기 모두
+   * "이 계정을 currentUser 로 두고 Home 을 본다" 라는 같은 동작이다.
+   * 변경·계속 보기는 그 계정의 진행 상태를 그대로 둔다(지우지 않는다). */
+  const handleUseAccount = (account: MockAccount) => {
+    if (isPendingSignupAccount) {
+      goSignupAsSeojun();
+      return;
+    }
+    if (user?.email !== account.email) login(account.email, TEST_PASSWORD);
+    showHome();
+  };
+
+  /* 보조 CTA — 이 계정의 진행 상태만 지우고 최초 체험 플로우부터 다시 */
+  const handleStartOver = (account: MockAccount) => {
+    if (account.email === DEMO_SIGNUP_EMAIL) {
+      /* 이서준의 최초 체험 플로우는 회원가입부터다 */
+      resetDemoSignup();
+      startFreshDemo(account.email);
+      goSignupAsSeojun();
+      return;
+    }
+    startFreshDemo(account.email);
+    showHome();
   };
 
   /* 실제 모바일 기기 폭 — 프레임/Demo Account 없이 앱을 그대로 전체화면으로 보여준다.
@@ -152,7 +168,8 @@ export function LoginShowcase() {
 
         <IPhoneFrame>
           {user ? (
-            <App />
+            /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다 (진행 상태는 localStorage 유지) */
+            <App key={appKey} />
           ) : authView === 'login' ? (
             <Login
               key={loginPrefill?.email ?? 'default'}
@@ -218,17 +235,32 @@ export function LoginShowcase() {
             <p className="login-showcase__profile-desc">{ACCOUNT_BLURBS[activeAccount.email]}</p>
           </div>
 
+          {/* CTA 는 currentUser 기준으로 갈린다 —
+            * 없음: 시작하기 / 다른 계정: 변경하기 / 현재 계정: 계속 보기 */}
           <button
             type="button"
             className="login-showcase__cta"
-            onClick={() => handleConfirmAccount(activeAccount)}
+            onClick={() => handleUseAccount(activeAccount)}
           >
-            {isPendingSignupAccount ? '회원가입하기' : '이 계정으로 시작하기'}
+            {isPendingSignupAccount
+              ? '회원가입하기'
+              : !user
+                ? '이 계정으로 시작하기'
+                : isCurrentAccount
+                  ? '이 계정으로 계속 보기'
+                  : '이 계정으로 변경하기'}
           </button>
 
-          <button type="button" className="login-showcase__new-link" onClick={handleStartNewAccount}>
-            새 계정으로 시작하기
-          </button>
+          {/* 이미 데모를 시작한 뒤에만 의미가 있다 — 최초 진입에는 띄우지 않는다 */}
+          {user && (
+            <button
+              type="button"
+              className="login-showcase__new-link"
+              onClick={() => handleStartOver(activeAccount)}
+            >
+              처음부터 시작하기
+            </button>
+          )}
         </div>
       </div>
     </div>

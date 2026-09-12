@@ -102,4 +102,14 @@
   /* ---------- Chrome heights ---------- */
   --header-h: 100px;
   --tab-bar-h: 91px;
+
+  /* ---------- Header 액션 아이콘 규격 ----------
+   * Figma "header/menu" 는 28×28 svg 안에 24×24 글리프 박스가 들어 있다.
+   * 그 박스 안에서 글리프의 가로 실측은 bell 18.58 / dehaze 18.41 로 거의 같다 —
+   * 이 18.41 을 헤더 아이콘의 공통 가로 기준으로 삼는다.
+   * 뒤로가기 화살표(arrow_back_ios_new)는 세로로 긴 chevron 이라 원본 비율을 유지한다. */
+  --header-icon-btn: 28px;
+  --header-glyph-w: 18.41px;
+  --header-back-w: 10.959px;
+  --header-back-h: 19.613px;
 }

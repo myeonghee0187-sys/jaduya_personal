@@ -6,11 +6,16 @@ import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { DEFAULT_PERSONA } from '../data/personaHome';
-import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
+import { PERSONA_PROFILE, profileSummary, resolveLevel } from '../data/personaProfile';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
-export type MyPageDestination = 'profile' | 'level' | 'activity' | 'settings' | 'support';
+export type MyPageDestination =
+  | 'living-profile'
+  | 'level'
+  | 'activity'
+  | 'settings'
+  | 'support';
 
 interface MyPageProps {
   /** 이동을 처리했으면 true. false/미지정이면 '준비 중' 안내를 그대로 띄운다. */
@@ -60,24 +65,10 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
         {/* ① 프로필 — 지금 어떤 상태인지 한 줄로 */}
         <section className="mypage__profile" aria-labelledby="profile-title">
           <img className="mypage__avatar" src={img(profile.profileImage)} alt="" />
+          {/* 자취 정보 수정은 아래 '자취 프로필' 메뉴에서만 한다 — 여기서는 보여주기만 */}
           <div className="mypage__profile-copy">
             <h2 id="profile-title">{name}님</h2>
-            <p>{profile.status}</p>
-            <button
-              type="button"
-              className="mypage__profile-button"
-              onClick={() => go('profile', '프로필 관리')}
-            >
-              프로필 관리
-              {/* 화살표는 버튼 텍스트 색(currentColor)으로 칠한다.
-                * 공용 chevron-right-sm.svg 는 fill 이 박혀 있고 다른 곳에서도 쓰므로
-                * 파일을 고치지 않고 이 버튼에서만 마스크로 색을 입힌다. */}
-              <i
-                className="mypage__profile-arrow"
-                style={{ maskImage: `url(${icon('chevron-right-sm.svg')})` }}
-                aria-hidden="true"
-              />
-            </button>
+            <p>{profileSummary(profile)}</p>
           </div>
         </section>
 
@@ -99,9 +90,10 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
               <strong>Lv.{level.level}</strong>
               <b>{level.stageName}</b>
             </div>
+            {/* 최고 레벨은 진행률 대신 MAX 를 쓴다 */}
             <strong className="mypage__percent">
-              {level.progress}
-              <small>%</small>
+              {level.progressLabel}
+              {!level.isMaxLevel && <small>%</small>}
             </strong>
           </div>
           <div
@@ -114,8 +106,15 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           >
             <span style={{ width: level.progress + '%' }} />
           </div>
+          {/* 최고 레벨에는 다음 레벨이 없으므로 '0XP 더 모으면' 대신 달성 문구를 띄운다 */}
           <p className="mypage__xp">
-            <b>{level.remainingXp}XP</b> 더 모으면 레벨업 할 수있어요!
+            {level.isMaxLevel ? (
+              <b>자취 고수 레벨을 달성했어요!</b>
+            ) : (
+              <>
+                <b>{level.remainingXp}XP</b> 더 모으면 레벨업 할 수있어요!
+              </>
+            )}
           </p>
         </button>
 
@@ -128,7 +127,8 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>
-          <button type="button" onClick={() => go('profile', '자취 프로필')}>
+          {/* 화살표만이 아니라 행 전체가 자취 프로필 상세로 들어간다 */}
+          <button type="button" onClick={() => go('living-profile', '자취 프로필')}>
             <span className="mypage__link-copy">
               <b>자취 프로필</b>
               <small>자취기간 / 주거 형태 / 관심분야</small>

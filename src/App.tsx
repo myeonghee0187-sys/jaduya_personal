@@ -8,6 +8,7 @@ import { Signup } from './pages/Signup';
 import type { SignupTestProfile } from './auth/signupTestProfiles';
 import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
+import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
 import { SavedPage } from './pages/SavedPage';
 import { LifePage } from './pages/LifePage';
 import { MoneyPage } from './pages/MoneyPage';
@@ -40,6 +41,10 @@ function MainPages() {
               navigation?.navigate('mission');
               return true;
             }
+            if (to === 'living-profile') {
+              navigation?.navigate('living-profile');
+              return true;
+            }
             if (to === 'activity') {
               navigation?.navigate('saved');
               return true;
@@ -49,6 +54,7 @@ function MainPages() {
         />
       )}
       {page === 'mission' && <MissionPage />}
+      {page === 'living-profile' && <ProfileSettingsPage />}
       {page === 'saved' && <SavedPage />}
       {page === 'life' && <LifePage />}
       {page === 'money' && <MoneyPage />}

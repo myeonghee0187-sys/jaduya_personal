@@ -1,4 +1,5 @@
 import type { Persona } from '../auth/mockUsers';
+import type { HousingType, LivingExperience } from './livingProfile';
 import { img } from '../lib/asset';
 
 /* persona 별 마이페이지 콘텐츠.
@@ -50,78 +51,89 @@ export interface ActivityItem {
 
 /* ================= 자취 레벨 =================
  *
- * 숫자 Level 과 5단계 성장 stage 는 서로 다른 값이다. 1:1 로 묶지 않는다.
- * Figma level_bar 예: 씨앗 + Level.12 / 새싹 + Level.24 / 자두꽃 + Level.42 …
- * 그래서 stage 는 level 로 계산하지 않고 persona 데이터가 직접 들고 있는다.
+ * 숫자 Level 과 성장 stage 는 1:1 로 대응한다 — Lv.N 의 stage 는 LEVEL_STAGES[N] 하나뿐이다.
+ * (Lv.1 새싹 / Lv.2 씨앗 같은 어긋난 조합이 생기지 않도록 stage 를 따로 저장하지 않는다.)
  *
- * Home(내 생활 stat bar) 은 숫자 Level 을, 마이페이지는 stage 아이콘·이름까지 쓴다.
+ * 레벨은 자취 연차만이 아니라 서비스 안의 활동·미션 수행까지 반영한 "자취 성장도" 다.
+ * 실제 XP 획득 로직은 아직 없고, persona 별 현재 값만 이 파일이 들고 있는다.
+ *
+ * Home(내 생활 stat bar) 은 숫자 Level 을, 마이페이지·미션은 stage 아이콘·이름까지 쓴다.
  * 아이콘 경로는 LEVEL_STAGES 한 곳에서만 만들고 화면에서는 직접 쓰지 않는다. */
 
-/** 5단계 성장 stage — 숫자 Level 과 무관한 별도 축 */
-export type LevelStage = 'seed' | 'sprout' | 'blossom' | 'green-plum' | 'ripe-plum';
+/** 5단계 성장 stage — id 는 level_icon 파일명과 같은 표기를 쓴다 */
+export type LevelStage = 'seed' | 'sprout' | 'plum_blossom' | 'green_plum' | 'ripe_plum';
+
+/** 숫자 Level — 1~5 외의 값은 쓰지 않는다 */
+export type LevelValue = 1 | 2 | 3 | 4 | 5;
+
+/** 최고 레벨. 여기 도달하면 다음 레벨이 없다(progress 100 / 남은 XP 없음) */
+export const MAX_LEVEL = 5;
+
+/** 한 레벨 구간의 XP — 데모에서는 100XP 로 단순화한다(남은 XP = 100 - progress) */
+export const LEVEL_XP_SPAN = 100;
 
 export interface LevelStageDef {
-  /** 성장 순서 1~5 (숫자 Level 이 아니다) */
-  step: number;
+  stage: LevelStage;
   name: string;
   /** public/assets/img/level_icon/ 아래 실제 파일명 */
   iconFile: string;
 }
 
-export const LEVEL_STAGES: Record<LevelStage, LevelStageDef> = {
-  seed: { step: 1, name: '씨앗', iconFile: 'level01_seed.webp' },
-  sprout: { step: 2, name: '새싹', iconFile: 'level02_sprout.webp' },
-  blossom: { step: 3, name: '자두꽃', iconFile: 'level03_plum_blossom.webp' },
-  'green-plum': { step: 4, name: '풋자두', iconFile: 'level04_green_plum.webp' },
-  'ripe-plum': { step: 5, name: '잘 익은 자두', iconFile: 'level05_ripe_plum.webp' },
+/** Lv.1~5 ↔ stage 매핑. 이 표가 레벨 이름·아이콘의 유일한 원본이다. */
+export const LEVEL_STAGES: Record<LevelValue, LevelStageDef> = {
+  1: { stage: 'seed', name: '씨앗', iconFile: 'level01_seed.webp' },
+  2: { stage: 'sprout', name: '새싹', iconFile: 'level02_sprout.webp' },
+  3: { stage: 'plum_blossom', name: '자두꽃', iconFile: 'level03_plum_blossom.webp' },
+  4: { stage: 'green_plum', name: '덜 익은 자두', iconFile: 'level04_green_plum.webp' },
+  5: { stage: 'ripe_plum', name: '잘 익은 자두', iconFile: 'level05_ripe_plum.webp' },
 };
 
+export const LEVEL_VALUES: LevelValue[] = [1, 2, 3, 4, 5];
+
 export interface ResolvedStage extends LevelStageDef {
-  stage: LevelStage;
+  /** 성장 순서 1~5 — 숫자 Level 과 같은 값이다 */
+  step: LevelValue;
   /** img() 로 만든 절대 URL */
   icon: string;
 }
 
 /** 성장 순서대로 정렬한 5단계 + 아이콘 경로.
  * 로드맵처럼 전 단계를 함께 보여주는 화면이 쓴다 — 화면에서 파일명을 조합하지 않게 한다. */
-export const LEVEL_STAGE_LIST: ResolvedStage[] = (Object.keys(LEVEL_STAGES) as LevelStage[])
-  .map((stage) => ({
-    stage,
-    ...LEVEL_STAGES[stage],
-    icon: img(`level_icon/${LEVEL_STAGES[stage].iconFile}`),
-  }))
-  .sort((a, b) => a.step - b.step);
+export const LEVEL_STAGE_LIST: ResolvedStage[] = LEVEL_VALUES.map((value) => ({
+  step: value,
+  ...LEVEL_STAGES[value],
+  icon: img(`level_icon/${LEVEL_STAGES[value].iconFile}`),
+}));
 
-/** 화면에 저장하는 레벨 원본 값 */
+/** persona 가 저장하는 레벨 원본 값 — stage/남은 XP 는 여기서 유도하므로 적지 않는다 */
 export interface LevelSource {
-  /** 하트 보유량 — Home stat bar 왼쪽 */
+  /** 하트 보유량 — Home stat bar 왼쪽 (레벨과는 별개 지표) */
   hearts: number;
-  /** 숫자 Level — stage 와 독립적이다 */
-  level: number;
-  /** 5단계 성장 stage — level 로 계산하지 않는다 */
-  stage: LevelStage;
-  /** 현재 stage 에서 쌓은 XP */
-  currentXp: number;
-  /** 다음 단계까지 남은 XP */
-  remainingXp: number;
+  /** 숫자 Level 1~5 */
+  level: LevelValue;
+  /** 현재 레벨 안에서의 진행률 0~100. 최고 레벨은 100 */
+  progress: number;
 }
 
 /** 화면이 그대로 쓰는 레벨 값 묶음 */
 export interface ResolvedLevel {
   hearts: number;
-  /** 숫자 Level */
-  level: number;
+  level: LevelValue;
   stage: LevelStage;
   /** 성장 단계 이름 (예: 씨앗) */
   stageName: string;
-  /** 성장 단계 순서 1~5 */
-  stageStep: number;
+  /** 성장 단계 순서 1~5 — level 과 같은 값이다 */
+  stageStep: LevelValue;
   /** 성장 단계 아이콘 경로 — img() 로 만든 절대 URL */
   levelIcon: string;
-  currentXp: number;
-  remainingXp: number;
-  /** 다음 단계까지 진행도 0~100 */
+  /** 현재 레벨 안에서의 진행도 0~100 */
   progress: number;
+  /** 다음 레벨까지 남은 XP. 최고 레벨이면 null */
+  remainingXp: number | null;
+  /** 최고 레벨 도달 여부 — true 면 남은 XP 문구를 띄우지 않는다 */
+  isMaxLevel: boolean;
+  /** 카드 우측 표기 — 최고 레벨은 'MAX', 그 외는 진행률 숫자 */
+  progressLabel: string;
   /** Home stat bar 표기 — 폭 100px 고정이라 짧게 유지한다 */
   levelLabel: string;
   /** Home stat bar 표기 — 폭 73px 고정 */
@@ -129,40 +141,58 @@ export interface ResolvedLevel {
 }
 
 export function resolveLevel(source: LevelSource): ResolvedLevel {
-  /* stage 는 source 가 준 값을 그대로 쓴다 — 숫자 level 에서 유도하지 않는다 */
-  const stage = LEVEL_STAGES[source.stage];
-  const total = source.currentXp + source.remainingXp;
+  /* stage 는 숫자 level 에서 곧바로 나온다 — 둘이 어긋날 수가 없다 */
+  const stage = LEVEL_STAGES[source.level];
+  const isMaxLevel = source.level >= MAX_LEVEL;
+  const progress = isMaxLevel ? 100 : source.progress;
   return {
     hearts: source.hearts,
     level: source.level,
-    stage: source.stage,
+    stage: stage.stage,
     stageName: stage.name,
-    stageStep: stage.step,
+    stageStep: source.level,
     levelIcon: img(`level_icon/${stage.iconFile}`),
-    currentXp: source.currentXp,
-    remainingXp: source.remainingXp,
-    progress: total > 0 ? Math.round((source.currentXp / total) * 100) : 0,
+    progress,
+    /* 한 구간 100XP 기준이라 남은 XP 는 진행률의 나머지다 */
+    remainingXp: isMaxLevel ? null : LEVEL_XP_SPAN - progress,
+    isMaxLevel,
+    progressLabel: isMaxLevel ? 'MAX' : String(progress),
     levelLabel: `Level.${source.level}`,
     heartsLabel: source.hearts.toLocaleString('ko-KR'),
   };
 }
 
 export interface PersonaProfile {
-  /** 이름 아래 한 줄 — 자취 상태 · 주거 형태 */
-  status: string;
+  /* ---- 자취 프로필 (마이페이지 요약 + 자취 프로필 설정 화면의 공통 원본) ----
+   * 두 화면이 이 값을 함께 읽는다. 화면별로 따로 적어두지 않는다. */
+  /** 자취 경험 — 자취 프로필 설정 화면의 선택지와 같은 값이다 */
+  experience: LivingExperience;
+  /** 주거 형태 — 자취 프로필 설정 화면의 선택지와 같은 값이다 */
+  housing: HousingType;
+  /** 요약에 쓰는 자취 경험 표현. 선택지('1년 이상')보다 구체적인 연차를 보여준다 */
+  experienceLabel: string;
   /** public/assets/img/ 아래 프로필 사진 파일명 */
   profileImage: string;
   level: LevelSource;
   activity: Record<ActivityTab, ActivityItem[]>;
 }
 
+/** 마이페이지 이름 아래 한 줄 — 자취 경험 · 주거 형태.
+ * 아직 입주 전(자취 준비중)이면 '거주' 를 붙이지 않는다. */
+export function profileSummary(profile: PersonaProfile): string {
+  const suffix = profile.experience === '자취 준비중' ? '' : ' 거주';
+  return `${profile.experienceLabel} · ${profile.housing}${suffix}`;
+}
+
 export const PERSONA_PROFILE: Record<Persona, PersonaProfile> = {
   /* 이서준 · 자취 초보 — 아직 입주 전이라 활동 기록이 적다 */
   beginner: {
-    status: '자취 준비 중 · 원룸 입주 예정',
+    experience: '자취 준비중',
+    housing: '기타 주거',
+    experienceLabel: '자취 준비중',
     profileImage: 'profile_seojun.webp',
-    /* 아직 입주 전이라 하트·레벨 모두 낮다 */
-    level: { hearts: 120, level: 1, stage: 'seed', currentXp: 24, remainingXp: 76 },
+    /* 아직 입주 전이고 서비스 활동도 거의 없어 세 계정 중 가장 초기 단계다 */
+    level: { hearts: 120, level: 1, progress: 5 },
     activity: {
       저장: [
         {
@@ -199,13 +229,14 @@ export const PERSONA_PROFILE: Record<Persona, PersonaProfile> = {
 
   /* 김하린 · 직장인 자취러 — 생활비와 고정비 관리가 중심 */
   worker: {
-    status: '자취 3년차 · 원룸 거주',
+    experience: '3년 이상',
+    housing: '원룸',
+    experienceLabel: '자취 3년차',
     profileImage: 'profile_harin.webp',
-    /* Figma 자취 레벨 화면 값(Lv.2 / 씨앗 / 57% / 45XP)을 그대로 옮긴다.
-     * Lv.2 + 씨앗 조합은 정상이다 — 숫자 Level 과 stage 는 별개 축이다.
-     * 57% 와 45XP 를 모두 만족하도록 currentXp 60 (60/105 = 57%).
+    /* 자취 3년차 + 서비스 활용도가 가장 높아 데모의 최고 단계(Lv.5 잘 익은 자두)다.
+     * 최고 레벨이라 progress 100 / 남은 XP 없음(MAX) 으로 표시된다.
      * hearts 는 Home stat bar 에 그려져 있던 1,200 을 유지한다. */
-    level: { hearts: 1200, level: 2, stage: 'seed', currentXp: 60, remainingXp: 45 },
+    level: { hearts: 1200, level: 5, progress: 100 },
     activity: {
       /* Figma my_page 의 최근 항목 2건이 이 조합이다 */
       저장: [
@@ -271,9 +302,14 @@ export const PERSONA_PROFILE: Record<Persona, PersonaProfile> = {
 
   /* 조아영 · 반려동물과 함께 사는 자취러 */
   pet: {
-    status: '자취 2년차 · 반려묘와 함께',
+    /* 요약 한 줄은 자취 경험·주거 형태만 보여준다 — 반려묘 콘텐츠는
+     * personaWidgets / activity 쪽에 그대로 남아 있다 */
+    experience: '1년 이상',
+    housing: '빌라·투룸',
+    experienceLabel: '자취 2년차',
     profileImage: 'profile_ayoung.webp',
-    level: { hearts: 640, level: 2, stage: 'sprout', currentXp: 41, remainingXp: 59 },
+    /* 자취 2년차 — 초보는 아니지만 최고 단계도 아닌 중간 성장 단계 */
+    level: { hearts: 640, level: 3, progress: 41 },
     activity: {
       저장: [
         {
