@@ -54,14 +54,23 @@
   height: 24px;
 }
 
-.page-header__actions {
+/* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
+ * 기준값은 Home Header 다. 28×28 아이콘 버튼 두 개 + gap 12 = 68px 를 76px 폭
+ * 안에서 가운데 정렬한다(402 기준 bell x=300 / menu x=340).
+ * Header(.nav-header) / SubPageHeader(.page-header) / GnbOverlay(.gnb__header) 가
+ * 같은 클래스를 쓰므로 페이지 이동·GNB 개폐에도 X 좌표가 움직이지 않는다.
+ * 값은 여기에만 둔다 — 페이지별 CSS 에서 덮어쓰지 않는다. */
+.header-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-sm);
+  width: 76px;
+  height: 28px;
 }
 
-.page-header__actions .icon-btn {
+.header-actions .icon-btn {
   width: 28px;
   height: 28px;
 }

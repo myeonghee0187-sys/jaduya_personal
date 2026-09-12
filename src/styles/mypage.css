@@ -18,75 +18,6 @@
   background: var(--surface-warm);
 }
 
-/* ================= 헤더 ================= */
-
-/* 높이는 내용(Safe Area + nav 50px)이 정한다. --header-h(100px)는 Hero 위에 겹치는
- * Home 헤더 기준값이라 여기 쓰면 빈 띠가 생긴다. */
-.mypage__header {
-  position: relative;
-  z-index: 4;
-  flex: 0 0 auto;
-  background: rgba(252, 250, 247, 0.96);
-  box-shadow: 0 3px 4px rgba(51, 51, 51, 0.04);
-}
-
-.mypage__nav {
-  height: 50px;
-  padding: 0 var(--screen-margin);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.mypage__nav h1 {
-  margin: 0;
-  font: 500 20px/1 var(--font-a2z);
-  color: var(--brand-logo);
-}
-
-.mypage__back,
-.mypage__menu {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-/* gnb-back.svg 는 이미 왼쪽을 향한다 — 돌리지 않는다.
- * preserveAspectRatio="none" 이라 원본 비율(10.959 × 19.613)을 그대로 줘야 안 눌린다. */
-.mypage__back img {
-  width: 10.959px;
-  height: 19.613px;
-}
-
-.mypage__menu {
-  width: 28px;
-  height: 28px;
-}
-
-.mypage__menu img {
-  width: 24px;
-  height: 24px;
-}
-
-.mypage__actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.mypage__actions .icon-btn {
-  width: 28px;
-  height: 28px;
-}
-
 /* ================= 스크롤 영역 ================= */
 
 .mypage__scroll {
@@ -94,6 +25,10 @@
   min-height: 0;
   overflow-y: auto;
   padding: 32px var(--screen-margin) calc(var(--tab-bar-h, 91px) + 32px);
+  /* 섹션 사이 간격은 각 섹션 margin 이 아니라 한곳에서 정한다 (Figma gap 48) */
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
   scrollbar-width: none;
 }
 
@@ -107,7 +42,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: 24px;
 }
 
 .mypage__avatar {
@@ -200,15 +134,7 @@
   height: 20px;
 }
 
-/* 섹션 제목은 레벨 카드 안 제목보다 한 단계 크다 (Figma A2Z Bold 20) */
-.mypage__section-head h2 {
-  margin: 0;
-  color: #333;
-  font: 700 20px/1 var(--font-a2z);
-}
-
-.mypage__level-head span,
-.mypage__section-head button {
+.mypage__level-head span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -219,8 +145,7 @@
   cursor: pointer;
 }
 
-.mypage__level-head span img,
-.mypage__section-head button img {
+.mypage__level-head span img {
   width: 5px;
   height: 9px;
 }
@@ -261,11 +186,11 @@
 }
 
 .mypage__progress {
-  height: 8px;
+  height: 10px;
   margin-top: 10px;
   overflow: hidden;
   border-radius: var(--radius-pill);
-  background: #f0e7df;
+  background: rgba(51, 51, 51, 0.1);
 }
 
 .mypage__progress span {
@@ -275,197 +200,24 @@
   background: var(--brand-primary);
 }
 
+/* 남은 XP 는 숫자만 키워 강조한다 (Figma 3131:16525) */
 .mypage__xp {
   margin: 8px 0 0;
-  color: var(--text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #5e5e5e;
   font-size: 12px;
 }
 
 .mypage__xp b {
-  color: var(--brand-primary);
-  font-weight: 600;
-}
-
-/* ================= ③ 나의 활동 ================= */
-
-.mypage__activity {
-  margin-top: 40px;
-}
-
-.mypage__section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* 탭 — 밑줄이 아니라 개별 pill 버튼 4개 (Figma 1665:5338) */
-.mypage__tabs {
-  display: flex;
-  gap: 4px;
-  margin-top: 16px;
-}
-
-.mypage__tab {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  border: 1px solid #e0cdad;
-  border-radius: var(--radius-s);
-  padding: 6px 14px;
-  background: var(--surface-base);
-  color: #1c1c19;
-  font: 400 14px/1.4 var(--font-suit);
-  cursor: pointer;
-}
-
-.mypage__tab.is-active {
-  border-color: var(--brand-primary);
-  background: var(--brand-primary);
-  color: #fff;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.14px;
-}
-
-/* 한 파일로 active(흰색)/inactive(먹색)를 모두 칠하려고 마스크를 쓴다 */
-.mypage__tab-icon {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  background: currentColor;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-}
-
-/* '최근 항목' — 가로선 위에 라벨을 얹는다 (Figma 1665:5400) */
-.mypage__recent-label {
-  position: relative;
-  margin: 16px 0 0;
-  color: #58413f;
-  font: 700 14px/1.2 var(--font-suit);
-  letter-spacing: 0.14px;
-}
-
-.mypage__recent-label::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--border-warm);
-}
-
-.mypage__recent-label span {
-  position: relative;
-  padding-right: 6px;
-  background: var(--surface-warm);
-}
-
-.mypage__activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-/* 저장 카드 — thumbnail + chip + 제목 + 설명 + 날짜 (Figma 1565:6569) */
-.mypage__card {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(239, 230, 222, 0.8);
-  border-radius: 16px;
-  padding: 17px;
-  background: rgba(255, 255, 255, 0.6);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.mypage__card-thumb {
-  flex: none;
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: var(--radius-s);
-}
-
-.mypage__card-thumb--icon {
-  display: grid;
-  place-items: center;
-}
-
-.mypage__card-thumb--icon img {
-  width: 34px;
-  height: 34px;
-}
-
-.mypage__card-body {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mypage__card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.mypage__chip {
-  border-radius: var(--radius-s);
-  padding: 4px 8px;
-  color: #110403;
-  font: 400 10px/1.4 var(--font-suit);
-}
-
-.mypage__card-bookmark {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  background: var(--brand-primary);
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-}
-
-.mypage__card-title {
-  overflow: hidden;
-  color: #222;
-  font: 600 14px/1.3 var(--font-suit);
-  letter-spacing: -0.14px;
-}
-
-.mypage__card-desc {
-  color: #757575;
-  font: 400 11px/1.5 var(--font-suit);
-}
-
-.mypage__card-date {
-  color: #757575;
-  font: 400 12px/1.4 var(--font-suit);
-}
-
-.mypage__empty {
-  margin: 32px 0;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: #2f2f2f;
+  font: 600 16px/1 var(--font-a2z);
 }
 
 /* ================= ④ 설정 · 고객 관리 ================= */
 
 .mypage__links {
-  margin-top: 40px;
   border-top: 1px solid var(--border-warm);
 }
 
@@ -482,11 +234,6 @@
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-}
-
-/* 마지막 행 아래에는 선을 두지 않는다 */
-.mypage__links button:last-child {
-  border-bottom: 0;
 }
 
 .mypage__links button img {

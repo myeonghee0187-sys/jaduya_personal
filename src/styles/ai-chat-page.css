@@ -29,30 +29,6 @@
   background: var(--surface-subtle);
 }
 
-/* ---------- 홈으로 돌아가기 ---------- */
-
-.ai-chat-page__back {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--ai-divider);
-  padding: 16px 20px;
-  background: var(--surface-subtle);
-  color: var(--ai-placeholder);
-  font: 600 18px/1 var(--font-asta);
-  cursor: pointer;
-}
-
-.ai-chat-page__back img {
-  flex: none;
-  display: block;
-  width: 19.2px;
-  height: 19.2px;
-}
-
 /* ---------- 자두AI 헤더 ---------- */
 
 .ai-chat-page__brand {

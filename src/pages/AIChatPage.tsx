@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { StatusBar } from '../components/StatusBar';
+import { GnbOverlay } from '../components/GnbOverlay';
+import { MyMenuEdit } from '../components/MyMenuEdit';
+import { SubPageHeader } from '../components/SubPageHeader';
+import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 /* 사용자 조건 칩 — Figma chip_row (2271:33681) */
@@ -20,6 +23,8 @@ const PROMPTS = [
 export function AIChatPage() {
   const navigation = useAppNavigation();
   const [draft, setDraft] = useState('');
+  const [gnbOpen, setGnbOpen] = useState(false);
+  const myMenu = useMyMenu();
 
   /* 전송 로직은 아직 없다 — 임의의 AI 동작을 만들지 않는다 */
   const onSubmit = (event: FormEvent) => {
@@ -28,16 +33,13 @@ export function AIChatPage() {
 
   return (
     <div className="ai-chat-page app">
-      <StatusBar />
-
-      <button
-        type="button"
-        className="ai-chat-page__back"
-        onClick={() => navigation?.navigate('home')}
-      >
-        <img src={icon('ai-back-arrow.svg')} alt="" />
-        홈으로 돌아가기
-      </button>
+      {/* 헤더는 다른 하위 화면과 같은 공용 컴포넌트를 쓴다 — 좌우 여백·높이·우측 액션이 같아진다 */}
+      <SubPageHeader
+        title="자두AI"
+        backLabel="홈으로"
+        onBack={() => navigation?.navigate('home')}
+        onMenu={() => setGnbOpen(true)}
+      />
 
       <div className="ai-chat-page__brand">
         <span className="ai-chat-page__profile">
@@ -108,6 +110,19 @@ export function AIChatPage() {
           </button>
         </div>
       </form>
+
+      <GnbOverlay
+        open={gnbOpen}
+        myMenu={myMenu.myMenu}
+        onClose={() => setGnbOpen(false)}
+        onEditMenu={myMenu.openEdit}
+      />
+      <MyMenuEdit
+        open={myMenu.editOpen}
+        draft={myMenu.draft}
+        onClose={myMenu.closeEdit}
+        onSave={myMenu.saveEdit}
+      />
     </div>
   );
 }

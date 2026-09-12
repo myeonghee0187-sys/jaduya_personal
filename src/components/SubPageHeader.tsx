@@ -25,7 +25,7 @@ export function SubPageHeader({ title, backLabel, onBack, onMenu, children }: Su
           <img src={icon('gnb-back.svg')} alt="" />
         </button>
         <h1>{title}</h1>
-        <div className="page-header__actions">
+        <div className="header-actions">
           {children}
           <BellButton />
           <button type="button" className="page-header__menu" aria-label="전체 메뉴" onClick={onMenu}>

@@ -5,11 +5,13 @@
  * 페이지가 생기면 route 값만 채우면 되고 화면 코드는 바꾸지 않는다.
  */
 
+import type { AppPage } from '../navigation/AppNavigation';
+
 export interface GnbSubMenu {
   id: string;
   name: string;
   /** 연결된 화면. 아직 없으면 null (클릭해도 이동하지 않는다) */
-  route: string | null;
+  route: AppPage | null;
 }
 
 export interface GnbCategory {
@@ -20,7 +22,7 @@ export interface GnbCategory {
   /** 하위 메뉴가 없으면 아코디언이 아니라 바로 이동하는 항목이 된다 */
   items: GnbSubMenu[];
   /** 하위 메뉴가 없는 카테고리의 이동 대상 (없으면 null) */
-  route: string | null;
+  route: AppPage | null;
 }
 
 export const GNB_CATEGORIES: GnbCategory[] = [
@@ -30,10 +32,10 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     iconFile: 'gnb-nav-living.svg',
     route: null,
     items: [
-      { id: 'living-start', name: '첫 자취', route: null },
-      { id: 'living-homecare', name: '홈케어', route: null },
-      { id: 'living-house', name: '살림', route: null },
-      { id: 'living-food', name: '먹거리', route: null },
+      { id: 'living-start', name: '첫 자취', route: 'life-first' },
+      { id: 'living-homecare', name: '홈케어', route: 'life-homecare' },
+      { id: 'living-house', name: '살림', route: 'life-house' },
+      { id: 'living-food', name: '먹거리', route: 'life-eat' },
     ],
   },
   {
@@ -42,7 +44,9 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     iconFile: 'gnb-nav-money.svg',
     route: null,
     items: [
-      { id: 'money-month', name: '이번달', route: null },
+      /* '이번달' 이 MoneyPage 의 기본 탭이라 그대로 연결한다.
+       * 고정비 / 소비 / 비상금은 같은 화면의 탭 상태라 별도 화면이 없다 — route 를 비워 둔다. */
+      { id: 'money-month', name: '이번달', route: 'money' },
       { id: 'money-fixed', name: '고정비', route: null },
       { id: 'money-spend', name: '소비', route: null },
       { id: 'money-emergency', name: '비상금', route: null },
@@ -54,7 +58,8 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     iconFile: 'gnb-nav-community.svg',
     route: null,
     items: [
-      { id: 'community-qna', name: '질문', route: null },
+      /* '질문' 만 전용 화면이 있다. 자취꿀팁 / 지역후기 / 소비 비교는 CommunityPage 의 탭 상태다. */
+      { id: 'community-qna', name: '질문', route: 'community-question' },
       { id: 'community-tip', name: '자취꿀팁', route: null },
       { id: 'community-region', name: '지역후기', route: null },
       /* 비슷한 조건의 사용자끼리 실제 소비/지출 내역을 비교하는 기능 */
