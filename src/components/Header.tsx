@@ -18,7 +18,7 @@ export function Header({ onMenuClick, showActions = true }: HeaderProps) {
           <span className="nav-header__name">자두야</span>
         </div>
         {showActions && (
-          <div className="nav-header__actions">
+          <div className="header-actions">
             <BellButton />
             <button type="button" className="icon-btn" aria-label="메뉴" onClick={onMenuClick}>
               <span className="burger" aria-hidden="true">

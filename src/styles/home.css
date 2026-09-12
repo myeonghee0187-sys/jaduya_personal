@@ -160,14 +160,8 @@ a { text-decoration: none; color: inherit; }
   color: var(--brand-logo);
 }
 
-.nav-header__actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  width: 76px;
-  height: 28px;
-}
+/* 헤더 우측 액션(.header-actions)의 값은 page-header.css 한 곳에만 둔다 —
+ * Home / SubPageHeader / GnbOverlay 가 같은 X 좌표를 쓰게 하기 위해서다. */
 
 .icon-btn {
   position: relative;

@@ -7,6 +7,7 @@ import { GnbMenuItem } from './GnbMenuItem';
 import { ShortcutCard } from './ShortcutCard';
 import { StatusBar } from './StatusBar';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import type { AppPage } from '../navigation/AppNavigation';
 
 interface GnbOverlayProps {
   open: boolean;
@@ -25,10 +26,10 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
 
   /* 아직 화면이 없는 메뉴는 route 가 null 이라 이동하지 않는다.
    * route 가 생기면 gnbMenu.ts 의 값만 채우면 된다. */
-  const goTo = (route: string | null) => {
+  const goTo = (route: AppPage | null) => {
     if (!route) return;
     onClose();
-    if (route === 'my') navigation?.navigate('my');
+    navigation?.navigate(route);
   };
 
   /* 내 메뉴 바로가기 — 화면이 있는 항목만 연결한다 */
@@ -49,7 +50,7 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
             </button>
             <span className="gnb__title">전체메뉴</span>
           </div>
-          <div className="nav-header__actions">
+          <div className="header-actions">
             <BellButton />
             <button
               type="button"

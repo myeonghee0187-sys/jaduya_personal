@@ -1,23 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { BellButton } from '../components/BellButton';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
-import { StatusBar } from '../components/StatusBar';
+import { SubPageHeader } from '../components/SubPageHeader';
 import { DEFAULT_PERSONA } from '../data/personaHome';
-import {
-  ACTIVITY_EMPTY,
-  ACTIVITY_TAB_ICONS,
-  ACTIVITY_TABS,
-  CATEGORY_CHIP_COLOR,
-  PERSONA_PROFILE,
-  resolveLevel,
-} from '../data/personaProfile';
-import type { ActivityItem, ActivityTab } from '../data/personaProfile';
-import { COMMUNITY_POSTS } from '../data/communityPosts';
-import { useBookmarks } from '../bookmarks/BookmarkContext';
+import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -40,27 +29,9 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   const level = resolveLevel(profile.level);
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [activity, setActivity] = useState<ActivityTab>('저장');
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
   const name = user?.name ?? '자두';
-
-  /* 커뮤니티에서 북마크한 글을 '저장' 탭 맨 앞에 함께 보여준다.
-   * 저장 여부는 커뮤니티와 같은 전역 상태를 보므로 한쪽에서 해제하면 바로 사라진다. */
-  const { savedPostIds } = useBookmarks();
-  const savedPosts = useMemo<ActivityItem[]>(
-    () =>
-      COMMUNITY_POSTS.filter((post) => savedPostIds.includes(post.id)).map((post) => ({
-        id: `community-${post.id}`,
-        category: '커뮤니티',
-        icon: 'menu-board.svg',
-        title: post.title,
-        desc: post.preview,
-        date: post.time,
-      })),
-    [savedPostIds],
-  );
-  const items = activity === '저장' ? [...savedPosts, ...profile.activity[activity]] : profile.activity[activity];
 
   /* 안내는 잠깐만 띄우고 스스로 사라진다 — 닫는 동작을 따로 만들지 않는다 */
   useEffect(() => {
@@ -77,31 +48,13 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
 
   return (
     <div className="mypage app">
-      <header className="mypage__header">
-        <StatusBar />
-        <div className="mypage__nav">
-          <button
-            type="button"
-            className="mypage__back"
-            aria-label="홈으로"
-            onClick={() => navigation?.navigate('home')}
-          >
-            <img src={icon('gnb-back.svg')} alt="" />
-          </button>
-          <h1>마이페이지</h1>
-          <div className="mypage__actions">
-            <BellButton />
-            <button
-              type="button"
-              className="mypage__menu"
-              aria-label="전체 메뉴"
-              onClick={() => setGnbOpen(true)}
-            >
-              <img src={icon('header-menu.svg')} alt="" />
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* 헤더는 다른 하위 화면과 같은 공용 컴포넌트를 쓴다 — 높이·Y·우측 액션이 한 곳에서 정해진다 */}
+      <SubPageHeader
+        title="마이페이지"
+        backLabel="홈으로"
+        onBack={() => navigation?.navigate('home')}
+        onMenu={() => setGnbOpen(true)}
+      />
 
       <main className="mypage__scroll">
         {/* ① 프로필 — 지금 어떤 상태인지 한 줄로 */}
@@ -166,99 +119,19 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           </p>
         </button>
 
-        {/* ③ 나의 활동 — 저장 / 완료 / 작성 / 댓글 */}
-        <section className="mypage__activity" aria-labelledby="activity-title">
-          <div className="mypage__section-head">
-            <h2 id="activity-title">나의 활동</h2>
-            <button type="button" onClick={() => go('activity', '나의 활동')}>
-              전체보기
-              <img src={icon('chevron-right-sm.svg')} alt="" />
-            </button>
-          </div>
-          {/* 탭은 밑줄이 아니라 개별 pill 버튼이다 (Figma 1665:5338) */}
-          <div className="mypage__tabs" role="tablist" aria-label="나의 활동 종류">
-            {ACTIVITY_TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activity === tab}
-                className={`mypage__tab${activity === tab ? ' is-active' : ''}`}
-                onClick={() => setActivity(tab)}
-              >
-                <span>{tab}</span>
-                {/* 아이콘은 마스크로 칠해 active(흰색)/inactive(먹색)를 한 파일로 처리한다 */}
-                <i
-                  className="mypage__tab-icon"
-                  style={{ maskImage: `url(${icon(ACTIVITY_TAB_ICONS[tab])})` }}
-                  aria-hidden="true"
-                />
-              </button>
-            ))}
-          </div>
-
-          <p className="mypage__recent-label">
-            <span>최근 항목</span>
-          </p>
-
-          {items.length > 0 ? (
-            <div className="mypage__activity-list">
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="mypage__card"
-                  onClick={() => setNotice(item.title + ' 화면은 준비 중이에요.')}
-                >
-                  {item.thumbnail ? (
-                    <img
-                      className="mypage__card-thumb"
-                      src={img(`thumb/${item.thumbnail}`)}
-                      alt=""
-                    />
-                  ) : (
-                    /* thumbnail 이 없는 항목은 카테고리 아이콘을 같은 80×80 자리에 둔다 */
-                    <span
-                      className="mypage__card-thumb mypage__card-thumb--icon"
-                      style={{ background: CATEGORY_CHIP_COLOR[item.category] }}
-                    >
-                      <img src={icon(item.icon)} alt="" />
-                    </span>
-                  )}
-                  <span className="mypage__card-body">
-                    <span className="mypage__card-top">
-                      <span
-                        className="mypage__chip"
-                        style={{ background: CATEGORY_CHIP_COLOR[item.category] }}
-                      >
-                        {item.category}
-                      </span>
-                      <i
-                        className="mypage__card-bookmark"
-                        style={{ maskImage: `url(${icon('card-bookmark.svg')})` }}
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <b className="mypage__card-title">{item.title}</b>
-                    <small className="mypage__card-desc">{item.desc}</small>
-                    <small className="mypage__card-date">
-                      {item.date} {activity}
-                    </small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="mypage__empty">{ACTIVITY_EMPTY[activity]}</p>
-          )}
-        </section>
-
-        {/* ④ 설정 · 고객 관리 — 같은 형태의 행으로 통일한다 */}
-        <section className="mypage__links" aria-label="설정">
+        {/* ③ 메뉴 — 카드가 아니라 한 줄 메뉴 + divider (Figma 3131:16854) */}
+        <section className="mypage__links" aria-label="메뉴">
+          <button type="button" onClick={() => go('activity', '나의 활동')}>
+            <span className="mypage__link-copy">
+              <b>나의 활동</b>
+              <small>저장한 정보 / 작성한글 / 댓글</small>
+            </span>
+            <img src={icon('chevron-right-sm.svg')} alt="" />
+          </button>
           <button type="button" onClick={() => go('profile', '자취 프로필')}>
             <span className="mypage__link-copy">
               <b>자취 프로필</b>
-              <small>자취기간 / 주거 형태 / 관심분야 등</small>
+              <small>자취기간 / 주거 형태 / 관심분야</small>
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>
@@ -269,14 +142,15 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>
-          <button type="button" onClick={() => go('support', '고객관리')}>
+          <button type="button" onClick={() => go('support', '고객센터')}>
             <span className="mypage__link-copy">
-              <b>고객관리</b>
+              <b>고객센터</b>
               <small>FAQ / 문의하기 / 약관</small>
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>
         </section>
+
       </main>
 
       {/* 스크롤 끝이 아니라 탭바 바로 위에 띄워, 누른 자리에서 바로 보이게 한다 */}
