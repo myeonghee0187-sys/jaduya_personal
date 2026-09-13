@@ -19,6 +19,7 @@ import { LifeHousePage } from './pages/LifeHousePage';
 import { LifeEatPage } from './pages/LifeEatPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { CommunityQuestionPage } from './pages/CommunityQuestionPage';
+import { CommunityTipPage } from './pages/CommunityTipPage';
 import { AIChatPage } from './pages/AIChatPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
@@ -65,6 +66,7 @@ function MainPages() {
       {page === 'life-eat' && <LifeEatPage />}
       {page === 'community' && <CommunityPage />}
       {page === 'community-question' && <CommunityQuestionPage />}
+      {page === 'community-tip' && <CommunityTipPage />}
       {page === 'ai-chat' && <AIChatPage />}
     </>
   );

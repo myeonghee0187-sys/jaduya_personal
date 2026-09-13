@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -7,7 +7,7 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
-import { COMMUNITY_POSTS, COMMUNITY_TABS } from '../data/communityPosts';
+import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -22,7 +22,7 @@ export function CommunityPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  /* 다른 화면에서 탭을 지정해 들어올 수 있다 (예: 살림 > 살림 팁 → '자취 꿀팁').
+  /* 다른 화면에서 탭을 지정해 들어올 수 있다 (전용 화면이 있는 '질문'·'자취 꿀팁'은 제외).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
   const requestedTab = navigation?.options.tab;
   const [tab, setTab] = useState<string>(() =>
@@ -61,6 +61,16 @@ export function CommunityPage() {
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
+  /* '최신순' 은 실제 날짜 대신 상대 시간 텍스트라 정렬 기준으로 쓸 수 없다 —
+   * COMMUNITY_POSTS 가 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
+  const visiblePosts = useMemo(() => {
+    const filtered =
+      level === '레벨 전체' ? COMMUNITY_POSTS : COMMUNITY_POSTS.filter((post) => post.level === level);
+    if (sort === '인기순') return [...filtered].sort((a, b) => b.likes - a.likes);
+    if (sort === '댓글순') return [...filtered].sort((a, b) => b.comments - a.comments);
+    return filtered;
+  }, [level, sort]);
+
   return (
     <div className="community app">
       <SubPageHeader
@@ -73,18 +83,14 @@ export function CommunityPage() {
       <main className="community__scroll">
         {/* ============ 검색 ============ */}
         <section className="community-search">
-          <p className="community-search__title">
-            자취하는 사람들의
-            <br />
-            진짜 이야기를 나눠요
-          </p>
+          <p className="community-search__title">자취하는 사람들의 진짜 이야기를 만나보세요</p>
           <div className="community-search__input">
             <input
               ref={searchRef}
               type="search"
               value={keyword}
-              placeholder="동네 이름으로 검색해보세요"
-              aria-label="동네 이름으로 검색"
+              placeholder="궁금한 자취 이야기를 검색해보세요"
+              aria-label="자취 이야기 검색"
               onChange={(event) => setKeyword(event.target.value)}
             />
             {/* 지우기·검색은 같은 규격(24px box · 20px glyph · stroke 2)의 아이콘을 쓴다 */}
@@ -138,6 +144,7 @@ export function CommunityPage() {
               aria-current={name === tab ? 'page' : undefined}
               onClick={() => {
                 if (name === '질문') navigation?.navigate('community-question');
+                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
                 else setTab(name);
               }}
             >
@@ -214,11 +221,10 @@ export function CommunityPage() {
               <img src={img('community/section-badge.png')} alt="" />
               실시간 인기 게시물
             </h2>
-            <span className="community-feed__more">전체보기 &gt;</span>
           </div>
 
           <div className="community-feed__list">
-            {COMMUNITY_POSTS.map((post) => (
+            {visiblePosts.map((post) => (
               <CommunityPostCard
                 key={post.id}
                 post={post}

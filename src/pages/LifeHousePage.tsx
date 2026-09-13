@@ -11,7 +11,6 @@ import { RoutineAccordionItem } from '../components/lifehouse/RoutineAccordionIt
 import { AddRoutineSheet } from '../components/lifehouse/AddRoutineSheet';
 import { IntervalSheet } from '../components/lifehouse/IntervalSheet';
 import { DEFAULT_MENU } from '../data/menuCatalog';
-import { COMMUNITY_TIP_TAB } from '../data/communityPosts';
 import {
   DEFAULT_ROUTINES,
   HOUSE_TIP,
@@ -133,7 +132,7 @@ export function LifeHousePage() {
   /* 살림 팁은 이 화면에서 상세를 펼치지 않고 커뮤니티의 '자취 꿀팁' 으로 넘긴다 —
    * 카드와 '더보기' 의 목적지는 같다. */
   const openCommunityTips = useCallback(() => {
-    navigation?.navigate('community', { tab: COMMUNITY_TIP_TAB });
+    navigation?.navigate('community-tip');
   }, [navigation]);
 
   /* 스크롤 등장은 살림 팁에만 쓴다 — 검색·루틴은 사용자 action 에 반응하는 쪽이 중심이다 */
