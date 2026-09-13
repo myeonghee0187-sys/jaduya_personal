@@ -8,10 +8,12 @@ import { img } from '../../lib/asset';
  * 그 사이드에서 세로 위치 유지.
  * 세로 범위는 헤더 아래 ~ 바텀네비 위로 제한한다. */
 
-const SIZE = 64; // 버튼 지름
+const SIZE = 72; // 버튼 지름
 const EDGE = 16; // 좌우 안전 여백
 const GAP = 8; // 헤더 / 바텀네비와의 최소 간격
-const MOVE_THRESHOLD = 5; // 이 값 이하로 움직이면 클릭으로 본다
+/* 이 값 이하로 움직이면 클릭으로 본다. 마우스는 누르고 떼는 사이 몇 px 씩 흔들려서
+ * 터치 기준(5px)으로는 단순 클릭이 드래그로 오판된다 — 8px 로 둔다. */
+const MOVE_THRESHOLD = 8;
 
 type Side = 'left' | 'right';
 
@@ -35,9 +37,20 @@ function readBounds(host: HTMLElement | null): Bounds | null {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
+/* 데스크톱 프리뷰(IPhoneFrame)는 .app 을 zoom: var(--phone-scale) 로 축소한다.
+ * getBoundingClientRect() 는 줌이 적용된 "화면" px 를, offsetWidth / style.top 은 줌과
+ * 무관한 "레이아웃" px 를 쓴다. 둘을 섞으면 드래그가 끝나는 순간 버튼이 줌 배율만큼
+ * 위로 튀어오른다. rect 로 잰 값은 전부 이 배율로 나눠 레이아웃 px 로 되돌린다.
+ * (Coachmark.tsx 의 getScale 과 같은 계산 — 실기기는 zoom 이 없어 항상 1 이다) */
+function getScale(app: HTMLElement): number {
+  const real = app.getBoundingClientRect().width;
+  return app.offsetWidth ? real / app.offsetWidth : 1;
+}
+
 interface AIChatbotButtonProps {
-  /** 드래그가 아닌 '클릭' 으로 판정됐을 때만 호출된다 */
-  onClick: () => void;
+  /** 드래그가 아닌 '클릭' 으로 판정됐을 때만 호출된다.
+   * 진입 모프가 버튼의 현재(드래그된) 위치를 시작점으로 쓰므로 버튼 자체를 넘긴다. */
+  onClick: (button: HTMLButtonElement | null) => void;
   hidden?: boolean;
   /** 최초 배치를 기본(바텀네비 바로 위)보다 이만큼(px) 위로 올린다.
    * 커뮤니티 글쓰기 버튼처럼 그 자리에 이미 다른 플로팅 버튼이 있을 때만 쓴다.
@@ -61,6 +74,8 @@ export function AIChatbotButton({
   const [top, setTop] = useState<number | null>(null);
   /* 드래그 중에만 쓰는 자유 좌표 */
   const [freePos, setFreePos] = useState<{ left: number; top: number } | null>(null);
+  /* 오른쪽 스냅 위치를 left 로 계산하기 위한 .app 폭. null 이면 아직 측정 전이다. */
+  const [appWidth, setAppWidth] = useState<number | null>(null);
 
   const drag = useRef<{
     id: number;
@@ -79,6 +94,7 @@ export function AIChatbotButton({
     if (!bounds) return;
     const defaultTop = bounds.maxTop - initialLift;
     setTop((current) => clamp(current ?? defaultTop, bounds.minTop, bounds.maxTop));
+    setAppWidth(bounds.width);
   }, [initialLift]);
 
   useEffect(() => {
@@ -93,14 +109,15 @@ export function AIChatbotButton({
     const rect = ref.current.getBoundingClientRect();
     const app = ref.current.offsetParent as HTMLElement;
     const appRect = app.getBoundingClientRect();
+    const scale = getScale(app);
     drag.current = {
       id: event.pointerId,
-      dx: event.clientX - rect.left,
-      dy: event.clientY - rect.top,
+      dx: (event.clientX - rect.left) / scale,
+      dy: (event.clientY - rect.top) / scale,
       startX: event.clientX,
       startY: event.clientY,
-      left: rect.left - appRect.left,
-      top: rect.top - appRect.top,
+      left: (rect.left - appRect.left) / scale,
+      top: (rect.top - appRect.top) / scale,
       moved: false,
     };
     ref.current.setPointerCapture(event.pointerId);
@@ -112,13 +129,24 @@ export function AIChatbotButton({
     const info = drag.current;
     const bounds = readBounds(ref.current);
     if (!info || info.id !== event.pointerId || !bounds || !ref.current) return;
-    const appRect = (ref.current.offsetParent as HTMLElement).getBoundingClientRect();
-    const left = clamp(event.clientX - appRect.left - info.dx, EDGE, bounds.width - EDGE - SIZE);
-    const nextTop = clamp(event.clientY - appRect.top - info.dy, bounds.minTop, bounds.maxTop);
-    /* 이동 판정은 포인터가 실제로 움직인 거리로 본다 (클램프된 위치가 아니라) */
+    const app = ref.current.offsetParent as HTMLElement;
+    const appRect = app.getBoundingClientRect();
+    const scale = getScale(app);
+    const left = clamp(
+      (event.clientX - appRect.left) / scale - info.dx,
+      EDGE,
+      bounds.width - EDGE - SIZE,
+    );
+    const nextTop = clamp(
+      (event.clientY - appRect.top) / scale - info.dy,
+      bounds.minTop,
+      bounds.maxTop,
+    );
+    /* 이동 판정은 포인터가 실제로 움직인 거리로 본다 (클램프된 위치가 아니라).
+     * 이 거리도 화면 px 라서 같은 배율로 되돌려 임계값과 단위를 맞춘다. */
     if (
-      Math.abs(event.clientX - info.startX) > MOVE_THRESHOLD ||
-      Math.abs(event.clientY - info.startY) > MOVE_THRESHOLD
+      Math.abs(event.clientX - info.startX) / scale > MOVE_THRESHOLD ||
+      Math.abs(event.clientY - info.startY) / scale > MOVE_THRESHOLD
     ) {
       info.moved = true;
     }
@@ -138,17 +166,26 @@ export function AIChatbotButton({
       const center = info.left + SIZE / 2;
       setSide(center < bounds.width / 2 ? 'left' : 'right');
       setTop(clamp(info.top, bounds.minTop, bounds.maxTop));
+      setAppWidth(bounds.width);
     }
     setFreePos(null);
-    if (!info.moved) onClick();
+    if (!info.moved) onClick(ref.current);
   };
 
   const dragging = freePos !== null;
+  const restTop = top === null ? undefined : `${top}px`;
+  /* 양쪽 모두 left 로 배치한다 — 오른쪽만 right 로 두면 스냅할 때 left 가 px→auto 로
+   * 바뀌어 transition 이 걸리지 않고 툭 붙는다(왼쪽만 부드럽던 이유).
+   * 폭을 아직 못 쟀을 때(첫 렌더)만 right 로 두고, settle() 직후 left 배치로 넘어간다. */
   const style = dragging
     ? { left: `${freePos.left}px`, top: `${freePos.top}px`, right: 'auto' }
-    : side === 'left'
-      ? { left: `${EDGE}px`, right: 'auto', top: top === null ? undefined : `${top}px` }
-      : { right: `${EDGE}px`, left: 'auto', top: top === null ? undefined : `${top}px` };
+    : appWidth === null
+      ? { right: `${EDGE}px`, left: 'auto', top: restTop }
+      : {
+          left: `${side === 'left' ? EDGE : appWidth - EDGE - SIZE}px`,
+          right: 'auto',
+          top: restTop,
+        };
 
   return (
     <button

@@ -20,6 +20,46 @@
  * 페이지마다 다른 JSX 순서에 기대지 않도록 z-index 로 못 박는다. */
 .layer--sheet { z-index: 70; }
 
+/* 시트는 아래에서 올라오고 닫을 때 다시 내려간다.
+ * [hidden] 의 display:none 은 전환할 자리가 없어 visibility 로만 감춘다 (.gnb 와 같은 방식). */
+.layer--sheet .bsheet {
+  transform: translateY(0);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layer--sheet .layer-dim {
+  opacity: 1;
+  transition: opacity 320ms ease-out;
+}
+
+.layer--sheet[hidden] {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 260ms;
+}
+
+.layer--sheet[hidden] .bsheet {
+  transform: translateY(100%);
+  transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.layer--sheet[hidden] .layer-dim {
+  opacity: 0;
+  transition: opacity 260ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer--sheet .bsheet,
+  .layer--sheet .layer-dim,
+  .layer--sheet[hidden],
+  .layer--sheet[hidden] .bsheet,
+  .layer--sheet[hidden] .layer-dim {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+}
+
 .layer-dim {
   position: absolute;
   inset: 0;
@@ -128,10 +168,10 @@
  * 화면 슬라이드보다 살짝 늦게 시작해서(80ms) 층위감을 준다. */
 /* X 는 45° 로 누운 두 변이라, 햄버거와 같은 18.41px 폭으로 보이려면 변이 더 길어야 한다.
  * 회전한 막대의 화면상 가로폭 = (길이 + 두께) × cos45 이므로
- *   18.41 = (L + 2.28) × 0.7071  →  L = 23.76px
+ *   18.41 = (L + 2.5) × 0.7071  →  L = 23.54px
  * 개별 아이콘에 transform: scale 을 덧대지 않고 bar 길이 토큰 하나만 바꾼다. */
 .gnb:not([hidden]) .burger--morph {
-  --burger-bar-len: 23.76px;
+  --burger-bar-len: 23.54px;
 }
 
 .gnb:not([hidden]) .burger--morph .burger__bar {
@@ -139,7 +179,7 @@
 }
 
 .gnb:not([hidden]) .burger--morph .burger__bar:nth-child(1) {
-  transform: translateY(6.1px) rotate(45deg);
+  transform: translateY(6px) rotate(45deg);
 }
 
 .gnb:not([hidden]) .burger--morph .burger__bar:nth-child(2) {
@@ -148,7 +188,7 @@
 }
 
 .gnb:not([hidden]) .burger--morph .burger__bar:nth-child(3) {
-  transform: translateY(-7.1px) rotate(-45deg);
+  transform: translateY(-7.01px) rotate(-45deg);
 }
 
 .gnb__scroll {

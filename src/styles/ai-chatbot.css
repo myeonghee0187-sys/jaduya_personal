@@ -3,14 +3,14 @@
 
 /* ================= 플로팅 버튼 ================= */
 
-/* 지름은 AIChatbotButton.tsx 의 SIZE 상수(64)와 같아야 한다.
+/* 지름은 AIChatbotButton.tsx 의 SIZE 상수(72)와 같아야 한다.
  * 드래그 클램프와 좌/우 스냅 중심 계산이 그 값을 쓴다. */
 .ai-fab {
   position: absolute;
   /* 헤더(30) / 시트(20) / 바텀네비(40) 위, 오버레이(60) 아래 */
   z-index: 50;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-pill);
@@ -30,13 +30,63 @@
   cursor: grabbing;
 }
 
+/* 마스코트는 원 밖으로 잎사귀가 삐져나온 그림(720x744)이다.
+ * pill 마스크 + cover 로 자르면 잎사귀와 위아래가 잘려서, 통째로 담기게 둔다. */
 .ai-fab img {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-pill);
-  object-fit: cover;
+  object-fit: contain;
   pointer-events: none;
   user-select: none;
+}
+
+/* ================= 진입 모프 오버레이 ================= */
+
+/* aiChatMorph.ts 가 document.body 에 직접 붙인다 (React 트리 밖).
+ * 버튼 자리에서 .app 크기까지 펼쳐지며 원 → 화면 모서리로 radius 가 줄어든다.
+ * 길이를 바꾸면 aiChatMorph.ts 의 EXPAND_MS / FADE_MS 도 같이 맞춘다. */
+.ai-morph {
+  position: fixed;
+  z-index: 200;
+  overflow: hidden;
+  background: var(--surface-subtle);
+  box-shadow: 0 10px 30px rgba(60, 50, 45, 0.18);
+  /* 전환 중에는 아무것도 누르지 못하게 둔다 */
+  pointer-events: none;
+  transition:
+    left 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 아이콘은 확장되는 원과 형제다 — 컨테이너를 따라 늘어나지 않게 크기를 인라인으로 고정하고
+ * (aiChatMorph.ts 가 FAB rect 를 그대로 넣는다) 제자리에서 fade-out 만 한다. */
+.ai-morph__icon {
+  position: fixed;
+  z-index: 201;
+  object-fit: contain;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+.ai-morph__icon.is-gone {
+  opacity: 0;
+}
+
+/* 다 펼친 뒤 걷히면서 그 아래 챗봇 화면이 드러난다 */
+.ai-morph.is-gone {
+  opacity: 0;
+  transition: opacity 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-morph,
+  .ai-morph__icon {
+    display: none;
+  }
 }
 
 /* ================= 패널 ================= */
