@@ -177,5 +177,8 @@ export function useSheetGesture() {
       onPointerCancel: onPointerUp,
       onKeyDown,
     },
+    /** 드래그/토글 없이 상태를 직접 지정한다 — 코치마크가 "내 생활" 아래쪽을 보여줘야
+     * 할 때처럼, 사용자 제스처 없이도 peek ↔ expanded 를 강제로 넘길 때만 쓴다. */
+    apply,
   };
 }

@@ -3,12 +3,11 @@
  * demoSignup.ts 와 같은 방식이다 — persona 기본 데이터(MOCK_USERS / personaProfile)는
  * 코드 상수라 절대 건드리지 않고, 브라우저에 쌓인 진행 상태만 다룬다.
  *
- * 지금 이 프로젝트에 실제로 존재하는 계정별 진행 상태는 세 가지뿐이다.
+ * 지금 이 프로젝트에 실제로 존재하는 계정별 진행 상태는 네 가지다.
  *   1) 온보딩(첫 맞춤 설정) 완료 여부  — AuthUser.onboarded
  *   2) 자취 프로필 설정               — jaduya.livingProfile.<email>
  *   3) 냉장고 재료 진행 상태          — jaduya.life-eat.*:<email>
- * coachmark / "첫 홈 진입" 같은 상태는 코드에 없어서(TipBox 는 컴포넌트 로컬 useState)
- * 여기서도 만들지 않는다.
+ *   4) 홈 코치마크(4단계 가이드) 시청 — coachmarkProgress.ts / jaduya.demo.coachmarkSeen.<email>
  *
  * onboarded 는 MOCK_USERS 에 true 로 박혀 있어 login() 이 매번 true 로 되돌린다.
  * 그래서 "이 계정은 온보딩부터 다시" 를 계정 전환 후에도 기억하려면 이 플래그가 필요하다.
@@ -16,6 +15,7 @@
 
 import { clearLivingProfile } from '../data/livingProfile';
 import { clearFridgeStorage } from '../data/lifeEat';
+import { clearCoachmarkSeen } from './coachmarkProgress';
 
 const ONBOARDING_PENDING_PREFIX = 'jaduya.demo.onboardingPending.';
 
@@ -55,5 +55,6 @@ export function resetAccountDemo(email: string): void {
   const key = normalize(email);
   clearLivingProfile(key);
   clearFridgeStorage(key);
+  clearCoachmarkSeen(key);
   markOnboardingPending(key);
 }

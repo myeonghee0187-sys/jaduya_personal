@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { icon } from '../lib/asset';
-import { MAX_WIDGET, WIDGET_CATALOG, widgetWeight } from '../data/widgetCatalog';
+import {
+  MAX_ROW_MEDIUM,
+  MAX_ROW_SMALL,
+  MAX_WIDGET,
+  WIDGET_CATALOG,
+  widgetWeight,
+} from '../data/widgetCatalog';
 import { layoutCatalogEntries } from '../data/personaWidgets';
 import type { PersonaWidgetLayout } from '../data/personaWidgets';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import type { WidgetCategory, WidgetSize } from '../types';
-import { BottomSheet } from './BottomSheet';
+import { StatusBar } from './StatusBar';
 import { WidgetCard } from './WidgetCard';
 
 /** 추천 위젯 그룹 — Figma add_widget 의 소제목 구성 그대로 */
@@ -24,11 +30,18 @@ const SIZE_VARIANT_SIBLINGS = new Map<string, string[]>(
   ),
 );
 
+/** 카드 크기가 뒤섞여 있으면 눈에 잘 안 띄어서, 같은 카테고리 안에서는 Small → Medium →
+ * Large 순으로 크기별로 모아 보여준다(동점이면 원래 카탈로그 순서를 그대로 유지). */
+const SIZE_ORDER: Record<WidgetSize, number> = { small: 0, medium: 1, large: 2 };
+
 /** IA 순서대로 카테고리별 위젯을 묶는다 — 위젯 추가 시트의 카테고리 아코디언 */
 const CATEGORY_ORDER: WidgetCategory[] = ['생활', '돈 관리', '혜택', '커뮤니티', '마이'];
 const CATEGORY_GROUPS = CATEGORY_ORDER.map((name) => ({
   name,
-  ids: WIDGET_CATALOG.filter((w) => w.category === name).map((w) => w.id),
+  ids: WIDGET_CATALOG.filter((w) => w.category === name)
+    .slice()
+    .sort((a, b) => SIZE_ORDER[a.size] - SIZE_ORDER[b.size])
+    .map((w) => w.id),
 })).filter((g) => g.ids.length > 0);
 
 interface AddWidgetProps {
@@ -62,11 +75,16 @@ export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetPro
   const isSizeLocked = (id: string) =>
     !baseSizeById.has(id) && (SIZE_VARIANT_SIBLINGS.get(id) ?? []).some((sib) => baseSizeById.has(sib));
 
-  /* '4개'가 아니라 '4칸' — Large는 Medium 2개 폭을 쓰므로 2칸으로 센다 */
+  /* '4개'가 아니라 '4칸' — Large는 Medium 2개 폭을 쓰므로 2칸으로 센다 (선택 개수 표시용) */
   const totalWeight = useMemo(
     () => draft.draft.reduce((sum, id) => sum + widgetWeight(sizeOf(id)), 0),
     [draft.draft, baseSizeById],
   );
+
+  /* Home 캔버스는 항상 2줄 고정 — 1번째 줄(Medium 최대 2개, 또는 Large 1개 단독) +
+   * 2번째 줄(Small 최대 2개). 이 캡을 실제 선택 가능 여부로 쓴다(줄이 3번째로 밀리지 않게). */
+  const mediumCount = draft.draft.filter((id) => sizeOf(id) === 'medium').length;
+  const smallCount = draft.draft.filter((id) => sizeOf(id) === 'small').length;
   const hasLarge = draft.draft.some((id) => sizeOf(id) === 'large');
 
   useEffect(() => {
@@ -85,14 +103,30 @@ export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetPro
       return;
     }
     const size = sizeOf(id);
-    if (size === 'large' && hasLarge) {
-      setWarning('큰 위젯은 한 번에 하나만 담을 수 있어요.');
+
+    if (size === 'large') {
+      if (hasLarge) {
+        setWarning('큰 위젯은 한 번에 하나만 담을 수 있어요.');
+        return;
+      }
+      if (mediumCount > 0) {
+        setWarning('큰 위젯을 담으려면 1번째 줄의 위젯을 먼저 빼주세요.');
+        return;
+      }
+    } else if (size === 'medium') {
+      if (hasLarge) {
+        setWarning('큰 위젯이 있으면 1번째 줄에 다른 위젯을 담을 수 없어요.');
+        return;
+      }
+      if (mediumCount >= MAX_ROW_MEDIUM) {
+        setWarning('1번째 줄에는 위젯을 2개까지 담을 수 있어요.');
+        return;
+      }
+    } else if (smallCount >= MAX_ROW_SMALL) {
+      setWarning('2번째 줄에는 위젯을 2개까지 담을 수 있어요.');
       return;
     }
-    if (totalWeight + widgetWeight(size) > MAX_WIDGET) {
-      setWarning('지금 담긴 위젯 크기로는 더 추가할 수 없어요.');
-      return;
-    }
+
     draft.toggle(id);
   };
 
@@ -133,38 +167,45 @@ export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetPro
   /* '현재 사용 중인' 카드만 Home 캔버스에 실제 배정된 크기(medium/small)로 보여준다 */
   const renderInUseCard = (id: string) => renderCard(id, baseSizeById.get(id));
 
-  /* 큰 위젯은 항상 맨 위 — Home 캔버스가 large 를 첫 줄에 단독 배치하는 것과 순서를 맞춘다 */
-  const inUseOrdered = [...draft.draft].sort(
-    (a, b) => (sizeOf(a) === 'large' ? 0 : 1) - (sizeOf(b) === 'large' ? 0 : 1),
-  );
+  /* Home 캔버스와 같은 두 줄 규칙으로 묶는다 — 담긴 순서가 섞여도(예: medium 하나를 끄고
+   * 다른 medium을 새로 담아도) 항상 Home처럼 1번째 줄(Large 단독 또는 Medium),
+   * 2번째 줄(Small)로 보이게 크기별로 나눈다. */
+  const inUseLarge = draft.draft.filter((id) => sizeOf(id) === 'large');
+  const inUseMedium = draft.draft.filter((id) => sizeOf(id) === 'medium');
+  const inUseSmall = draft.draft.filter((id) => sizeOf(id) === 'small');
+  const inUseRow1 = inUseLarge.length > 0 ? inUseLarge : inUseMedium;
 
   return (
-    <BottomSheet
-      open={open}
-      className="add-widget"
-      labelledBy="addWidgetTitle"
-      onDimClick={onClose}
-    >
-      <div className="add-widget__grip">
-        <span />
+    <section className="layer add-widget" hidden={!open} aria-label="위젯 추가">
+      <StatusBar />
+
+      {/* 다른 풀페이지(Header/SubPageHeader/GnbOverlay)와 같은 nav-header 행 — 뒤로가기·
+       * 타이틀·우측 아이콘이 항상 같은 줄·같은 높이(50px)에 놓이게 클래스를 그대로 재사용한다. */}
+      <div className="nav-header">
+        <div className="gnb__title-button">
+          <button
+            type="button"
+            className="gnb__back"
+            aria-label="위젯 추가 닫기"
+            onClick={onClose}
+          >
+            <img src={icon('gnb-back.svg')} alt="" />
+          </button>
+          <span className="gnb__title">위젯 추가</span>
+        </div>
+        <div className="header-actions">
+          <button
+            type="button"
+            className="add-widget__close"
+            aria-label="위젯 추가 닫기"
+            onClick={onClose}
+          >
+            <img src={icon('widget-close.svg')} alt="" />
+          </button>
+        </div>
       </div>
 
-      <div className="add-widget__head">
-        <div>
-          <h2 className="add-widget__title" id="addWidgetTitle">
-            위젯 추가
-          </h2>
-          <p className="add-widget__sub">내 생활에 필요한 정보를 골라서 추가해보세요.</p>
-        </div>
-        <button
-          type="button"
-          className="add-widget__close"
-          aria-label="위젯 추가 닫기"
-          onClick={onClose}
-        >
-          <img src={icon('widget-close.svg')} alt="" />
-        </button>
-      </div>
+      <p className="add-widget__sub">내 생활에 필요한 정보를 골라서 추가해보세요.</p>
 
       <div className="add-widget__search">
         <img src={icon('widget-search.svg')} alt="" />
@@ -186,7 +227,14 @@ export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetPro
               {totalWeight}/{MAX_WIDGET}
             </span>
           </div>
-          <div className="wpick-grid">{inUseOrdered.map((id) => renderInUseCard(id))}</div>
+          <div className="wpick-grid wpick-grid--rows">
+            {inUseRow1.length > 0 && (
+              <div className="module-grid__row">{inUseRow1.map((id) => renderInUseCard(id))}</div>
+            )}
+            {inUseSmall.length > 0 && (
+              <div className="module-grid__row">{inUseSmall.map((id) => renderInUseCard(id))}</div>
+            )}
+          </div>
         </section>
 
         {/* 추천 위젯 */}
@@ -265,6 +313,6 @@ export function AddWidget({ open, draft, layout, onClose, onDone }: AddWidgetPro
           완료하기
         </button>
       </div>
-    </BottomSheet>
+    </section>
   );
 }

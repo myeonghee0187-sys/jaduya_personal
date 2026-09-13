@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { KeyboardEvent, MouseEvent, Ref } from 'react';
 import { icon, img } from '../lib/asset';
 import type { HomeTip } from '../types';
 
@@ -8,9 +8,12 @@ import type { HomeTip } from '../types';
 interface TipBoxProps {
   /** persona 별 오늘의 팁 — 제목과 상세가 함께 바뀐다 */
   tip: HomeTip;
+  /** 실제 보이는 글래스 카드(.tip-box__inner) DOM 참조 — 코치마크가 강조 영역을
+   * 잴 때만 쓴다. 평소 렌더링에는 영향 없다. */
+  cardRef?: Ref<HTMLDivElement>;
 }
 
-export function TipBox({ tip }: TipBoxProps) {
+export function TipBox({ tip, cardRef }: TipBoxProps) {
   const [closing, setClosing] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -28,6 +31,7 @@ export function TipBox({ tip }: TipBoxProps) {
     <div className="tip-box" hidden={hidden} style={closing ? { opacity: 0 } : undefined}>
       {/* 박스 어디를 눌러도 상세가 열린다 (기존 detailsOpen 재사용) */}
       <div
+        ref={cardRef}
         className="tip-box__inner"
         role="button"
         tabIndex={0}

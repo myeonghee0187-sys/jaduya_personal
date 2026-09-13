@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { AddWidget } from '../components/AddWidget';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { Coachmark } from '../components/Coachmark';
+import type { CoachmarkStep } from '../components/Coachmark';
 import { DiscoverySection } from '../components/DiscoverySection';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { Greeting } from '../components/Greeting';
@@ -16,6 +18,7 @@ import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/per
 import { PERSONA_WIDGETS, layoutCatalogIds } from '../data/personaWidgets';
 import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
+import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
@@ -62,6 +65,66 @@ export function Home() {
     layers.close();
   };
 
+  /* 홈 코치마크(첫 진입 4단계 가이드) — 이서준과 이서준으로 새로 가입한 일반 테스트
+   * 계정(둘 다 persona: 'beginner')에서만, 계정당 한 번만 뜬다. 계정이 바뀌면 Home 이
+   * key={user.email} 로 다시 마운트되므로(App.tsx) lazy state 로 한 번만 계산해도 된다. */
+  const [coachmarkOpen, setCoachmarkOpen] = useState(
+    () => persona === 'beginner' && !!user?.email && !isCoachmarkSeen(user.email),
+  );
+  const finishCoachmark = () => {
+    if (user?.email) markCoachmarkSeen(user.email);
+    setCoachmarkOpen(false);
+    /* 투어 때문에 강제로 올렸던 시트를 원래 진입 모습(peek)으로 되돌린다 */
+    sheet.apply('peek');
+  };
+  /* 3·4단계 타겟(위젯 추가 슬롯, AI 챗봇)은 peek 상태에선 시트 아래로 가려 안 보인다 —
+   * 해당 단계에 들어서면 시트를 강제로 올리고, 1·2단계로 돌아오면 다시 내린다. */
+  const onCoachmarkStepChange = (step: CoachmarkStep) => {
+    if (step.sheetState && step.sheetState !== sheet.state) sheet.apply(step.sheetState);
+  };
+
+  /* 강조할 실제 DOM — 좌표를 하드코딩하지 않고 Coachmark 가 매 단계 실측한다 */
+  const tipBoxRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const addSlotRef = useRef<HTMLDivElement>(null);
+  const aiFabRef = useRef<HTMLButtonElement>(null);
+
+  const coachmarkSteps: CoachmarkStep[] = [
+    {
+      key: 'notice',
+      title: '중요한 알림을 한눈에',
+      body: '생활비, 주거, 혜택 등\n내게 필요한 알림을 바로 확인할 수 있어요.',
+      targetRef: tipBoxRef,
+      radius: 20,
+      sheetState: 'peek',
+    },
+    {
+      key: 'level',
+      title: '활동할수록 레벨 UP!',
+      body: '자두야에서 활동할수록 레벨이 올라가요.\n하트를 모아 다양한 보상을 받아보세요.',
+      targetRef: statusRef,
+      radius: 20,
+      sheetState: 'peek',
+    },
+    {
+      key: 'menu',
+      title: '자주 쓰는 메뉴만 쏙 모아보세요',
+      body: '자주 쓰는 기능을 골라\n나만의 메뉴를 만들어보세요.',
+      targetRef: addSlotRef,
+      radius: 16,
+      /* peek 상태에선 위젯 추가(+) 슬롯이 시트 아래로 가려 안 보인다 */
+      sheetState: 'expanded',
+    },
+    {
+      key: 'chatbot',
+      title: '자두는 어디든 이동 가능해요',
+      body: '화면 내 원하는 곳으로\n언제든 편하게 옮겨보세요.',
+      targetRef: aiFabRef,
+      radius: 'circle',
+      sheetState: 'expanded',
+    },
+  ];
+
   return (
     <div
       className={`app${sheet.isDragging ? ' is-dragging' : ''}`}
@@ -73,7 +136,7 @@ export function Home() {
 
       <Greeting name={greetingName(user?.name ?? '')} hero={content.hero} />
 
-      <TipBox tip={content.tips[0]} />
+      <TipBox tip={content.tips[0]} cardRef={tipBoxRef} />
 
       <HomeSheet
         state={sheet.state}
@@ -89,6 +152,8 @@ export function Home() {
           widgets={myWidgets}
           isCustom={widgetsCustomized}
           onAddWidget={openAddWidget}
+          statusRef={statusRef}
+          addSlotRef={addSlotRef}
         />
         <DiscoverySection />
       </HomeSheet>
@@ -96,7 +161,7 @@ export function Home() {
       <BottomNavigation />
 
       {/* 전역 AI 챗봇 FAB + 패널 */}
-      <AIChatbot />
+      <AIChatbot coachmarkRef={aiFabRef} />
 
       <GnbOverlay
         open={layers.isOpen('gnb')}
@@ -119,6 +184,14 @@ export function Home() {
         onClose={layers.close}
         onDone={doneAddWidget}
       />
+
+      {coachmarkOpen && (
+        <Coachmark
+          steps={coachmarkSteps}
+          onFinish={finishCoachmark}
+          onStepChange={onCoachmarkStepChange}
+        />
+      )}
     </div>
   );
 }

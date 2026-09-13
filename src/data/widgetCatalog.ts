@@ -40,6 +40,11 @@ export const HOME_NATIVE_WIDGETS = ['living-cost', 'rent', 'fridge'];
 
 export const MAX_WIDGET = 4;
 
+/** Home 캔버스는 항상 2줄 — 1번째 줄(Medium 2개 또는 Large 1개 단독) + 2번째 줄(Small 2개).
+ *  이 캡을 넘는 선택은 새 줄을 만드는 대신 막아야 한다(add-widget에서 사용). */
+export const MAX_ROW_MEDIUM = 2;
+export const MAX_ROW_SMALL = 2;
+
 /** 위젯이 캔버스에서 차지하는 칸 수 — Large(342×114)는 Medium 2개와 같은 폭을 쓰므로 2칸이다.
  *  '4개'는 개수가 아니라 이 칸 수의 합으로 판단한다. */
 export function widgetWeight(size: WidgetSize): number {

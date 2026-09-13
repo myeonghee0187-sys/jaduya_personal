@@ -120,6 +120,10 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* .add-widget처럼 이 자체가 flex 세로 컬럼의 직계 자식으로 쓰이는 곳에서는
+   * flex-shrink 기본값(1) 때문에 콘텐츠가 넘치면 이 높이가 찌그러진다 — 항상
+   * 지정한 높이 그대로 유지되도록 고정한다. */
+  flex: none;
   height: 50px;
   padding: 0 var(--screen-margin);
 }
@@ -139,6 +143,8 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* .status-bar 와 같은 이유로 고정 — .add-widget 의 flex 컬럼 안에서 찌그러지지 않게 */
+  flex: none;
   height: 50px;
   padding: 0 var(--screen-margin);
 }

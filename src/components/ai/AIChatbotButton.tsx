@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { ForwardedRef, PointerEvent as ReactPointerEvent } from 'react';
 import { img } from '../../lib/asset';
 
 /* 전역 AI 챗봇 플로팅 버튼 (JADUYA AGENTS/CLAUDE.md: 챗봇은 카드가 아니라 FAB).
@@ -43,10 +43,19 @@ interface AIChatbotButtonProps {
    * 커뮤니티 글쓰기 버튼처럼 그 자리에 이미 다른 플로팅 버튼이 있을 때만 쓴다.
    * 최초 배치에만 영향을 주고, 이후 드래그/리사이즈 동작은 그대로다. */
   initialLift?: number;
+  /** 코치마크가 강조 영역을 잴 때만 쓰는 DOM 참조. 버튼은 드래그로 위치가 바뀌므로
+   * 좌표를 고정값으로 들고 있지 말고 이 ref 로 매번 실측해야 한다. */
+  coachmarkRef?: ForwardedRef<HTMLButtonElement>;
 }
 
-export function AIChatbotButton({ onClick, hidden = false, initialLift = 0 }: AIChatbotButtonProps) {
-  const ref = useRef<HTMLButtonElement>(null);
+export function AIChatbotButton({
+  onClick,
+  hidden = false,
+  initialLift = 0,
+  coachmarkRef,
+}: AIChatbotButtonProps) {
+  /* coachmarkRef 병합을 위해 직접 .current 를 대입해야 해서 MutableRefObject 로 잡는다 */
+  const ref = useRef<HTMLButtonElement | null>(null);
   const [side, setSide] = useState<Side>('right');
   /* 세로 위치. null 이면 아직 측정 전 — 기본값(바텀네비 바로 위)으로 배치한다. */
   const [top, setTop] = useState<number | null>(null);
@@ -143,7 +152,11 @@ export function AIChatbotButton({ onClick, hidden = false, initialLift = 0 }: AI
 
   return (
     <button
-      ref={ref}
+      ref={(node) => {
+        ref.current = node;
+        if (typeof coachmarkRef === 'function') coachmarkRef(node);
+        else if (coachmarkRef) coachmarkRef.current = node;
+      }}
       type="button"
       className={`ai-fab${dragging ? ' is-dragging' : ''}`}
       style={style}

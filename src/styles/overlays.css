@@ -63,6 +63,8 @@
 @media (prefers-reduced-motion: reduce) {
   .gnb,
   .gnb[hidden],
+  .add-widget,
+  .add-widget[hidden],
   .burger__bar {
     transition-duration: 0s;
   }
@@ -543,50 +545,35 @@
   color: #fff;
 }
 
-/* ================= ③ add_widget ================= */
+/* ================= ③ add_widget =================
+ * 원래 Home 위 Bottom Sheet(1693:6166)였지만, GNB(gnb_open)처럼 전체 화면을 차지하는
+ * 한 페이지로 바꿨다 — 슬라이드 방향·타이밍은 .gnb 와 동일한 값을 그대로 쓴다. */
 
 .add-widget {
-  height: 866px;
   background: var(--surface-cream);
-  border-radius: 28px 28px 0 0;
-  filter: drop-shadow(0 -8px 16px rgba(59, 51, 46, 0.1));
-  overflow: hidden;
-}
-
-.add-widget__grip {
   display: flex;
-  justify-content: center;
-  padding: 10px 0 8px;
-  flex: none;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
 }
 
-.add-widget__grip span {
-  width: 40px;
-  height: 1.391px;
-  border-radius: 2px;
-  background: #dccdba;
-}
-
-.add-widget__head {
+.add-widget[hidden] {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 6px var(--screen-margin) 0;
-  flex: none;
+  opacity: 0;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.4, 0, 1, 1), transform 220ms cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 220ms;
 }
 
-.add-widget__title {
-  margin: 0;
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 31px;
-  letter-spacing: -0.14px;
-  color: var(--text-primary);
-}
-
+/* 타이틀 행(.nav-header) 자체는 Header/SubPageHeader/GnbOverlay와 공유하는 클래스라
+ * 여기서 따로 정의하지 않는다 — 아래 설명 문구만 add-widget 고유 스타일이다. */
 .add-widget__sub {
-  margin: 6px 0 0;
+  flex: none;
+  margin: 0;
+  padding: 4px var(--screen-margin) 0;
   font-family: var(--font-suit);
   font-size: 14px;
   line-height: 21.7px;
@@ -594,12 +581,14 @@
   color: var(--text-secondary);
 }
 
+/* 우측 닫기 버튼도 헤더 공통 아이콘 규격(--header-icon-btn, header-actions)에 맞춘다 */
 .add-widget__close {
-  width: 28px;
-  height: 31px;
-  padding: 4px;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
-  margin-top: 2px;
 }
 
 .add-widget__close img { width: 20px; height: 20px; }
@@ -637,7 +626,13 @@
   padding: 20px 0 4px;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 다른 스크롤 컨테이너(.sheet__scroll 등)와 동일하게 스크롤바를 숨긴다 —
+   * Windows 등 클래식 스크롤바 환경에서 스크롤바 두께만큼 콘텐츠 폭이 줄어들어
+   * Medium 카드 2개(167×2+8=342px)가 한 줄에 못 들어가고 갈라지던 원인이었다. */
+  scrollbar-width: none;
 }
+
+.add-widget__body::-webkit-scrollbar { display: none; }
 
 .add-widget__section { padding: 0 var(--screen-margin); }
 .add-widget__section + .add-widget__section { padding-top: 24px; }
@@ -686,6 +681,13 @@
 }
 
 .add-widget__section > .wpick-grid { padding: 12px 0 0; }
+
+/* '현재 사용 중인 위젯' — Home 캔버스와 같은 두 줄(1번째 Medium/Large, 2번째 Small)로
+ * 쌓는다. 안의 .module-grid__row(home.css)가 각 줄의 가로 폭·gap을 이미 맞춰 준다. */
+.wpick-grid--rows {
+  flex-wrap: nowrap;
+  flex-direction: column;
+}
 
 /* 선택 카드 */
 .wpick {
@@ -1058,7 +1060,6 @@
 
 @media (max-height: 873px) {
   .menu-edit { height: min(690px, 79%); }
-  .add-widget { height: min(866px, 99%); }
 }
 
 /* ---- wpick 내부 span 레이아웃 보정 (span 기반 마크업) ---- */
@@ -1086,8 +1087,3 @@
 /* 사용자가 구성을 바꾼 뒤에는 캔버스가 위젯 수에 맞춰 늘어난다 */
 .module-grid.is-custom { height: auto; }
 .module-grid.is-custom .module-grid__row--small { flex: none; }
-
-.module-grid [data-home-extra-row] {
-  flex-wrap: wrap;
-  height: auto;
-}
