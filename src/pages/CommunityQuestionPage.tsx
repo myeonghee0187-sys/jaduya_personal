@@ -122,6 +122,7 @@ export function CommunityQuestionPage() {
               onClick={() => {
                 if (name === '전체') navigation?.navigate('community');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
+                else if (name === '지역 후기') navigation?.navigate('community-region');
               }}
             >
               {name}

@@ -166,6 +166,7 @@
 /* ================= 필터 ================= */
 
 .community-filters {
+  position: relative;
   display: flex;
   justify-content: flex-end;
   gap: 4px;
@@ -194,6 +195,18 @@
 .community-filter__button img {
   display: block;
   width: 12px;
+}
+
+/* 지역 후기 '필터' 버튼의 필터 아이콘 — 다른 아이콘처럼 mask 로 그려서
+ * --cm-icon-off 색으로 칠한다 (post-card__bookmark 와 같은 방식). */
+.community-filter__button-icon--lg {
+  flex: none;
+  display: block;
+  width: 18px;
+  height: 18px;
+  background-color: var(--cm-icon-off);
+  mask: url('/assets/icon/community-filter.svg') center / 18px 18px no-repeat;
+  -webkit-mask: url('/assets/icon/community-filter.svg') center / 18px 18px no-repeat;
 }
 
 .community-filter__list {
@@ -259,7 +272,7 @@
   justify-content: center;
   width: 52px;
   height: 52px;
-  border-radius: 26px;
+  border-radius: 50%;
   border: 1px solid var(--cm-card-border);
   background-color: var(--surface-base);
   transition: background-color 160ms ease, border-color 160ms ease;
@@ -299,6 +312,318 @@
   text-align: center;
 }
 
+/* 라벨은 CommunityTipPage 의 renderTipLabel 이 "구분자 + 줄바꿈"을 항상
+ * 같이 렌더링해둔다 — 넓은 화면은 구분자(·)만 보이는 한 줄, 좁은 화면은
+ * 줄바꿈만 살아나는 지정된 두 줄이 되도록 여기서 토글한다. */
+.tip-category__label-break {
+  display: none;
+}
+
+/* 5개 타일이 화면 폭에 딱 맞게 짜여 있어 여유가 거의 없다 — 좁은 화면에서
+ * 밀려나지 않도록 402px(이 앱 기본 프레임) 아래에서는 단계적으로 줄인다.
+ * 라벨은 align-items: center 라 기본은 내용 폭만큼만 차지해 타일 폭을 넘어
+ * 옆 타일과 겹칠 수 있다 — 이 구간부터는 라벨을 타일 폭에 맞추고, 지정된
+ * 지점에서 두 줄로 나눈다 (구분자는 숨기고 줄바꿈을 켠다). */
+@media (max-width: 401px) {
+  .tip-category {
+    width: 60px;
+  }
+
+  .tip-category__circle {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tip-category__glyph {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tip-category__label {
+    width: 100%;
+  }
+
+  .tip-category__label-dot {
+    display: none;
+  }
+
+  .tip-category__label-break {
+    display: block;
+  }
+}
+
+@media (max-width: 389px) {
+  .tip-categories {
+    gap: 4px;
+  }
+
+  .tip-category {
+    width: 56px;
+  }
+
+  .tip-category__circle {
+    width: 46px;
+    height: 46px;
+  }
+
+  .tip-category__glyph {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ================= 지역 후기 필터 패널 (Figma SearchFilterCard 3107:25279) ================= */
+
+.region-filter {
+  position: absolute;
+  /* .community-filters 자체에 이미 padding-bottom: 10px 이 있어 100% 만으로 10px 간격이 된다 */
+  top: 100%;
+  left: 0;
+  right: 0;
+  /* AIChatbot(z-index: 50) 위로 오도록 — 이 화면에만 있는 패널이라 다른 화면에는 영향 없다 */
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cm-filter-border);
+  border-radius: var(--radius-m);
+  padding: 14px 16px 16px;
+  background: var(--surface-base);
+  box-shadow: 0 6px 16px rgba(60, 50, 45, 0.1);
+}
+
+.region-filter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #d6d6d6;
+}
+
+.region-filter__title {
+  margin: 0;
+  color: var(--text-nav);
+  font: 600 18px/1 var(--font-a2z);
+}
+
+.region-filter__close {
+  flex: none;
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.region-filter__close img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.region-filter__section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px 0;
+}
+
+.region-filter__section + .region-filter__section {
+  border-top: 1px solid #d6d6d6;
+}
+
+.region-filter__section-title {
+  margin: 0;
+  color: var(--text-nav);
+  font: 600 16px/1 var(--font-a2z);
+}
+
+.region-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.region-filter__chip {
+  flex: none;
+  height: 33px;
+  border: 1px solid var(--cm-filter-border);
+  border-radius: var(--radius-pill);
+  padding: 0 16px;
+  background: var(--surface-base);
+  color: var(--cm-oat);
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+  cursor: pointer;
+}
+
+.region-filter__chip.is-selected {
+  border-color: var(--brand-primary);
+  background: rgba(180, 57, 54, 0.06);
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.region-filter__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.region-filter__toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.region-filter__toggle-title {
+  margin: 0;
+  color: var(--text-nav);
+  font: 700 15px/1.4 var(--font-suit);
+  letter-spacing: -0.3px;
+}
+
+.region-filter__toggle-sub {
+  margin: 0;
+  color: var(--cm-oat);
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+}
+
+/* 아이콘 대신 배경색으로 on/off 를 나타낸다 (post-card__bookmark 와 같은 방식) */
+.region-filter__switch {
+  flex: none;
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  background: #e0d9d1;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.region-filter__switch.is-on {
+  background: var(--brand-primary);
+}
+
+.region-filter__switch-knob {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #fff;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  transition: transform 160ms ease;
+}
+
+.region-filter__switch.is-on .region-filter__switch-knob {
+  transform: translateX(20px);
+}
+
+.region-filter__slider {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.region-filter__slider[aria-hidden='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.region-filter__track {
+  position: relative;
+  height: 18px;
+}
+
+.region-filter__track-fill {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--brand-primary);
+  z-index: 1;
+  /* 드래그 중 가까운 단계로 스냅될 때 자석처럼 부드럽게 붙는 느낌을 준다 */
+  transition: width 150ms ease;
+}
+
+.region-filter__track::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: #e9e4df;
+}
+
+.region-filter__handle {
+  position: absolute;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+  /* 드래그 중 가까운 단계로 스냅될 때 자석처럼 부드럽게 붙는 느낌을 준다 */
+  transition: left 150ms ease;
+}
+
+.region-filter__handle:active {
+  cursor: grabbing;
+}
+
+.region-filter__handle img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.region-filter__steps {
+  position: relative;
+  height: 16px;
+}
+
+/* 표시 전용 라벨 — 트랙의 핸들 위치(left: N%)에 맞춰 배치한다.
+ * 가운데 라벨은 그 지점에 중앙 정렬하지만, 양 끝은 그대로 중앙 정렬하면 패널 밖으로
+ * 넘치므로 핸들이 있는 쪽으로 정렬해 패널 안에 들어오게 한다. */
+.region-filter__step {
+  position: absolute;
+  top: 0;
+  color: var(--cm-oat);
+  font: 500 12px/1.3 var(--font-suit);
+  letter-spacing: -0.12px;
+  white-space: nowrap;
+}
+
+.region-filter__step[data-align='start'] {
+  transform: translateX(0);
+}
+
+.region-filter__step[data-align='center'] {
+  transform: translateX(-50%);
+}
+
+.region-filter__step[data-align='end'] {
+  transform: translateX(-100%);
+}
+
+.region-filter__step.is-active {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
 /* ================= 게시글 목록 ================= */
 
 .community-feed__head {
@@ -330,6 +655,18 @@
   flex-direction: column;
   gap: 12px;
   padding-top: 12px;
+}
+
+/* 필터 조건에 맞는 게시글이 하나도 없을 때 (지역 후기 필터) */
+.community-feed__empty {
+  margin-top: 12px;
+  border: 1px solid var(--cm-card-border);
+  border-radius: 16px;
+  padding: 32px 20px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--cm-oat);
+  font: 500 13px/1.4 var(--font-suit);
+  text-align: center;
 }
 
 /* ---------- 게시글 카드 (Figma 2203:13336 기준, 이 한 종류만 쓴다) ----------
