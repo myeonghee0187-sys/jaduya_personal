@@ -1226,7 +1226,7 @@ a { text-decoration: none; color: inherit; }
   padding-top: var(--space-2xs);
   font-family: var(--font-suit);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.4;
   color: var(--text-nav);
   white-space: nowrap;
@@ -1234,13 +1234,13 @@ a { text-decoration: none; color: inherit; }
 
 .tab-item--home .tab-item__label {
   font-size: 14px;
-  font-weight: 700;
 }
 
+/* 지금 보고 있는 메뉴 — 아이콘은 -active 파일(Primary), 라벨은 Primary + Semibold */
 .tab-item.is-active .tab-item__label {
   color: var(--brand-primary);
+  font-weight: 600;
 }
-
 
 .tab-bar__bottom {
   position: absolute;

@@ -19,7 +19,7 @@ export function BottomSheet({
   children,
 }: BottomSheetProps) {
   return (
-    <div className="layer" hidden={!open}>
+    <div className="layer layer--sheet" hidden={!open}>
       <button type="button" className="layer-dim" aria-label="닫기" onClick={onDimClick} />
       <section
         className={`bsheet ${className}`}

@@ -58,8 +58,9 @@ export function GnbMenuItem({ iconFile, name, open, onToggle, subId, onSelect, c
       >
         {label}
       </button>
+      {/* 안쪽 한 겹은 높이 0fr↔1fr 로 스르륵 여닫기 위한 것이다 (overlays.css) */}
       <div className="gnb-menu__sub" id={subId}>
-        {children}
+        <div className="gnb-menu__sub-inner">{children}</div>
       </div>
     </div>
   );

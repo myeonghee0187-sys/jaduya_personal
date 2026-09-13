@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -6,7 +7,13 @@ import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { DEFAULT_PERSONA } from '../data/personaHome';
-import { PERSONA_PROFILE, profileSummary, resolveLevel } from '../data/personaProfile';
+import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
+import {
+  LEVEL_STAGE_LIST,
+  PERSONA_PROFILE,
+  profileSummary,
+  resolveLevel,
+} from '../data/personaProfile';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -36,6 +43,8 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   const myMenu = useMyMenu();
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
+  /* 레벨 안내 팝오버 — 자취 미션 화면과 같은 LevelInfoPopover 를 쓴다 */
+  const [levelInfo, setLevelInfo] = useState<{ top: number; left: number } | null>(null);
   const name = user?.name ?? '자두';
 
   /* 안내는 잠깐만 띄우고 스스로 사라진다 — 닫는 동작을 따로 만들지 않는다 */
@@ -44,6 +53,14 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
     const timer = window.setTimeout(() => setNotice(''), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  /* info 아이콘만 팝오버를 연다 — 카드의 '전체보기' navigation 으로 번지지 않게 막는다 */
+  const openLevelInfo = (event: ReactMouseEvent | ReactKeyboardEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const anchor = levelInfoAnchor(event.currentTarget as HTMLElement);
+    if (anchor) setLevelInfo(anchor);
+  };
 
   const go = (destination: MyPageDestination, label: string) => {
     /* 아직 화면이 없는 항목은 부모가 처리하지 않으므로 안내만 띄운다 */
@@ -73,50 +90,74 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
         </section>
 
         {/* ② 레벨 — 게임처럼 강조하지 않고 진행 상태만 가볍게 */}
-        <button type="button" className="mypage__level" onClick={() => go('level', '자취 레벨')}>
+        {/* 카드는 컨테이너일 뿐이고, 누를 수 있는 곳(info / 전체보기 / 본문)만 button 이다 */}
+        <section className="mypage__level" aria-labelledby="mypage-level-title">
           <div className="mypage__level-head">
-            <h2>
+            <h2 id="mypage-level-title">
               나의 자취 레벨
-              <img className="mypage__info" src={icon('info-warn.svg')} alt="" />
+              {/* 이 아이콘만 레벨 안내를 연다 — 미션 화면으로 이동하지 않는다 */}
+              <button
+                type="button"
+                className="mypage__info"
+                aria-label="자취 레벨 안내 보기"
+                aria-haspopup="dialog"
+                aria-expanded={levelInfo !== null}
+                onClick={openLevelInfo}
+              >
+                <img src={icon('info-warn.svg')} alt="" />
+              </button>
             </h2>
-            <span>
+            <button
+              type="button"
+              className="mypage__level-more"
+              onClick={() => go('level', '자취 레벨')}
+            >
               전체보기
               <img src={icon('chevron-right-sm.svg')} alt="" />
-            </span>
+            </button>
           </div>
-          <div className="mypage__level-row">
-            <div className="mypage__level-title">
-              <img src={level.levelIcon} alt="" />
-              <strong>Lv.{level.level}</strong>
-              <b>{level.stageName}</b>
-            </div>
-            {/* 최고 레벨은 진행률 대신 MAX 를 쓴다 */}
-            <strong className="mypage__percent">
-              {level.progressLabel}
-              {!level.isMaxLevel && <small>%</small>}
-            </strong>
-          </div>
-          <div
-            className="mypage__progress"
-            role="progressbar"
-            aria-valuenow={level.progress}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="레벨 진행도"
+
+          {/* 본문을 눌러도 전체보기와 같이 자취 미션으로 간다 (기존 카드 전체 클릭 유지) */}
+          <button
+            type="button"
+            className="mypage__level-body"
+            aria-label="자취 레벨 전체보기"
+            onClick={() => go('level', '자취 레벨')}
           >
-            <span style={{ width: level.progress + '%' }} />
-          </div>
-          {/* 최고 레벨에는 다음 레벨이 없으므로 '0XP 더 모으면' 대신 달성 문구를 띄운다 */}
-          <p className="mypage__xp">
-            {level.isMaxLevel ? (
-              <b>자취 고수 레벨을 달성했어요!</b>
-            ) : (
-              <>
-                <b>{level.remainingXp}XP</b> 더 모으면 레벨업 할 수있어요!
-              </>
-            )}
-          </p>
-        </button>
+            <div className="mypage__level-row">
+              <div className="mypage__level-title">
+                <img src={level.levelIcon} alt="" />
+                <strong>Lv.{level.level}</strong>
+                <b>{level.stageName}</b>
+              </div>
+              {/* 최고 레벨은 진행률 대신 MAX 를 쓴다 */}
+              <strong className="mypage__percent">
+                {level.progressLabel}
+                {!level.isMaxLevel && <small>%</small>}
+              </strong>
+            </div>
+            <div
+              className="mypage__progress"
+              role="progressbar"
+              aria-valuenow={level.progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="레벨 진행도"
+            >
+              <span style={{ width: level.progress + '%' }} />
+            </div>
+            {/* 최고 레벨에는 다음 레벨이 없으므로 '0XP 더 모으면' 대신 달성 문구를 띄운다 */}
+            <p className="mypage__xp">
+              {level.isMaxLevel ? (
+                <b>자취 고수 레벨을 달성했어요!</b>
+              ) : (
+                <>
+                  <b>{level.remainingXp}XP</b> 더 모으면 레벨업 할 수있어요!
+                </>
+              )}
+            </p>
+          </button>
+        </section>
 
         {/* ③ 메뉴 — 카드가 아니라 한 줄 메뉴 + divider (Figma 3131:16854) */}
         <section className="mypage__links" aria-label="메뉴">
@@ -157,6 +198,16 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
       <p className="mypage__notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}
       </p>
+
+      {levelInfo && (
+        <LevelInfoPopover
+          stages={LEVEL_STAGE_LIST}
+          stage={level.stage}
+          anchorTop={levelInfo.top}
+          anchorLeft={levelInfo.left}
+          onClose={() => setLevelInfo(null)}
+        />
+      )}
 
       <BottomNavigation activeTab="my" />
       <GnbOverlay
