@@ -387,7 +387,12 @@ export function MoneyPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [tab, setTab] = useState<Tab>('이번 달');
+  /* 커뮤니티 '소비 비교'의 "전체보기" 처럼 다른 화면에서 시작 탭을 지정해 들어올 수 있다.
+   * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '이번 달'로 연다. */
+  const requestedTab = navigation?.options.tab;
+  const [tab, setTab] = useState<Tab>(() =>
+    requestedTab && (TABS as readonly string[]).includes(requestedTab) ? (requestedTab as Tab) : TABS[0],
+  );
   /* 이번 달 쓸 수 있는 돈 — 여러 금융앱처럼 기본값은 가려진 상태(true)로 시작한다.
    * 예산 한도·사용률은 민감 정보가 아니라 가리지 않고, "쓸 수 있는 돈" 금액만 잠금 아이콘 +
    * "금액 보기" 버튼으로 가린다. 다시 누르면 가려진다. */
