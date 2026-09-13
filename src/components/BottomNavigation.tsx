@@ -54,7 +54,16 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
               {/* active 홈은 마스코트를 탭 안에서 라벨 바로 위에 쓴다 */}
               <img
                 className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}`}
-                src={icon(id === 'home' ? (isActive ? 'nav-home-mascot-active.svg' : 'nav-home-mascot.svg') : asset)}
+                /* 홈은 마스코트, 나머지는 같은 이름의 -active(Primary) 파일로 바꿔 끼운다 */
+                src={icon(
+                  id === 'home'
+                    ? isActive
+                      ? 'nav-home-mascot-active.svg'
+                      : 'nav-home-mascot.svg'
+                    : isActive
+                      ? asset.replace('.svg', '-active.svg')
+                      : asset,
+                )}
                 alt=""
               />
               <span className="tab-item__label">{label}</span>

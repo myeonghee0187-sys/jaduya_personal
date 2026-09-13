@@ -209,3 +209,52 @@
 .level-info__stage.is-locked .level-info__name {
   color: #d6d6d6;
 }
+
+/* 열고 닫을 때 info 아이콘 자리에서 커지고 그 자리로 줄어든다 (transform-origin 은 인라인) */
+.level-info__anchor {
+  animation: level-info-pop-in var(--level-info-duration, 240ms) ease-out;
+}
+
+.level-info.is-closing { pointer-events: none; }
+
+.level-info.is-closing .level-info__anchor {
+  animation: level-info-pop-out var(--level-info-duration, 240ms) ease-in forwards;
+}
+
+.level-info .layer-dim {
+  animation: level-info-dim-in var(--level-info-duration, 240ms) ease-out;
+}
+
+.level-info.is-closing .layer-dim {
+  animation: level-info-dim-out var(--level-info-duration, 240ms) ease-in forwards;
+}
+
+@keyframes level-info-pop-in {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes level-info-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.2); }
+}
+
+@keyframes level-info-dim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes level-info-dim-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* 모션을 줄이는 설정에서는 즉시 나타나고 사라진다 */
+@media (prefers-reduced-motion: reduce) {
+  .level-info__anchor,
+  .level-info.is-closing .level-info__anchor,
+  .level-info .layer-dim,
+  .level-info.is-closing .layer-dim {
+    animation-duration: 1ms;
+  }
+}

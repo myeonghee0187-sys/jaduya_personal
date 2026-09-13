@@ -16,6 +16,10 @@
 
 .layer[hidden] { display: none; }
 
+/* 바텀시트(내 메뉴 편집 / 위젯 추가)는 GNB 전체메뉴 위에 뜬다.
+ * 페이지마다 다른 JSX 순서에 기대지 않도록 z-index 로 못 박는다. */
+.layer--sheet { z-index: 70; }
+
 .layer-dim {
   position: absolute;
   inset: 0;
@@ -144,7 +148,7 @@
 }
 
 .gnb:not([hidden]) .burger--morph .burger__bar:nth-child(3) {
-  transform: translateY(-6.1px) rotate(-45deg);
+  transform: translateY(-7.1px) rotate(-45deg);
 }
 
 .gnb__scroll {
@@ -190,13 +194,38 @@
 
 .gnb-menu__chevron { width: 10.683px; height: 6.466px; }
 
+/* 하위 메뉴는 max-height 로 스르륵 여닫는다.
+ * display:none 은 전환할 중간값이 없고, grid 0fr↔1fr 은 transition 을 걸면
+ * 트랙이 0 으로 무너져서 쓰지 않는다.
+ * ponytail: 링크가 400px(약 10줄)을 넘으면 잘린다 — 그때 값만 올리면 된다. */
 .gnb-menu__sub {
+  overflow: hidden;
+  max-height: 400px;
+  opacity: 1;
+  transition: max-height 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
+}
+
+.gnb-menu__item[data-open="false"] .gnb-menu__sub {
+  max-height: 0;
+  opacity: 0;
+  /* 다 접힌 뒤에 초점·스크린리더에서 빠진다 */
+  visibility: hidden;
+  transition: max-height 260ms cubic-bezier(0.4, 0, 1, 1), opacity 160ms ease-in, visibility 0s linear 260ms;
+}
+
+.gnb-menu__sub-inner {
   display: flex;
   flex-direction: column;
   padding: 2px 8px 10px 26px;
 }
 
-.gnb-menu__item[data-open="false"] .gnb-menu__sub { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .gnb-menu__sub,
+  .gnb-menu__item[data-open="false"] .gnb-menu__sub {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+}
 
 .gnb-menu__sub-link {
   display: block;

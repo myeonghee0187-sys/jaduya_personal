@@ -5,7 +5,7 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { LevelInfoPopover } from '../components/LevelInfoPopover';
+import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import {
@@ -47,13 +47,8 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
   const [levelInfo, setLevelInfo] = useState<{ top: number; left: number } | null>(null);
 
   const openLevelInfo = () => {
-    const button = infoRef.current?.getBoundingClientRect();
-    const app = appRef.current?.getBoundingClientRect();
-    if (!button || !app) return;
-    setLevelInfo({
-      top: button.bottom - app.top + 12,
-      left: button.left + button.width / 2 - app.left,
-    });
+    const anchor = infoRef.current && levelInfoAnchor(infoRef.current);
+    if (anchor) setLevelInfo(anchor);
   };
 
   const options = useMemo(() => categoryOptions(MISSIONS), []);
