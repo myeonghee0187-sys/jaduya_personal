@@ -22,12 +22,13 @@ export function SavedPage() {
   const myMenu = useMyMenu();
   const [filter, setFilter] = useState<SavedFilter>('전체');
   const [sort, setSort] = useState<SortOption>('최신 저장순');
-  const [sortOpen, setSortOpen] = useState(false);
+  /* 카테고리·정렬 드롭다운은 한 번에 하나만 열린다 */
+  const [openMenu, setOpenMenu] = useState<'filter' | 'sort' | null>(null);
   /* 저장 해제한 항목 id — 목록에서 빠지고 토스트에서 되돌릴 수 있다 */
   const [removed, setRemoved] = useState<number[]>([]);
   const [undoId, setUndoId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
-  const sortRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const items = useMemo(() => {
     const kept = SAVED_ITEMS.filter(
@@ -37,15 +38,15 @@ export function SavedPage() {
     return sort === '최신 저장순' ? latest : latest.reverse();
   }, [filter, sort, removed]);
 
-  /* 바깥을 누르면 정렬 목록을 닫는다 (터치·마우스 공통) */
+  /* 바깥을 누르면 열린 목록을 닫는다 (터치·마우스 공통) */
   useEffect(() => {
-    if (!sortOpen) return;
+    if (!openMenu) return;
     const onOutside = (event: PointerEvent) => {
-      if (!sortRef.current?.contains(event.target as Node)) setSortOpen(false);
+      if (!menuRef.current?.contains(event.target as Node)) setOpenMenu(null);
     };
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
-  }, [sortOpen]);
+  }, [openMenu]);
 
   useEffect(() => {
     if (!notice) return;
@@ -85,51 +86,67 @@ export function SavedPage() {
       />
 
       <main className="saved__scroll">
-        {/* ① 카테고리 필터 — 기본값 '전체' */}
-        <div className="saved__filters" role="tablist" aria-label="저장 카테고리">
-          {SAVED_FILTERS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              role="tab"
-              aria-selected={filter === name}
-              className={`saved__filter${filter === name ? ' is-active' : ''}`}
-              onClick={() => setFilter(name)}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-
-        {/* ② 개수 + 정렬 — 개수는 지금 보이는 목록에서 센다 */}
+        {/* ① 개수 + 카테고리·정렬 드롭다운 — 카테고리 기본값 '전체' */}
         <div className="saved__summary">
           <p className="saved__count">총 {items.length}개의 저장한 정보</p>
-          <div className="saved__sort" ref={sortRef}>
-            <button
-              type="button"
-              className="saved__sort-button"
-              aria-expanded={sortOpen}
-              onClick={() => setSortOpen((open) => !open)}
-            >
-              {sort}
-              <img src={icon('chevron-down.svg')} alt="" />
-            </button>
-            <ul className="saved__sort-list" hidden={!sortOpen}>
-              {SORT_OPTIONS.map((option) => (
-                <li key={option}>
-                  <button
-                    type="button"
-                    className={option === sort ? 'is-active' : undefined}
-                    onClick={() => {
-                      setSort(option);
-                      setSortOpen(false);
-                    }}
-                  >
-                    {option}
-                  </button>
-                </li>
-              ))}
-            </ul>
+          <div className="saved__controls" ref={menuRef}>
+            <div className="saved__sort">
+              <button
+                type="button"
+                className="saved__sort-button"
+                aria-expanded={openMenu === 'filter'}
+                onClick={() => setOpenMenu((open) => (open === 'filter' ? null : 'filter'))}
+              >
+                {filter}
+                <img src={icon('chevron-down.svg')} alt="" />
+              </button>
+              <ul className="saved__sort-list" hidden={openMenu !== 'filter'}>
+                {SAVED_FILTERS.map((name) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      className={name === filter ? 'is-active' : undefined}
+                      aria-current={name === filter}
+                      onClick={() => {
+                        setFilter(name);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="saved__sort">
+              <button
+                type="button"
+                className="saved__sort-button"
+                aria-expanded={openMenu === 'sort'}
+                onClick={() => setOpenMenu((open) => (open === 'sort' ? null : 'sort'))}
+              >
+                {sort}
+                <img src={icon('chevron-down.svg')} alt="" />
+              </button>
+              <ul className="saved__sort-list" hidden={openMenu !== 'sort'}>
+                {SORT_OPTIONS.map((option) => (
+                  <li key={option}>
+                    <button
+                      type="button"
+                      className={option === sort ? 'is-active' : undefined}
+                      aria-current={option === sort}
+                      onClick={() => {
+                        setSort(option);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
 

@@ -29,49 +29,21 @@
   display: none;
 }
 
-/* ================= ① 카테고리 필터 ================= */
-
-/* 6개가 342px 을 넘어 가로로 흐른다 — 화면 오른쪽 끝까지 이어지게 둔다 */
-.saved__filters {
-  display: flex;
-  gap: 8px;
-  margin: 0 calc(var(--screen-margin) * -1);
-  padding: 0 var(--screen-margin);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.saved__filters::-webkit-scrollbar {
-  display: none;
-}
-
-.saved__filter {
-  flex: none;
-  border: 1px solid #e0cdad;
-  border-radius: var(--radius-m);
-  padding: 6px 18px;
-  background: var(--surface-base);
-  color: #1c1c19;
-  font: 400 14px/1.4 var(--font-suit);
-  cursor: pointer;
-}
-
-.saved__filter.is-active {
-  border-color: var(--brand-primary);
-  background: var(--brand-primary);
-  color: #fff;
-  font-weight: 600;
-  letter-spacing: -0.14px;
-}
-
-/* ================= ② 개수 · 정렬 ================= */
+/* ================= ① 개수 · 카테고리 · 정렬 ================= */
 
 .saved__summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 24px;
+  margin-top: 4px;
+}
+
+/* 카테고리·정렬은 콘텐츠 오른쪽에 붙는 보조 컨트롤이다 */
+.saved__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .saved__count {
@@ -135,6 +107,12 @@
   background: var(--surface-widget);
   color: var(--brand-primary);
   font-weight: 600;
+}
+
+/* 선택된 항목은 색·굵기에 더해 체크로도 알 수 있게 한다 */
+.saved__sort-list button.is-active::after {
+  content: '✓';
+  float: right;
 }
 
 /* ================= ③ 카드 목록 ================= */
