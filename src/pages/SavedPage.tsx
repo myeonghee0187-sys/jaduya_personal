@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -8,6 +8,7 @@ import { SavedCard } from '../components/SavedCard';
 import { SAVED_FILTERS, SAVED_ITEMS, sortByLatest } from '../data/savedItems';
 import type { SavedFilter, SavedItem } from '../data/savedItems';
 import { useMyMenu } from '../menu/MyMenuContext';
+import { icon } from '../lib/asset';
 
 /** 나의 활동 1차 탭 — '저장한 정보' 가 기본값이다 */
 const ACTIVITY_TABS = ['저장한 정보', '작성한 글', '댓글'] as const;
@@ -23,31 +24,33 @@ export function SavedPage() {
   const myMenu = useMyMenu();
   const [tab, setTab] = useState<ActivityTab>('저장한 정보');
   const [filter, setFilter] = useState<SavedFilter>('전체');
-  /* 카테고리·정렬 드롭다운은 한 번에 하나만 열린다 */
-  const [openMenu, setOpenMenu] = useState<'filter' | 'sort' | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   /* 저장 해제한 항목 id — 목록에서 빠지고 토스트에서 되돌릴 수 있다 */
   const [removed, setRemoved] = useState<number[]>([]);
   const [undoId, setUndoId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const items = useMemo(() => {
-    const kept = SAVED_ITEMS.filter(
-      (item) => !removed.includes(item.id) && (filter === '전체' || item.category === filter),
-    );
-    const latest = sortByLatest(kept);
-    return sort === '최신 저장순' ? latest : latest.reverse();
-  }, [filter, sort, removed]);
+  /* 목록은 항상 최신 저장순이다 */
+  const items = useMemo(
+    () =>
+      sortByLatest(
+        SAVED_ITEMS.filter(
+          (item) => !removed.includes(item.id) && (filter === '전체' || item.category === filter),
+        ),
+      ),
+    [filter, removed],
+  );
 
   /* 바깥을 누르면 열린 목록을 닫는다 (터치·마우스 공통) */
   useEffect(() => {
-    if (!openMenu) return;
+    if (!filterOpen) return;
     const onOutside = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setOpenMenu(null);
+      if (!menuRef.current?.contains(event.target as Node)) setFilterOpen(false);
     };
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
-  }, [openMenu]);
+  }, [filterOpen]);
 
   useEffect(() => {
     if (!notice) return;
@@ -86,91 +89,68 @@ export function SavedPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      <main className="saved__scroll">
-        {/* ① 개수 + 카테고리·정렬 드롭다운 — 카테고리 기본값 '전체' */}
-        <div className="saved__summary">
-          <p className="saved__count">총 {items.length}개의 저장한 정보</p>
-          <div className="saved__controls" ref={menuRef}>
-            <div className="saved__sort">
-              <button
-                type="button"
-                className="saved__sort-button"
-                aria-expanded={openMenu === 'filter'}
-                onClick={() => setOpenMenu((open) => (open === 'filter' ? null : 'filter'))}
-              >
-                {filter}
-                <img src={icon('chevron-down.svg')} alt="" />
-              </button>
-              <ul className="saved__sort-list" hidden={openMenu !== 'filter'}>
-                {SAVED_FILTERS.map((name) => (
-                  <li key={name}>
-                    <button
-                      type="button"
-                      className={name === filter ? 'is-active' : undefined}
-                      aria-current={name === filter}
-                      onClick={() => {
-                        setFilter(name);
-                        setOpenMenu(null);
-                      }}
-                    >
-                      {name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      {/* 1차 탭 — 헤더 바로 아래에 고정한다 (생활 하위 탭과 같은 밑줄 탭 방식) */}
+      <nav className="saved__tabs" role="tablist" aria-label="나의 활동">
+        {ACTIVITY_TABS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            role="tab"
+            aria-selected={tab === name}
+            className={`saved__tab${tab === name ? ' is-active' : ''}`}
+            onClick={() => setTab(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </nav>
 
-            <div className="saved__sort">
-              <button
-                type="button"
-                className="saved__sort-button"
-                aria-expanded={openMenu === 'sort'}
-                onClick={() => setOpenMenu((open) => (open === 'sort' ? null : 'sort'))}
-              >
-                {sort}
-                <img src={icon('chevron-down.svg')} alt="" />
-              </button>
-              <ul className="saved__sort-list" hidden={openMenu !== 'sort'}>
-                {SORT_OPTIONS.map((option) => (
-                  <li key={option}>
-                    <button
-                      type="button"
-                      className={option === sort ? 'is-active' : undefined}
-                      aria-current={option === sort}
-                      onClick={() => {
-                        setSort(option);
-                        setOpenMenu(null);
-                      }}
-                    >
-                      {option}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+      <main className="saved__scroll">
+        {tab !== '저장한 정보' ? (
+          /* 작성한 글 / 댓글 — 아직 데이터를 연결하지 않아 자리만 잡아둔다 */
+          <div className="saved__empty">
+            <div className="saved__empty-copy">
+              <b>{tab}은 준비 중이에요.</b>
             </div>
           </div>
         ) : (
           <>
-            {/* ① 카테고리 필터 — 2차 필터. '저장한 정보' 탭에서만 보인다. 기본값 '전체' */}
-            <div className="saved__filters" role="tablist" aria-label="저장 카테고리">
-              {SAVED_FILTERS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === name}
-                  className={`saved__filter${filter === name ? ' is-active' : ''}`}
-                  onClick={() => setFilter(name)}
-                >
-                  {name}
-                </button>
-              ))}
+            {/* ① 개수 + 카테고리 드롭다운 — 기본값 '전체' */}
+            <div className="saved__summary">
+              <p className="saved__count">총 {items.length}개의 저장한 정보</p>
+              <div className="saved__controls" ref={menuRef}>
+                <div className="saved__sort">
+                  <button
+                    type="button"
+                    className="saved__sort-button"
+                    aria-expanded={filterOpen}
+                    onClick={() => setFilterOpen((open) => !open)}
+                  >
+                    {filter}
+                    <img src={icon('chevron-down.svg')} alt="" />
+                  </button>
+                  <ul className="saved__sort-list" hidden={!filterOpen}>
+                    {SAVED_FILTERS.map((name) => (
+                      <li key={name}>
+                        <button
+                          type="button"
+                          className={name === filter ? 'is-active' : undefined}
+                          aria-current={name === filter}
+                          onClick={() => {
+                            setFilter(name);
+                            setFilterOpen(false);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            {/* ② 개수 — 지금 보이는 목록에서 센다. 저장한 정보가 없으면 띄우지 않는다 */}
-            {items.length > 0 && <p className="saved__count">총 {items.length}개의 저장한 정보</p>}
-
-            {/* ③ 목록 — 카드는 데이터로만 만든다.
+            {/* ② 목록 — 카드는 데이터로만 만든다.
              * 저장 데이터가 0개면 Empty State, 있으면 카드 목록. */}
             {items.length > 0 ? (
               <>
