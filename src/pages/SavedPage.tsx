@@ -23,21 +23,31 @@ export function SavedPage() {
   const myMenu = useMyMenu();
   const [tab, setTab] = useState<ActivityTab>('저장한 정보');
   const [filter, setFilter] = useState<SavedFilter>('전체');
+  /* 카테고리·정렬 드롭다운은 한 번에 하나만 열린다 */
+  const [openMenu, setOpenMenu] = useState<'filter' | 'sort' | null>(null);
   /* 저장 해제한 항목 id — 목록에서 빠지고 토스트에서 되돌릴 수 있다 */
   const [removed, setRemoved] = useState<number[]>([]);
   const [undoId, setUndoId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  /* 정렬은 고를 수 없고 항상 최신 저장순(savedAt 내림차순)으로 고정한다 */
-  const items = useMemo(
-    () =>
-      sortByLatest(
-        SAVED_ITEMS.filter(
-          (item) => !removed.includes(item.id) && (filter === '전체' || item.category === filter),
-        ),
-      ),
-    [filter, removed],
-  );
+  const items = useMemo(() => {
+    const kept = SAVED_ITEMS.filter(
+      (item) => !removed.includes(item.id) && (filter === '전체' || item.category === filter),
+    );
+    const latest = sortByLatest(kept);
+    return sort === '최신 저장순' ? latest : latest.reverse();
+  }, [filter, sort, removed]);
+
+  /* 바깥을 누르면 열린 목록을 닫는다 (터치·마우스 공통) */
+  useEffect(() => {
+    if (!openMenu) return;
+    const onOutside = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [openMenu]);
 
   useEffect(() => {
     if (!notice) return;
@@ -76,28 +86,67 @@ export function SavedPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      {/* 1차 탭 — 헤더 바로 아래에 고정한다 (생활 하위 탭과 같은 밑줄 탭 방식) */}
-      <nav className="saved__tabs" role="tablist" aria-label="나의 활동">
-        {ACTIVITY_TABS.map((name) => (
-          <button
-            key={name}
-            type="button"
-            role="tab"
-            aria-selected={tab === name}
-            className={`saved__tab${tab === name ? ' is-active' : ''}`}
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </nav>
-
       <main className="saved__scroll">
-        {tab !== '저장한 정보' ? (
-          /* 작성한 글 / 댓글 — 아직 데이터를 연결하지 않아 자리만 잡아둔다 */
-          <div className="saved__empty">
-            <div className="saved__empty-copy">
-              <b>{tab}은 준비 중이에요.</b>
+        {/* ① 개수 + 카테고리·정렬 드롭다운 — 카테고리 기본값 '전체' */}
+        <div className="saved__summary">
+          <p className="saved__count">총 {items.length}개의 저장한 정보</p>
+          <div className="saved__controls" ref={menuRef}>
+            <div className="saved__sort">
+              <button
+                type="button"
+                className="saved__sort-button"
+                aria-expanded={openMenu === 'filter'}
+                onClick={() => setOpenMenu((open) => (open === 'filter' ? null : 'filter'))}
+              >
+                {filter}
+                <img src={icon('chevron-down.svg')} alt="" />
+              </button>
+              <ul className="saved__sort-list" hidden={openMenu !== 'filter'}>
+                {SAVED_FILTERS.map((name) => (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      className={name === filter ? 'is-active' : undefined}
+                      aria-current={name === filter}
+                      onClick={() => {
+                        setFilter(name);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="saved__sort">
+              <button
+                type="button"
+                className="saved__sort-button"
+                aria-expanded={openMenu === 'sort'}
+                onClick={() => setOpenMenu((open) => (open === 'sort' ? null : 'sort'))}
+              >
+                {sort}
+                <img src={icon('chevron-down.svg')} alt="" />
+              </button>
+              <ul className="saved__sort-list" hidden={openMenu !== 'sort'}>
+                {SORT_OPTIONS.map((option) => (
+                  <li key={option}>
+                    <button
+                      type="button"
+                      className={option === sort ? 'is-active' : undefined}
+                      aria-current={option === sort}
+                      onClick={() => {
+                        setSort(option);
+                        setOpenMenu(null);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ) : (
