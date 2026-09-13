@@ -32,12 +32,30 @@
   text-align: center;
 }
 
-/* ---------- 상단 탭 (이번 달 / 소비 / 고정비 / 비상금) ---------- */
-.money__tabs {
+/* ---------- 상단 탭 (이번 달 / 소비 / 고정비 / 비상금) + 월 선택 한 줄 ---------- */
+.money__tabs-row {
   display: flex;
-  gap: var(--space-xl);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: var(--space-lg) var(--screen-margin) 0;
   border-bottom: 1px solid var(--border-warm);
+}
+
+.money__tabs {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.money__month-label__calendar {
+  width: 14px;
+  height: 14px;
+}
+
+/* '이번 달' 탭의 월 선택 드롭다운은 화면 오른쪽 끝에 붙어 있어 메뉴도 오른쪽 기준으로 연다 */
+.money-month-dropdown--end .money-month-menu {
+  left: auto;
+  right: 0;
 }
 
 .money__tab {
@@ -48,6 +66,7 @@
   font-weight: 500;
   font-size: 16px;
   color: var(--text-secondary);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -88,20 +107,37 @@
   font-family: var(--font-asta);
   font-weight: 500;
   font-size: 12px;
+  white-space: nowrap;
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 
 /* ---------- 이번 달 쓸 수 있는 돈 카드 ---------- */
+/* 연한 로즈 틴트 배경 — mission.css 의 선택 칩과 같은 #fbeceb 를 재사용한다(새 색 임의 추가 금지) */
 .money-budget {
+  position: relative;
+  overflow: hidden;
   margin: 18px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
-  background: var(--brand-primary);
-  color: var(--surface-cream);
+  background: #fbeceb;
+  color: var(--text-primary);
+}
+
+/* 자두 마스코트 — MoneyBudgetPage 히어로와 같은 이미지를, 제목/금액 옆 여백에 작게 배치한다.
+ * 맨 아래 예산 진행률 줄과 겹치지 않도록 카드 중간 높이에 둔다. */
+.money-budget__mascot {
+  position: absolute;
+  top: 44px;
+  right: 6px;
+  width: 56px;
+  height: auto;
+  pointer-events: none;
 }
 
 .money-budget__head {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -110,23 +146,7 @@
 .money-budget__title-group {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.money-budget__visibility {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: none;
-  opacity: 0.85;
-  cursor: pointer;
-}
-
-.money-budget__visibility img {
-  width: 16px;
-  height: 16px;
+  gap: 4px;
 }
 
 .money-budget__title {
@@ -134,7 +154,13 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--surface-cream);
+  color: var(--text-secondary);
+}
+
+.money-budget__info {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
 }
 
 .money-budget__edit {
@@ -142,12 +168,13 @@
   align-items: center;
   gap: 2px;
   border: none;
-  background: none;
-  padding: 0;
+  border-radius: var(--radius-pill);
+  padding: 5px 10px;
+  background: var(--surface-cream);
   font-family: var(--font-suit);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 12px;
-  color: #fffdfb;
+  color: var(--brand-primary);
   cursor: pointer;
 }
 
@@ -156,91 +183,161 @@
   height: 14px;
 }
 
-.money-budget__amount {
-  margin: 6px 0 0;
-  font-family: var(--font-asta);
+/* 가려진 상태 — 잠금 아이콘 + "금액 보기" 필 버튼. 누르면 금액이 나타난다 */
+.money-budget__reveal {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: rgba(180, 57, 54, 0.12);
+  font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 36px;
+  font-size: 14px;
+  color: var(--brand-primary);
+  cursor: pointer;
+}
+
+.money-budget__reveal img {
+  width: 16px;
+  height: 16px;
+}
+
+.money-budget__reveal-caption {
+  position: relative;
+  z-index: 1;
+  margin: 8px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+/* 보이는 상태 — 큰 금액 숫자. 다시 누르면 가려진다 */
+.money-budget__amount {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 6px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 32px;
   line-height: 1.2;
-  color: #fff;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
 }
 
 .money-budget__foot {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 .money-budget__cap {
   font-family: var(--font-asta);
   font-weight: 400;
-  font-size: 14px;
-  color: var(--border-warm);
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .money-budget__percent {
   font-family: var(--font-asta);
   font-weight: 400;
-  font-size: 14px;
-  color: var(--surface-cream);
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .money-budget__bar {
-  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
   height: 8px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(180, 57, 54, 0.15);
   overflow: hidden;
 }
 
 .money-budget__bar-fill {
   height: 100%;
   border-radius: var(--radius-pill);
-  background: var(--brand-secondary);
+  background: var(--brand-primary);
 }
 
-/* ---------- 오늘 쓸 수 있는 돈 ---------- */
-.money-today {
+/* ---------- 오늘 쓸 수 있는 돈 + 지난달 비교, 한 카드 두 칸 ---------- */
+.money-today-compare {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: calc(100% - var(--screen-margin) * 2);
+  align-items: stretch;
   margin: 15px var(--screen-margin) 0;
-  padding: 8px 20px;
-  border: none;
+  padding: 14px 16px;
+  border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
-  background: var(--brand-secondary);
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 13px;
-  color: #240b0b;
+  background: var(--surface-base);
+}
+
+.money-today-compare__col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  border: none;
+  padding: 0;
+  background: none;
+  text-align: left;
+}
+
+button.money-today-compare__col {
   cursor: pointer;
 }
 
-.money-today__value {
+.money-today-compare__label {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.money-today-compare__value {
   display: flex;
   align-items: center;
   gap: 4px;
   font-family: var(--font-asta);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--text-black);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
 }
 
-.money-today__value img {
+.money-today-compare__value img {
   width: 14px;
   height: 14px;
 }
 
-/* ---------- 비교 문구 ---------- */
-.money-compare {
-  margin: 0;
-  padding: 6px var(--screen-margin) 0;
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 13px;
+.money-today-compare__value--compare {
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.35;
   color: var(--brand-green);
+}
+
+.money-today-compare__value--compare img {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.money-today-compare__divider {
+  width: 1px;
+  margin: 0 12px;
+  background: var(--border-warm);
 }
 
 /* ---------- 섹션 공통 ---------- */
@@ -294,7 +391,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 14px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
 .money-flow__row + .money-flow__row {
@@ -307,20 +408,27 @@
   gap: 10px;
 }
 
+/* Figma image fill 크롭 값 그대로 쓰는 스프라이트 배지 — money-fixed-cat-row__thumb 와 동일 패턴 */
 .money-flow__badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  display: block;
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--surface-widget);
-  color: var(--brand-primary);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .money-flow__badge img {
-  width: 18px;
-  height: 18px;
+  position: absolute;
+  max-width: none;
+}
+
+.money-flow__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
 }
 
 .money-flow__label {
@@ -328,6 +436,24 @@
   font-weight: 400;
   font-size: 14px;
   color: var(--text-nav);
+}
+
+.money-flow__date {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.money-flow__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.money-flow__right img {
+  width: 14px;
+  height: 14px;
 }
 
 .money-flow__value {
@@ -342,34 +468,60 @@
   color: var(--brand-green);
 }
 
-/* ---------- 이번 달 예정된 지출 ---------- */
-.money-upcoming {
+/* ---------- 이번 달 예정된 지출 — 3칸 미리보기 카드 ---------- */
+.money-upcoming-grid {
+  display: flex;
+  gap: 10px;
   margin-top: 14px;
 }
 
-.money-upcoming__row {
+.money-upcoming-card {
   display: flex;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
+  gap: 6px;
+  padding: 14px 4px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  text-align: center;
 }
 
-.money-upcoming__row + .money-upcoming__row {
-  border-top: 1px solid var(--border-warm);
+.money-upcoming-card__icon {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.money-upcoming__label {
+.money-upcoming-card__icon img {
+  position: absolute;
+  max-width: none;
+}
+
+.money-upcoming-card__label {
   font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 13px;
   color: var(--text-primary);
 }
 
-.money-upcoming__value {
+.money-upcoming-card__value {
   font-family: var(--font-asta);
   font-weight: 600;
-  font-size: 18px;
+  font-size: 13px;
   color: var(--text-primary);
+}
+
+.money-upcoming-card__date {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* ---------- 비상금 ---------- */
