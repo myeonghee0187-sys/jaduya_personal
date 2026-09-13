@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 /** 'money' 는 탭바 '돈관리' 의 메인 화면이다 */
 /** 'money-budget' 는 돈관리 아래 예산 설정 화면이다 (탭바는 '돈관리' active 를 유지한다) */
 /** 'community-question' 은 커뮤니티 '질문' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
+/** 'community-tip' 은 커뮤니티 '자취 꿀팁' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 export type AppPage =
   | 'home'
   | 'my'
@@ -21,6 +22,7 @@ export type AppPage =
   | 'life-eat'
   | 'community'
   | 'community-question'
+  | 'community-tip'
   | 'ai-chat'
   | 'money'
   | 'money-budget';
