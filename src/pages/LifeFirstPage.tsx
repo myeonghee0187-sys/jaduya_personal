@@ -7,17 +7,17 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import Stack from '../components/Stack/Stack';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { icon } from '../lib/asset';
+import { icon, img } from '../lib/asset';
 
 /* 생활 하위 탭 — 첫 자취만 화면이 있어서 나머지는 아직 이동하지 않는다 */
 const LIFE_TABS = ['첫 자취', '홈케어', '살림', '먹거리'] as const;
 
 /* 집을 보러 갔을 때 확인할 생활 조건 — 정보만 알려주는 영역이라 클릭 동작이 없다 */
 const HOUSE_POINTS = [
-  { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life-first-light.svg' },
-  { key: 'water', name: '수압', desc: '물을 틀어 세기를 확인', file: 'life-first-water.svg' },
-  { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life-first-storage.svg' },
-  { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life-first-nearby.svg' },
+  { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.webp' },
+  { key: 'water', name: '수압', desc: '물을 틀어 세기를 확인', file: 'life/life_water.webp' },
+  { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.webp' },
+  { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life/life_convenience.webp' },
 ] as const;
 
 /* 체크리스트를 보는 시점 */
@@ -206,7 +206,7 @@ export function LifeFirstPage() {
             {HOUSE_POINTS.map((point) => (
               <li key={point.key} className="house-point">
                 <span className={`house-point__badge house-point__badge--${point.key}`}>
-                  <img src={icon(point.file)} alt="" />
+                  <img src={img(point.file)} alt="" />
                 </span>
                 <span className="house-point__text">
                   <strong>{point.name}</strong>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
+import { IntroSplash } from '../components/IntroSplash';
 import App from '../App';
 import { Login } from './Login';
 import { Signup } from './Signup';
@@ -124,7 +125,12 @@ export function LoginShowcase() {
   /* 실제 모바일 기기 폭 — 프레임/Demo Account 없이 앱을 그대로 전체화면으로 보여준다.
    * (App 이 자기 안에서 로그인 전/후, 온보딩까지 전부 알아서 분기한다) */
   if (!isDesktop) {
-    return <App />;
+    return (
+      <>
+        <IntroSplash />
+        <App />
+      </>
+    );
   }
 
   return (
@@ -167,6 +173,8 @@ export function LoginShowcase() {
         </div>
 
         <IPhoneFrame>
+          {/* 인트로는 목업 화면 안에서 재생된다 (.iphone-frame__screen 기준) */}
+          <IntroSplash />
           {user ? (
             /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다 (진행 상태는 localStorage 유지) */
             <App key={appKey} />

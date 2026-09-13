@@ -49,13 +49,7 @@
   height: var(--header-icon-btn);
 }
 
-/* header-menu.svg 는 28 viewBox 안에 24 글리프 박스가 들어 있는 구조라,
- * 24px 로 그리면 안쪽 dehaze 글리프가 18.41 → 15.78px 로 줄어 Home 햄버거보다 작아 보인다.
- * 원본 크기(28)로 그려야 글리프가 18.41 × 14.47 로 Home Header 와 같아진다. */
-.page-header__menu img {
-  width: var(--header-icon-btn);
-  height: var(--header-icon-btn);
-}
+/* 메뉴 버튼 안은 Home Header 와 같은 .burger(home.css) 다 — 크기·색·모션이 한 곳에서 정해진다 */
 
 /* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
  * 기준값은 Home Header 다. 28×28 아이콘 버튼 두 개 + gap 12 = 68px 를 76px 폭

@@ -99,9 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signup({ email, password, nickname }) {
         const key = email.trim().toLowerCase();
-        /* 가입 전 데모 계정(이서준)의 이메일은 아직 사용 가능한 것으로 본다 */
-        const takenAsMock = Boolean(MOCK_USERS[key]) && !(key === DEMO_SIGNUP_EMAIL && !demoSignedUp);
-        if (takenAsMock || signedUpUsers[key]) return false;
+        /* 이서준은 신규 가입 시연용이라 같은 브라우저에서 몇 번이든 다시 가입할 수 있다 —
+         * 지난 시연에서 남은 가입 완료 플래그와 계정 진행 상태를 먼저 지운다.
+         * 나머지 계정(김하린·조아영·세션 중 가입한 계정)의 중복 검사는 그대로 둔다. */
+        if (key === DEMO_SIGNUP_EMAIL) {
+          resetDemoSignupDone();
+          resetAccountDemo(key);
+        } else if (MOCK_USERS[key] || signedUpUsers[key]) {
+          return false;
+        }
         /* 신규 가입자는 아직 맞춤 설정 전 — onboarded: false 로 시작한다 */
         const account = {
           name: nickname,

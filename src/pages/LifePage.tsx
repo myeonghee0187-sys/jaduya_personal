@@ -14,10 +14,10 @@ import { img } from '../lib/asset';
 /* 생활 카테고리 4종 — 이미지는 정사각 원본이라 카드 안에서 크롭 위치를 따로 잡는다.
  * (modifier 로 life.css 에서 top/left/height 를 지정) */
 const CATEGORIES = [
-  { key: 'first', title: '첫 자취', sub: '방 구하기부터 정착까지', file: 'life-category-first.png' },
-  { key: 'homecare', title: '홈케어', sub: '문제 확인부터 해결까지', file: 'life-category-homecare.png' },
-  { key: 'house', title: '살림', sub: '청소부터 분리배출까지', file: 'life-category-house.png' },
-  { key: 'food', title: '먹거리', sub: '보관부터 한 끼까지', file: 'life-category-food.png' },
+  { key: 'first', title: '첫 자취', sub: '방 구하기부터 정착까지', file: 'first_home.webp' },
+  { key: 'homecare', title: '홈케어', sub: '문제 확인부터 해결까지', file: 'homecare.webp' },
+  { key: 'house', title: '살림', sub: '청소부터 분리배출까지', file: 'housekeeping.webp' },
+  { key: 'food', title: '먹거리', sub: '보관부터 한 끼까지', file: 'food.webp' },
 ] as const;
 
 /* 해결팁 — 배열 순서가 곧 화면 순서. 가운데로 온 카드가 강조 카드가 된다. */
