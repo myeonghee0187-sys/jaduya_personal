@@ -59,7 +59,12 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
     () => ({
       page: route.page,
       options: route.options,
-      navigate: (page: AppPage, options: NavigateOptions = {}) => setRoute({ page, options }),
+      navigate: (page: AppPage, options: NavigateOptions = {}) => {
+        /* 라우터 없이 화면을 통째로 바꾸는 구조라, 이전 화면에서 스크롤해 내려간 채
+         * 넘어오면 도착 화면도 그 위치에서 그려진다 — 새 화면은 항상 맨 위에서 보여야 한다. */
+        window.scrollTo(0, 0);
+        setRoute({ page, options });
+      },
     }),
     [route],
   );

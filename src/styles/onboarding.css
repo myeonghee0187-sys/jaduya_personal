@@ -3,10 +3,11 @@
  * 값은 tokens.css 의 디자인 토큰으로만 쓴다.
  * 프레임(402×874) 규칙과 상태바/Safe Area 처리는 .app 이 담당하므로
  * 이 파일에서는 .app / #root / html / body 규칙을 두지 않는다.
+ *
+ * 아이콘/캐릭터는 public/assets/img/onboarding/ 의 실제 캐릭터 시트 crop 이다.
+ * 원본 원형 배지 배경·그림자·비율을 그대로 유지하고 크기만 CSS 로 조정한다.
  */
 
-/* 프레임 크기(402×874 / 모바일 풀뷰포트)는 .app 규칙이 담당한다.
- * 여기서는 세로 배치만 잡아 하단 CTA 가 항상 보이게 한다. */
 .onboarding {
   display: flex;
   flex-direction: column;
@@ -20,11 +21,7 @@
  *
  * 세로 높이 캡: 다른 화면(.app)은 실기기에서 레터박스가 생기지 않도록 세로에
  * 캡을 두지 않지만(app-shell.css 참고), 온보딩은 스크롤되는 목록형 화면이
- * 아니라 402×874 목업 그대로의 비율로 보여줘야 하는 삽화 중심 화면이다.
- * 캡이 없으면 실기기/브라우저 높이가 874px 를 넘는 만큼 그대로 빈 여백이
- * 되어(콘텐츠 위/아래 어느 쪽에 두든) 단계마다 버튼 위치가 들쭉날쭉해지거나
- * 콘텐츠가 어색하게 뜬 것처럼 보였다. 가로가 이미 --frame-width 로 캡되어
- * 넘치는 폭을 화면 중앙 정렬(#root)로 흡수하듯, 세로도 같은 방식으로 캡한다. */
+ * 아니라 402×874 목업 그대로의 비율로 보여줘야 하는 삽화 중심 화면이다. */
 .onboarding.app {
   background: #fffaf5;
   max-height: var(--frame-height);
@@ -38,68 +35,115 @@
   align-items: center;
   justify-content: space-between;
   height: 50px;
-  padding: 0 var(--screen-margin);
+  padding: 0 calc(var(--screen-margin) - 10px);
 }
 
-.onboarding__nav span {
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.onboarding__nav button {
+.onboarding__back,
+.onboarding__skip {
   min-width: 44px;
+  min-height: 44px;
   border: 0;
   background: none;
   font: inherit;
-  font-size: 14px;
-  line-height: 1.4;
   color: var(--text-secondary);
-  text-align: left;
 }
 
-.onboarding__nav button:disabled {
+.onboarding__back {
+  font-size: 22px;
+  line-height: 1;
+  text-align: left;
+  padding-left: var(--space-md);
+}
+
+.onboarding__back:disabled {
   visibility: hidden;
 }
 
+.onboarding__skip {
+  font-size: 14px;
+  padding-right: var(--space-md);
+  text-align: right;
+}
+
+.onboarding__step-count {
+  min-width: 44px;
+  padding-right: var(--space-md);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* 점 4개 + 연결선 3개짜리 stepper. 현재 단계의 점만 크게/빨갛게,
+ * 그 앞 구간의 선만 빨갛게 칠한다(1단계는 다음 구간을 대신 칠한다). */
 .onboarding__progress {
   flex: none;
   display: flex;
-  gap: var(--space-2xs);
+  align-items: center;
   padding: var(--space-sm) var(--screen-margin) 0;
 }
 
-.onboarding__progress i {
-  flex: 1;
-  height: 4px;
+.onboarding__progress-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-pill);
   background: var(--border-warm);
 }
 
-.onboarding__progress i.is-current {
+.onboarding__progress-dot.is-current {
+  width: 10px;
+  height: 10px;
+  background: var(--brand-primary);
+}
+
+.onboarding__progress-line {
+  flex: 1 1 auto;
+  height: 2px;
+  margin: 0 4px;
+  background: var(--border-warm);
+}
+
+.onboarding__progress-line.is-active {
   background: var(--brand-primary);
 }
 
 /* ================= 본문 ================= */
 
 .onboarding__body {
-  /* 이제 .onboarding.app 자체가 874px 로 캡돼 있어(위 참고) 여기서 남는
-   * 공간은 원래 목업 비율만큼만 생긴다 — 억지로 채우거나(예전) 가운데
-   * 정렬로 나눠 가지는(그 다음 시도) 보정이 필요 없다. 하단 CTA 는 그
-   * 캡된 프레임 안에서 자연스럽게 맨 아래에 위치한다. */
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-3xl) var(--screen-margin) var(--space-xl);
+  padding: var(--space-xl) var(--screen-margin) var(--space-xl);
   text-align: center;
 }
 
 .onboarding__body h1 {
-  margin: var(--space-lg) 0 0;
+  margin: var(--space-md) 0 0;
   font-family: var(--font-a2z);
   font-weight: 700;
   font-size: 24px;
-  line-height: 1.25;
+  line-height: 1.3;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+/* 시작(welcome) 화면 전용 — 다른 단계는 좌측 정렬/Suit 폰트 그대로 두고
+ * 이 화면(Figma "본문" 프레임, node 2628:24370)만 중앙 정렬 + Asta Sans 스펙을 따른다. */
+.onboarding__welcome h1,
+.onboarding__welcome p {
+  text-align: center;
+  font-family: var(--font-asta);
+}
+
+.onboarding__welcome h1 {
+  margin-top: var(--space-lg);
+  line-height: 34px;
+}
+
+.onboarding__welcome p {
+  margin-top: var(--space-lg);
+  font-size: 16px;
   color: var(--text-primary);
 }
 
@@ -108,54 +152,90 @@
   font-size: 14px;
   line-height: 1.4;
   color: var(--text-secondary);
-}
-
-.onboarding__body em {
-  display: block;
-  margin-top: var(--space-lg);
-  font-style: normal;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 1.3;
-  letter-spacing: -0.14px;
-  color: var(--brand-primary);
+  text-align: left;
 }
 
 .onboarding__body small {
   display: block;
   text-align: left;
   font-weight: 600;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: -0.13px;
+  color: var(--brand-primary);
+}
+
+/* 시작(welcome) 화면의 안내 문구 아래 강조 캡션 — "두 가지 선택이면 준비 끝!" */
+.onboarding__accent {
+  display: block;
+  margin: var(--space-lg) 0 0;
+  text-align: center;
+  font-family: var(--font-asta);
+  font-weight: 600;
   font-size: 14px;
   line-height: 1.3;
   letter-spacing: -0.14px;
   color: var(--brand-primary);
 }
 
+/* 시작(welcome) / 완료(complete) 화면의 캐릭터 무대 — 카드가 아니라 삽화 영역이라
+ * 배경을 따로 그리지 않는다(원형 배지는 캐릭터 png 에 배경이 없어 필요 없다). */
 .onboarding__visual {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 232px;
-  height: 232px;
   margin: var(--space-xl) auto var(--space-lg);
-  border-radius: var(--radius-pill);
-  background: var(--brand-secondary);
-  overflow: visible;
 }
 
-.onboarding__visual img {
-  width: 172px;
-  height: 172px;
-  object-fit: contain;
-  border-radius: var(--radius-pill);
+.onboarding__visual--welcome {
+  width: 100%;
+  height: 168px;
 }
+
+.onboarding__visual--complete {
+  width: 100%;
+  height: 200px;
+}
+
+.onboarding__mascot {
+  object-fit: contain;
+}
+
+.onboarding__mascot--welcome {
+  width: 168px;
+  height: auto;
+}
+
+.onboarding__mascot--complete {
+  width: 176px;
+  height: auto;
+}
+
+.onboarding__mascot--guide {
+  width: 92px;
+  height: auto;
+  flex: none;
+}
+
+/* 완료 화면 캐릭터 주변에 흩뿌리는 작은 컨페티 — 시트의 실제 조각을 그대로 쓰고
+ * 위치/회전만 CSS 로 잡는다(형태·색은 건드리지 않는다). */
+.onboarding__confetti {
+  position: absolute;
+  pointer-events: none;
+}
+
+.onboarding__confetti--1 { top: 6px; left: 22%; width: 22px; transform: rotate(-8deg); }
+.onboarding__confetti--2 { top: 18px; right: 20%; width: 16px; transform: rotate(18deg); }
+.onboarding__confetti--3 { bottom: 34px; left: 14%; width: 18px; transform: rotate(-24deg); }
+.onboarding__confetti--4 { top: 46%; right: 12%; width: 16px; transform: rotate(10deg); }
+.onboarding__confetti--5 { bottom: 20px; right: 24%; width: 18px; transform: rotate(-14deg); }
 
 /* 캐릭터 옆 말풍선 — 시작(welcome) 화면 전용 */
 .onboarding__bubble {
   position: absolute;
   top: 4px;
-  right: -12px;
+  right: 4%;
   max-width: 128px;
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border-warm);
@@ -170,33 +250,12 @@
   text-align: left;
 }
 
-/* 캐릭터 + 말풍선 — 자취 단계(stage) 선택 후 등장하는 리액션 */
-.onboarding__companion {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-xl);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-m);
-  background: var(--surface-widget);
-  text-align: left;
-}
-
-.onboarding__companion img {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  object-fit: contain;
-}
-
-.onboarding__companion p {
-  margin: 0;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1.35;
-  letter-spacing: -0.12px;
-  color: var(--text-primary);
+/* 말풍선 — 자취 단계(stage) 선택 화면, 캐릭터 옆(아래 .onboarding__companion 안) */
+.onboarding__bubble--companion {
+  position: static;
+  max-width: none;
+  box-shadow: none;
+  flex: 1;
 }
 
 /* ================= 선택 카드 (interests / stage) ================= */
@@ -219,24 +278,24 @@
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: var(--space-xs);
-  border: 1px solid var(--border-warm);
+  gap: var(--space-sm);
+  border: 1.5px solid var(--border-warm);
   border-radius: var(--radius-m);
-  background: var(--surface-cream);
+  background: var(--surface-base);
   color: var(--text-primary);
   font: inherit;
   text-align: left;
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
 }
 
-/* interests 는 2열이라 한 칸이 165px 안팎 — 아이콘/여백을 최대한 줄여
- * "지원금·혜택" 처럼 긴 제목도 한 줄에 들어가게 한다(전에는 텍스트 폭이
- * 69px 뿐이라 제목까지 줄바꿈됐다). stage 는 1열이라 여유가 있어 그대로 둔다. */
 .onboarding__choices button {
-  min-height: 64px;
-  padding: var(--space-sm) var(--space-xs);
+  flex-direction: column;
+  min-height: 92px;
+  padding: var(--space-sm);
 }
 
 .onboarding__stages button {
+  align-items: center;
   min-height: 72px;
   padding: var(--card-padding-m);
 }
@@ -245,33 +304,31 @@
   opacity: 0.45;
 }
 
-/* 선택 상태 — 내 메뉴 편집 카드(.menu-card--on)와 같은 표현 */
+.onboarding__choices button:active:not(:disabled),
+.onboarding__stages button:active {
+  transform: scale(0.98);
+}
+
+/* 선택 상태 — 옅은 브랜드 레드 배경 + 선명한 레드 보더 */
 .onboarding__choices button.is-selected,
 .onboarding__stages button.is-selected {
-  border-color: rgba(180, 57, 54, 0.4);
-  background: #fff8f2;
+  border-color: var(--brand-primary);
+  background: #fdf1f0;
 }
 
-.onboarding__choices button.is-selected .onboarding__choice-icon,
-.onboarding__stages button.is-selected .onboarding__choice-icon {
-  background: var(--brand-secondary);
-}
-
-/* 카테고리 아이콘 뱃지 — 지출 카테고리 뱃지(.money-cat-row__badge)와 같은 표현 */
 .onboarding__choice-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
   flex: none;
-  border-radius: var(--radius-m);
-  background: var(--surface-widget);
+  width: 40px;
+  height: auto;
+  object-fit: contain;
 }
 
-.onboarding__choice-icon img {
-  width: 16px;
-  height: 16px;
+.onboarding__choice-icon--stage {
+  width: 48px;
+}
+
+.onboarding__choice-icon--summary {
+  width: 26px;
 }
 
 .onboarding__choice-text {
@@ -282,10 +339,10 @@
   min-width: 0;
 }
 
-/* 체크 배지(.onboarding__choice-check)가 카드 우상단에 겹치는 건 interests 뿐이라
- * 텍스트가 배지 밑에 깔리지 않게 그만큼만 오른쪽을 비워 둔다. */
+/* 체크 배지가 카드 우상단에 겹치는 건 interests 뿐이라 텍스트가 배지 밑에
+ * 깔리지 않게 그만큼만 오른쪽을 비워 둔다. */
 .onboarding__choices .onboarding__choice-text {
-  padding-right: var(--space-sm);
+  padding-right: var(--space-md);
 }
 
 .onboarding__choice-text strong {
@@ -311,8 +368,8 @@
   position: absolute;
   top: var(--space-xs);
   right: var(--space-xs);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   flex: none;
 }
 
@@ -324,9 +381,9 @@
 .onboarding__radio {
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-left: auto;
   flex: none;
-  border: 1px solid var(--border-warm);
+  border: 1.5px solid var(--border-warm);
   border-radius: var(--radius-pill);
   background: var(--surface-base);
 }
@@ -336,10 +393,23 @@
   background: var(--surface-base);
 }
 
+/* 캐릭터 + 말풍선 — 자취 단계(stage) 선택 후 등장하는 안내 */
+.onboarding__companion {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
+  text-align: left;
+}
+
 /* ================= 요약 (complete) ================= */
 
 .onboarding__summary {
-  margin-top: var(--space-xl);
+  margin-top: var(--space-lg);
   padding: var(--card-padding-m);
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
@@ -347,13 +417,29 @@
   text-align: left;
 }
 
-.onboarding__summary-title {
-  display: block;
+.onboarding__summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: var(--space-sm);
+}
+
+.onboarding__summary-title {
   font-weight: 600;
   font-size: 12px;
   line-height: 1.3;
   color: var(--text-secondary);
+}
+
+.onboarding__summary-edit {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--brand-primary);
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .onboarding__summary-row {
@@ -367,17 +453,7 @@
   border-top: 1px solid var(--border-warm);
 }
 
-.onboarding__summary-row .onboarding__choice-icon {
-  width: 26px;
-  height: 26px;
-}
-
-.onboarding__summary-row .onboarding__choice-icon img {
-  width: 13px;
-  height: 13px;
-}
-
-.onboarding__summary-row span:last-of-type {
+.onboarding__summary-row span {
   flex: 1;
   font-weight: 500;
   font-size: 14px;
@@ -385,11 +461,36 @@
   color: var(--text-primary);
 }
 
-.onboarding__summary-arrow {
-  width: 14px;
-  height: 14px;
+/* ================= 추천 안내 (complete) ================= */
+
+.onboarding__recommend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-m);
+  background: #fdf1f0;
+}
+
+.onboarding__recommend-icon {
   flex: none;
-  opacity: 0.5;
+  width: 36px;
+  height: auto;
+  object-fit: contain;
+}
+
+.onboarding__recommend p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.onboarding__recommend strong {
+  display: block;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* ================= 하단 CTA ================= */
@@ -408,7 +509,21 @@
   color: var(--text-secondary);
 }
 
-/* CTA 는 로그인/회원가입과 같은 .auth-button 을 그대로 쓴다 (auth.css) */
-.onboarding__footer .auth-button {
+.onboarding__footer-note {
+  margin: var(--space-sm) 0 0 !important;
+}
+
+/* CTA 는 로그인/회원가입과 같은 .auth-button 을 그대로 쓴다(auth.css) — 새 버튼 시스템을
+ * 만들지 않는다. 화살표는 다른 화면에서도 쓰는 chevron-right-white.svg 를 재사용한다. */
+.onboarding__cta {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.onboarding__cta img {
+  width: 14px;
+  height: 14px;
 }
