@@ -563,3 +563,61 @@ export const QUESTION_POSTS: CommunityPost[] = [
     thumb: 'post-question-bill.webp',
   },
 ];
+
+/* 지역 후기 게시글 — Figma local_reviews_v4 (3092:20677) 의 내용 그대로.
+ * 카드는 기존 CommunityPostCard 그대로 쓴다. Figma 원본은 해시태그 칩이 2개(#원룸 #소음 등)라
+ * 기존 카드의 category 칩 자리에 두 번째 태그를 넣어서 재현했다. */
+export const REGION_POSTS: CommunityPost[] = [
+  {
+    id: 'region-mangwon',
+    hashtag: '#원룸',
+    category: '소음',
+    title: '망원동 원룸 1년 살아보니',
+    preview: '큰길만 피하면 진짜 조용해요, 방음 꿀팁도 같이 정리했어요',
+    badge: '🌱',
+    author: '망원동 토박이',
+    time: '2시간 전',
+    likes: 84,
+    comments: 15,
+    thumb: 'post-region.jpg',
+  },
+  {
+    id: 'region-seongsu',
+    hashtag: '#오피스텔',
+    category: '교통',
+    title: '성수동 오피스텔 교통 편해요',
+    preview: '2호선 도보 5분 거리, 출퇴근 후기 남겨요',
+    badge: '🌱',
+    author: '성수동 3년차',
+    time: '1일 전',
+    likes: 63,
+    comments: 9,
+    thumb: 'post-region.jpg',
+  },
+  {
+    id: 'region-haebangchon',
+    hashtag: '#주택',
+    category: '인프라',
+    title: '해방촌 주택 살아보니 어때요',
+    preview: '언덕은 있지만 편의시설은 다 있어요',
+    badge: '🌱',
+    author: '해방촌 주민',
+    time: '4시간 전',
+    likes: 51,
+    comments: 7,
+    thumb: 'post-region.jpg',
+  },
+  {
+    id: 'region-hwagok',
+    hashtag: '#투룸',
+    category: '채광',
+    title: '화곡동 투룸 채광 진짜 좋아요',
+    preview: '남향 투룸 찾는 분들 참고하세요',
+    badge: '🌱',
+    author: '화곡동 자취러',
+    time: '6시간 전',
+    likes: 39,
+    comments: 5,
+    thumb: 'post-region.jpg',
+  },
+];

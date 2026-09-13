@@ -11,6 +11,36 @@ import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS } from '..
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
+/* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
+ * ("고정비·관리비" → "고정비" / "관리비", "생활 문제 해결" → "생활 문제" / "해결").
+ * '·' 가 있으면 그 자리에서, 없으면 마지막 공백에서 나눈다. 넓은 화면에서는
+ * CSS 로 구분자(·)만 보이고 줄바꿈은 숨긴다 — TIP_CATEGORIES 라벨 순서를
+ * 그대로 유지한다. */
+function renderTipLabel(label: string) {
+  const dotIndex = label.indexOf('·');
+  if (dotIndex !== -1) {
+    return (
+      <>
+        {label.slice(0, dotIndex)}
+        <span className="tip-category__label-dot" aria-hidden="true">
+          ·
+        </span>
+        <br className="tip-category__label-break" />
+        {label.slice(dotIndex + 1)}
+      </>
+    );
+  }
+  const spaceIndex = label.lastIndexOf(' ');
+  if (spaceIndex === -1) return label;
+  return (
+    <>
+      {label.slice(0, spaceIndex)}{' '}
+      <br className="tip-category__label-break" />
+      {label.slice(spaceIndex + 1)}
+    </>
+  );
+}
+
 /* 커뮤니티 '자취 꿀팁' — 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을
  * 그대로 쓴다 (카드는 CommunityPostCard, chips 행만 없음). 정렬 필터 대신 이 탭 전용
  * 서브탭(TipTiles, Figma tip 2257:13827)을 둔다. */
@@ -102,6 +132,7 @@ export function CommunityTipPage() {
               onClick={() => {
                 if (name === '전체') navigation?.navigate('community');
                 else if (name === '질문') navigation?.navigate('community-question');
+                else if (name === '지역 후기') navigation?.navigate('community-region');
               }}
             >
               {name}
@@ -129,7 +160,7 @@ export function CommunityTipPage() {
                     aria-hidden="true"
                   />
                 </span>
-                <span className="tip-category__label">{item.label}</span>
+                <span className="tip-category__label">{renderTipLabel(item.label)}</span>
               </button>
             );
           })}
