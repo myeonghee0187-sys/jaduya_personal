@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -8,20 +8,21 @@ import { SavedCard } from '../components/SavedCard';
 import { SAVED_FILTERS, SAVED_ITEMS, sortByLatest } from '../data/savedItems';
 import type { SavedFilter, SavedItem } from '../data/savedItems';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { icon } from '../lib/asset';
 
-const SORT_OPTIONS = ['최신 저장순', '오래된 저장순'] as const;
-type SortOption = (typeof SORT_OPTIONS)[number];
+/** 나의 활동 1차 탭 — '저장한 정보' 가 기본값이다 */
+const ACTIVITY_TABS = ['저장한 정보', '작성한 글', '댓글'] as const;
+type ActivityTab = (typeof ACTIVITY_TABS)[number];
 
-/* 저장한 정보 — 마이페이지 '나의 활동 > 전체보기' / GNB 내 메뉴 '저장한 정보' 로 들어오는 하위 화면.
+/* 나의 활동 — 마이페이지 '나의 활동' / GNB 내 메뉴 '저장한 정보' 로 들어오는 하위 화면.
+ * 1차 탭(저장한 정보 / 작성한 글 / 댓글) 아래에 각 탭의 내용을 둔다.
  * 새 헤더·탭바를 만들지 않고 SubPageHeader / BottomNavigation 을 그대로 쓴다.
  * 탭바는 마이페이지의 하위 화면이므로 '마이' active 를 유지한다. */
 export function SavedPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
+  const [tab, setTab] = useState<ActivityTab>('저장한 정보');
   const [filter, setFilter] = useState<SavedFilter>('전체');
-  const [sort, setSort] = useState<SortOption>('최신 저장순');
   /* 카테고리·정렬 드롭다운은 한 번에 하나만 열린다 */
   const [openMenu, setOpenMenu] = useState<'filter' | 'sort' | null>(null);
   /* 저장 해제한 항목 id — 목록에서 빠지고 토스트에서 되돌릴 수 있다 */
@@ -79,7 +80,7 @@ export function SavedPage() {
   return (
     <div className="saved app">
       <SubPageHeader
-        title="저장한 정보"
+        title="나의 활동"
         backLabel="마이페이지로"
         onBack={() => navigation?.navigate('my')}
         onMenu={() => setGnbOpen(true)}
@@ -148,33 +149,66 @@ export function SavedPage() {
               </ul>
             </div>
           </div>
-        </div>
-
-        {/* ③ 목록 — 카드는 데이터로만 만든다 */}
-        {items.length > 0 ? (
+        ) : (
           <>
-            <div className="saved__list">
-              {items.map((item) => (
-                <SavedCard
-                  key={item.id}
-                  item={item}
-                  bookmarked
-                  onToggleBookmark={unsave}
-                  onOpen={openItem}
-                />
+            {/* ① 카테고리 필터 — 2차 필터. '저장한 정보' 탭에서만 보인다. 기본값 '전체' */}
+            <div className="saved__filters" role="tablist" aria-label="저장 카테고리">
+              {SAVED_FILTERS.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === name}
+                  className={`saved__filter${filter === name ? ' is-active' : ''}`}
+                  onClick={() => setFilter(name)}
+                >
+                  {name}
+                </button>
               ))}
             </div>
-            <p className="saved__footer">저장된 콘텐츠가 모두 표시되었습니다.</p>
+
+            {/* ② 개수 — 지금 보이는 목록에서 센다. 저장한 정보가 없으면 띄우지 않는다 */}
+            {items.length > 0 && <p className="saved__count">총 {items.length}개의 저장한 정보</p>}
+
+            {/* ③ 목록 — 카드는 데이터로만 만든다.
+             * 저장 데이터가 0개면 Empty State, 있으면 카드 목록. */}
+            {items.length > 0 ? (
+              <>
+                <div className="saved__list">
+                  {items.map((item) => (
+                    <SavedCard
+                      key={item.id}
+                      item={item}
+                      bookmarked
+                      onToggleBookmark={unsave}
+                      onOpen={openItem}
+                    />
+                  ))}
+                </div>
+                <p className="saved__footer">저장된 콘텐츠가 모두 표시되었습니다.</p>
+              </>
+            ) : (
+              /* Figma saved_empty (1565:7114) — 저장 데이터가 0개일 때 기본으로 보여준다 */
+              <div className="saved__empty">
+                <div className="saved__empty-copy">
+                  <b>아직 저장한 정보가 없어요.</b>
+                  <p>
+                    지금 필요한 정보를 저장하고
+                    <br />
+                    나중에 다시 확인해보세요.
+                  </p>
+                </div>
+                {/* 콘텐츠를 둘러볼 곳은 생활 메인 — 새 route 를 만들지 않고 기존 화면으로 보낸다 */}
+                <button
+                  type="button"
+                  className="saved__empty-cta"
+                  onClick={() => navigation?.navigate('life')}
+                >
+                  콘텐츠 둘러보기
+                </button>
+              </div>
+            )}
           </>
-        ) : (
-          <div className="saved__empty">
-            <p>
-              {filter === '전체'
-                ? '아직 저장한 콘텐츠가 없어요.'
-                : `${filter} 카테고리에 저장한 콘텐츠가 없어요.`}
-            </p>
-            <small>마음에 드는 정보를 북마크하면 여기에 모여요.</small>
-          </div>
         )}
       </main>
 

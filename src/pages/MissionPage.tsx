@@ -118,9 +118,10 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
               <strong>Lv.{level.level}</strong>
               <b>{level.stageName}</b>
             </span>
+            {/* 최고 레벨은 진행률 대신 MAX 를 쓴다 (마이페이지 카드와 같은 규칙) */}
             <strong className="mission__percent">
-              {level.progress}
-              <small>%</small>
+              {level.progressLabel}
+              {!level.isMaxLevel && <small>%</small>}
             </strong>
           </div>
           <div
@@ -134,7 +135,13 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
             <span style={{ width: `${level.progress}%` }} />
           </div>
           <p className="mission__xp">
-            <strong>{level.remainingXp}XP</strong> 더 모으면 레벨업 할 수있어요!
+            {level.isMaxLevel ? (
+              <strong>자취 고수 레벨을 달성했어요!</strong>
+            ) : (
+              <>
+                <strong>{level.remainingXp}XP</strong> 더 모으면 레벨업 할 수있어요!
+              </>
+            )}
           </p>
         </section>
 

@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MOCK_USERS } from './mockUsers';
 import { DEMO_SIGNUP_EMAIL, isDemoSignupDone, markDemoSignupDone, resetDemoSignupDone } from './demoSignup';
+import { isOnboardingPending, markOnboardingDone, resetAccountDemo } from './demoProgress';
 import type { AuthUser, UserPreferences } from './mockUsers';
 
 /* 로그인/회원가입 상태 전역 관리.
@@ -27,6 +28,10 @@ interface AuthValue {
   /** 이서준을 다시 가입 전 상태로 되돌린다(쇼케이스의 "새 계정으로 시작하기" 전용) —
    * localStorage 뿐 아니라 demoSignedUp 상태도 즉시 갱신해서 새로고침 없이 반영된다. */
   resetDemoSignup(): void;
+  /** 데모 '처음부터 시작하기' — 이 계정의 진행 상태만 지우고 온보딩부터 다시 시작한다.
+   * persona 기본 데이터(이름·프로필·자취 경험·주거 형태·레벨)는 건드리지 않는다.
+   * 계정을 찾지 못하면 false. */
+  startFreshDemo(email: string): boolean;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -79,11 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (key === DEMO_SIGNUP_EMAIL && !demoSignedUp) return false;
         const account = MOCK_USERS[key] ?? signedUpUsers[key];
         if (!account || account.password !== password) return false;
+        /* '처음부터 시작하기' 로 초기화해 둔 계정은 다시 로그인해도 온보딩부터 본다 —
+         * MOCK_USERS 의 onboarded 는 true 로 박혀 있어 그것만 믿으면 초기화가 풀린다 */
         const nextUser: AuthUser = {
           name: account.name,
           email: account.email,
           persona: account.persona,
-          onboarded: account.onboarded,
+          onboarded: account.onboarded && !isOnboardingPending(key),
           preferences: account.preferences,
         };
         setUser(nextUser);
@@ -123,6 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       completeOnboarding(preferences) {
         if (!user) return;
+        /* 초기화 플래그도 같이 걷어내야 다음 로그인에서 온보딩이 또 뜨지 않는다 */
+        markOnboardingDone(user.email);
         const nextUser: AuthUser = { ...user, onboarded: true, preferences };
         setUser(nextUser);
         saveStoredUser(nextUser);
@@ -140,6 +149,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetDemoSignup() {
         resetDemoSignupDone();
         setDemoSignedUp(false);
+      },
+      startFreshDemo(email) {
+        const key = email.trim().toLowerCase();
+        const account = MOCK_USERS[key] ?? signedUpUsers[key];
+        if (!account) return false;
+        /* 계정별 진행 상태만 지운다 — MOCK_USERS / personaProfile 의 기본 데이터는 코드 상수다 */
+        resetAccountDemo(key);
+        const nextUser: AuthUser = {
+          name: account.name,
+          email: account.email,
+          persona: account.persona,
+          onboarded: false,
+          preferences: null,
+        };
+        setUser(nextUser);
+        saveStoredUser(nextUser);
+        return true;
       },
     }),
     [user, signedUpUsers, demoSignedUp],

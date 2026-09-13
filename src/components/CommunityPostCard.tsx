@@ -7,6 +7,8 @@ interface CommunityPostCardProps {
   liked: boolean;
   onToggleSave: () => void;
   onToggleLike: () => void;
+  /** 자취 꿀팁 화면은 hashtag·category 칩 행이 없다 (Figma tip 2257:13827) */
+  showChips?: boolean;
 }
 
 /* 커뮤니티 게시글 카드.
@@ -18,6 +20,7 @@ export function CommunityPostCard({
   liked,
   onToggleSave,
   onToggleLike,
+  showChips = true,
 }: CommunityPostCardProps) {
   return (
     <article className="post-card">
@@ -62,12 +65,20 @@ export function CommunityPostCard({
         <div className="post-card__text">
           <h3 className="post-card__title">{post.title}</h3>
           <p className="post-card__preview">{post.preview}</p>
-          <div className="post-card__chips">
-            <span className="post-card__chip post-card__chip--tag">{post.hashtag}</span>
-            <span className="post-card__chip post-card__chip--category">{post.category}</span>
-          </div>
+          {showChips && (
+            <div className="post-card__chips">
+              <span className="post-card__chip post-card__chip--tag">{post.hashtag}</span>
+              <span className="post-card__chip post-card__chip--category">{post.category}</span>
+            </div>
+          )}
         </div>
-        <img className="post-card__thumb" src={img(`community/${post.thumb}`)} alt="" />
+        {post.thumb ? (
+          <img className="post-card__thumb" src={img(`community/${post.thumb}`)} alt="" />
+        ) : (
+          <span className="post-card__thumb post-card__thumb--placeholder" aria-hidden="true">
+            {post.thumbEmoji}
+          </span>
+        )}
       </div>
     </article>
   );

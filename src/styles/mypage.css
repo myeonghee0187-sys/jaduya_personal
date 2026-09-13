@@ -69,35 +69,12 @@
   color: var(--text-primary);
 }
 
+/* 아래 여백 8px 은 '프로필 관리' 버튼과 띄우려던 값이라 버튼과 함께 걷어낸다 —
+ * 이름과의 간격은 .mypage__profile-copy 의 gap 4px 이 그대로 맡는다 */
 .mypage__profile-copy p {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 14px;
-}
-
-.mypage__profile-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  border-radius: var(--radius-s);
-  padding: 4px 12px;
-  background: #f0d7d7;
-  color: var(--brand-primary);
-  font: 400 14px/1.4 var(--font-suit);
-  cursor: pointer;
-}
-
-/* 버튼 텍스트 색을 그대로 쓰되 화살표만 살짝 낮춰 위계를 준다 */
-.mypage__profile-arrow {
-  flex: none;
-  width: 5px;
-  height: 9px;
-  background: currentColor;
-  opacity: 0.65;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
 }
 
 /* ================= ② 자취 레벨 ================= */
