@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { EmergencyRing } from '../components/money/EmergencyRing';
 import { BudgetRibbon } from '../components/money/BudgetRibbon';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
@@ -1399,7 +1398,6 @@ export function MoneyPage() {
           }
         }}
       />
-      <AIChatbot />
     </div>
   );
 }

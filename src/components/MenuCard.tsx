@@ -1,3 +1,4 @@
+import { MenuIcon } from './MenuIcon';
 import { icon } from '../lib/asset';
 import type { MenuItem } from '../types';
 
@@ -20,7 +21,8 @@ export function MenuCard({ item, selected, disabled = false, onClick }: MenuCard
       onClick={() => onClick(item.id)}
     >
       <span className="menu-card__main">
-        <img className="menu-card__icon" src={icon(item.icon)} alt="" />
+        {/* 선택/미선택 색은 .menu-card__icon 규칙이 정한다 */}
+        <MenuIcon file={item.icon} className="menu-card__icon" />
         <span className="menu-card__label">{item.name}</span>
       </span>
       <img

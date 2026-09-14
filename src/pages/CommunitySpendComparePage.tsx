@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB } from '../data/communityPosts';
 import { MY_SPENDING_REPORT, PEER_COMPARISONS, SPEND_INSIGHT_APP_LINK } from '../data/spendCompare';
 import { useElasticDragScroll } from '../hooks/useElasticDragScroll';
@@ -157,7 +156,6 @@ export function CommunitySpendComparePage() {
         onSave={myMenu.saveEdit}
       />
       {/* 이 화면엔 글쓰기 버튼이 없어 챗봇이 기본 위치(글쓰기 버튼 자리)에 온다 */}
-      <AIChatbot />
     </div>
   );
 }

@@ -445,13 +445,50 @@
   letter-spacing: -0.24px;
 }
 
-/* 다음 퀴즈 — primary 지만 화면을 가로지르는 CTA 는 아니다 */
-.life-quiz__next {
-  align-self: flex-start;
+/* 결과 아래 액션 — 결과 설명보다 한 단계 아래로 둔다 */
+.life-quiz__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 11px;
+}
+
+/* 다시 풀기 — 배경 없는 작은 글자 버튼. 질문·결과보다 약하게 보여야 한다 */
+.life-quiz__retry {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: 400 12px/1.5 var(--font-suit);
+  letter-spacing: -0.24px;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.life-quiz__retry-icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+@media (hover: hover) {
+  .life-quiz__retry:hover {
+    color: var(--text-black);
+  }
+}
+
+.life-quiz__retry:active {
+  color: var(--text-black);
+}
+
+/* 다음 퀴즈 — primary 지만 화면을 가로지르는 CTA 는 아니다 */
+.life-quiz__next {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   height: 32px;
   border: 0;
   border-radius: var(--radius-pill);
@@ -499,6 +536,24 @@
   margin: 0 calc(var(--screen-margin) * -1);
 }
 
+/* 카드를 좌우로 쓸어 넘기는 영역이라, 스와이프 도중 글자가 잡혀 파랗게 칠해지거나
+ * 탭 하이라이트가 번쩍이면 안 된다. 이 섹션 안에만 적용한다 —
+ * 버튼 클릭은 그대로 되고(선택만 막는 속성이다) 세로 스크롤도 영향을 받지 않는다. */
+.life-tips__stage,
+.life-tips__stage * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.life-tips__rail,
+.life-tip,
+.life-tip__body,
+.life-tip__situation,
+.life-tip__title,
+.life-tip__meta {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* 카드가 콘텐츠 폭을 넘는다 — 이 영역만 가로로 흐르게 두고
  * 좌우 화면 여백 바깥까지 카드가 이어져 보이게 한다.
  * 좌우 padding 은 첫/마지막 카드도 가운데에 설 수 있는 만큼 잡는다.
@@ -511,6 +566,8 @@
   gap: 8px;
   padding: 0 calc((var(--content-width) + var(--screen-margin) * 2 - 200px) / 2);
   overflow-x: hidden;
+  /* 세로 스크롤은 페이지에 그대로 넘기고 가로 스와이프만 이 레일이 받는다 */
+  touch-action: pan-y;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
@@ -522,7 +579,15 @@
 .life-tips__nav {
   position: absolute;
   top: 50%;
-  z-index: 5;
+  /* 카드는 가운데로 올수록 z-index 가 10 까지 올라간다(paint()).
+   * 5 로 두면 이동하는 카드가 버튼 위를 지나가면서 버튼을 덮어
+   * 사라졌다 다시 나타나는 것처럼 보였다 — 카드보다 항상 위에 둔다.
+   * 버튼은 위치 자체가 가운데 카드 바깥이라 카드를 가리지는 않는다. */
+  z-index: 15;
+  /* 카드 전환과 무관하게 항상 같은 모습으로 있어야 한다 */
+  opacity: 1;
+  visibility: visible;
+  filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -538,9 +603,8 @@
   backdrop-filter: blur(4px);
   cursor: pointer;
   transform: translateY(-50%);
-  transition:
-    background-color 160ms ease,
-    box-shadow 160ms ease;
+  /* hover 배경만 부드럽게 — opacity / transform / filter 는 절대 전환하지 않는다 */
+  transition: background-color 160ms ease;
 }
 
 /* 보이는 크기는 36px 그대로 두고 누르는 범위만 44px 로 넓힌다 */
@@ -567,7 +631,6 @@
 @media (hover: hover) {
   .life-tips__nav:hover {
     background: rgba(255, 250, 245, 1);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
   }
 }
 
@@ -596,6 +659,8 @@
   overflow: hidden;
   border-radius: var(--radius-l);
   scroll-snap-align: center;
+  /* 관성으로 여러 장을 건너뛰지 않게 한 칸마다 반드시 멈춘다 */
+  scroll-snap-stop: always;
   transform-origin: center;
   will-change: transform;
 }
@@ -643,9 +708,12 @@
   object-position: bottom;
   /* 카드가 아니라 이미지에만 흐림을 걸어 둥근 모서리 밖으로 번지지 않게 한다 */
   filter: blur(var(--tip-blur, 0px));
-  /* 브라우저 기본 이미지 드래그에 끌려오지 않게 한다 */
+  /* 브라우저 기본 이미지 드래그에 끌려오지 않게 한다.
+   * 이미지 자체는 누를 일이 없으므로 포인터 대상에서 빼서 스와이프가 카드로 바로 간다. */
+  -webkit-user-select: none;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 /* 아래쪽 텍스트가 읽히도록 크림색으로 덮는다 — 검은 박스 대신 따뜻한 톤으로만 */

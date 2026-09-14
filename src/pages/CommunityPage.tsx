@@ -271,6 +271,7 @@ export function CommunityPage() {
         onSave={myMenu.saveEdit}
       />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
+      {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
     </div>
   );
 }

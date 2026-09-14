@@ -4,7 +4,6 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import { RoutineAccordionItem } from '../components/lifehouse/RoutineAccordionItem';
@@ -367,7 +366,6 @@ export function LifeHousePage() {
         onClose={() => setIntervalTargetId(null)}
         onSave={saveInterval}
       />
-      <AIChatbot />
     </div>
   );
 }
