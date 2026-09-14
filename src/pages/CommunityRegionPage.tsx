@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
@@ -10,7 +11,6 @@ import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { RegionFilterPanel } from '../components/RegionFilterPanel';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { icon } from '../lib/asset';
 
 /* 커뮤니티 '지역 후기' — Figma local_reviews_v4 (3092:20677).
  * 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을 그대로 쓴다.
@@ -192,16 +192,7 @@ export function CommunityRegionPage() {
       </main>
 
       {/* 글쓰기 — 다른 커뮤니티 화면과 같은 위치·동작 */}
-      <div className="community-fab">
-        <button
-          type="button"
-          className="community-fab__button"
-          onClick={() => setWriteOpen(true)}
-        >
-          <img src={icon('community-pencil.svg')} alt="" />
-          글쓰기
-        </button>
-      </div>
+      <CommunityWriteFab onClick={() => setWriteOpen(true)} />
 
       <p className="community-notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}

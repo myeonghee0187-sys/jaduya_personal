@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
@@ -187,16 +188,7 @@ export function CommunityTipPage() {
       </main>
 
       {/* 글쓰기 — 다른 커뮤니티 화면과 같은 위치·동작 */}
-      <div className="community-fab">
-        <button
-          type="button"
-          className="community-fab__button"
-          onClick={() => setWriteOpen(true)}
-        >
-          <img src={icon('community-pencil.svg')} alt="" />
-          글쓰기
-        </button>
-      </div>
+      <CommunityWriteFab onClick={() => setWriteOpen(true)} />
 
       <p className="community-notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}
