@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { icon } from '../lib/asset';
 import { BellButton } from './BellButton';
-import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
 
 const LEVEL_OPTIONS = ['초보', '중수', '고수', '전문가'];
@@ -145,7 +144,16 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
           </div>
           <div className="header-actions">
             <BellButton />
-            <HeaderIconButton iconName="close" label="글쓰기 닫기" onClick={requestClose} />
+            {/* 공용 HeaderIconButton 은 bell / menu 전용이라 여기서만 따로 그린다.
+              * 크기·위치는 같아 보이도록 헤더 버튼 공용 클래스를 그대로 쓴다. */}
+            <button
+              type="button"
+              className="header-icon-button"
+              aria-label="글쓰기 닫기"
+              onClick={requestClose}
+            >
+              <img src={icon('gnb-close.svg')} alt="" />
+            </button>
           </div>
         </div>
       </div>
