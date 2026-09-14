@@ -6,6 +6,7 @@ import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
+import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { RegionFilterPanel } from '../components/RegionFilterPanel';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
@@ -18,6 +19,7 @@ import { icon } from '../lib/asset';
 export function CommunityRegionPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const [writeOpen, setWriteOpen] = useState(false);
   const myMenu = useMyMenu();
   const bookmarks = useBookmarks();
   const [liked, setLiked] = useState<string[]>([]);
@@ -194,7 +196,7 @@ export function CommunityRegionPage() {
         <button
           type="button"
           className="community-fab__button"
-          onClick={() => setNotice('글쓰기 화면은 준비 중이에요.')}
+          onClick={() => setWriteOpen(true)}
         >
           <img src={icon('community-pencil.svg')} alt="" />
           글쓰기
@@ -218,6 +220,7 @@ export function CommunityRegionPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
+      <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
     </div>
   );
 }
