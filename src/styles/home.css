@@ -9,7 +9,12 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #d9d3cc;
+  /* #d9d3cc 는 데스크톱 프리뷰(iPhone 목업 바깥 레터박스) 전용 배경이다 — 여기 무조건
+   * 선언해두면 실제 모바일에서는 .app 이 뷰포트를 정확히 덮어 화면에 보일 일이 없는
+   * "죽은 값"이지만, iOS Safari 가 상단 Dynamic Island/노치 컷아웃 부분을 실제로 이
+   * html/body 배경으로 칠해버려(.app 바로 위 옛 레터박스 규칙을 지운 것과 같은 이유,
+   * 아래 주석 참고) 상태바 아래에 베이지색 띠가 보이는 원인이 된다. 데스크톱 프리뷰에서만
+   * 필요한 값이라 app-shell.css 의 @media (min-width:768px) 블록에서만 다시 선언한다. */
   font-family: var(--font-suit);
   -webkit-font-smoothing: antialiased;
 }
@@ -1058,7 +1063,12 @@ a { text-decoration: none; color: inherit; }
 
 .dot--active { background: var(--brand-secondary); }
 
-/* 좁은 화면(384px 이하)에서는 discovery__row 를 2열 대신 세로로 쌓는다.
+/* discovery__col 에 min-width:0 + flex-basis:50% 가 이미 있어 2열 그대로도 360px,
+ * 320px 실측 모두 잘림/가로 스크롤 없이 줄어든다 — 384px 이하에서 통째로 세로로 쌓던
+ * 이전 폴백은 iPhone 표준 폭(360/390/402)에서까지 불필요하게 1열로 떨어뜨려서
+ * Figma 2열 레이아웃과 달라 보였다. 그래서 이 폴백은 그보다 훨씬 좁은, 실제로 2열이
+ * 줄어들 공간이 없는 화면(300px 이하)에서만 마지막 안전장치로 남겨둔다.
+ *
  * discovery__col(오늘 날짜 → 오늘의 장보기)이 이미 위→아래 순서라, 행 자체만
  * column 으로 바꾸면 "오늘 날짜 → 오늘의 장보기 → 오늘의 외출 팁" 순서가 그대로
  * 나온다(마크업 순서를 따로 바꿀 필요가 없다). 두 컬럼 모두 flex:1 1 50% 였던 걸
@@ -1069,7 +1079,7 @@ a { text-decoration: none; color: inherit; }
  * 채우는" 용도였다 — row 를 column 으로 바꾸면 그 여유 공간 자체가 없어져서 flex-grow 가
  * 채울 게 없어 카드가 min-height:0 까지 찌그러진다(overflow:hidden 이라 내용도 잘림).
  * 세로 스택에서는 자기 콘텐츠 높이 그대로 나오도록 flex:none 으로 풀어준다. */
-@media (max-width: 384px) {
+@media (max-width: 300px) {
   .discovery__row {
     flex-direction: column;
   }

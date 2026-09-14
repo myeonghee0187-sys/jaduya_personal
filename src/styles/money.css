@@ -14,6 +14,29 @@
   flex: 1;
   overflow-y: auto;
   padding-bottom: calc(var(--tab-bar-h) + var(--space-xl));
+  scrollbar-width: none;
+}
+
+.money__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 돈관리 4개 탭 전체에서 쓰는 공통 눌림 피드백 — 지금까지 일부 행/카드에만 :active 가 있고
+ * 나머지는 눌러도 아무 반응이 없어서 탭 가능 여부가 일관되지 않았다. 색은 안 바꾸고
+ * 살짝 눌리는 정도(scale+opacity)만 줘서 모든 탭에서 같은 느낌으로 통일한다. */
+.money-tappable {
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.money-tappable:active {
+  transform: scale(0.98);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-tappable {
+    transition: none;
+  }
 }
 
 /* 아직 화면이 없는 링크를 눌렀을 때 뜨는 안내 — mypage.css 의 .mypage__notice 와 동일 패턴 */
@@ -52,12 +75,6 @@
   height: 14px;
 }
 
-/* '이번 달' 탭의 월 선택 드롭다운은 화면 오른쪽 끝에 붙어 있어 메뉴도 오른쪽 기준으로 연다 */
-.money-month-dropdown--end .money-month-menu {
-  left: auto;
-  right: 0;
-}
-
 .money__tab {
   padding: 0 0 10px;
   border: none;
@@ -68,28 +85,46 @@
   color: var(--text-secondary);
   white-space: nowrap;
   cursor: pointer;
+  transition: color 150ms ease, opacity 120ms ease;
 }
 
-.money__tab:not(.is-active) {
-  cursor: default;
+.money__tab:not(.is-active):hover {
+  color: var(--text-primary);
+}
+
+.money__tab:not(.is-active):active {
+  opacity: 0.6;
 }
 
 .money__tab.is-active {
   position: relative;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--brand-primary);
   cursor: default;
 }
 
+/* 탭 글자 길이가 제각각이라(이번 달/소비/고정비/비상금) 고정폭 대신 탭 너비에 맞춘다 */
 .money__tab.is-active::after {
   content: '';
   position: absolute;
   left: 0;
+  right: 0;
   bottom: 0;
-  width: 46px;
   height: 2px;
   border-radius: 2px;
   background: var(--brand-primary);
+  animation: money-tab-indicator 200ms ease;
+}
+
+@keyframes money-tab-indicator {
+  from {
+    transform: scaleX(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
 /* ---------- 월 선택 ---------- */
@@ -116,7 +151,8 @@
 /* 연한 로즈 틴트 배경 — mission.css 의 선택 칩과 같은 #fbeceb 를 재사용한다(새 색 임의 추가 금지) */
 .money-budget {
   position: relative;
-  overflow: hidden;
+  /* 예산 설정 리본과 마스코트 이미지가 카드 모서리 밖으로 살짝 튀어나오므로 클리핑하지 않는다 */
+  overflow: visible;
   margin: 18px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
@@ -124,13 +160,107 @@
   color: var(--text-primary);
 }
 
-/* 자두 마스코트 — MoneyBudgetPage 히어로와 같은 이미지를, 제목/금액 옆 여백에 작게 배치한다.
- * 맨 아래 예산 진행률 줄과 겹치지 않도록 카드 중간 높이에 둔다. */
+/* ---------- 예산 설정 리본 탭 (BudgetRibbon.tsx) ----------
+ * "예산 설정 >" 라벨과 현재 예산 금액, 두 정보를 한 줄 높이 안에 다 담으려고 세로로
+ * 쌓는 대신 좌우로 미는 미니 페이저로 만들었다. viewport 는 두 페이지 중 더 넓은 쪽
+ * 글자가 안 잘리게 고정폭을 넉넉히 두고, track 을 그 폭만큼 슬라이드시킨다. */
+.money-budget__ribbon {
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  border: none;
+  padding: 0 12px;
+  border-radius: 4px var(--radius-m) var(--radius-m) var(--radius-m);
+  background: var(--brand-primary);
+  box-shadow: 0 4px 10px rgba(180, 57, 54, 0.28);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.money-budget__ribbon:active {
+  cursor: grabbing;
+}
+
+.money-budget__ribbon-viewport {
+  width: 84px;
+  height: 100%;
+  overflow: hidden;
+  flex: none;
+}
+
+.money-budget__ribbon-track {
+  display: flex;
+  height: 100%;
+  width: 168px;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.money-budget__ribbon-track.is-dragging {
+  transition: none;
+}
+
+.money-budget__ribbon-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 84px;
+  height: 100%;
+  flex: none;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.money-budget__ribbon-page img {
+  width: 11px;
+  height: 11px;
+  flex: none;
+}
+
+.money-budget__ribbon-page--amount {
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.money-budget__ribbon-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.money-budget__ribbon-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: background-color 200ms ease;
+}
+
+.money-budget__ribbon-dots span.is-active {
+  background: #fff;
+}
+
+/* 자두 마스코트 — MoneyBudgetPage 히어로와 같은 이미지를 카드 오른쪽 아래 모서리에 크게 걸터앉힌다.
+ * absolute 라 문서 흐름에 자리를 차지하지 않으므로 카드보다 커도, 밖으로 겹쳐 나와도 다른 요소를 밀지 않는다. */
 .money-budget__mascot {
   position: absolute;
-  top: 44px;
-  right: 6px;
-  width: 56px;
+  /* 금액을 가린 상태/보이는 상태에서 중간 블록 높이가 달라 top 고정이면 "64% 사용" 줄과
+   * 겹쳤다 — 두 상태 모두 마지막 두 줄(예산/진행률 바)은 높이가 같으므로 bottom 으로
+   * 고정해 항상 그 위 여백에만 걸치게 한다(텍스트는 z-index 로 위에 떠서 가려지지 않는다) */
+  bottom: -14px;
+  right: -18px;
+  width: 84px;
   height: auto;
   pointer-events: none;
 }
@@ -161,26 +291,6 @@
   width: 14px;
   height: 14px;
   opacity: 0.7;
-}
-
-.money-budget__edit {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 5px 10px;
-  background: var(--surface-cream);
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--brand-primary);
-  cursor: pointer;
-}
-
-.money-budget__edit img {
-  width: 14px;
-  height: 14px;
 }
 
 /* 가려진 상태 — 잠금 아이콘 + "금액 보기" 필 버튼. 누르면 금액이 나타난다 */
@@ -376,6 +486,12 @@ button.money-today-compare__col {
 .money-section__more img {
   width: 14px;
   height: 14px;
+  transition: transform 0.15s ease;
+}
+
+/* "매달 반복되는 고정비" 전체보기처럼 다른 화면 이동이 아니라 펼치기/접기로 쓰일 때 */
+.money-section__more img.is-open {
+  transform: rotate(180deg);
 }
 
 /* ---------- 이번 달 돈 흐름 ---------- */
@@ -396,6 +512,11 @@ button.money-today-compare__col {
   border: none;
   background: none;
   cursor: pointer;
+}
+
+/* 현재 여유자금 행 — <button>이 아닌 순수 표시용 <div>라 눌림 커서를 되돌린다 */
+div.money-flow__row {
+  cursor: default;
 }
 
 .money-flow__row + .money-flow__row {
@@ -485,7 +606,9 @@ button.money-today-compare__col {
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
   background: var(--surface-base);
+  font: inherit;
   text-align: center;
+  cursor: pointer;
 }
 
 .money-upcoming-card__icon {
@@ -524,75 +647,40 @@ button.money-today-compare__col {
   color: var(--text-muted);
 }
 
-/* ---------- 비상금 ---------- */
-.money-emergency {
-  margin-top: 14px;
-}
-
-.money-emergency__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.money-emergency__amount {
-  margin: 0;
-  font-family: var(--font-asta);
-  font-weight: 600;
-  font-size: 18px;
-  color: var(--text-primary);
-}
-
-.money-emergency__target {
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.money-emergency__percent {
-  font-family: var(--font-asta);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--brand-green);
-}
-
-.money-emergency__bar {
-  margin-top: 8px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: var(--border-warm);
-  overflow: hidden;
-}
-
-.money-emergency__bar-fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--brand-green);
-}
-
-.money-emergency__caption {
-  margin: 8px 0 0;
-  font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 /* ---------- 자두의 한마디 ---------- */
 .money-section--tip {
   padding-bottom: var(--space-2xl);
 }
 
 .money-tip {
+  display: block;
+  position: relative;
+  width: 100%;
   margin-top: 14px;
   padding: var(--card-padding-l) var(--card-padding-l) var(--card-padding-l) var(--screen-margin);
+  border: none;
   border-radius: var(--radius-xl);
   background: #fef6de;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+}
+
+.money-tip--clickable {
+  cursor: pointer;
+}
+
+.money-tip__badge {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  width: 60px;
+  height: auto;
 }
 
 .money-tip__title {
   margin: 0;
+  max-width: 250px;
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 15px;
@@ -697,6 +785,7 @@ button.money-today-compare__col {
 }
 
 .money-io-toggle__btn {
+  min-width: 52px;
   padding: 5px var(--card-padding-s);
   border: none;
   border-radius: var(--radius-pill);
@@ -705,12 +794,13 @@ button.money-today-compare__col {
   font-weight: 600;
   font-size: 12.5px;
   color: var(--text-secondary);
+  text-align: center;
   cursor: pointer;
 }
 
 .money-io-toggle__btn.is-active {
-  background: var(--surface-cream);
-  color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--surface-base);
 }
 
 .money-consume-empty {
@@ -722,9 +812,27 @@ button.money-today-compare__col {
   text-align: center;
 }
 
+/* ---------- 소비 탭 카드 공통 규칙 ---------- *
+ * "카드마다 같은 radius/border/padding, 다른 스타일 임의로 만들지 않는다" — 강조가 필요한 곳만
+ * 카드를 쓰고, 전부 이 하나의 규칙만 따른다. 그림자는 과한 장식이라 안 쓰고 옅은 보더만 쓴다
+ * (이번달 탭의 .money-today-compare/.money-flow 등 앱 전역 카드 관례와도 맞춘다). */
+.money-card {
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  padding: var(--card-padding-l);
+}
+
 /* ---------- 이번 달 소비 (dominant number) ---------- */
 .money-consume-summary {
+  position: relative;
   margin: 18px var(--screen-margin) 0;
+}
+
+.money-consume-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .money-consume-summary__title {
@@ -734,15 +842,32 @@ button.money-today-compare__col {
   color: var(--text-secondary);
 }
 
-.money-consume-summary__row {
+.money-consume-summary__info {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.money-consume-summary__badge {
+  position: absolute;
+  top: var(--card-padding-l);
+  right: var(--card-padding-l);
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-top: 6px;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(180, 57, 54, 0.1);
+}
+
+.money-consume-summary__badge img {
+  width: 20px;
+  height: 20px;
 }
 
 .money-consume-summary__amount {
-  margin: 0;
+  margin: 10px 0 0;
   font-family: var(--font-asta);
   font-weight: 600;
   font-size: 36px;
@@ -752,26 +877,27 @@ button.money-today-compare__col {
 
 .money-consume-summary__compare {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.money-consume-summary__percent {
-  font-family: var(--font-asta);
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--brand-green);
-}
-
-.money-consume-summary__prev {
-  margin-top: 2px;
-  font-family: var(--font-asta);
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 0;
+  font-family: var(--font-suit);
   font-weight: 500;
-  font-size: 12px;
-  color: #a39f9a;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-/* ---------- 이번 달 소비 흐름 (일별 바 차트) ---------- */
+.money-consume-summary__compare img {
+  width: 12px;
+  height: 12px;
+}
+
+.money-consume-summary__compare-up {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--brand-primary);
+}
+
+/* ---------- 이번 달 소비 흐름 (일별 바 차트) — .money-card 로 감싸 쓴다 ---------- */
 .money-flow-chart {
   margin-top: 14px;
 }
@@ -796,6 +922,15 @@ button.money-today-compare__col {
   color: var(--text-secondary);
 }
 
+/* 카테고리 상세에서만 헤더 밑에 한 줄 더 — "9월 20일 12,000원" 다음 줄에 "식비" */
+.money-flow-chart__category {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .money-flow-chart__bars {
   display: flex;
   align-items: flex-end;
@@ -805,6 +940,7 @@ button.money-today-compare__col {
 }
 
 .money-flow-chart__bar {
+  position: relative;
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -812,6 +948,74 @@ button.money-today-compare__col {
   border-radius: 3px;
   background: var(--border-warm);
   cursor: pointer;
+}
+
+/* 선택한 막대 위에 뜨는 말풍선 — 헤더의 날짜/금액 줄과 같은 값을 그 막대 자리에서 바로 보여준다 */
+.money-flow-chart__tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  background: var(--surface-base);
+  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.14);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: money-tooltip-in 180ms ease-out;
+}
+
+@keyframes money-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.money-flow-chart__tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-top-color: var(--surface-base);
+  transform: translateX(-50%);
+}
+
+.money-flow-chart__tooltip-date {
+  font-family: var(--font-asta);
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.money-flow-chart__tooltip-value {
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--brand-primary);
+}
+
+.money-flow-chart__tooltip-category {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-flow-chart__tooltip {
+    animation: none;
+  }
 }
 
 .money-flow-chart__bar.is-selected {
@@ -828,140 +1032,249 @@ button.money-today-compare__col {
   color: #a39f9a;
 }
 
-/* ---------- 내 소비 리포트 (레이더 차트) ---------- */
-.money-consume-report {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
-}
-
-.consumption-radar {
-  width: 220px;
-  height: 220px;
-  /* 라벨을 92px(MAX_RADIUS)+20px 반지름에 배치하는데 viewBox는 220x220이라
-   * 상/좌/우 라벨이 SVG 기본 overflow:hidden에 잘린다 — 밖으로 나가도 그대로 그린다. */
-  overflow: visible;
-}
-
-.consumption-radar__grid {
-  fill: none;
-  stroke: var(--border-warm);
-  stroke-width: 1;
-}
-
-.consumption-radar__axis {
-  stroke: var(--border-warm);
-  stroke-width: 1;
-}
-
-.consumption-radar__compare {
-  fill: none;
-  stroke: #a39f9a;
-  stroke-width: 1.5;
-  stroke-dasharray: 3 3;
-}
-
-.consumption-radar__area {
-  fill: rgba(180, 57, 54, 0.12);
-  stroke: var(--brand-primary);
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-
-.consumption-radar__point {
-  fill: var(--brand-primary);
-  transition: r 0.15s ease;
-}
-
-.consumption-radar__point.is-highlight {
-  fill: var(--brand-primary);
-  stroke: var(--surface-cream);
-  stroke-width: 1.5;
-}
-
-.consumption-radar__label {
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 11px;
-  fill: var(--text-secondary);
-  transition: font-weight 0.1s ease;
-}
-
-.consumption-radar__label.is-highlight {
-  font-weight: 700;
-  fill: var(--brand-primary);
-}
-
-.money-consume-report__caption {
-  margin: 8px 0 0;
-  font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--text-secondary);
+/* 주간/월간처럼 막대 수가 적을 때는 시작/중간/끝이 아니라 막대마다 라벨을 하나씩 단다 */
+.money-flow-chart__axis--labeled {
+  justify-content: space-around;
   text-align: center;
 }
 
-/* ---------- 어디에 많이 썼을까요? ---------- */
-.money-cat-list {
-  margin-top: 14px;
+/* ---------- 카테고리 상세 — 선택한 날짜의 거래 내역(그래프와 직접 연결) ---------- */
+.money-cat-day-detail {
+  margin-top: 10px;
+  padding: var(--card-padding-m) var(--card-padding-l);
 }
 
-.money-cat-item + .money-cat-item {
+.money-cat-day-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.money-cat-day-detail__head span {
+  font-family: var(--font-asta);
+  color: var(--brand-primary);
+}
+
+.money-cat-day-detail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.money-cat-day-detail__row + .money-cat-day-detail__row {
   border-top: 1px solid var(--border-warm);
 }
 
-.money-cat-row {
+/* ---------- 카테고리별 소비 (금액/비율 세그먼트 + 컴팩트 카드 그리드) ---------- */
+.money-cat-view-toggle {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 11px 8px;
-  margin: 0 -8px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-widget);
+}
+
+.money-cat-view-toggle__btn {
+  padding: 4px 12px;
   border: none;
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-pill);
   background: none;
-  font: inherit;
-  text-align: left;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
-.money-cat-item.is-expanded .money-cat-row {
-  background: var(--surface-widget);
+.money-cat-view-toggle__btn.is-active {
+  background: var(--surface-base);
+  color: var(--text-primary);
 }
 
-.money-cat-row__badge {
+/* 카테고리별 소비 — 가로 Swiper. 6개를 한 화면에 욱여넣지 않고, 카드 폭을 고정해서 화면
+ * 너비에 따라 3~4개는 온전히 보이고 마지막 카드는 살짝 잘려 "더 있다"는 걸 알려준다
+ * (요구사항 4). 페이지가 넘칠 때만 하단에 점 페이지네이션을 보여준다(CategorySwiper.tsx). */
+.money-cat-swiper-wrap {
+  margin-top: 14px;
+  /* Swiper 안쪽 스크롤은 유지하면서, 바깥으로 밀려나온 픽셀이 페이지 전체를 가로로 늘리지 않게 한다 */
+  overflow-x: hidden;
+}
+
+.money-cat-swiper {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* 첫/마지막 카드가 화면 가장자리에 딱 붙지 않도록 살짝 여유를 둔다 */
+  padding: 2px 2px 4px;
+  margin: -2px -2px 0;
+}
+
+.money-cat-swiper::-webkit-scrollbar {
+  display: none;
+}
+
+.money-cat-swiper__dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.money-cat-swiper__dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+  cursor: pointer;
+  transition: width 200ms ease, background-color 200ms ease;
+}
+
+.money-cat-swiper__dot.is-active {
+  width: 16px;
+  background: var(--brand-primary);
+}
+
+.money-cat-tile {
+  display: flex;
+  flex: 0 0 82px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px;
+  text-align: center;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.money-cat-tile:active {
+  transform: scale(0.96);
+  border-color: var(--brand-primary);
+}
+
+.money-cat-tile__badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 13px;
-  background: var(--surface-widget);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
 }
 
-.money-cat-row__badge img {
-  width: 13px;
-  height: 13px;
+.money-cat-tile__badge img {
+  width: 16px;
+  height: 16px;
 }
 
-.money-cat-row__label {
-  width: 62px;
+.money-cat-tile__label {
   font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 12.5px;
   color: var(--text-primary);
 }
 
-.money-cat-row__value {
-  width: 84px;
+.money-cat-tile__value {
   font-family: var(--font-asta);
-  font-weight: 400;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 13px;
   color: var(--text-primary);
-  text-align: right;
 }
 
-.money-cat-row__track {
+.money-cat-tile__track {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+  overflow: hidden;
+}
+
+.money-cat-tile__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+
+.money-cat-tile__sub {
+  font-family: var(--font-asta);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-tertiary, #a39f9a);
+}
+
+/* ---------- 카테고리 상세 — 헤더(금액+진행률+전월비) ---------- */
+.money-cat-hero {
+  position: relative;
+  margin: 18px var(--screen-margin) 0;
+}
+
+.money-cat-hero__crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-a2z);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.money-cat-hero__crumb img {
+  width: 12px;
+  height: 12px;
+}
+
+.money-cat-hero__badge {
+  position: absolute;
+  top: var(--card-padding-l);
+  right: var(--card-padding-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.money-cat-hero__badge img {
+  width: 20px;
+  height: 20px;
+}
+
+.money-cat-hero__amount {
+  margin: 10px 0 0;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.money-cat-hero__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.money-cat-hero__track {
   flex: 1;
   height: 6px;
   border-radius: var(--radius-pill);
@@ -969,65 +1282,108 @@ button.money-today-compare__col {
   overflow: hidden;
 }
 
-.money-cat-row__fill {
+.money-cat-hero__fill {
   display: block;
   height: 100%;
   border-radius: var(--radius-pill);
 }
 
-.money-cat-row__percent {
-  width: 30px;
+.money-cat-hero__percent {
   font-family: var(--font-asta);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--text-secondary);
-  text-align: right;
-}
-
-.money-cat-merchants {
-  padding: 0 8px 12px 44px;
-}
-
-.money-cat-merchants__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 0;
-  font-family: var(--font-suit);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-.money-cat-merchants__row span:last-child {
-  font-family: var(--font-asta);
-}
-
-.money-cat-more {
+.money-cat-hero__trend {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 100%;
-  margin-top: 10px;
-  padding: 0;
-  border: none;
-  background: none;
+  gap: 6px;
+  margin: 10px 0 0;
   font-family: var(--font-suit);
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
+}
+
+.money-cat-hero__trend-badge {
+  font-family: var(--font-asta);
+  font-weight: 700;
+}
+
+.money-cat-hero__trend-badge.is-up {
+  color: var(--brand-primary);
+}
+
+.money-cat-hero__trend-badge.is-down {
+  color: var(--brand-green);
+}
+
+/* ---------- 카테고리 상세 — 주요 내역 리스트 ---------- */
+.money-cat-merchant-list {
+  margin-top: 14px;
+  padding: 4px var(--card-padding-l);
+}
+
+.money-cat-merchant-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.money-cat-more img {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s ease;
+.money-cat-merchant-row + .money-cat-merchant-row {
+  border-top: 1px solid var(--border-warm);
 }
 
-.money-cat-more img.is-open {
-  transform: rotate(180deg);
+.money-cat-merchant-row__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.money-cat-merchant-row__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.money-cat-merchant-row__name {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.money-cat-merchant-row__date {
+  font-family: var(--font-asta);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-tertiary, #a39f9a);
+}
+
+.money-cat-merchant-row__amount {
+  flex-shrink: 0;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
 }
 
 /* ---------- 이번 달 소비 인사이트 ---------- */
@@ -1076,48 +1432,135 @@ button.money-today-compare__col {
   cursor: pointer;
 }
 
-.money-benefit {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius-m);
-  background: var(--brand-secondary);
+/* 소비 탭의 "핵심 소비 인사이트" — 카드 전체가 로즈 틴트인 강조 카드 하나. 고정비 탭의 큰 마스코트
+ * 배지(.money-insight)와는 배지 크기만 다르고 나머지 구조는 같아서, 여기선 .money-card 위에 얹는다. */
+.money-highlight-insight {
+  position: relative;
+  margin-top: 14px;
+  background: #fbeceb;
+  overflow: hidden;
+}
+
+.money-highlight-insight--clickable {
+  display: block;
+  width: 100%;
+  text-align: left;
   cursor: pointer;
 }
 
-.money-benefit img {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+.money-highlight-insight__badge {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  width: 52px;
+  height: auto;
 }
 
-.money-benefit span {
+.money-highlight-insight__title {
+  margin: 0;
+  max-width: 230px;
   font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.money-highlight-insight__sub {
+  margin: 6px 0 0;
+  max-width: 230px;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ---------- 이번 달 소비 인사이트 — 작은 카드 2개, 그 이상 늘리지 않는다 ---------- */
+.money-insight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.money-insight-tile img {
+  width: 20px;
+  height: 20px;
+}
+
+.money-insight-tile__title {
+  margin: 10px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
   letter-spacing: -0.01em;
-  color: #8a6a1b;
+  color: var(--text-primary);
+}
+
+.money-insight-tile__sub {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.money-insight-tile--positive {
+  background: #f2f6e4;
 }
 
 /* ==========================================================================
  * 고정비 탭 — Figma node 2628:27757 "고정비"
  * ========================================================================== */
 
-/* ---------- 이번 달 고정비 총액 ---------- */
-.money-fixed-total {
+/* ---------- 이번 달 고정비 히어로 카드 ---------- */
+/* money-budget 과 같은 로즈 틴트 배경(#fbeceb) — 총액 + 통계 카드를 한 카드로 묶는다 */
+.money-fixed-hero {
+  position: relative;
+  overflow: hidden;
   margin: 14px var(--screen-margin) 0;
+  padding: var(--card-padding-l);
+  border-radius: var(--radius-xl);
+  background: #fbeceb;
 }
 
-.money-fixed-total__title {
+.money-fixed-hero__badge {
+  position: absolute;
+  top: var(--card-padding-l);
+  right: var(--card-padding-l);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.money-fixed-hero__badge img {
+  position: absolute;
+  max-width: none;
+}
+
+.money-fixed-hero__title-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.money-fixed-hero__title {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 14px;
   color: var(--text-secondary);
 }
 
-.money-fixed-total__amount {
+.money-fixed-hero__info {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.money-fixed-hero__amount {
   margin: 6px 0 0;
   font-family: var(--font-asta);
   font-weight: 600;
@@ -1126,7 +1569,7 @@ button.money-today-compare__col {
   color: var(--text-primary);
 }
 
-.money-fixed-total__caption {
+.money-fixed-hero__caption {
   margin: 4px 0 0;
   font-family: var(--font-suit);
   font-weight: 600;
@@ -1134,14 +1577,16 @@ button.money-today-compare__col {
   color: var(--text-tertiary);
 }
 
-/* ---------- 통계 카드 2분할 (전체 지출 비중 / 전월비) ---------- */
-.money-fixed-stats {
+/* ---------- 통계 카드 2분할 (전체 지출 비중 / 전월비) — 로즈 카드 위 흰 필 카드 ---------- */
+.money-fixed-hero__stats {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 10px;
-  margin: 20px var(--screen-margin) 0;
+  margin-top: 16px;
 }
 
-.money-fixed-stats__card {
+.money-fixed-hero__stat {
   display: flex;
   align-items: center;
   flex: 1;
@@ -1149,26 +1594,26 @@ button.money-today-compare__col {
   gap: var(--card-gap);
   padding: 14px;
   border-radius: var(--radius-xl);
-  background: var(--surface-widget);
+  background: var(--surface-cream);
 }
 
-.money-fixed-stats__card--trend {
+.money-fixed-hero__stat--trend {
   justify-content: space-between;
 }
 
-.money-fixed-stats__icon {
+.money-fixed-hero__stat-icon {
   width: 25px;
   height: 25px;
   flex-shrink: 0;
 }
 
-.money-fixed-stats__text {
+.money-fixed-hero__stat-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.money-fixed-stats__label {
+.money-fixed-hero__stat-label {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 11px;
@@ -1176,7 +1621,7 @@ button.money-today-compare__col {
   white-space: nowrap;
 }
 
-.money-fixed-stats__value {
+.money-fixed-hero__stat-value {
   margin-top: 1px;
   font-family: var(--font-asta);
   font-weight: 600;
@@ -1205,8 +1650,8 @@ button.money-today-compare__col {
   display: flex;
   align-items: center;
   width: 100%;
-  gap: 18px;
-  padding: 14px 20px;
+  gap: 14px;
+  padding: 14px 12px;
   border: none;
   background: none;
   font: inherit;
@@ -1219,7 +1664,7 @@ button.money-today-compare__col {
 }
 
 .money-fixed-cat-detail {
-  padding: 0 20px 14px 104px;
+  padding: 0 12px 14px 92px;
 }
 
 .money-fixed-cat-detail__row {
@@ -1265,20 +1710,33 @@ button.money-today-compare__col {
   gap: 10px;
 }
 
+/* 오른쪽 금액(.money-fixed-cat-row__amount)은 flex-shrink:0 이라 폭을 고정으로 차지하므로,
+ * 이 블록이 min-width:0 없이는 좁은 화면(360px 등)에서 줄어들지 못하고 밖으로 삐져나온다. */
+.money-fixed-cat-row__info {
+  min-width: 0;
+  flex: 1;
+}
+
 .money-fixed-cat-row__name {
   margin: 0;
+  overflow: hidden;
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 19px;
   color: var(--text-black);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .money-fixed-cat-row__sub {
   margin: 10px 0 0;
+  overflow: hidden;
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 15px;
   color: var(--text-gray);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .money-fixed-apps {
@@ -1531,25 +1989,8 @@ button.money-today-compare__col {
  * 비상금 탭 — Figma node 2628:27675 "비상금"
  * ========================================================================== */
 
-.money-fund__intro {
-  margin: 0;
-  padding: 26px var(--screen-margin) 0;
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* ---------- 목표 달성률 도넛 링 (EmergencyRing.tsx) ---------- */
-.money-fund__ring-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--card-padding-l) var(--screen-margin) 0;
-}
-
+/* EmergencyRing.tsx 원형 링 스타일 — 이 탭에선 더 안 쓰지만(진행률은 아래 막대로 바꿨다),
+ * 고정비 탭(money-fixed-hero__stat)이 같은 컴포넌트를 계속 쓰므로 그대로 둔다. */
 .money-fund-ring {
   position: relative;
   display: flex;
@@ -1575,22 +2016,6 @@ button.money-today-compare__col {
   font-weight: 700;
   font-size: 20px;
   color: var(--brand-green);
-}
-
-.money-fund__amount {
-  margin: 18px 0 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 24px;
-  color: var(--text-primary);
-}
-
-.money-fund__target {
-  margin: 2px 0 0;
-  font-family: var(--font-asta);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-tertiary);
 }
 
 /* ---------- 이번 달 적립 ---------- */
@@ -1727,40 +2152,198 @@ button.money-today-compare__col {
   color: var(--text-secondary);
 }
 
-/* ---------- 지금까지 모은 돈 — 긁어서 확인하기 (ScratchReveal.tsx) ---------- */
-.money-fund-scratch {
+/* ==========================================================================
+ * 비상금 대표 인터랙션 — 긁어서 확인하기 (EmergencyFundCard.tsx / ScratchReveal.tsx)
+ * Figma 소스가 없는, 대화 중 새로 정한 화면이라 이 섹션은 기존 비상금 카드류와
+ * 톤(둥근 radius-xl, 낮은 그림자, warm 팔레트)만 맞추고 마크업은 새로 짠다.
+ * ========================================================================== */
+
+.fund-hero {
+  padding: 22px var(--screen-margin) 0;
+}
+
+.fund-hero__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.fund-hero__sub {
+  margin: 3px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ---------- 카드 셸 — 긁기 전엔 은박지, 다 긁으면 결과 카드로 그대로 전환된다 ---------- */
+.fund-card {
   position: relative;
+  margin-top: 18px;
+  height: 236px;
+  transition: margin-top 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.money-fund-scratch__content {
-  visibility: hidden;
+/* 공개되면 마스코트가 카드 중앙의 금액 숫자를 가리지 않도록 카드 위로 거의 다 올라가므로,
+ * 위의 헤드라인 문구와 겹치지 않게 카드 자체를 더 아래로 내려서 여유를 만든다 */
+.fund-card.is-open {
+  margin-top: 66px;
 }
 
-.money-fund-scratch__cover {
+/* 실제 카드 표면 + 클리핑은 이 안쪽 레이어가 맡는다 — 마스코트는 .fund-card 의
+ * 형제라 이 radius/overflow 밖으로 얼굴을 자연스럽게 내밀 수 있다. */
+.fund-card__body {
   position: absolute;
+  z-index: 1;
   inset: 0;
   border-radius: var(--radius-xl);
+  background: var(--surface-cream);
+  border: 1px solid var(--border-warm);
   overflow: hidden;
-  cursor: grab;
-  opacity: 1;
-  transition: opacity 280ms ease;
 }
 
-.money-fund-scratch__cover:active {
+.fund-card.is-celebrating .fund-card__body {
+  animation: fund-card-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fund-card-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+/* 공개 순간 카드 밖으로 번지는 황금빛 플래시 — body 밖(0)에 깔려 클리핑 없이 은은하게 퍼진다 */
+.fund-card::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: -32px;
+  border-radius: calc(var(--radius-xl) + 32px);
+  background: radial-gradient(circle, rgba(251, 221, 120, 0.85) 0%, rgba(251, 221, 120, 0.25) 45%, rgba(251, 221, 120, 0) 72%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fund-card.is-celebrating::before {
+  animation: fund-card-glow 700ms ease-out;
+}
+
+@keyframes fund-card-glow {
+  0% { opacity: 0; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-card__body,
+  .fund-card.is-celebrating .fund-card__body,
+  .fund-card::before,
+  .fund-card.is-celebrating::before {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ---------- 마스코트 — 긁기 전에는 완전히 숨어 있다가(복권처럼 결과를 미리 보여주지 않는다),
+ * 다 긁는 순간 카드 위 모서리에 크게 걸터앉으며 튀어오른다.
+ * img 에 고정 width(68px)가 박혀 있어서 .fund-mascot 컨테이너 width 를 아무리 바꿔도 실제
+ * 이미지 크기가 그대로였다 — img width 를 100%(컨테이너 기준)로 바꿔야 실제로 커진다. */
+.fund-mascot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 2;
+  width: 68px;
+  overflow: visible;
+  opacity: 0;
+  transform: translate(-50%, -95%) scale(0.7);
+  pointer-events: none;
+  transition:
+    width 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 180ms ease;
+}
+
+.fund-mascot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 카드 중앙 금액과 안 겹치되, 캐릭터 아래쪽 절반 정도는 카드 위 모서리에 걸쳐 있게 한다.
+ * 118px — 이전 92px 는 위 img 고정폭 버그 때문에 실제로는 68px로만 보였다 */
+.fund-card.is-open .fund-mascot {
+  width: 118px;
+  opacity: 1;
+  transform: translate(-50%, -55%) scale(1);
+}
+
+/* 공개 순간엔 작게 숨어 있던 상태에서 훨씬 크게 뛰어오르며 좌우로 흔들려 "짠!" 임팩트를 준다 */
+.fund-card.is-celebrating .fund-mascot {
+  animation: fund-mascot-bounce 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fund-mascot-bounce {
+  0% { transform: translate(-50%, -95%) scale(0.5) rotate(0deg); }
+  40% { transform: translate(-50%, -130%) scale(1.4) rotate(-12deg); }
+  65% { transform: translate(-50%, -80%) scale(0.9) rotate(9deg); }
+  85% { transform: translate(-50%, -65%) scale(1.06) rotate(-3deg); }
+  100% { transform: translate(-50%, -55%) scale(1) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-mascot,
+  .fund-card.is-celebrating .fund-mascot {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ---------- 은박지 커버 (ScratchReveal.tsx) ---------- */
+.fund-scratch {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.fund-scratch__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.fund-scratch__cover {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+.fund-scratch__cover:active {
   cursor: grabbing;
 }
 
-.money-fund-scratch__cover.is-revealing {
+.fund-scratch__cover.is-revealing {
   opacity: 0;
 }
 
-.money-fund-scratch__canvas {
+.fund-scratch__canvas {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   touch-action: none;
 }
 
-.money-fund-scratch__label {
+.fund-scratch__label {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -1768,46 +2351,452 @@ button.money-today-compare__col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  width: 100%;
   pointer-events: none;
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 13px;
-  color: #4a4d52;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-.money-fund-scratch__coin {
+/* 긁기 전 "두근두근" 기대감 — 복권을 기다리는 느낌으로 코인이 심장박동처럼 두 번 뛴다 */
+.fund-coin-stack {
+  position: relative;
+  width: 40px;
+  height: 34px;
+  flex: none;
+  animation: fund-coin-heartbeat 1600ms ease-in-out infinite;
+}
+
+@keyframes fund-coin-heartbeat {
+  0%, 100% { transform: scale(1); }
+  8% { transform: scale(1.14); }
+  16% { transform: scale(1); }
+  24% { transform: scale(1.1); }
+  32% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-coin-stack { animation: none; }
+}
+
+.fund-coin-stack__back {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, #f6e2ac, #d3a53f);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+}
+
+.fund-coin-stack__front {
+  position: absolute;
+  right: 0;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(155deg, #f4f5f6, #c2c5ca);
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(155deg, #fff2cf, #e3b755);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 2px rgba(97, 66, 15, 0.25);
   font-family: var(--font-asta);
   font-weight: 700;
+  font-size: 14px;
+  color: #8a5f18;
+}
+
+.fund-scratch__title {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
   font-size: 15px;
-  color: #5b5f66;
+  line-height: 1.35;
+  text-align: center;
+  color: #5c4322;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
-.money-fund-scratch__cover.is-hinting .money-fund-scratch__label {
-  animation: money-fund-scratch-hint 900ms ease;
+.fund-scratch__reveal-btn {
+  margin-top: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.55);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #6b4f22;
+  pointer-events: auto;
 }
 
-@keyframes money-fund-scratch-hint {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  25% {
-    transform: translate(-50%, -50%) rotate(-6deg);
-  }
-  75% {
-    transform: translate(-50%, -50%) rotate(6deg);
-  }
+.fund-scratch__cue {
+  margin-top: 2px;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 11px;
+  color: rgba(92, 67, 34, 0.65);
+  animation: fund-cue-nudge 2800ms ease-in-out infinite;
+}
+
+@keyframes fund-cue-nudge {
+  0%, 70%, 100% { transform: translateX(0); opacity: 0.75; }
+  78% { transform: translateX(-3px); opacity: 1; }
+  86% { transform: translateX(3px); opacity: 1; }
+  94% { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-scratch__cue { animation: none; }
+}
+
+/* 긁는 중 미리 비치는 금액 (실제 내용물 — 캔버스가 뚫리면 이 값이 그대로 보인다) */
+.fund-card__peek {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fund-card__peek-coin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, #d9ecb0, #a2b123);
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+}
+
+.fund-card__peek-amount {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--brand-green);
+}
+
+/* ---------- 결과 카드 ---------- */
+.fund-card__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--card-padding-l);
+}
+
+.fund-card__amount {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--brand-green);
+}
+
+.fund-card__target {
+  margin: 6px 0 0;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fund-card__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 260px;
+  margin-top: 16px;
+}
+
+.fund-card__progress-track {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+  overflow: hidden;
+}
+
+.fund-card__progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--brand-green);
+  transition: width 120ms linear;
+}
+
+.fund-card__progress-label {
+  flex: none;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--brand-green);
+}
+
+/* ---------- 컨페티 — 공개 순간 화면 위에서 사방으로 퍼지며 쏟아진다 ---------- */
+.fund-confetti {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fund-confetti__piece {
+  position: absolute;
+  top: -10px;
+  border-radius: 1px;
+  opacity: 0;
+  animation-name: fund-confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fund-confetti-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--drift, 0px), 260px) rotate(var(--rotate-end, 200deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-confetti { display: none; }
+}
+
+/* ---------- 결과 하단 — 격려 메시지 + CTA ---------- */
+.fund-cheer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: 16px;
+  padding: var(--card-padding-m) var(--card-padding-l);
+  border-radius: var(--radius-xl);
+  background: #f0f3dc;
+}
+
+.fund-cheer__icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex: none;
+}
+
+.fund-cheer__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.fund-cheer__sub {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.fund-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: 14px;
+}
+
+.fund-actions__secondary,
+.fund-actions__primary {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  border-radius: var(--radius-m);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.fund-actions__secondary {
+  border: 1px solid var(--border-warm);
+  background: var(--surface-cream);
+  color: var(--text-primary);
+}
+
+.fund-actions__primary {
+  background: var(--brand-green);
+  color: #fff;
+}
+
+.fund-actions__secondary:active,
+.fund-actions__primary:active {
+  filter: brightness(0.96);
+}
+
+.fund-replay {
+  display: block;
+  margin: 12px auto 0;
+  padding: 4px 8px;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ==========================================================================
+ * 비상금 목표 수정 / 추가로 모으기 바텀시트 (FundAmountSheet.tsx)
+ * 공용 BottomSheet.tsx 셸(.layer / .bsheet) 위에서 menu-edit 와 같은 톤으로 짠다.
+ * ========================================================================== */
+
+.fund-sheet {
+  padding: 0 var(--screen-margin) max(20px, env(safe-area-inset-bottom));
+  background: #fff;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.fund-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 4px;
+}
+
+.fund-sheet__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.fund-sheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.fund-sheet__close img {
+  width: 12.5px;
+  height: 12.5px;
+}
+
+.fund-sheet__ref {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-m);
+  background: var(--surface-warm);
+  font-family: var(--font-suit);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.fund-sheet__ref b {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.fund-sheet__form {
+  padding: 16px 0 20px;
+}
+
+.fund-sheet__field {
+  display: block;
+}
+
+.fund-sheet__label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.fund-sheet__input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+}
+
+.fund-sheet__input-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.fund-sheet__input-row input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.fund-sheet__input-row span {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.fund-sheet__quick {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fund-sheet__quick-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 0;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: var(--surface-cream);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fund-sheet__quick-btn:active {
+  background: #f0f3dc;
+  border-color: var(--brand-green);
+  color: var(--brand-green);
+}
+
+.fund-sheet__submit {
+  width: 100%;
+  height: 50px;
+  margin-top: 18px;
+  border-radius: var(--radius-m);
+  background: var(--brand-green);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+}
+
+.fund-sheet__submit:disabled {
+  opacity: 0.4;
 }
 
 /* ==========================================================================

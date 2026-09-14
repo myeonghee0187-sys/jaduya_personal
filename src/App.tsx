@@ -113,7 +113,7 @@ export default function App() {
           </MyMenuProvider>
         </BookmarkProvider>
       </AppNavigationProvider>
-    ) : <Onboarding onComplete={finishOnboarding} />;
+    ) : <Onboarding onComplete={finishOnboarding} userName={user.name} />;
   }
   return view === 'login' ? (
     <Login
