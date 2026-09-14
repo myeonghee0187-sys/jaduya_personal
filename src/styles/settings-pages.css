@@ -1,0 +1,278 @@
+/* 앱 설정 / 고객센터 — Figma 3396:21244, 3400:21359 */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-family: "Pretendard", var(--font-suit);
+}
+
+.settings-page__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px var(--screen-margin) calc(var(--tab-bar-h, 91px) + 28px);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-page__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-section {
+  flex: none;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.settings-section h2 {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 500 12px/1.3 "Pretendard", var(--font-suit);
+  letter-spacing: -0.12px;
+}
+
+.settings-section__header {
+  min-height: 17px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.settings-section__guide {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.4 "Pretendard", var(--font-suit);
+  white-space: nowrap;
+}
+
+.settings-section__guide img {
+  width: 14px;
+  height: 14px;
+}
+
+.settings-list {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.settings-row {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--border-warm);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+button.settings-row {
+  cursor: pointer;
+}
+
+.settings-row--detail {
+  height: 74px;
+  padding: 16px 0;
+}
+
+.settings-row--simple {
+  height: 55px;
+  padding: 16px 0 17px;
+}
+
+.settings-row--connections {
+  height: 61px;
+}
+
+.settings-row__copy {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.settings-row__copy strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: 400 16px/22px "Pretendard", var(--font-suit);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-row__copy strong.is-muted {
+  color: var(--text-gray);
+}
+
+.settings-row__copy small {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: 400 12px/16px "Pretendard", var(--font-suit);
+  letter-spacing: -0.12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-row__accessory {
+  min-width: 0;
+  height: 20px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow: hidden;
+}
+
+.settings-row__accessory > img {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.settings-row__value {
+  max-width: 156px;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font: 400 12px/17px "Pretendard", var(--font-suit);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-toggle {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: #ece1ce;
+  transition: background-color 180ms ease-out;
+}
+
+.settings-toggle > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--surface-base);
+  border-radius: 50%;
+  background: var(--surface-base);
+  transform: translateX(0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-toggle.is-on {
+  background: var(--brand-primary);
+}
+
+.settings-toggle.is-on > span {
+  transform: translateX(20px);
+}
+
+.settings-info {
+  min-width: 0;
+  min-height: 30px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 6px;
+  color: var(--text-secondary);
+  font: 400 12px/1.4 "Pretendard", var(--font-suit);
+  white-space: nowrap;
+}
+
+.settings-info img {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.settings-connections {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-primary);
+}
+
+.settings-connections__icons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.settings-connections__icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid var(--surface-base);
+  border-radius: 50%;
+  background: var(--surface-base);
+}
+
+.settings-connections__icon + .settings-connections__icon {
+  margin-left: -7px;
+}
+
+.settings-connections__icon--kakao {
+  background: #ffe812;
+}
+
+.settings-connections__icon--kakao img {
+  width: 18px;
+  height: 18px;
+}
+
+.settings-connections__icon--google img {
+  width: 19.2px;
+  height: 19.2px;
+}
+
+.support-page__scroll {
+  gap: var(--space-2xl);
+  padding-top: 20px;
+}
+
+.settings-section--notice {
+  gap: var(--space-sm);
+}
+
+.settings-info--support {
+  min-height: 32px;
+  gap: var(--space-xs);
+  padding: 8px;
+}
+
+@media (max-width: 374px) {
+  .settings-row__copy small,
+  .settings-info {
+    letter-spacing: -0.2px;
+  }
+
+  .settings-row__value {
+    max-width: 126px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-toggle,
+  .settings-toggle > span {
+    transition: none;
+  }
+}

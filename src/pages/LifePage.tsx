@@ -6,7 +6,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { greetingName } from '../data/personaHome';
 import { SNACK_QUIZZES } from '../data/lifeSnackQuiz';
 import { useMyMenu } from '../menu/MyMenuContext';
@@ -61,7 +60,11 @@ const TIP_SCALE_MIN = 0.91;
 /* 옆 카드는 뒤에 있는 것처럼 흐려진다 — 형태는 알아볼 수 있는 선까지만 */
 const TIP_OPACITY_MIN = 0.55;
 const TIP_BLUR_MAX = 1.8;
-const TIP_SNAP_DURATION = 420;
+const TIP_SNAP_DURATION = 320;
+/* 이만큼 가로로 끌어야 옆 카드로 넘어간다. 그 아래는 제자리로 돌아온다 */
+const TIP_SWIPE_THRESHOLD = 45;
+/* 가로가 세로보다 이만큼 커야 캐러셀 제스처로 본다 — 세로 스크롤을 뺏지 않으려는 값 */
+const TIP_AXIS_RATIO = 1.4;
 
 /* 양 끝에 복제 카드를 한 장씩 붙여 순환시킨다.
  * head(마지막 카드 복제)는 최초 진입에서만 감춰 두고, 사용자가 한 번 움직이면 loop 에 합류한다. */
@@ -154,9 +157,9 @@ export function LifePage() {
   const [tipPage, setTipPage] = useState(0);
 
   /* 해결팁 캐러셀 — 가운데에 가까울수록 큰 카드다.
-   * 카드를 직접 끌어서 넘기지 않는다. 손가락·마우스가 카드를 잡으면 페이지 세로 스크롤을
-   * 방해해서, 넘기는 조작은 오른쪽 '다음' 버튼(과 좌/우 방향키)만 담당한다.
-   * 레일 자체도 overflow-x: hidden 이라 스와이프·트랙패드 가로 스크롤이 걸리지 않는다. */
+   * 넘기는 방법은 좌우 버튼 / 방향키 / 손가락 스와이프 세 가지이고 모두 같은 이동 함수를 쓴다.
+   * 스와이프는 '가로가 세로보다 확실히 클 때' 만 캐러셀 제스처로 보고, 그 전까지는
+   * 아무것도 가로채지 않아서 위아래 스크롤이 그대로 페이지로 간다(CSS touch-action: pan-y). */
   useEffect(() => {
     const rail = tipsRef.current;
     if (!rail) return;
@@ -292,11 +295,88 @@ export function LifePage() {
 
     /* 좌우 버튼이 부르는 이동 — 양끝은 복제 카드를 지나 반대쪽으로 이어진다 */
     const step = (direction: 1 | -1) => {
+      /* 이동하는 중에는 입력만 무시한다 — 버튼을 숨기거나 흐리게 만들지 않는다 */
+      if (gliding) return;
       enableLoop();
       goTo(nearest().index + direction);
     };
     tipNextRef.current = () => step(1);
     tipPrevRef.current = () => step(-1);
+
+    /* ---------- 손가락/마우스 스와이프 ----------
+     * axis 가 정해지기 전에는 아무것도 하지 않는다. 세로로 먼저 움직이면 그 제스처는
+     * 끝까지 무시해서 페이지 스크롤을 방해하지 않는다. */
+    let swipe: {
+      id: number;
+      startX: number;
+      startY: number;
+      scroll: number;
+      /* 손을 대기 전에 가운데 있던 카드 — 뗄 때 이 번호 기준으로 ±1 만 움직인다 */
+      startIndex: number;
+      axis: 'none' | 'x' | 'y';
+    } | null = null;
+
+    /* 카드 한 칸의 폭(카드 + gap) — 드래그를 이만큼으로 묶어 옆 카드를 지나치지 않게 한다 */
+    const cardStep = () => {
+      const list = cards();
+      return list.length > 1 ? list[1].offsetLeft - list[0].offsetLeft : list[0]?.offsetWidth ?? 0;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (gliding) return;
+      swipe = {
+        id: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        scroll: rail.scrollLeft,
+        startIndex: nearest().index,
+        axis: 'none',
+      };
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!swipe || swipe.id !== event.pointerId || swipe.axis === 'y') return;
+      const dx = event.clientX - swipe.startX;
+      const dy = event.clientY - swipe.startY;
+
+      if (swipe.axis === 'none') {
+        /* 아직 방향이 안 정해졌다 — 충분히 움직인 뒤에 가로/세로를 가른다 */
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dx) <= Math.abs(dy) * TIP_AXIS_RATIO) {
+          swipe.axis = 'y';
+          return;
+        }
+        swipe.axis = 'x';
+        enableLoop();
+        cancelAnimationFrame(snapFrame);
+        rail.style.scrollSnapType = 'none';
+        try {
+          rail.setPointerCapture(event.pointerId);
+        } catch {
+          /* 캡처가 안 되어도 스와이프 자체는 그대로 동작한다 */
+        }
+      }
+
+      /* 손가락을 따라 움직이되 한 칸 폭까지만 — 세게 밀어도 옆 카드를 지나치지 않는다 */
+      const limit = cardStep();
+      const followed = Math.max(-limit, Math.min(limit, dx));
+      rail.scrollLeft = swipe.scroll - followed;
+    };
+
+    const endSwipe = (event: PointerEvent) => {
+      if (!swipe || swipe.id !== event.pointerId) return;
+      const { axis, startX, startIndex } = swipe;
+      const dx = event.clientX - startX;
+      swipe = null;
+      if (axis !== 'x') return;
+      if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+      /* 이동 결정은 손을 뗄 때 딱 한 번 한다. 기준은 '지금 어디까지 밀렸는지' 가 아니라
+       * '손을 대기 전 카드' 라서, 아무리 세게 밀어도 한 장보다 많이 넘어가지 않는다.
+       * 문턱을 못 넘으면 원래 카드로 되돌아온다 — 버튼과 같은 glideTo 를 쓴다. */
+      const direction = Math.abs(dx) >= TIP_SWIPE_THRESHOLD ? (dx < 0 ? 1 : -1) : 0;
+      goTo(startIndex + direction);
+    };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -308,6 +388,10 @@ export function LifePage() {
 
     rail.addEventListener('scroll', onScroll, { passive: true });
     rail.addEventListener('keydown', onKeyDown);
+    rail.addEventListener('pointerdown', onPointerDown);
+    rail.addEventListener('pointermove', onPointerMove);
+    rail.addEventListener('pointerup', endSwipe);
+    rail.addEventListener('pointercancel', endSwipe);
     window.addEventListener('resize', paint);
 
     /* 처음에는 1번 카드(head 복제 다음 칸)를 가운데에 둔다 */
@@ -324,6 +408,10 @@ export function LifePage() {
       window.clearTimeout(idleTimer);
       rail.removeEventListener('scroll', onScroll);
       rail.removeEventListener('keydown', onKeyDown);
+      rail.removeEventListener('pointerdown', onPointerDown);
+      rail.removeEventListener('pointermove', onPointerMove);
+      rail.removeEventListener('pointerup', endSwipe);
+      rail.removeEventListener('pointercancel', endSwipe);
       window.removeEventListener('resize', paint);
       tipNextRef.current = null;
       tipPrevRef.current = null;
@@ -428,6 +516,9 @@ export function LifePage() {
     if (dropped) answerQuiz(dropped);
     else setQuizOver(null);
   };
+
+  /* 결과 문구가 여러 곳에서 같은 판정을 봐야 해서 한 번만 계산한다 */
+  const quizCorrect = quizAnswer === quiz.correctAnswer;
 
   return (
     <div className="life app">
@@ -595,21 +686,50 @@ export function LifePage() {
             {/* 결과는 답을 고른 뒤에만 공개한다 — 결과 한 줄과 짧은 설명까지가 전부다 */}
             {quizRevealed && (
               <div className="life-quiz__reveal" role="status">
-                <p
-                  className={`life-quiz__headline${
-                    quizAnswer === quiz.correctAnswer ? ' is-correct' : ''
-                  }`}
-                >
-                  {quizAnswer === quiz.correctAnswer ? quiz.result.correct : quiz.result.wrong}
-                </p>
-                <p className="life-quiz__answer">{quiz.explanation.point}</p>
-                <p className="life-quiz__why">{quiz.explanation.detail}</p>
-
-                {nextQuiz && (
-                  <button type="button" className="life-quiz__next" onClick={goNextQuiz}>
-                    다음 퀴즈 <span aria-hidden="true">→</span>
-                  </button>
+                {quizCorrect ? (
+                  /* 이미 정답 버튼에 표시가 남아 있으니 정답을 다시 말하지 않는다 */
+                  <>
+                    <p className="life-quiz__headline is-correct">{quiz.result.correct}</p>
+                    <p className="life-quiz__why">{quiz.explanation.why.correct}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="life-quiz__headline">{quiz.result.wrong}</p>
+                    <p className="life-quiz__answer">{quiz.explanation.answer}</p>
+                    <p className="life-quiz__why">{quiz.explanation.why.wrong}</p>
+                  </>
                 )}
+
+                <div className="life-quiz__actions">
+                  <button type="button" className="life-quiz__retry" onClick={resetQuiz}>
+                    <svg
+                      className="life-quiz__retry-icon"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M10 6a4 4 0 1 1-1.2-2.85"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M10.2 1.6v2.2H8"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    다시 풀기
+                  </button>
+                  {nextQuiz && (
+                    <button type="button" className="life-quiz__next" onClick={goNextQuiz}>
+                      다음 퀴즈 <span aria-hidden="true">→</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -641,6 +761,7 @@ export function LifePage() {
                     src={img(`life/${tip.image}`)}
                     alt=""
                     draggable={false}
+                    onDragStart={(event) => event.preventDefault()}
                   />
                   <span className="life-tip__veil" />
                   <div className="life-tip__body">
@@ -704,7 +825,6 @@ export function LifePage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot />
     </div>
   );
 }

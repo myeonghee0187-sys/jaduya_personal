@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { img } from '../lib/asset';
 
@@ -223,7 +222,6 @@ export function MoneyBudgetPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot />
     </div>
   );
 }

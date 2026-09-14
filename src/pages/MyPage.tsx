@@ -22,6 +22,8 @@ export type MyPageDestination =
   | 'level'
   | 'activity'
   | 'settings'
+  /* 상세 화면은 아직 없다 — 눌러도 '준비 중' 안내만 뜬다 */
+  | 'account'
   | 'support';
 
 interface MyPageProps {
@@ -179,7 +181,15 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           <button type="button" onClick={() => go('settings', '앱 설정')}>
             <span className="mypage__link-copy">
               <b>앱 설정</b>
-              <small>알림 / 계정 / 약관</small>
+              <small>알림 설정</small>
+            </span>
+            <img src={icon('chevron-right-sm.svg')} alt="" />
+          </button>
+          {/* 계정 관리는 앱 설정에서 떼어낸 1depth 메뉴다 — 상세 화면은 다음 작업에서 만든다 */}
+          <button type="button" onClick={() => go('account', '계정 관리')}>
+            <span className="mypage__link-copy">
+              <b>계정 관리</b>
+              <small>프로필 / 로그인·보안</small>
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>

@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { BudgetRibbon } from '../components/money/BudgetRibbon';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
 import { FundAmountSheet } from '../components/money/FundAmountSheet';
@@ -878,8 +877,6 @@ export function MoneyPage() {
           선택하기
         </button>
       </BottomSheet>
-
-      <AIChatbot />
     </div>
   );
 }

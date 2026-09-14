@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 /** 'mission' / 'saved' 는 'my' 아래 하위 화면이다 (탭바는 '마이' active 를 유지한다) */
 /** 'life' 는 탭바 '생활' 의 메인 화면이다 */
 /** 'life-first' / 'life-homecare' / 'life-house' / 'life-eat' 는 생활 아래 하위 화면이다 (탭바는 '생활' active 를 유지한다) */
+/** 'notifications' 는 헤더 종으로 들어가는 알림 화면이다 (어느 화면에서든 열리므로 returnTo 로 돌아온다) */
 /** 'money' 는 탭바 '돈관리' 의 메인 화면이다 */
 /** 'money-budget' 는 돈관리 아래 예산 설정 화면이다 (탭바는 '돈관리' active 를 유지한다) */
 /** 'community-question' 은 커뮤니티 '질문' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
@@ -14,6 +15,8 @@ import type { ReactNode } from 'react';
 export type AppPage =
   | 'home'
   | 'my'
+  | 'settings'
+  | 'support'
   | 'mission'
   | 'living-profile'
   | 'saved'
@@ -33,7 +36,8 @@ export type AppPage =
   | 'ai-chat'
   | 'money'
   | 'money-budget'
-  | 'widget-gallery';
+  | 'widget-gallery'
+  | 'notifications';
 
 /** 이동하면서 도착 화면에 넘기는 값. 도착 화면이 초기 상태를 잡는 데만 쓴다. */
 export interface NavigateOptions {

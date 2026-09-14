@@ -13,7 +13,6 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { DEFAULT_MENU } from '../data/menuCatalog';
 import { fridgeItemDaysRemaining, localDateString, mostUrgentFridgeItem, recipeUsesIngredient } from '../data/lifeEat';
@@ -223,7 +222,6 @@ export function LifeEatPage() {
 
       <BottomNavigation activeTab="life" />
       <GnbOverlay open={gnbOpen} myMenu={DEFAULT_MENU} onClose={() => setGnbOpen(false)} onEditMenu={() => setGnbOpen(false)} />
-      <AIChatbot />
       <p className="le-announcement" role="status">{announcement}</p>
 
       <AddIngredientSheet open={sheetKind === 'add'} onClose={closeSheet} onAdd={(item) => {

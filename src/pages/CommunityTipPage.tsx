@@ -5,8 +5,8 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
+import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
@@ -47,6 +47,7 @@ function renderTipLabel(label: string) {
 export function CommunityTipPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const [writeOpen, setWriteOpen] = useState(false);
   const myMenu = useMyMenu();
   const [category, setCategory] = useState<string>(TIP_CATEGORIES[0].id);
   const bookmarks = useBookmarks();
@@ -190,7 +191,7 @@ export function CommunityTipPage() {
         <button
           type="button"
           className="community-fab__button"
-          onClick={() => setNotice('글쓰기 화면은 준비 중이에요.')}
+          onClick={() => setWriteOpen(true)}
         >
           <img src={icon('community-pencil.svg')} alt="" />
           글쓰기
@@ -214,7 +215,7 @@ export function CommunityTipPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot initialLift={68} />
+      <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
     </div>
   );
 }

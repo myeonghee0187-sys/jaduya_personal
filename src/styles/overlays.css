@@ -298,7 +298,20 @@
   border-radius: var(--radius-m);
 }
 
-.shortcut__icon { width: 18px; height: 18px; flex: none; }
+/* 내 메뉴에 보이는 항목은 모두 사용자가 등록한 메뉴다 — 아이콘 색을 primary 로 통일한다.
+ * 원본 SVG 는 파일마다 색이 달라서(#B43936 / #252525 / black) mask 로 모양만 가져온다. */
+.shortcut__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background-color: var(--brand-primary);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
 
 .shortcut__label {
   font-family: var(--font-suit);
@@ -416,6 +429,16 @@
   padding: var(--space-md) 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 스크롤은 그대로 두고 막대만 감춘다 (Firefox / 구형 Edge) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* 스크롤은 그대로 두고 막대만 감춘다 (Chrome / Safari) */
+.menu-edit__body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .menu-edit__notice {
@@ -506,7 +529,27 @@
   min-width: 0;
 }
 
-.menu-card__icon { width: 18px; height: 18px; flex: none; }
+/* 미선택 상태 — 기본 아이콘 색.
+ * 원본 SVG 는 파일마다 색이 다르게 박혀 있어서(#B43936 / #252525 / black)
+ * mask 로 모양만 가져오고 색은 여기서 한 번에 정한다. */
+.menu-card__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background-color: #2f2f2f;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: background-color 160ms ease;
+}
+
+/* 선택 상태 — 카드 테두리·체크와 같은 primary 로 바뀐다 */
+.menu-card--on .menu-card__icon {
+  background-color: var(--brand-primary);
+}
 
 .menu-card__label {
   font-family: var(--font-suit);

@@ -1,4 +1,4 @@
-import { icon } from '../lib/asset';
+import { MenuIcon } from './MenuIcon';
 import type { MenuItem } from '../types';
 
 interface ShortcutCardProps {
@@ -18,7 +18,8 @@ export function ShortcutCard({ item, onSelect }: ShortcutCardProps) {
         onSelect?.(item);
       }}
     >
-      <img className="shortcut__icon" src={icon(item.icon)} alt="" />
+      {/* 여기 보이는 메뉴는 모두 등록된 메뉴라 색이 항상 primary 다 (.shortcut__icon) */}
+      <MenuIcon file={item.icon} className="shortcut__icon" />
       <span className="shortcut__label">{item.name}</span>
     </a>
   );
