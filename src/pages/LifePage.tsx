@@ -8,43 +8,59 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { greetingName } from '../data/personaHome';
+import { SNACK_QUIZZES } from '../data/lifeSnackQuiz';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { img } from '../lib/asset';
+import { icon, img } from '../lib/asset';
 
 /* 생활 카테고리 4종 — 이미지는 정사각 원본이라 카드 안에서 크롭 위치를 따로 잡는다.
  * (modifier 로 life.css 에서 top/left/height 를 지정) */
 const CATEGORIES = [
-  { key: 'first', title: '첫 자취', sub: '방 구하기부터 정착까지', file: 'first_home.webp' },
-  { key: 'homecare', title: '홈케어', sub: '문제 확인부터 해결까지', file: 'homecare.webp' },
-  { key: 'house', title: '살림', sub: '청소부터 분리배출까지', file: 'housekeeping.webp' },
-  { key: 'food', title: '먹거리', sub: '보관부터 한 끼까지', file: 'food.webp' },
+  { key: 'first', title: '첫 자취', sub: '방 구하기부터 정착까지', file: 'first_home.png' },
+  { key: 'homecare', title: '홈케어', sub: '문제 확인부터 해결까지', file: 'homecare.png' },
+  { key: 'house', title: '살림', sub: '청소부터 분리배출까지', file: 'housekeeping.png' },
+  { key: 'food', title: '먹거리', sub: '보관부터 한 끼까지', file: 'food.png' },
 ] as const;
 
-/* 해결팁 — 배열 순서가 곧 화면 순서. 가운데로 온 카드가 강조 카드가 된다. */
+/* 해결팁 — 배열 순서가 곧 화면 순서. 가운데로 온 카드가 강조 카드가 된다.
+ * 카드를 더 넣거나 빼면 캐러셀 복제·페이지네이션이 알아서 따라간다.
+ * situation(무슨 상황인지) → title(무엇부터 하면 되는지) → meta(품이 얼마나 드는지) 순서다. */
 const TIPS = [
   {
-    key: 'storage',
-    file: 'life-tip-storage.png',
-    problem: '짐 때문에 발 딛을 틈이 없어요',
-    solution: ['세로형 수납장', '구매 후 정리'],
+    key: 'mold',
+    image: 'tip_mold.png',
+    situation: '창틀에 곰팡이가 생겨요',
+    title: ['닦기 전에', '결로 원인부터 확인해요'],
+    meta: '5분 · 환기 체크',
   },
   {
-    key: 'wallpaper',
-    file: 'life-tip-wallpaper.png',
-    problem: '입주 후 벽지 훼손을 발견했어요',
-    solution: ['입주 첫날 찍어둔 사진으로', '집주인에게 전달'],
+    key: 'food-waste',
+    image: 'tip_food_waste.png',
+    situation: '음식물 쓰레기 냄새가 심해요',
+    title: ['물기 빼고', '밀폐 보관부터 해보세요'],
+    meta: '3분 · 냄새 감소',
   },
   {
-    key: 'bug',
-    file: 'life-tip-bug.png',
-    problem: '작은 벌레가 계속 들어와요',
-    solution: ['문틈을 막고 배수구', '커버 설치'],
+    key: 'laundry',
+    image: 'tip_laundry.png',
+    situation: '빨래에서 꿉꿉한 냄새가 나요',
+    title: ['세제보다', '말리는 간격부터 바꿔보세요'],
+    meta: '바로 실천 · 추가비용 거의 없음',
+  },
+  {
+    key: 'utility',
+    image: 'tip_utility.png',
+    situation: '관리비가 갑자기 많이 나와요',
+    title: ['전기·수도·가스', '3가지부터 비교해보세요'],
+    meta: '10분 · 고지서 확인',
   },
 ] as const;
 
 /* 해결팁 캐러셀 — 슬라이더 중심에서 멀어질수록 카드가 작아진다.
  * 0.87 은 15px 본문이 축소돼도 최소 13px 을 지키는 값이다. */
-const TIP_SCALE_MIN = 0.87;
+const TIP_SCALE_MIN = 0.91;
+/* 옆 카드는 뒤에 있는 것처럼 흐려진다 — 형태는 알아볼 수 있는 선까지만 */
+const TIP_OPACITY_MIN = 0.55;
+const TIP_BLUR_MAX = 1.8;
 const TIP_SNAP_DURATION = 420;
 
 /* 양 끝에 복제 카드를 한 장씩 붙여 순환시킨다.
@@ -58,14 +74,40 @@ const TIP_SLIDES = [
 /* 복제를 뺀 실제 카드 수 — loop 보정과 pagination 이 모두 이 값을 쓴다 */
 const TIP_REAL_COUNT = TIP_SLIDES.filter((slide) => !slide.edge).length;
 
-/* 생활 퀴즈 — 답을 고른 뒤에만 결과를 공개한다.
- * 결과 막대는 50:50 에서 시작해 실제 응답 비율(69:31)로 경계가 이동한다. */
-const QUIZ_ANSWERS = ['일반 쓰레기', '음식물 쓰레기'] as const;
-type QuizAnswer = (typeof QUIZ_ANSWERS)[number];
-const QUIZ_CORRECT: QuizAnswer = '일반 쓰레기';
-const QUIZ_START_RATIO = 50;
-const QUIZ_RATIO = 69;
-const QUIZ_DURATION = 700;
+/* 오늘의 자취 스낵퀴즈 — 문제는 data/lifeSnackQuiz 에서 읽고,
+ * 답을 고른 뒤에 결과 한 줄과 짧은 설명만 보여준다. */
+/* 한 번 낸 답은 새로고침해도 그대로 둔다 */
+const QUIZ_STORE_KEY = 'jaduya.life.snack-quiz';
+
+type QuizSaved = {
+  quizId: string;
+  answer: string;
+  correct: boolean;
+  submitted: boolean;
+};
+
+/* 저장된 답 — 지금 배열에 있는 문제의 보기와 맞을 때만 인정한다
+ * (문제가 바뀌거나 보기가 수정되면 저장값을 버리고 처음부터 푼다) */
+function readQuizSaved(): QuizSaved | null {
+  try {
+    const raw = localStorage.getItem(QUIZ_STORE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Partial<QuizSaved>;
+    const quiz = SNACK_QUIZZES.find((item) => item.id === saved.quizId);
+    if (!quiz || !saved.answer || !quiz.options.some((option) => option === saved.answer)) {
+      return null;
+    }
+    return {
+      quizId: quiz.id,
+      answer: saved.answer,
+      correct: saved.answer === quiz.correctAnswer,
+      submitted: true,
+    };
+  } catch {
+    /* 시크릿 창처럼 저장소를 못 읽거나 값이 깨졌으면 처음 푸는 것으로 본다 */
+    return null;
+  }
+}
 
 /* 생활 메인 — 탭바 '생활' 로 들어오는 메인 화면.
  * 목적: 자취하다 막혔을 때 필요한 생활 정보를 카테고리 / 퀴즈 / 해결팁으로 빠르게 찾게 한다.
@@ -78,26 +120,43 @@ export function LifePage() {
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
   const tipsRef = useRef<HTMLDivElement>(null);
-  /* 퀴즈: 답을 고르기 전에는 결과를 감춰 둔다 */
-  const [quizAnswer, setQuizAnswer] = useState<QuizAnswer | null>(null);
-  const [quizPercent, setQuizPercent] = useState(QUIZ_START_RATIO);
+  /* 캐러셀 내부의 앞뒤 이동 — 좌우 버튼이 이걸 부른다 */
+  const tipNextRef = useRef<(() => void) | null>(null);
+  const tipPrevRef = useRef<(() => void) | null>(null);
+  /* 퀴즈: 답을 고르기 전에는 결과를 감춰 둔다.
+   * 저장된 답이 있으면 결과가 끝난 모습 그대로 시작한다 (애니메이션 없이). */
+  const [restoredSaved] = useState(readQuizSaved);
+  const solved = restoredSaved !== null;
+  /* 지금 푸는 문제 — 저장된 답이 있으면 그 문제부터 보여준다 */
+  const [quizIndex, setQuizIndex] = useState(() => {
+    const found = restoredSaved
+      ? SNACK_QUIZZES.findIndex((item) => item.id === restoredSaved.quizId)
+      : 0;
+    return found < 0 ? 0 : found;
+  });
+  const quiz = SNACK_QUIZZES[quizIndex];
+  /* 다음 문제가 없으면 '다음 퀴즈' 를 그리지 않는다 — 같은 문제를 다시 내지 않기 위해서다 */
+  const nextQuiz = SNACK_QUIZZES[quizIndex + 1] ?? null;
+  const [quizAnswer, setQuizAnswer] = useState<string | null>(restoredSaved?.answer ?? null);
   /* 계란 껍데기를 끌어다 놓는 방식 — 탭으로도 같은 답변 처리를 쓴다 */
-  const [quizRevealed, setQuizRevealed] = useState(false);
+  const [quizRevealed, setQuizRevealed] = useState(solved);
   const [quizDragging, setQuizDragging] = useState(false);
-  const [quizOver, setQuizOver] = useState<QuizAnswer | null>(null);
-  const [quizEggGone, setQuizEggGone] = useState(false);
+  const [quizOver, setQuizOver] = useState<string | null>(null);
+  const [quizEggGone, setQuizEggGone] = useState(solved);
+  /* 잡는 순간 온전한 계란이 깨진 껍데기로 바뀐다 — 한 번 깨지면 되돌리지 않는다 */
+  const [quizEggCracked, setQuizEggCracked] = useState(solved);
   const eggRef = useRef<HTMLDivElement>(null);
   const eggStart = useRef({ x: 0, y: 0 });
   /* 잡고 있는지는 ref 로 본다 — 리렌더를 기다리지 않아 첫 move 부터 따라온다 */
   const eggHeld = useRef(false);
-  const zoneRefs = useRef<Partial<Record<QuizAnswer, HTMLButtonElement | null>>>({});
+  const zoneRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   /* 해결팁 pagination — 복제를 뺀 실제 카드 번호 */
   const [tipPage, setTipPage] = useState(0);
 
   /* 해결팁 캐러셀 — 가운데에 가까울수록 큰 카드다.
-   * 스크롤 위치가 바뀔 때마다 크기를 다시 그리므로 드래그하는 중에도 연속적으로 변한다.
-   * 터치 스와이프는 브라우저의 가로 스크롤 + scroll-snap 이 그대로 처리하고,
-   * 마우스 드래그와 좌/우 방향키만 여기서 보탠다. */
+   * 카드를 직접 끌어서 넘기지 않는다. 손가락·마우스가 카드를 잡으면 페이지 세로 스크롤을
+   * 방해해서, 넘기는 조작은 오른쪽 '다음' 버튼(과 좌/우 방향키)만 담당한다.
+   * 레일 자체도 overflow-x: hidden 이라 스와이프·트랙패드 가로 스크롤이 걸리지 않는다. */
   useEffect(() => {
     const rail = tipsRef.current;
     if (!rail) return;
@@ -114,6 +173,9 @@ export function LifePage() {
         const gap = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
         const distance = Math.min(gap / step, 1);
         card.style.transform = `scale(${1 - (1 - TIP_SCALE_MIN) * distance})`;
+        card.style.opacity = String(1 - (1 - TIP_OPACITY_MIN) * distance);
+        /* blur 는 카드가 아니라 이미지에만 건다 — 카드 밖으로 번지지 않게 */
+        card.style.setProperty('--tip-blur', `${(TIP_BLUR_MAX * distance).toFixed(2)}px`);
         /* 가운데 카드가 항상 앞에 온다 */
         card.style.zIndex = String(Math.round((1 - distance) * 10));
         /* pagination 은 카드가 확실히 가운데에 들어왔을 때만 바꿔 드래그 중 깜빡이지 않게 한다.
@@ -134,7 +196,6 @@ export function LifePage() {
       rail.classList.add('is-loop');
     };
 
-    let dragging = false;
     let gliding = false;
 
     /* 복제 카드에 멈췄으면 같은 내용의 진짜 카드 위치로 소리 없이 옮긴다 */
@@ -150,7 +211,7 @@ export function LifePage() {
       paint();
       /* 위치를 옮긴 다음 프레임에 snap 을 되돌린다 (같은 자리라 튀지 않는다) */
       requestAnimationFrame(() => {
-        if (!dragging && !gliding) rail.style.scrollSnapType = '';
+        if (!gliding) rail.style.scrollSnapType = '';
       });
     };
 
@@ -169,7 +230,7 @@ export function LifePage() {
       /* 관성이 멎은 뒤에만 경계를 보정한다 */
       window.clearTimeout(idleTimer);
       idleTimer = window.setTimeout(() => {
-        if (!dragging && !gliding) fixLoop();
+        if (!gliding) fixLoop();
       }, 140);
     };
 
@@ -229,33 +290,13 @@ export function LifePage() {
       glideTo(centerOf(card));
     };
 
-    /* 데스크톱 마우스 드래그 — 터치는 브라우저 기본 스와이프를 그대로 쓴다 */
-    let startX = 0;
-    let startScroll = 0;
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse' || event.button !== 0) return;
-      /* 누르기만 해서는 loop 을 켜지 않는다 — 실제로 밀려서 scroll 이 나야 켜진다 */
-      dragging = true;
-      startX = event.clientX;
-      startScroll = rail.scrollLeft;
-      cancelAnimationFrame(snapFrame);
-      rail.style.scrollSnapType = 'none';
-      try {
-        rail.setPointerCapture(event.pointerId);
-      } catch {
-        /* 캡처가 안 되어도 드래그 자체는 그대로 동작한다 */
-      }
+    /* 좌우 버튼이 부르는 이동 — 양끝은 복제 카드를 지나 반대쪽으로 이어진다 */
+    const step = (direction: 1 | -1) => {
+      enableLoop();
+      goTo(nearest().index + direction);
     };
-    const onPointerMove = (event: PointerEvent) => {
-      if (!dragging) return;
-      rail.scrollLeft = startScroll - (event.clientX - startX);
-    };
-    const endDrag = (event: PointerEvent) => {
-      if (!dragging) return;
-      dragging = false;
-      if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
-      goTo(nearest().index);
-    };
+    tipNextRef.current = () => step(1);
+    tipPrevRef.current = () => step(-1);
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -266,10 +307,6 @@ export function LifePage() {
     };
 
     rail.addEventListener('scroll', onScroll, { passive: true });
-    rail.addEventListener('pointerdown', onPointerDown);
-    rail.addEventListener('pointermove', onPointerMove);
-    rail.addEventListener('pointerup', endDrag);
-    rail.addEventListener('pointercancel', endDrag);
     rail.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', paint);
 
@@ -286,29 +323,62 @@ export function LifePage() {
       cancelAnimationFrame(snapFrame);
       window.clearTimeout(idleTimer);
       rail.removeEventListener('scroll', onScroll);
-      rail.removeEventListener('pointerdown', onPointerDown);
-      rail.removeEventListener('pointermove', onPointerMove);
-      rail.removeEventListener('pointerup', endDrag);
-      rail.removeEventListener('pointercancel', endDrag);
       rail.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', paint);
+      tipNextRef.current = null;
+      tipPrevRef.current = null;
     };
   }, []);
 
   /* 드래그로 놓든 탭으로 고르든 답변 처리는 이 하나를 쓴다 */
-  const answerQuiz = (answer: QuizAnswer) => {
+  const answerQuiz = (answer: string) => {
     if (quizAnswer) return;
     setQuizAnswer(answer);
     setQuizOver(null);
+    try {
+      const saved: QuizSaved = {
+        quizId: quiz.id,
+        answer,
+        correct: answer === quiz.correctAnswer,
+        submitted: true,
+      };
+      localStorage.setItem(QUIZ_STORE_KEY, JSON.stringify(saved));
+    } catch {
+      /* 저장을 못 해도 이번 화면에서는 결과가 그대로 보인다 */
+    }
+  };
+
+  /* '다시 풀기' — 저장된 답과 화면 상태를 함께 처음으로 돌린다 */
+  const resetQuiz = () => {
+    try {
+      localStorage.removeItem(QUIZ_STORE_KEY);
+    } catch {
+      /* 지우지 못해도 이번 화면은 초기 상태로 돌아간다 */
+    }
+    moveEgg(0, 0);
+    setQuizAnswer(null);
+    setQuizRevealed(false);
+    setQuizEggGone(false);
+    setQuizEggCracked(false);
+    setQuizDragging(false);
+    setQuizOver(null);
+  };
+
+  /* 다음 문제 — 현재 문제를 초기화한 뒤 배열의 다음 항목으로 넘어간다 */
+  const goNextQuiz = () => {
+    if (!nextQuiz) return;
+    resetQuiz();
+    setQuizIndex((index) => index + 1);
   };
 
   /* 고른 자리를 먼저 보여주고 잠깐 뒤에 결과를 연다 */
   useEffect(() => {
-    if (!quizAnswer) return;
+    if (!quizAnswer || quizRevealed) return;
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const reveal = window.setTimeout(() => setQuizRevealed(true), reduceMotion ? 0 : 120);
-    /* 계란 껍데기는 고른 칸 쪽으로 짧게 빠지고 사라진다 — 결과를 가리지 않게 */
-    const clear = window.setTimeout(() => setQuizEggGone(true), reduceMotion ? 0 : 260);
+    /* 계란 껍데기는 고른 칸 쪽으로 짧게 빠지고, 그 뒤에 영역 높이가 접힌다 —
+     * 한 프레임에 사라지면 선택 버튼이 위로 튀어 올라간다 */
+    const clear = window.setTimeout(() => setQuizEggGone(true), reduceMotion ? 0 : 200);
+    const reveal = window.setTimeout(() => setQuizRevealed(true), reduceMotion ? 0 : 220);
     return () => {
       window.clearTimeout(reveal);
       window.clearTimeout(clear);
@@ -316,8 +386,8 @@ export function LifePage() {
   }, [quizAnswer]);
 
   /* 포인터 위치가 어느 칸 안인지 — 마우스와 터치를 같은 식으로 본다 */
-  const zoneAt = (x: number, y: number): QuizAnswer | null =>
-    QUIZ_ANSWERS.find((answer) => {
+  const zoneAt = (x: number, y: number): string | null =>
+    quiz.options.find((answer) => {
       const box = zoneRefs.current[answer]?.getBoundingClientRect();
       return !!box && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
     }) ?? null;
@@ -333,6 +403,7 @@ export function LifePage() {
     if (quizAnswer) return;
     eggStart.current = { x: event.clientX, y: event.clientY };
     eggHeld.current = true;
+    setQuizEggCracked(true);
     setQuizDragging(true);
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -357,34 +428,6 @@ export function LifePage() {
     if (dropped) answerQuiz(dropped);
     else setQuizOver(null);
   };
-
-  /* 답을 고르면 결과를 공개하고 50:50 → 69:31 로 경계를 옮긴다.
-   * 막대 폭과 두 숫자를 하나의 값에서 함께 계산해 서로 어긋나지 않게 한다. */
-  useEffect(() => {
-    if (!quizRevealed) return;
-
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setQuizPercent(QUIZ_RATIO);
-      return;
-    }
-
-    let frame = 0;
-    let start = 0;
-    const step = (now: number) => {
-      if (!start) start = now;
-      const progress = Math.min((now - start) / QUIZ_DURATION, 1);
-      /* cubic-bezier(0.22, 1, 0.36, 1) 과 비슷한 ease-out — bounce 없음 */
-      const eased = 1 - Math.pow(1 - progress, 5);
-      setQuizPercent(QUIZ_START_RATIO + (QUIZ_RATIO - QUIZ_START_RATIO) * eased);
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-
-    return () => cancelAnimationFrame(frame);
-  }, [quizRevealed]);
-
-  /* 두 숫자는 항상 합이 100 이 되도록 왼쪽 값에서 함께 만든다 */
-  const left = Math.round(quizPercent);
 
   return (
     <div className="life app">
@@ -441,44 +484,68 @@ export function LifePage() {
         <section className="life-quiz">
           <div className="life-quiz__head">
             <h2>{name}님, 이것도 알고 있나요?</h2>
-            <p>계란 껍데기, 어디에 버리세요?</p>
+            <p>30초면 끝나요. 오늘 하나만 알아가세요.</p>
           </div>
 
           <div className="life-quiz__result">
-            {!quizAnswer && (
-              <p className="life-quiz__guide">계란 껍데기를 알맞은 곳에 넣어보세요</p>
-            )}
-
-            {/* 끌어다 놓는 계란 껍데기 — 답을 고르면 고른 칸 쪽으로 빠지며 사라진다 */}
-            {!quizEggGone && (
-              <div className="life-quiz__egg-row">
-                <div
-                  ref={eggRef}
-                  className={`life-quiz__egg${quizDragging ? ' is-dragging' : ''}${
-                    quizAnswer ? ' is-done' : ''
-                  }`}
-                  style={
-                    quizAnswer
-                      ? ({ '--egg-drop': quizAnswer === QUIZ_ANSWERS[0] ? '-56px' : '56px' } as CSSProperties)
-                      : undefined
-                  }
-                  onPointerDown={onEggDown}
-                  onPointerMove={onEggMove}
-                  onPointerUp={onEggUp}
-                  onPointerCancel={onEggUp}
-                >
-                  <img
-                    className="life-quiz__egg-img"
-                    src={img('life/life-quiz-eggshell.png')}
-                    alt="계란 껍데기"
-                    draggable={false}
-                  />
+            {/* 안내문과 계란은 DOM 에서 바로 빼지 않는다 — 높이를 접어서 버튼이 부드럽게 올라오게 한다 */}
+            <div
+              className={`life-quiz__intro${quizEggGone ? ' is-gone' : ''}`}
+              aria-hidden={quizEggGone || undefined}
+            >
+              <div className="life-quiz__intro-inner">
+                {/* 끌어다 놓는 계란 — 잡으면 깨지고, 답을 고르면 고른 칸 쪽으로 빠지며 사라진다 */}
+                <div className="life-quiz__egg-row">
+                  <div
+                    ref={eggRef}
+                    className={`life-quiz__egg${quizDragging ? ' is-dragging' : ''}${
+                      quizEggCracked ? ' is-cracked' : ''
+                    }${quizAnswer ? ' is-done' : ''}`}
+                    style={
+                      quizAnswer
+                        ? ({ '--egg-drop': quizAnswer === quiz.options[0] ? '-56px' : '56px' } as CSSProperties)
+                        : undefined
+                    }
+                    onPointerDown={onEggDown}
+                    onPointerMove={onEggMove}
+                    onPointerUp={onEggUp}
+                    onPointerCancel={onEggUp}
+                  >
+                    {/* 온전한 계란과 깨진 껍데기를 같은 크기의 칸에 겹쳐 두고 서로 교차시킨다 —
+                     * 이미지를 갈아끼우지 않아 높이가 흔들리지 않는다 */}
+                    <span className="life-quiz__egg-stack">
+                      <img
+                        className="life-quiz__egg-img life-quiz__egg-img--whole"
+                        src={img(quiz.image)}
+                        alt="계란"
+                        draggable={false}
+                      />
+                      <img
+                        className="life-quiz__egg-img life-quiz__egg-img--cracked"
+                        src={img(quiz.crackedImage ?? quiz.image)}
+                        alt=""
+                        aria-hidden="true"
+                        draggable={false}
+                      />
+                    </span>
+                  </div>
                 </div>
+
+                {/* 끌 수 있다는 안내는 계란 바로 아래에 둔다 */}
+                <p className={`life-quiz__guide${quizAnswer ? ' is-gone' : ''}`}>
+                  계란을 끌어서 알맞은 곳에 넣어보세요
+                </p>
               </div>
-            )}
+            </div>
+
+            {/* 무엇에 대한 문제인지 먼저 알려주고 질문을 던진다 */}
+            <p className="life-quiz__chip">
+              {quiz.category} · {quiz.difficulty}
+            </p>
+            <p className="life-quiz__question">{quiz.question}</p>
 
             <div className="life-quiz__labels">
-              {QUIZ_ANSWERS.map((answer) => (
+              {quiz.options.map((answer) => (
                 <button
                   key={answer}
                   type="button"
@@ -492,8 +559,10 @@ export function LifePage() {
                   disabled={quizAnswer !== null}
                   onClick={() => answerQuiz(answer)}
                 >
-                  {/* 고른 쪽만 체크로 표시한다 — 색은 버튼 글자색을 따라간다 */}
-                  {quizAnswer === answer && (
+                  {/* 평소엔 쓰레기통, 고른 뒤엔 같은 자리에서 체크로 바뀐다 — 두 아이콘 모두
+                   * 같은 크기라 글자 위치는 그대로다. 쓰레기통은 <img> 가 부모 color 를
+                   * 못 받아서 mask 로 그린다. */}
+                  {quizAnswer === answer ? (
                     <svg
                       className="life-quiz__check"
                       viewBox="0 0 12 12"
@@ -508,72 +577,103 @@ export function LifePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
+                  ) : (
+                    <span
+                      className="life-quiz__choice-icon"
+                      style={{
+                        maskImage: `url(${icon('delete.svg')})`,
+                        WebkitMaskImage: `url(${icon('delete.svg')})`,
+                      }}
+                      aria-hidden="true"
+                    />
                   )}
                   {answer}
                 </button>
               ))}
             </div>
 
-            {/* 결과는 답을 고른 뒤에만 공개한다 */}
+            {/* 결과는 답을 고른 뒤에만 공개한다 — 결과 한 줄과 짧은 설명까지가 전부다 */}
             {quizRevealed && (
-              <>
-                <div
-                  className="life-quiz__bar"
-                  role="progressbar"
-                  aria-valuenow={left}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="일반 쓰레기라고 답한 비율"
-                >
-                  <span className="life-quiz__fill" style={{ width: `${quizPercent}%` }} />
-                  <span className="life-quiz__values">
-                    <em>{left}%</em>
-                    <em>{100 - left}%</em>
-                  </span>
-                </div>
+              <div className="life-quiz__reveal" role="status">
                 <p
-                  className={`life-quiz__feedback${quizAnswer === QUIZ_CORRECT ? ' is-correct' : ''}`}
-                  role="status"
+                  className={`life-quiz__headline${
+                    quizAnswer === quiz.correctAnswer ? ' is-correct' : ''
+                  }`}
                 >
-                  <strong>{quizAnswer === QUIZ_CORRECT ? '맞았어요!' : '아쉬워요!'}</strong>
-                  {quizAnswer === QUIZ_CORRECT
-                    ? '계란 껍데기는 일반 쓰레기로 버려주세요.'
-                    : '계란 껍데기는 일반 쓰레기예요.'}
+                  {quizAnswer === quiz.correctAnswer ? quiz.result.correct : quiz.result.wrong}
                 </p>
-              </>
+                <p className="life-quiz__answer">{quiz.explanation.point}</p>
+                <p className="life-quiz__why">{quiz.explanation.detail}</p>
+
+                {nextQuiz && (
+                  <button type="button" className="life-quiz__next" onClick={goNextQuiz}>
+                    다음 퀴즈 <span aria-hidden="true">→</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </section>
 
         {/* ================= ③ 자취생들의 해결팁 ================= */}
         <section className="life-tips">
-          <h2>자취생들의 해결팁</h2>
-          <div
-            className="life-tips__rail"
-            ref={tipsRef}
-            tabIndex={0}
-            role="group"
-            aria-label="자취생들의 해결팁 — 좌우 방향키로 넘길 수 있어요"
-          >
-            {TIP_SLIDES.map((tip) => (
-              <article
-                key={tip.slideKey}
-                className={`life-tip${tip.edge ? ` life-tip--clone life-tip--${tip.edge}-clone` : ''}`}
-                /* 복제 카드는 보조기술에 같은 내용이 두 번 읽히지 않게 감춘다 */
-                aria-hidden={tip.edge ? true : undefined}
-              >
-                <img className="life-tip__image" src={img(`life/${tip.file}`)} alt="" />
-                <span className="life-tip__veil" />
-                <div className="life-tip__body">
-                  <p className="life-tip__problem">{tip.problem}</p>
-                  <p className="life-tip__solution">
-                    {tip.solution[0]}
-                    <br />
-                    {tip.solution[1]}
-                  </p>
-                </div>
-              </article>
-            ))}
+          <div className="life-tips__head">
+            <h2>자취생들의 해결팁</h2>
+            <p>혼자 사는 게 처음이어도, 이렇게 하면 좀 더 쉬워요!</p>
+          </div>
+          <div className="life-tips__stage">
+            <div
+              className="life-tips__rail"
+              ref={tipsRef}
+              tabIndex={0}
+              role="group"
+              aria-label="자취생들의 해결팁 — 좌우 방향키로 넘길 수 있어요"
+            >
+              {TIP_SLIDES.map((tip) => (
+                <article
+                  key={tip.slideKey}
+                  className={`life-tip${tip.edge ? ` life-tip--clone life-tip--${tip.edge}-clone` : ''}`}
+                  /* 복제 카드는 보조기술에 같은 내용이 두 번 읽히지 않게 감춘다 */
+                  aria-hidden={tip.edge ? true : undefined}
+                >
+                  <img
+                    className="life-tip__image"
+                    src={img(`life/${tip.image}`)}
+                    alt=""
+                    draggable={false}
+                  />
+                  <span className="life-tip__veil" />
+                  <div className="life-tip__body">
+                    <p className="life-tip__situation">{tip.situation}</p>
+                    <p className="life-tip__title">
+                      {tip.title[0]}
+                      <br />
+                      {tip.title[1]}
+                    </p>
+                    <p className="life-tip__meta">{tip.meta}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* 카드를 끌어서 넘기지 않으므로 넘기는 조작은 이 두 버튼이 전부다.
+             * 가운데 카드와 옆 카드 사이 여백에 서로 대칭으로 선다 */}
+            <button
+              type="button"
+              className="life-tips__nav life-tips__nav--prev"
+              aria-label="이전 해결팁 보기"
+              onClick={() => tipPrevRef.current?.()}
+            >
+              <span aria-hidden="true">‹</span>
+            </button>
+            <button
+              type="button"
+              className="life-tips__nav life-tips__nav--next"
+              aria-label="다음 해결팁 보기"
+              onClick={() => tipNextRef.current?.()}
+            >
+              <span aria-hidden="true">›</span>
+            </button>
           </div>
 
           {/* 지금 몇 번째 팁인지만 알려주는 표시 — 복제 카드는 세지 않는다 */}

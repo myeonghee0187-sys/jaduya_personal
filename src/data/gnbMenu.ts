@@ -12,6 +12,8 @@ export interface GnbSubMenu {
   name: string;
   /** 연결된 화면. 아직 없으면 null (클릭해도 이동하지 않는다) */
   route: AppPage | null;
+  /** 그 카테고리의 대표 화면이면 true — 글자만 한 단계 굵게 그린다 */
+  home?: boolean;
 }
 
 export interface GnbCategory {
@@ -32,6 +34,8 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     iconFile: 'gnb-nav-living.svg',
     route: null,
     items: [
+      /* 상위 '생활' 은 펼치기/접기만 하므로 생활 메인은 이 항목으로 들어간다 */
+      { id: 'living-home', name: '생활 홈', route: 'life', home: true },
       { id: 'living-start', name: '첫 자취', route: 'life-first' },
       { id: 'living-homecare', name: '홈케어', route: 'life-homecare' },
       { id: 'living-house', name: '살림', route: 'life-house' },
@@ -69,9 +73,8 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     id: 'benefit',
     name: '혜택',
     iconFile: 'gnb-nav-benefit.svg',
-    /* 하위 메뉴 없음 — 화살표를 표시하지 않고 바로 이동한다.
-     * 혜택 화면이 생기면 여기에 route 를 넣는다. */
-    route: null,
+    /* 하위 메뉴 없음 — 화살표를 표시하지 않고 혜택·복지 메인으로 바로 이동한다. */
+    route: 'benefits',
     items: [],
   },
 ];

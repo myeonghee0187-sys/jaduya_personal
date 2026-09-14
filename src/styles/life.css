@@ -6,7 +6,8 @@
 
 .life {
   --life-cream: #e0cdad;
-  --life-quiz-track: #eed6c4;
+  /* 정답 문구 전용 green — 브랜드 red 와 구분하되 쨍하지 않은 톤 */
+  --life-quiz-correct: #4f7a57;
   --life-divider: #e9e4df;
   --life-tip-problem: #2f2f2f;
 
@@ -122,7 +123,7 @@
 .life-quiz {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   border-left: 2px solid var(--life-divider);
   padding: 12px;
 }
@@ -130,15 +131,36 @@
 .life-quiz__head {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
+/* 제목 아래 보조 문구 — 질문이 아니라 부담을 덜어주는 한 줄이라 톤을 낮춘다 */
 .life-quiz__head p {
   width: 100%;
   margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.45 var(--font-suit);
+  letter-spacing: -0.2px;
+}
+
+/* 무엇에 대한 문제인지 — 배경은 아주 옅게만 둔다 */
+.life-quiz__chip {
+  align-self: flex-start;
+  margin: 4px 0 0;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  background: rgba(180, 57, 54, 0.06);
+  color: var(--brand-primary);
+  font: 700 10px/1.4 var(--font-suit);
+  letter-spacing: -0.1px;
+}
+
+/* 실제로 답해야 하는 문장 — 이 섹션에서 제목 다음으로 강하다 */
+.life-quiz__question {
+  margin: 6px 0 10px; /* result 의 gap 4px 와 합쳐 버튼과 14px */
   color: var(--text-black);
-  font: 700 13px/1.35 var(--font-suit);
-  letter-spacing: -0.325px;
+  font: 700 16px/1.4 var(--font-suit);
+  letter-spacing: -0.4px;
 }
 
 .life-quiz__result {
@@ -147,11 +169,40 @@
   gap: 4px;
 }
 
+/* 안내문 + 계란을 함께 접는 영역 — 답을 고른 뒤 높이가 0 으로 천천히 줄어든다.
+ * DOM 에서 바로 빼면 선택 버튼이 150px 가까이 위로 튄다. */
+.life-quiz__intro {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.life-quiz__intro-inner {
+  min-height: 0;
+}
+
+/* 접히는 동안에만 잘라낸다 — 평소에 hidden 이면 버튼 쪽으로 끌어내린 계란이 잘린다 */
+.life-quiz__intro.is-gone .life-quiz__intro-inner {
+  overflow: hidden;
+}
+
+.life-quiz__intro.is-gone {
+  grid-template-rows: 0fr;
+  pointer-events: none;
+}
+
 /* 질문보다 한 단계 낮은 보조 안내 — 박스나 테두리 없이 텍스트만 */
 .life-quiz__guide {
-  margin: 0 0 10px; /* result 의 gap 4px 와 합쳐 14px */
+  margin: 10px 0 0; /* 계란과 안내문 사이 10px */
+  text-align: center;
   color: var(--text-secondary);
   font: 400 11px/1.5 var(--font-suit);
+  transition: opacity 200ms ease;
+}
+
+/* 답을 고르면 자리는 그대로 두고 옅어지기만 한다 */
+.life-quiz__guide.is-gone {
+  opacity: 0;
 }
 
 /* ---------- 끌어다 놓는 계란 껍데기 ---------- */
@@ -163,7 +214,22 @@
   justify-content: center;
 }
 
+/* 온전한 계란 / 깨진 껍데기를 겹쳐 두는 칸 — 크기를 여기서 고정해 두면
+ * 이미지가 바뀌어도 높이가 변하지 않는다. 흔들림도 이 칸이 맡는다
+ * (드래그 transform 은 바깥 .life-quiz__egg, 교차 transform 은 안쪽 img). */
+.life-quiz__egg-stack {
+  position: relative;
+  display: block;
+  width: 118px;
+  height: 118px;
+  /* 움직일 수 있다는 것만 알려주는 아주 가벼운 흔들림 */
+  animation: life-egg-idle 2.1s ease-in-out infinite;
+}
+
 .life-quiz__egg {
+  /* 안내문·버튼 위로 지나가야 한다 */
+  position: relative;
+  z-index: 2;
   /* 드래그 위치는 JS 가 --egg-x / --egg-y 로 준다 */
   transform: translate(var(--egg-x, 0px), var(--egg-y, 0px));
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -173,15 +239,36 @@
   will-change: transform;
 }
 
+/* 1.18배 — 실제로 보이는 껍데기 폭이 85px 에서 100px 가 된다 */
 .life-quiz__egg-img {
+  position: absolute;
+  inset: 0;
   display: block;
-  /* 1.18배 — 실제로 보이는 껍데기 폭이 85px 에서 100px 가 된다 */
-  width: 118px;
-  height: auto;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
-  /* 움직일 수 있다는 것만 알려주는 아주 가벼운 흔들림 */
-  animation: life-egg-idle 2.1s ease-in-out infinite;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+/* 잡기 전에는 온전한 계란만 보인다 */
+.life-quiz__egg-img--cracked {
+  opacity: 0;
+  transform: scale(0.94);
+}
+
+/* 잡는 순간 껍데기로 교차한다 — 자리를 차지한 칸은 그대로라 아무것도 밀리지 않는다 */
+.life-quiz__egg.is-cracked .life-quiz__egg-img--whole {
+  opacity: 0;
+  transform: scale(0.94);
+}
+
+.life-quiz__egg.is-cracked .life-quiz__egg-img--cracked {
+  opacity: 1;
+  transform: scale(1);
 }
 
 @keyframes life-egg-idle {
@@ -202,8 +289,8 @@
   filter: drop-shadow(0 6px 8px rgba(60, 50, 45, 0.18));
 }
 
-.life-quiz__egg.is-dragging .life-quiz__egg-img,
-.life-quiz__egg.is-done .life-quiz__egg-img {
+.life-quiz__egg.is-dragging .life-quiz__egg-stack,
+.life-quiz__egg.is-done .life-quiz__egg-stack {
   animation: none;
 }
 
@@ -215,6 +302,19 @@
   transition:
     transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 240ms ease;
+}
+
+/* 결과 한 줄 — 선택지 아래에서 결과만 알려준다. 질문보다 커지지 않게 둔다 */
+.life-quiz__headline {
+  margin: 0;
+  color: var(--brand-primary);
+  font: 700 15px/1.4 var(--font-suit);
+  letter-spacing: -0.3px;
+}
+
+/* 정답은 차분한 green 으로 구분한다 (오답은 위의 primary 를 그대로 쓴다) */
+.life-quiz__headline.is-correct {
+  color: var(--life-quiz-correct);
 }
 
 .life-quiz__labels {
@@ -242,8 +342,9 @@
   font: inherit;
   cursor: pointer;
   transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
+    border-color 240ms ease,
+    background-color 240ms ease,
+    color 240ms ease,
     transform 120ms ease;
 }
 
@@ -266,7 +367,6 @@
 .life-quiz__choice.is-over {
   border-color: var(--brand-primary);
   background: rgba(180, 57, 54, 0.06);
-  transform: scale(1.02);
 }
 
 /* 고르지 않은 쪽도 흐려지지 않는다 — 고른 쪽만 primary 로 구분한다 */
@@ -276,73 +376,98 @@
   color: var(--brand-primary);
 }
 
+/* 답변 앞 쓰레기통 아이콘 — 버튼 글자색(선택 시 primary)을 그대로 따라가야 해서
+ * <img> 대신 mask-image 로 그린다. mask 로 쓸 svg 경로는 JSX 가 icon() 으로 넣는다. */
+.life-quiz__choice-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* 쓰레기통이 있던 자리에 그대로 들어간다 — 같은 14px 이라 글자가 밀리지 않는다 */
 .life-quiz__check {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  animation: life-quiz-check-in 200ms ease both;
 }
 
-/* '선택' 과 '결과' 가 다른 단계로 읽히도록 버튼과 띄운다 (gap 4px + 12px = 16px) */
-.life-quiz__bar {
-  margin-top: 12px;
-  position: relative;
-  width: 100%;
-  height: 18px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--life-quiz-track);
+@keyframes life-quiz-check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* 폭은 실제 응답 비율이다 — 답을 고른 뒤 50% 에서 69% 로 옮겨지며, 값은 JS 가 준다 */
-.life-quiz__fill {
-  display: block;
-  width: 50%;
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--brand-orange);
-}
-
-.life-quiz__values {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+/* 결과는 선택 버튼 아래에서 아래로부터 떠오르듯 나타난다 */
+.life-quiz__reveal {
   display: flex;
-  justify-content: space-between;
-  padding: 0 12px;
+  flex-direction: column;
+  margin-top: 10px;
+  animation: life-quiz-reveal 240ms ease 120ms both;
 }
 
-.life-quiz__values em {
-  font: 700 10px/1.4 var(--font-suit);
-  font-style: normal;
+@keyframes life-quiz-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.life-quiz__values em:first-child {
+/* 무엇이 정답인지 — 결과 한 줄과 한 묶음으로 붙여 둔다 */
+.life-quiz__answer {
+  margin: 2px 0 0;
+  color: var(--text-black);
+  font: 700 13px/1.45 var(--font-suit);
+  letter-spacing: -0.26px;
+}
+
+/* 왜 그런지 짧게 — 정답 줄보다 한 단계 낮게 */
+.life-quiz__why {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.5 var(--font-suit);
+  letter-spacing: -0.24px;
+}
+
+/* 다음 퀴즈 — primary 지만 화면을 가로지르는 CTA 는 아니다 */
+.life-quiz__next {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0 14px;
+  background: var(--brand-primary);
   color: var(--surface-widget-card);
+  font: 700 12px/1 var(--font-suit);
+  letter-spacing: -0.24px;
+  cursor: pointer;
+  transition: opacity 160ms ease;
 }
 
-.life-quiz__values em:last-child {
-  color: var(--text-black);
-}
-
-/* 정답/오답은 모달 없이 막대 바로 아래에서 알려준다.
- * 첫 줄이 결과, 둘째 줄이 설명 — 두 줄의 위계를 나눈다. */
-.life-quiz__feedback {
-  margin: 5px 0 0; /* .life-quiz__result 의 gap 4px 와 합쳐 9px */
-  color: var(--text-nav);
-  font: 400 11px/1.5 var(--font-suit);
-}
-
-.life-quiz__feedback strong {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--text-black);
-  font: 700 12px/1.4 var(--font-suit);
-}
-
-.life-quiz__feedback.is-correct strong {
-  color: var(--brand-primary);
+@media (hover: hover) {
+  .life-quiz__next:hover {
+    opacity: 0.88;
+  }
 }
 
 /* ================= ③ 자취생들의 해결팁 ================= */
@@ -350,23 +475,100 @@
 .life-tips {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   padding-bottom: 40px;
 }
 
-/* 카드 3장이 콘텐츠 폭을 넘는다 — 이 영역만 가로로 흐르게 두고
+/* 제목과 한 줄 설명은 한 묶음으로 붙여 둔다 */
+.life-tips__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.life-tips__head p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px/1.45 var(--font-suit);
+  letter-spacing: -0.24px;
+}
+
+/* 레일과 '다음' 버튼을 함께 담는 칸 — 버튼을 가운데 카드 오른쪽에 세우는 기준이다 */
+.life-tips__stage {
+  position: relative;
+  margin: 0 calc(var(--screen-margin) * -1);
+}
+
+/* 카드가 콘텐츠 폭을 넘는다 — 이 영역만 가로로 흐르게 두고
  * 좌우 화면 여백 바깥까지 카드가 이어져 보이게 한다.
- * 좌우 padding 은 첫/마지막 카드도 가운데에 설 수 있는 만큼 잡는다. */
+ * 좌우 padding 은 첫/마지막 카드도 가운데에 설 수 있는 만큼 잡는다.
+ * overflow-x 는 hidden 이다 — 카드를 끌거나 스와이프해서 넘기지 않고,
+ * 위치는 '다음' 버튼과 방향키가 scrollLeft 로만 옮긴다.
+ * (auto 로 두면 카드 위에서 세로 스크롤이 가로 조작에 물려 덜그럭거린다) */
 .life-tips__rail {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 calc(var(--screen-margin) * -1);
   padding: 0 calc((var(--content-width) + var(--screen-margin) * 2 - 200px) / 2);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overflow-x: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
+}
+
+/* 좌우 이동 버튼 — 가운데 카드(200px) 바깥 여백에 선다.
+ * 카드 반폭 100px + 여백 10px 이라 active card 위로 올라오지 않고,
+ * left/right 를 같은 값으로 잡아 좌우가 정확히 대칭이다.
+ * 360px 에서도 잘리지 않는다 (중심에서 146px < 180px). */
+.life-tips__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(180, 57, 54, 0.12);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 250, 245, 0.9);
+  color: var(--brand-primary);
+  font: 400 20px/1 var(--font-suit);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+/* 보이는 크기는 36px 그대로 두고 누르는 범위만 44px 로 넓힌다 */
+.life-tips__nav::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+
+.life-tips__nav span {
+  /* 화살표 글리프가 세로 가운데에 오도록 미세 보정 */
+  margin-top: -2px;
+}
+
+.life-tips__nav--prev {
+  right: calc(50% + 110px);
+}
+
+.life-tips__nav--next {
+  left: calc(50% + 110px);
+}
+
+@media (hover: hover) {
+  .life-tips__nav:hover {
+    background: rgba(255, 250, 245, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  }
 }
 
 .life-tips__rail:focus-visible {
@@ -383,7 +585,9 @@
   visibility: hidden;
 }
 
-/* 크기는 슬라이더 중심까지의 거리로 정해진다 (transform 은 LifePage 가 준다) */
+/* 크기·투명도·흐림 정도는 슬라이더 중심까지의 거리로 정해진다
+ * (transform / opacity / --tip-blur 는 LifePage 의 paint() 가 매 프레임 준다.
+ *  이동 자체가 연속 애니메이션이라 여기에 transition 을 또 걸지 않는다) */
 .life-tip {
   position: relative;
   flex: none;
@@ -437,16 +641,27 @@
   height: 100%;
   object-fit: cover;
   object-position: bottom;
+  /* 카드가 아니라 이미지에만 흐림을 걸어 둥근 모서리 밖으로 번지지 않게 한다 */
+  filter: blur(var(--tip-blur, 0px));
+  /* 브라우저 기본 이미지 드래그에 끌려오지 않게 한다 */
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-/* 아래쪽 텍스트가 읽히도록 크림색으로 덮는다 */
+/* 아래쪽 텍스트가 읽히도록 크림색으로 덮는다 — 검은 박스 대신 따뜻한 톤으로만 */
 .life-tip__veil {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(252, 250, 247, 0) 50%, var(--life-cream) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(252, 250, 247, 0) 36%,
+    rgba(238, 224, 202, 0.78) 64%,
+    var(--life-cream) 100%
+  );
 }
 
+/* 카드마다 글자 수가 달라도 아래에서부터 쌓여 카드 높이가 흔들리지 않는다 */
 .life-tip__body {
   position: absolute;
   left: 12px;
@@ -454,21 +669,41 @@
   bottom: 0;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   padding-bottom: 12px;
 }
 
-.life-tip__problem {
+/* 무슨 상황인지 — 해결 문구보다 약하게, 그래도 읽히는 대비로 */
+.life-tip__situation {
   margin: 0;
   color: var(--life-tip-problem);
-  font: 700 11px/1.5 var(--font-suit);
+  font: 400 11px/1.5 var(--font-suit);
+  letter-spacing: -0.22px;
 }
 
-.life-tip__solution {
+/* 카드에서 가장 중요한 정보 — 두 줄 기준, 길어져도 카드 밖으로 넘지 않는다 */
+.life-tip__title {
   margin: 0;
   color: var(--text-black);
-  font: 700 15px/1.4 var(--font-suit);
-  letter-spacing: -0.3px;
+  font: 700 14px/1.45 var(--font-suit);
+  letter-spacing: -0.28px;
+  word-break: keep-all;
+}
+
+/* 품이 얼마나 드는지 — 가장 작은 정보라 밝은 pill 로만 둔다 */
+.life-tip__meta {
+  margin: 2px 0 0;
+  max-width: 100%;
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
+  font: 400 10px/1.4 var(--font-suit);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 모션을 줄이는 설정에서는 계란 껍데기의 흔들림과 확대를 쓰지 않는다 */
@@ -478,12 +713,26 @@
     transition: none;
   }
 
-  .life-quiz__egg-img {
+  .life-quiz__egg-stack {
     animation: none;
+  }
+
+  .life-quiz__egg-img {
+    transition: none;
   }
 
   .life-quiz__egg.is-dragging {
     transform: translate(var(--egg-x, 0px), var(--egg-y, 0px));
     filter: none;
+  }
+
+  .life-quiz__intro,
+  .life-quiz__guide {
+    transition: none;
+  }
+
+  .life-quiz__reveal,
+  .life-quiz__check {
+    animation: none;
   }
 }

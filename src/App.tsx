@@ -23,6 +23,9 @@ import { CommunityTipPage } from './pages/CommunityTipPage';
 import { CommunityRegionPage } from './pages/CommunityRegionPage';
 import { CommunitySpendComparePage } from './pages/CommunitySpendComparePage';
 import { AIChatPage } from './pages/AIChatPage';
+import { BenefitsPage } from './pages/BenefitsPage';
+import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
+import { BenefitDetailPage } from './pages/BenefitDetailPage';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
 import { MyMenuProvider } from './menu/MyMenuContext';
@@ -71,6 +74,9 @@ function MainPages() {
       {page === 'community-tip' && <CommunityTipPage />}
       {page === 'community-region' && <CommunityRegionPage />}
       {page === 'community-spend-compare' && <CommunitySpendComparePage />}
+      {page === 'benefits' && <BenefitsPage />}
+      {page === 'benefits-recommend' && <BenefitsRecommendPage />}
+      {page === 'benefit-detail' && <BenefitDetailPage />}
       {page === 'ai-chat' && <AIChatPage />}
     </>
   );
@@ -100,7 +106,7 @@ export default function App() {
   if (user) {
     return user.onboarded ? (
       <AppNavigationProvider key={user.email}>
-        {/* 커뮤니티 북마크·GNB "내 메뉴" 는 여러 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+        {/* 커뮤니티·혜택 북마크와 GNB "내 메뉴"는 여러 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
         <BookmarkProvider>
           <MyMenuProvider>
             <MainPages />
