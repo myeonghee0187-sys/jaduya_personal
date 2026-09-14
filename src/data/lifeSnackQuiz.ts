@@ -25,10 +25,14 @@ export type SnackQuiz = {
     wrong: string;
   };
   explanation: {
-    /* 정답이 무엇인지 한 줄 */
-    point: string;
-    /* 왜 그런지 짧게 한 줄 */
-    detail: string;
+    /* 오답일 때만 — 실제 정답이 무엇인지 알려준다 */
+    answer: string;
+    /* 왜 그런지 한 줄. 정답일 때와 오답일 때 앞 문장이 달라서 문구를 따로 둔다
+     * (정답일 때 '정답은 …예요' 를 또 붙이면 같은 말이 두 번 나온다) */
+    why: {
+      correct: string;
+      wrong: string;
+    };
   };
 };
 
@@ -47,8 +51,11 @@ export const SNACK_QUIZZES: readonly SnackQuiz[] = [
       wrong: '아쉬워요!',
     },
     explanation: {
-      point: '정답은 일반 쓰레기예요.',
-      detail: '계란 껍데기는 음식물로 처리할 수 없어요.',
+      answer: '계란 껍데기는 일반 쓰레기예요.',
+      why: {
+        correct: '계란 껍데기는 음식물로 처리할 수 없어요.',
+        wrong: '음식물로 처리할 수 없어요.',
+      },
     },
   },
 ];

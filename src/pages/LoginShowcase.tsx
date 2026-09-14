@@ -5,7 +5,7 @@ import App from '../App';
 import { Login } from './Login';
 import { Signup } from './Signup';
 import { useAuth } from '../auth/AuthContext';
-import { TEST_ACCOUNTS, TEST_PASSWORD } from '../auth/mockUsers';
+import { getDemoAccountId, TEST_ACCOUNTS } from '../auth/mockUsers';
 import type { MockAccount, Persona } from '../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
 import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
@@ -71,11 +71,9 @@ const ACCOUNT_BLURBS: Record<string, string> = {
  * CTA 를 눌러야 실제로 로그인 폼/회원가입 폼에 반영된다(자동 제출은 하지 않는다). */
 export function LoginShowcase() {
   const isDesktop = useIsDesktop();
-  const { user, login, logout, resetDemoSignup, startFreshDemo, demoSignedUp } = useAuth();
+  const { user, loginDemo, logout, demoSignedUp } = useAuth();
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  /* Demo Account 클릭으로 채울 값 — 기본은 비워 둬서 처음 열었을 때는 빈 로그인 폼 그대로다 */
-  const [loginPrefill, setLoginPrefill] = useState<{ email: string; password: string } | null>(null);
   const [signupPrefillProfile, setSignupPrefillProfile] = useState<SignupTestProfile | undefined>(undefined);
 
   const activeAccount = TEST_ACCOUNTS[selectedIndex] ?? TEST_ACCOUNTS[0];
@@ -93,7 +91,6 @@ export function LoginShowcase() {
   const goSignupAsSeojun = () => {
     if (user) logout();
     setSignupPrefillProfile(SIGNUP_TEST_PROFILES.seojunDemo);
-    setLoginPrefill(null);
     setAuthView('signup');
   };
 
@@ -105,21 +102,18 @@ export function LoginShowcase() {
       goSignupAsSeojun();
       return;
     }
-    if (user?.email !== account.email) login(account.email, TEST_PASSWORD);
+    const personaId = getDemoAccountId(account.email);
+    if (user?.email !== account.email && personaId) loginDemo(personaId);
     showHome();
   };
 
-  /* 보조 CTA — 이 계정의 진행 상태만 지우고 최초 체험 플로우부터 다시 */
-  const handleStartOver = (account: MockAccount) => {
-    if (account.email === DEMO_SIGNUP_EMAIL) {
-      /* 이서준의 최초 체험 플로우는 회원가입부터다 */
-      resetDemoSignup();
-      startFreshDemo(account.email);
-      goSignupAsSeojun();
-      return;
-    }
-    startFreshDemo(account.email);
-    showHome();
+  /* 보조 CTA — 데모 계정에서 빠져나와 원래 로그인 화면을 보여준다.
+   * 계정의 진행 상태나 가입 여부는 건드리지 않는다 — 지워 버리면 그 로그인 화면에서
+   * 같은 계정으로 다시 들어갈 수 없다. */
+  const handleStartOver = () => {
+    if (user) logout();
+    setSignupPrefillProfile(undefined);
+    setAuthView('login');
   };
 
   /* 실제 모바일 기기 폭 — 프레임/Demo Account 없이 앱을 그대로 전체화면으로 보여준다.
@@ -180,13 +174,10 @@ export function LoginShowcase() {
             <App key={appKey} />
           ) : authView === 'login' ? (
             <Login
-              key={loginPrefill?.email ?? 'default'}
               onGoSignup={(profile) => {
                 setSignupPrefillProfile(profile);
                 setAuthView('signup');
               }}
-              initialEmail={loginPrefill?.email}
-              initialPassword={loginPrefill?.password}
             />
           ) : (
             <Signup
@@ -264,7 +255,7 @@ export function LoginShowcase() {
             <button
               type="button"
               className="login-showcase__new-link"
-              onClick={() => handleStartOver(activeAccount)}
+              onClick={handleStartOver}
             >
               처음부터 시작하기
             </button>

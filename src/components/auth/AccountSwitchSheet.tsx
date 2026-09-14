@@ -1,24 +1,26 @@
 import '../../styles/account-switch.css';
 import { BottomSheet } from '../BottomSheet';
 import { useAuth } from '../../auth/AuthContext';
-import { TEST_ACCOUNTS, TEST_PASSWORD } from '../../auth/mockUsers';
+import { getDemoAccountId, TEST_ACCOUNTS } from '../../auth/mockUsers';
+import type { MockAccount } from '../../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../../auth/demoSignup';
 
 /* 개발·발표용 빠른 계정 전환 시트.
  * 로그인 화면 TestAccountSheet 와 같은 셸/스타일(.bsheet, .test-account)을 재사용하고,
- * 전환은 새 로직 없이 기존 AuthContext 의 login() / logout() 만 호출한다. */
+ * 전환은 password input 없이 AuthContext의 데모 로그인 상태만 바꾼다. */
 interface AccountSwitchSheetProps {
   open: boolean;
   onClose: () => void;
 }
 
 export function AccountSwitchSheet({ open, onClose }: AccountSwitchSheetProps) {
-  const { user, login, logout, demoSignedUp } = useAuth();
+  const { user, loginDemo, logout, demoSignedUp } = useAuth();
 
   /* 가입 전 이서준은 로그인 대상이 아니다 (demoSignup 플래그는 읽기만 한다) */
   const pendingSignupEmail = demoSignedUp ? null : DEMO_SIGNUP_EMAIL;
 
-  const handleSelect = (email: string) => {
+  const handleSelect = (account: MockAccount) => {
+    const email = account.email;
     if (email === user?.email) return; // 현재 계정 재선택은 무시
     onClose();
     if (email === pendingSignupEmail) {
@@ -26,7 +28,8 @@ export function AccountSwitchSheet({ open, onClose }: AccountSwitchSheetProps) {
       logout();
       return;
     }
-    login(email, TEST_PASSWORD);
+    const personaId = getDemoAccountId(email);
+    if (personaId) loginDemo(personaId);
   };
 
   return (
@@ -64,7 +67,7 @@ export function AccountSwitchSheet({ open, onClose }: AccountSwitchSheetProps) {
                 className="test-account__item"
                 disabled={isCurrent}
                 aria-current={isCurrent ? 'true' : undefined}
-                onClick={() => handleSelect(account.email)}
+                onClick={() => handleSelect(account)}
               >
                 <span className="test-account__name-row">
                   <span className="test-account__name">{account.name}</span>

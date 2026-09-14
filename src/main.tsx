@@ -43,6 +43,8 @@ import './styles/community.css';
 import './styles/ai-chat-page.css';
 import './styles/money.css';
 import './styles/benefits.css';
+import './styles/notifications.css';
+import './styles/settings-pages.css';
 import './styles/coachmark.css';
 /* 인트로는 화면 전체를 덮는 최상위 레이어라 가장 마지막에 읽는다 */
 import './styles/intro.css';

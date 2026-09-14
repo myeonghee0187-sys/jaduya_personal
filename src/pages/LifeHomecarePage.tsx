@@ -4,7 +4,6 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { ChipGroup } from '../components/homecare/ChipGroup';
 import { GuideTimeline } from '../components/homecare/GuideTimeline';
@@ -192,7 +191,6 @@ export function LifeHomecarePage() {
         onClose={() => setGnbOpen(false)}
         onEditMenu={() => setGnbOpen(false)}
       />
-      <AIChatbot />
     </div>
   );
 }
