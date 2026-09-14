@@ -31,6 +31,15 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [switchPinned]);
   const currentTab = activeTab ?? navigation?.page ?? selectedTab;
+
+  /* 다른 탭에서 홈으로 "실제로" 바뀌는 순간에만 마스코트를 한 번 올린다 —
+   * 리렌더나 이미 홈인 상태에서는 다시 재생하지 않는다. */
+  const [homePop, setHomePop] = useState(false);
+  const previousTab = useRef(currentTab);
+  useEffect(() => {
+    if (previousTab.current !== 'home' && currentTab === 'home') setHomePop(true);
+    previousTab.current = currentTab;
+  }, [currentTab]);
   const tabs: Array<[TabId, string, string]> = [
     ['life', '생활', 'nav-life.svg'], ['money', '돈관리', 'nav-money.svg'],
     ['home', '홈', 'nav-home.svg'], ['community', '커뮤니티', 'nav-community.svg'], ['my', '마이', 'nav-my.svg'],
@@ -53,7 +62,10 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
             <a className={`tab-item${id === 'home' ? ' tab-item--home' : ''}${isActive ? ' is-active' : ''}`} href="#" aria-current={isActive ? 'page' : undefined} onClick={(event) => selectTab(id, event)}>
               {/* active 홈은 마스코트를 탭 안에서 라벨 바로 위에 쓴다 */}
               <img
-                className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}`}
+                className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}${
+                  id === 'home' && isActive && homePop ? ' is-popping' : ''
+                }`}
+                onAnimationEnd={() => setHomePop(false)}
                 /* 홈은 마스코트, 나머지는 같은 이름의 -active(Primary) 파일로 바꿔 끼운다 */
                 src={icon(
                   id === 'home'

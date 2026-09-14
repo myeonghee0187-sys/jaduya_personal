@@ -28,8 +28,14 @@ export function SubPageHeader({ title, backLabel, onBack, onMenu, children }: Su
         <div className="header-actions">
           {children}
           <BellButton />
+          {/* 햄버거는 Home Header / GnbOverlay 와 같은 .burger 구조를 쓴다 —
+            * 아이콘 파일을 따로 두면 선 굵기·간격·모션이 화면마다 갈린다 */}
           <button type="button" className="page-header__menu" aria-label="전체 메뉴" onClick={onMenu}>
-            <img src={icon('header-menu.svg')} alt="" />
+            <span className="burger" aria-hidden="true">
+              <span className="burger__bar" />
+              <span className="burger__bar" />
+              <span className="burger__bar" />
+            </span>
           </button>
         </div>
       </div>

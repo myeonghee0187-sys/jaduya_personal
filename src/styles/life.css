@@ -89,46 +89,21 @@
   cursor: pointer;
 }
 
-/* 원본이 정사각이라 래퍼로 잘라 필요한 부분만 보여준다 */
+/* 3D 아이콘 4종을 같은 정사각 박스에 contain 으로 담아 크기감을 통일한다 */
 .life-category__thumb {
-  position: relative;
   flex: none;
-  display: block;
-  width: 100px;
-  height: 60px;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
 }
 
 .life-category__thumb img {
-  position: absolute;
   display: block;
   width: 100%;
-  height: 166.67%;
-}
-
-.life-category__thumb--first img {
-  top: -33.94%;
-  left: -0.16%;
-}
-
-.life-category__thumb--homecare img {
-  top: -37.61%;
-  left: 0.37%;
-}
-
-.life-category__thumb--house {
-  height: 50px;
-}
-
-.life-category__thumb--house img {
-  height: 200%;
-  top: -48.4%;
-  left: -0.55%;
-}
-
-.life-category__thumb--food img {
-  top: -33.37%;
-  left: 0.32%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .life-category__title {

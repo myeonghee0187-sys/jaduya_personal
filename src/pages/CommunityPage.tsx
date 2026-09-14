@@ -146,6 +146,7 @@ export function CommunityPage() {
                 if (name === '질문') navigation?.navigate('community-question');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
                 else if (name === '지역 후기') navigation?.navigate('community-region');
+                else if (name === '소비 비교') navigation?.navigate('community-spend-compare');
                 else setTab(name);
               }}
             >

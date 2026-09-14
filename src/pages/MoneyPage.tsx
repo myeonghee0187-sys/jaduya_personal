@@ -369,7 +369,12 @@ export function MoneyPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [tab, setTab] = useState<Tab>('이번 달');
+  /* 커뮤니티 '소비 비교'의 "전체보기" 처럼 다른 화면에서 시작 탭을 지정해 들어올 수 있다.
+   * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '이번 달'로 연다. */
+  const requestedTab = navigation?.options.tab;
+  const [tab, setTab] = useState<Tab>(() =>
+    requestedTab && (TABS as readonly string[]).includes(requestedTab) ? (requestedTab as Tab) : TABS[0],
+  );
   /* 탭은 페이지 이동이 아니라 같은 화면 안에서 콘텐츠만 바뀌는 거라, 스크롤 컨테이너가
    * 그대로 재사용돼 이전 탭에서 내려간 위치가 다음 탭에도 이어진다 — 탭이 바뀔 때마다 맨 위로 올린다. */
   const scrollRef = useRef<HTMLElement>(null);

@@ -192,7 +192,10 @@ a { text-decoration: none; color: inherit; }
   display: block;
   /* 가로는 헤더 공통 글리프 폭(--header-glyph-w)을 쓴다 — bell 과 같은 크기감이 된다 */
   width: var(--header-glyph-w);
-  height: 14.47px;
+  /* 14.47(Figma 실측) 대신 14 — 28px 버튼 안에서 세로 가운데 정렬될 때 위 여백이
+   * (28-14)/2 = 7 로 정수가 된다. 14.47 이면 6.765 라서 bar 가 픽셀 경계를 걸쳐
+   * 안티에일리어싱으로 번지고 선이 얇고 흐릿해 보였다. */
+  height: 14px;
   flex: none;
   /* bar 한 줄의 길이. X 상태에서는 overlays.css 가 이 값만 바꾼다 */
   --burger-bar-len: var(--header-glyph-w);
@@ -203,8 +206,10 @@ a { text-decoration: none; color: inherit; }
   position: absolute;
   left: calc((var(--header-glyph-w) - var(--burger-bar-len)) / 2);
   width: var(--burger-bar-len);
-  height: 2.28px;
-  border-radius: 1.14px;
+  /* 2.5px = DPR 2 에서 정확히 5 device px — 소수점에 걸치지 않아 세 줄이 같은 굵기로 찍힌다.
+   * (2px 은 4 device px 로 더 얇게 보였고, 아래에서 top 을 정수로 맞춘 것과 한 세트다) */
+  height: 2.5px;
+  border-radius: 1.25px;
   background: var(--text-heading);
   transition:
     transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -213,9 +218,11 @@ a { text-decoration: none; color: inherit; }
     opacity 180ms ease;
 }
 
+/* 버튼 기준 7 / 13 / 19px. 셋 다 정수 px 이어야 한다 — 예전 19.25px 은 DPR 2 에서
+ * 60.5~64.5 device px 에 걸쳐 아래 줄만 5줄로 번져(=더 두껍게) 보였다. */
 .burger__bar:nth-child(1) { top: 0; }
-.burger__bar:nth-child(2) { top: 6.1px; }
-.burger__bar:nth-child(3) { top: 12.19px; }
+.burger__bar:nth-child(2) { top: 6px; }
+.burger__bar:nth-child(3) { top: 12px; }
 
 .icon-bell__body {
   position: absolute;
@@ -1232,7 +1239,28 @@ a { text-decoration: none; color: inherit; }
   margin-top: -35px; /* 57 - 22 */
 }
 
+/* 홈이 실제로 active 가 되는 순간에만 두더지가 아래에서 쏙 올라온다
+ * (BottomNavigation 이 is-popping 을 한 번 붙였다가 animationend 에 뗀다).
+ * transform 만 쓰므로 탭 높이·버튼 위치·옆 탭은 그대로다. 크기 변화(scale)는 넣지 않는다. */
+.tab-item__icon--home.is-popping {
+  animation: tab-home-pop 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes tab-home-pop {
+  0% { transform: translateY(12px); }
+  70% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-item__icon--home.is-popping {
+    animation: none;
+  }
+}
+
 .tab-item__label {
+  /* 아이콘이 올라오는 동안 라벨은 제자리에서 색만 바뀐다 */
+  transition: color 180ms ease-out;
   padding-top: var(--space-2xs);
   font-family: var(--font-suit);
   font-size: 12px;
