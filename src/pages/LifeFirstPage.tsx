@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
@@ -8,10 +9,7 @@ import Stack from '../components/Stack/Stack';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
-/* 생활 하위 탭 — 첫 자취만 화면이 있어서 나머지는 아직 이동하지 않는다 */
-const LIFE_TABS = ['첫 자취', '홈케어', '살림', '먹거리'] as const;
-
-/* 집을 보러 갔을 때 확인할 생활 조건 — 정보만 알려주는 영역이라 클릭 동작이 없다 */
+/* 집을 보러 갔을 때 확인할 생활 조건 — 마름모 레이더 위 네 버튼을 누르면 설명이 말풍선으로 뜬다. */
 const HOUSE_POINTS = [
   { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.png' },
   { key: 'water', name: '수압', desc: '물줄기가 충분히 센지', file: 'life/life_water.png' },
@@ -137,6 +135,8 @@ export function LifeFirstPage() {
   const [stage, setStage] = useState<ContractStage>('입주 전');
   const [stageOpen, setStageOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const [openPoint, setOpenPoint] = useState<string | null>(null);
+  const radarRef = useRef<HTMLDivElement>(null);
 
   /* 바깥을 누르면 닫는다 (터치·마우스 공통) — 저장한 정보 화면과 같은 방식 */
   useEffect(() => {
@@ -147,6 +147,17 @@ export function LifeFirstPage() {
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [stageOpen]);
+
+  /* 채광·수압·수납·생활 편의 버튼 설명 말풍선 — 화면 아무 곳이나 누르면 닫힌다.
+   * 다른 버튼을 누르면 그 버튼의 onClick 이 openPoint 를 바로 새 값으로 바꿔서 전환된다. */
+  useEffect(() => {
+    if (!openPoint) return;
+    const onOutside = (event: PointerEvent) => {
+      if (!radarRef.current?.contains(event.target as Node)) setOpenPoint(null);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [openPoint]);
 
   /* 지금 고른 단계의 항목과 체크 상태만 화면에 쓴다 */
   const items = CHECKLIST_BY_STAGE[stage];
@@ -191,18 +202,7 @@ export function LifeFirstPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      {/* 하위 탭 — 첫 자취만 화면이 있어 나머지는 아직 연결하지 않는다 */}
-      <nav className="life-first__tabs" aria-label="생활 카테고리">
-        {LIFE_TABS.map((tab) => (
-          <span
-            key={tab}
-            className={`life-first__tab${tab === '첫 자취' ? ' is-active' : ''}`}
-            aria-current={tab === '첫 자취' ? 'page' : undefined}
-          >
-            {tab}
-          </span>
-        ))}
-      </nav>
+      <CategoryTabs active="first" />
 
       <main className="life-first__scroll">
         {/* ============ ① 좋은 집인지 살펴봐요 — 정보만 전달한다 ============ */}
@@ -212,20 +212,41 @@ export function LifeFirstPage() {
             <p>집을 보러 갔을 때 꼭 확인해볼 생활 조건이에요.</p>
           </div>
 
-          {/* 카드 4장이 아니라, 정보 4개가 하나의 패널에 정리된 형태다 */}
-          <ul className="house-check__panel">
-            {HOUSE_POINTS.map((point) => (
-              <li key={point.key} className="house-point">
-                <span className={`house-point__badge house-point__badge--${point.key}`}>
-                  <img src={img(point.file)} alt="" />
-                </span>
-                <span className="house-point__text">
-                  <strong>{point.name}</strong>
-                  <em>{point.desc}</em>
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* 리스트 대신 마름모 레이더 위에 네 버튼 — 누르면 설명이 말풍선으로 뜬다 */}
+          <div className="house-check__panel">
+            <div className="house-check__radar" ref={radarRef}>
+              <div className="house-check__radar-diamond" aria-hidden="true">
+                <span className="house-check__radar-outline house-check__radar-outline--outer" />
+                <span className="house-check__radar-outline house-check__radar-outline--inner" />
+                <span className="house-check__radar-cross house-check__radar-cross--h" />
+                <span className="house-check__radar-cross house-check__radar-cross--v" />
+                <span className="house-check__radar-fill" />
+                <span className="house-check__radar-dot house-check__radar-dot--top" />
+                <span className="house-check__radar-dot house-check__radar-dot--right" />
+                <span className="house-check__radar-dot house-check__radar-dot--bottom" />
+                <span className="house-check__radar-dot house-check__radar-dot--left" />
+                <span className="house-check__radar-dot house-check__radar-dot--center" />
+              </div>
+              {HOUSE_POINTS.map((point) => (
+                <div key={point.key} className={`house-check__pill-wrap house-check__pill-wrap--${point.key}`}>
+                  <button
+                    type="button"
+                    className={`house-check__pill${openPoint === point.key ? ' is-active' : ''}`}
+                    aria-pressed={openPoint === point.key}
+                    onClick={() => setOpenPoint((prev) => (prev === point.key ? null : point.key))}
+                  >
+                    <img src={img(point.file)} alt="" />
+                    <span>{point.name}</span>
+                  </button>
+                  {openPoint === point.key && (
+                    <span className="house-check__tooltip" role="tooltip">
+                      {point.desc}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* ============ ② 계약부터 입주까지 — 직접 체크하는 영역 ============ */}
