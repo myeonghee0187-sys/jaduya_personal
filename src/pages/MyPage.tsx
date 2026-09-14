@@ -179,7 +179,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           <button type="button" onClick={() => go('settings', '앱 설정')}>
             <span className="mypage__link-copy">
               <b>앱 설정</b>
-              <small>알림 / 계정 / 약관</small>
+              <small>알림 / 계정 관리</small>
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>

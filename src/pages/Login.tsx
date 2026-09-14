@@ -15,15 +15,12 @@ import { icon, img } from '../lib/asset';
 interface LoginProps {
   /** profile 이 있으면 회원가입 화면을 "테스트 정보 불러오기"를 누른 것과 동일하게 채운 채로 연다 */
   onGoSignup: (profile?: SignupTestProfile) => void;
-  /** 외부(LoginShowcase 의 Demo Account 패널 등)에서 이메일/비밀번호를 채운 채로 열 때 사용 */
-  initialEmail?: string;
-  initialPassword?: string;
 }
 
-export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: LoginProps) {
-  const { login, demoSignedUp } = useAuth();
-  const [email, setEmail] = useState(initialEmail);
-  const [password, setPassword] = useState(initialPassword);
+export function Login({ onGoSignup }: LoginProps) {
+  const { login, loginDemo, demoSignedUp } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -50,9 +47,8 @@ export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: L
       onGoSignup(SIGNUP_TEST_PROFILES.seojunDemo);
       return;
     }
-    setEmail(selection.email);
-    setPassword(selection.password);
-    setError('');
+    const ok = loginDemo(selection.personaId);
+    if (!ok) setError('데모 계정으로 로그인할 수 없어요.');
   };
 
   return (
@@ -75,6 +71,7 @@ export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: L
                 </button>
               }
               type="email"
+              autoComplete="email"
               placeholder="이메일을 입력해주세요"
               value={email}
               onChange={(e) => {
@@ -86,6 +83,7 @@ export function Login({ onGoSignup, initialEmail = '', initialPassword = '' }: L
               id="login-password"
               label="비밀번호"
               type="password"
+              autoComplete="current-password"
               placeholder="비밀번호를 입력해주세요"
               value={password}
               onChange={(e) => {

@@ -5,7 +5,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
@@ -214,7 +213,6 @@ export function CommunityTipPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot initialLift={68} />
     </div>
   );
 }

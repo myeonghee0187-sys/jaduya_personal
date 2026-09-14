@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { AIChatbot } from '../components/ai/AIChatbot';
+import { aiFabRef } from '../components/ai/aiFabRef';
 import { AddWidget } from '../components/AddWidget';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Coachmark } from '../components/Coachmark';
@@ -87,7 +87,6 @@ export function Home() {
   const tipBoxRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const addSlotRef = useRef<HTMLDivElement>(null);
-  const aiFabRef = useRef<HTMLButtonElement>(null);
 
   const coachmarkSteps: CoachmarkStep[] = [
     {
@@ -161,7 +160,6 @@ export function Home() {
       <BottomNavigation />
 
       {/* 전역 AI 챗봇 FAB + 패널 */}
-      <AIChatbot coachmarkRef={aiFabRef} />
 
       <GnbOverlay
         open={layers.isOpen('gnb')}

@@ -2,6 +2,7 @@
  * Figma "테스트 계정 선택" Bottom Sheet 노출 목록 = TEST_ACCOUNTS. */
 
 export type Persona = 'worker' | 'beginner' | 'pet';
+export type DemoAccountId = 'seojun' | 'harin' | 'ayoung';
 
 /** 첫 맞춤 설정 결과.
  * 설문 항목이 Figma 에서 확정되지 않아 answers 는 아직 비어 있는 형태로 둔다.
@@ -60,6 +61,19 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     description: '반려동물과 함께 사는 자취러',
   },
 };
+
+/** 데모 로그인은 password input을 거치지 않고 이 id로 기존 mock 계정을 찾는다. */
+export const DEMO_ACCOUNT_EMAILS: Record<DemoAccountId, string> = {
+  seojun: 'seojun@jaduya.com',
+  harin: 'harin@jaduya.com',
+  ayoung: 'ayoung@jaduya.com',
+};
+
+export function getDemoAccountId(email: string): DemoAccountId | null {
+  const key = email.trim().toLowerCase();
+  const entry = Object.entries(DEMO_ACCOUNT_EMAILS).find(([, accountEmail]) => accountEmail === key);
+  return (entry?.[0] as DemoAccountId | undefined) ?? null;
+}
 
 /** 시트 노출 순서 고정 — 이서준 → 김하린 → 조아영 */
 export const TEST_ACCOUNTS: MockAccount[] = [

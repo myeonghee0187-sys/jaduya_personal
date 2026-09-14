@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import Stack from '../components/Stack/Stack';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
@@ -15,9 +14,9 @@ const LIFE_TABS = ['첫 자취', '홈케어', '살림', '먹거리'] as const;
 /* 집을 보러 갔을 때 확인할 생활 조건 — 정보만 알려주는 영역이라 클릭 동작이 없다 */
 const HOUSE_POINTS = [
   { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.png' },
-  { key: 'water', name: '수압', desc: '물을 틀어 세기를 확인', file: 'life/life_water.png' },
+  { key: 'water', name: '수압', desc: '물줄기가 충분히 센지', file: 'life/life_water.png' },
   { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.png' },
-  { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life/life_convenience.png' },
+  { key: 'nearby', name: '생활 편의', desc: '편의시설이 가까운지', file: 'life/life_convenience.png' },
 ] as const;
 
 /* 체크리스트를 보는 시점 */
@@ -70,9 +69,19 @@ const INITIAL_CHECKED: Record<ContractStage, string[]> = {
  * 후회로 끝내지 않고 바로 해볼 수 있는 방법까지 한 장에 담는다. */
 const REGRETS = [
   {
+    key: 'environment',
+    category: '주변 환경',
+    tone: 'green',
+    /* 카드 주제를 한눈에 알려주는 작은 3D 아이콘 — public/assets/img/life 아래 */
+    icon: 'life/regret-night.png',
+    regret: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 후회했어요.',
+    solution: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
+  },
+  {
     key: 'living',
     category: '생활 준비',
     tone: 'pink',
+    icon: 'life/regret-moving.png',
     regret:
       '인터넷과 필요한 생활용품을 미리 준비하지 않아서 입주하고 며칠 동안 생각보다 많이 불편했어요.',
     solution: '입주 1~2주 전 인터넷 설치를 예약하고, 첫날 필요한 생필품을 미리 준비해두세요.',
@@ -81,16 +90,10 @@ const REGRETS = [
     key: 'contract',
     category: '계약 확인',
     tone: 'cream',
+    icon: 'life/regret-contract.png',
     regret:
       '계약할 때 관리비에 어떤 항목이 포함되는지 자세히 확인하지 않아 생각보다 생활비가 많이 들었어요.',
     solution: '계약 전에 관리비 포함 항목과 별도 납부 항목을 구분해 확인하세요.',
-  },
-  {
-    key: 'environment',
-    category: '주변 환경',
-    tone: 'green',
-    regret: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 후회했어요.',
-    solution: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
   },
 ] as const;
 
@@ -99,13 +102,20 @@ interface RegretCardProps {
   regret: string;
   solution: string;
   tone: string;
+  icon: string;
 }
 
-function RegretCard({ category, regret, solution, tone }: RegretCardProps) {
+function RegretCard({ category, regret, solution, tone, icon }: RegretCardProps) {
   return (
     <div className={`regret-card regret-card--${tone}`}>
+      {/* 주제 아이콘은 글을 가리지 않게 오른쪽 위 구석에만 둔다 */}
+      <img className="regret-card__icon" src={img(icon)} alt="" />
       <span className="regret-card__category">{category}</span>
-      <p className="regret-card__text">{regret}</p>
+      <p className="regret-card__text">
+        {/* 아이콘이 걸리는 윗부분만 비워 주는 자리 — 아래 줄은 전체 폭을 그대로 쓴다 */}
+        <span className="regret-card__text-gap" aria-hidden="true" />
+        {regret}
+      </p>
       {/* 후회 다음에 바로 해볼 방법 — 별도 박스 없이 divider 와 타이포로만 나눈다 */}
       <div className="regret-card__solution">
         <span className="regret-card__solution-label">💡 이렇게 해보세요</span>
@@ -164,6 +174,7 @@ export function LifeFirstPage() {
           regret={regret.regret}
           solution={regret.solution}
           tone={regret.tone}
+          icon={regret.icon}
         />
       )),
     [],
@@ -306,7 +317,10 @@ export function LifeFirstPage() {
 
         {/* ============ ③ 자취 선배들의 후회 — 넘겨보는 콘텐츠 ============ */}
         <section className="regret">
-          <h2>자취 선배들은 이걸 후회했어요</h2>
+          <div className="regret__head">
+            <h2>자취 선배들은 이걸 후회했어요</h2>
+            <p>먼저 살아본 사람들의 이야기를 모았어요.</p>
+          </div>
           <div className="regret__stack">
             <Stack
               /* 매번 달라지는 랜덤 회전 대신 index 기반 고정 각도를 쓴다 */
@@ -346,7 +360,6 @@ export function LifeFirstPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot />
     </div>
   );
 }

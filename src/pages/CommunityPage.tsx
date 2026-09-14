@@ -5,7 +5,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
@@ -270,7 +269,6 @@ export function CommunityPage() {
         onSave={myMenu.saveEdit}
       />
       {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
-      <AIChatbot initialLift={68} />
     </div>
   );
 }

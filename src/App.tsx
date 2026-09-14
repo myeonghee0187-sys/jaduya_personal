@@ -26,9 +26,14 @@ import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
 import { BenefitDetailPage } from './pages/BenefitDetailPage';
+import { NotificationPage } from './pages/NotificationPage';
+import { AppSettingsPage } from './pages/AppSettingsPage';
+import { CustomerCenterPage } from './pages/CustomerCenterPage';
+import { AIChatbot } from './components/ai/AIChatbot';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
 import { MyMenuProvider } from './menu/MyMenuContext';
+import { NotificationProvider } from './notifications/NotificationContext';
 
 function MainPages() {
   const navigation = useAppNavigation();
@@ -55,6 +60,14 @@ function MainPages() {
               navigation?.navigate('saved');
               return true;
             }
+            if (to === 'settings') {
+              navigation?.navigate('settings');
+              return true;
+            }
+            if (to === 'support') {
+              navigation?.navigate('support');
+              return true;
+            }
             return false;
           }}
         />
@@ -78,6 +91,18 @@ function MainPages() {
       {page === 'benefits-recommend' && <BenefitsRecommendPage />}
       {page === 'benefit-detail' && <BenefitDetailPage />}
       {page === 'ai-chat' && <AIChatPage />}
+      {page === 'notifications' && <NotificationPage />}
+      {page === 'settings' && <AppSettingsPage />}
+      {page === 'support' && <CustomerCenterPage />}
+
+      {/* 챗봇은 화면 전용 기능이 아니라 어디서나 같은 버튼이다 — 여기서 한 번만 그린다.
+        * 자두AI 전체 화면에서는 같은 기능이 화면 자체로 열려 있으므로 감춘다
+        * (지우지 않고 감추기만 해야 돌아왔을 때 옮겨 둔 자리가 그대로 남는다).
+        * 커뮤니티는 글쓰기 버튼이 같은 자리에 있어 처음 놓이는 높이만 올려 준다. */}
+      <AIChatbot
+        hidden={page === 'ai-chat' || page === 'settings' || page === 'support'}
+        initialLift={page.startsWith('community') ? 68 : 0}
+      />
     </>
   );
 }
@@ -109,7 +134,10 @@ export default function App() {
         {/* 커뮤니티·혜택 북마크와 GNB "내 메뉴"는 여러 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
         <BookmarkProvider>
           <MyMenuProvider>
-            <MainPages />
+            {/* 헤더 종(읽지 않은 표시)과 알림 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+            <NotificationProvider>
+              <MainPages />
+            </NotificationProvider>
           </MyMenuProvider>
         </BookmarkProvider>
       </AppNavigationProvider>

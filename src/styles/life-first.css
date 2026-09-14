@@ -99,10 +99,12 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   max-width: var(--content-width);
-  /* 칸 구분선 대신 여백으로 나눈다 */
-  gap: 6px 12px;
+  /* 칸 구분선 대신 여백으로 나눈다.
+   * 행 간격은 아래 .house-point 의 상하 padding 6px 과 합쳐 28px 로 읽힌다.
+   * 열 간격 12px 은 그대로 둔다. */
+  gap: 16px 12px;
   margin: 0;
-  padding: 10px 14px;
+  padding: 8px 14px;
   border: 1px solid var(--first-line);
   border-radius: var(--radius-xl);
   background: var(--first-panel);
@@ -110,13 +112,15 @@
 }
 
 /* 버튼이 아니라 읽는 정보 블록이다 — 개별 카드 배경·외곽선·그림자·cursor 를 두지 않고,
- * 아이콘 왼쪽 + 텍스트 오른쪽으로 두어 '확인할 목록' 처럼 읽히게 한다.
+ * 아이콘 → 제목 → 설명을 위에서 아래로 쌓아 네 항목의 시작선이 같아 보이게 한다.
  * 칸 사이 구분선은 두지 않는다 — 패널을 감싸는 외곽선 하나만 남긴다. */
 .house-point {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 0;
+  flex-direction: column;
+  /* 가운데 정렬이 되지 않도록 명시한다 — 아이콘·제목·설명 모두 왼쪽에서 시작한다 */
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
   border: 0;
   background: none;
   box-shadow: none;
@@ -130,8 +134,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
 }
 
 .house-point__badge img {
@@ -145,8 +149,9 @@
 .house-point__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .house-point__text strong {
@@ -157,7 +162,8 @@
 
 .house-point__text em {
   color: var(--text-secondary);
-  font: 400 11px/1.4 var(--font-suit);
+  font: 400 13px/1.4 var(--font-suit);
+  letter-spacing: -0.26px;
   font-style: normal;
   /* 좁은 칸에서 '드는 / 지' 처럼 낱말이 쪼개지지 않게 한다 */
   word-break: keep-all;
@@ -356,7 +362,21 @@
 .regret {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
+}
+
+/* 제목과 카드를 이어 주는 한 줄 — 제목보다 작고 옅게 */
+.regret__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.regret__head p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 13px/1.45 var(--font-suit);
+  letter-spacing: -0.26px;
 }
 
 /* Stack 은 부모 크기를 그대로 쓴다. 뒤 카드가 기울어져도 넘치지 않게 좌우 여유를 준다.
@@ -364,14 +384,41 @@
 .regret__stack {
   position: relative;
   isolation: isolate;
-  width: calc(100% - 24px);
+  width: calc(100% - 32px);
   /* 해결 방법이 붙으면서 조금 높아졌다 — 세로로 길어지지 않는 선에서만 늘린다 */
   height: 244px;
   margin: 0 auto;
 }
 
+/* 넘길 카드가 더 있다는 신호 — 실제 카드가 아니라 뒤에 깔린 옅은 판이다.
+ * 좌우로 14px 씩만 나오게 해서 '겹쳐 쌓인 후기' 로 읽히되 복잡해 보이지 않게 한다. */
+.regret__stack::before,
+.regret__stack::after {
+  position: absolute;
+  z-index: -1;
+  top: 12px;
+  bottom: 12px;
+  border-radius: 20px;
+  background: var(--first-card-cream);
+  content: '';
+  pointer-events: none;
+}
+
+.regret__stack::before {
+  left: -14px;
+  right: 14px;
+  opacity: 0.5;
+}
+
+.regret__stack::after {
+  left: 14px;
+  right: -14px;
+  opacity: 0.35;
+}
+
 /* 메모 카드는 긴 문장이 들어가므로 좌측 정렬이 읽기 편하다 */
 .regret-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -379,9 +426,58 @@
   gap: 12px;
   width: 100%;
   height: 100%;
-  padding: 20px;
+  /* 오른쪽 위 아이콘과 겹치지 않도록 그쪽 여백만 더 준다 */
+  padding: 22px 22px 22px 20px;
   border-radius: 20px;
   text-align: left;
+}
+
+/* 주제 아이콘 — 카테고리와 함께 바로 읽히도록 존재감을 준다.
+ * 카드 높이에 영향을 주지 않게 absolute 로 띄운다.
+ *
+ * 세 이미지의 캔버스 대비 실제 그림 비율이 달라서(밤길 74% / 박스 80% / 계약서 69%)
+ * 같은 박스에 넣으면 크기가 달라 보인다 — 보이는 그림이 모두 54px 안팎이 되도록
+ * 박스만 카드별로 살짝 다르게 준다. */
+.regret-card__icon {
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  width: var(--regret-icon, 72px);
+  height: var(--regret-icon, 72px);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Stack 이 맨 앞 카드도 0.94 배로 그려서, 화면에 보이는 크기는 아래 값보다 6% 작다.
+ * 세 카드 모두 '실제 보이는 그림' 이 52px 안팎이 되도록 맞춘 값이다. */
+
+/* 주변 환경(가로등·달) */
+.regret-card--green {
+  --regret-icon: 74px;
+}
+
+/* 생활 준비(생활용품 박스) — 그림이 캔버스를 가장 많이 채워서 박스를 조금 줄인다 */
+.regret-card--pink {
+  --regret-icon: 69px;
+}
+
+/* 계약 확인(계약서·돋보기) — 여백이 가장 많아서 박스를 조금 키운다 */
+.regret-card--cream {
+  --regret-icon: 80px;
+}
+
+@media (max-width: 375px) {
+  .regret-card--green {
+    --regret-icon: 70px;
+  }
+
+  .regret-card--pink {
+    --regret-icon: 65px;
+  }
+
+  .regret-card--cream {
+    --regret-icon: 75px;
+  }
 }
 
 .regret-card--pink {
@@ -396,8 +492,10 @@
   background: var(--first-card-green);
 }
 
-/* 카테고리는 작은 label 이지 CTA 가 아니다 */
+/* 카테고리는 작은 label 이지 CTA 가 아니다.
+ * pill 이 있는 첫 줄에서만 아이콘 자리를 비워 둔다 — 본문 폭은 그대로다. */
 .regret-card__category {
+  max-width: calc(100% - var(--regret-icon, 72px) - 12px);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.7);
@@ -410,6 +508,14 @@
   color: var(--text-black);
   font: 400 13px/1.6 var(--font-suit);
   word-break: keep-all;
+}
+
+/* 아이콘이 걸치는 윗부분만 글자가 비켜 가게 하는 빈 자리.
+ * float 이라 이 높이를 지난 줄부터는 본문이 카드 폭을 그대로 쓴다. */
+.regret-card__text-gap {
+  float: right;
+  width: calc(var(--regret-icon, 72px) - 8px);
+  height: 24px;
 }
 
 /* 배경 박스 없이 divider 와 글자 크기 차이로만 구분한다 */
@@ -439,7 +545,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: -8px;
+  margin-top: -4px;
 }
 
 .regret__dot {

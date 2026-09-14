@@ -5,7 +5,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { RegionFilterPanel } from '../components/RegionFilterPanel';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
@@ -219,7 +218,6 @@ export function CommunityRegionPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot initialLift={68} />
     </div>
   );
 }

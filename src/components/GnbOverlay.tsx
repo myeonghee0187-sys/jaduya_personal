@@ -52,7 +52,12 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
           </div>
           <div className="header-actions">
             <HeaderIconButton iconName="bell" label="알림" />
-            <HeaderIconButton iconName="close" label="전체메뉴 닫기" onClick={onClose} />
+            <HeaderIconButton
+              iconName="menu"
+              label="전체메뉴 닫기"
+              open={open}
+              onClick={onClose}
+            />
           </div>
         </div>
       </div>
