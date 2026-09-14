@@ -196,3 +196,93 @@ export function monthlyFlow(category: CategoryKey): FlowPoint[] {
     { label: '9월', amount: CATEGORY_TOTALS[category] },
   ];
 }
+
+/* ---------- 소비 탭 "디지털 영수증" 전용 파생 데이터 ----------
+ * 지난달 대비 절약/초과 문구는 이번 달·지난달 총액의 차이 그 자체에서 계산한다
+ * (근거 없는 문장을 만들지 않는다 — CLAUDE.md 13). */
+export const CONSUME_DIFF = TOTAL_PREV_EXPENSE - TOTAL_EXPENSE;
+export const CONSUME_CHANGE_PERCENT = TOTAL_PREV_EXPENSE > 0
+  ? Math.round((Math.abs(CONSUME_DIFF) / TOTAL_PREV_EXPENSE) * 1000) / 10
+  : 0;
+
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+
+/** 거래 하나를 특정 짓는 id 문자열에서 결정적(항상 같은 값)인 의사난수를 뽑아낸다.
+ * 실제 결제수단·승인번호·시간 데이터가 없어 목업으로 채워야 하는데, 매 렌더마다 값이
+ * 바뀌면 안 되니 Math.random() 대신 id 를 시드로 쓴다. */
+function seedFromId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
+/* 카드번호 뒷자리 표기는 기존 고정비 탭 결제수단 문구("신한카드 · •• 4821")와 같은 형식을 쓴다 —
+ * 새 표기 규칙을 만들지 않는다. */
+const PAYMENT_METHODS = [
+  '신한카드 · •• 4821',
+  '카카오뱅크 카드 · •• 5678',
+  '삼성카드 · •• 9012',
+  '국민카드 · •• 2468',
+] as const;
+
+/** 거래 상세의 결제수단 — 실제 카드 데이터가 없어 id 시드로 고정 배정한 목업. */
+export function transactionPaymentMethod(id: string): string {
+  return PAYMENT_METHODS[seedFromId(id) % PAYMENT_METHODS.length];
+}
+
+/** 거래 상세의 승인번호 — 8자리 목업(레퍼런스 표기와 동일한 자릿수). */
+export function transactionApprovalNumber(id: string): string {
+  return String(10_000_000 + (seedFromId(id) % 90_000_000));
+}
+
+/** 거래 상세의 결제 시각(HH:MM) — 원본 데이터엔 날짜(day)만 있어 시각은 id 시드로 만든 목업. */
+export function transactionTime(id: string): string {
+  const seed = seedFromId(id);
+  const hour = 8 + (seed % 14); // 08~21시
+  const minute = Math.floor(seed / 14) % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+/** "2026.09.14 (목)" — 거래 상세 헤더의 전체 날짜 표기. */
+export function formatFullDate(day: number): string {
+  const weekday = WEEKDAY_LABELS[new Date(2026, 8, day).getDay()];
+  return `2026.09.${String(day).padStart(2, '0')} (${weekday})`;
+}
+
+/** 영수증 거래 목록의 날짜 그룹 라벨 — 오늘/어제는 상대 표현, 그 외는 "9월 N일 (요일)". */
+export function relativeDayLabel(day: number): string {
+  if (day === TODAY_DAY) return `오늘 · 9월 ${day}일`;
+  if (day === TODAY_DAY - 1) return `어제 · 9월 ${day}일`;
+  const weekday = WEEKDAY_LABELS[new Date(2026, 8, day).getDay()];
+  return `9월 ${day}일 (${weekday})`;
+}
+
+/** id 로 원본 거래 하나를 찾는다 — 거래 상세 화면 진입용. */
+export function findTransaction(id: string): ExpenseTransaction | undefined {
+  return EXPENSE_TRANSACTIONS.find((t) => t.id === id);
+}
+
+/** 전체 거래를 최근 날짜 순으로 정렬한다 — 영수증은 최근 거래부터 보여준다. */
+export function allTransactionsSorted(): ExpenseTransaction[] {
+  return [...EXPENSE_TRANSACTIONS].sort((a, b) => b.day - a.day || a.id.localeCompare(b.id));
+}
+
+export interface TransactionDayGroup {
+  day: number;
+  label: string;
+  items: ExpenseTransaction[];
+}
+
+/** 검색/카테고리 필터가 적용된 거래를 날짜별로 묶는다 — predicate 없이 부르면 전체 목록. */
+export function transactionsGroupedByDay(predicate?: (t: ExpenseTransaction) => boolean): TransactionDayGroup[] {
+  const list = allTransactionsSorted().filter((t) => !predicate || predicate(t));
+  const byDay = new Map<number, ExpenseTransaction[]>();
+  for (const t of list) {
+    const bucket = byDay.get(t.day);
+    if (bucket) bucket.push(t);
+    else byDay.set(t.day, [t]);
+  }
+  return Array.from(byDay.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([day, items]) => ({ day, label: relativeDayLabel(day), items }));
+}

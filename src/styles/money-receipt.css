@@ -1,0 +1,625 @@
+/* JADUYA — 돈관리 > 소비 탭 "디지털 영수증" UX 전용 스타일.
+ *
+ * 실제 편의점/POS 영수증을 그대로 복제하지 않는다 — 세로로 긴 구조·상단 기간·총액·
+ * 거래 내역·얇은 divider·하단 절취선·출력 애니메이션만 가져오고, 나머지(누런 종이,
+ * 바코드, 과도한 그림자/장식)는 쓰지 않는다. 값은 전부 tokens.css 토큰만 쓴다.
+ */
+
+.spend {
+  padding: var(--space-xl) var(--screen-margin) var(--space-2xl);
+}
+
+/* ================= 출력구 — 화면에 계속 떠 있는 고정 요소 ================= */
+
+/* 다른 화면으로 나갔다 돌아와도, 그리고 종이가 다 나온 뒤에도 출력구 자체는
+ * 사라지지 않는다 — 슬롯 불빛만 종이가 나오는 동안 잠깐 빛난다(요구사항). */
+/* 프린터를 다시 누르면 처음부터 다시 출력한다 — <button> 이라 기본 버튼 스타일을
+ * 지운다. 눌렀을 때 살짝 눌리는 피드백은 다른 화면의 .money-tappable 과 같은 값. */
+.spend-printer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 0 var(--space-lg);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.spend-printer:active:not(:disabled) {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.spend-printer:disabled {
+  cursor: default;
+}
+
+.spend-printer__body {
+  display: block;
+  position: relative;
+  width: 120px;
+  height: 36px;
+  border-radius: var(--radius-l);
+  background: var(--surface-widget);
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 8px 16px rgba(59, 51, 46, 0.06);
+}
+
+/* 전원이 들어와 있는 표시등처럼 계속 깜빡인다(요구사항) — 평소엔 느리고 은은하게,
+ * 인쇄 중엔 더 빠르고 밝게 깜빡여서 "지금 작동 중"이라는 게 느껴지게 한다.
+ * 어느 쪽이든 완전히 꺼지지는 않는다(최저 밝기 0.35). */
+.spend-printer__slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  animation: spend-slot-blink 1.6s ease-in-out infinite;
+}
+
+.spend-printer--active .spend-printer__slot {
+  /* 인쇄 중에는 같은 깜빡임을 더 빠르고 밝게 — 종이가 자라는 시간(800ms)의
+   * 절반 주기라 인쇄가 끝나는 순간과 깜빡임의 "꺼짐" 지점이 겹치지 않는다. */
+  animation: spend-slot-blink 400ms ease-in-out infinite;
+}
+
+@keyframes spend-slot-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+    box-shadow: 0 0 4px rgba(180, 57, 54, 0.25);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(180, 57, 54, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spend-printer__slot,
+  .spend-printer--active .spend-printer__slot {
+    animation: none;
+    opacity: 0.7;
+    box-shadow: 0 0 6px rgba(180, 57, 54, 0.35);
+  }
+}
+
+/* ================= 02·03 — 영수증 출력 + 월간 영수증 ================= */
+
+.spend-receipt {
+  position: relative;
+  background: var(--surface-base);
+  /* 아래쪽은 테두리를 아예 두지 않는다 — border-bottom 이 있으면 ::after 의 스캘럽
+   * 컷아웃이 그 밑에 깔린 직선을 가리지 못해서 "물결무늬 위에 다시 일직선 테두리"로
+   * 보이는 문제가 있었다(실제로 확인한 버그). 좌우/위만 감싸고, 아래는 스캘럽 모양
+   * 자체가 종이의 실제 경계가 되게 한다. */
+  border: 1px solid var(--border-warm);
+  border-bottom: none;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  box-shadow: 0 1px 2px rgba(59, 51, 46, 0.04), 0 10px 24px rgba(59, 51, 46, 0.05);
+  padding: var(--space-xl) var(--card-padding-l) 22px;
+}
+
+/* 하단 절취선 — 종이를 뜯어낸 자리처럼 반원 노치를 반복해서 페이지 배경(--surface-warm)이
+ * 비치게 한다. 이미지 에셋 없이 CSS 만으로 만든다. */
+.spend-receipt::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px;
+  background: radial-gradient(circle at 8px 0, var(--surface-warm) 6px, transparent 6.5px) 0 0 / 16px 10px repeat-x;
+}
+
+.spend-receipt__head {
+  text-align: center;
+}
+
+.spend-receipt__period {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.spend-receipt__range {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.spend-receipt__summary {
+  margin-top: var(--space-lg);
+  text-align: center;
+}
+
+.spend-receipt__label {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.spend-receipt__amount {
+  margin: 6px 0 0;
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-receipt__meta {
+  margin: var(--space-sm) 0 0;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.spend-receipt__divider {
+  height: 0;
+  margin: var(--space-lg) 0;
+  border-top: 1px dashed var(--border-warm);
+}
+
+/* ---------- 검색 / 필터 ---------- */
+
+.spend-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 10px var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--surface-widget);
+}
+
+.spend-search img {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  opacity: 0.55;
+}
+
+.spend-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.spend-search input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.spend-search input:focus {
+  outline: none;
+}
+
+.spend-filter__pills {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.spend-filter__pills::-webkit-scrollbar {
+  display: none;
+}
+
+.spend-filter__pill {
+  flex: none;
+  padding: 6px var(--space-sm);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: var(--surface-base);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.spend-filter__pill.is-active {
+  border-color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 10%, white);
+  color: var(--brand-primary);
+}
+
+/* ---------- 거래 내역 ---------- */
+
+.spend-day-group {
+  margin-top: var(--space-lg);
+}
+
+.spend-day-group:first-child {
+  margin-top: var(--space-md);
+}
+
+.spend-day-group__label {
+  margin: 0 0 var(--space-xs);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+.spend-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.spend-row + .spend-row {
+  border-top: 1px solid var(--border-warm);
+}
+
+.spend-row__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.spend-row__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.spend-row__merchant {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spend-row__category {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.spend-row__amount {
+  flex-shrink: 0;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-empty {
+  padding: var(--space-2xl) 0;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* ================= 04 — 영수증 하단 간단 소비 분석 ================= */
+
+.spend-analysis__title {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.spend-analysis__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px 0;
+}
+
+.spend-analysis__label {
+  flex: 0 0 56px;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.spend-analysis__track {
+  flex: 1;
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+  overflow: hidden;
+}
+
+.spend-analysis__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.spend-analysis__value {
+  flex: 0 0 auto;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.spend-analysis__compare {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: var(--space-md) 0 0;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.spend-analysis__compare img {
+  width: 12px;
+  height: 12px;
+}
+
+.spend-analysis__compare-up {
+  font-size: 11px;
+  color: var(--brand-primary);
+}
+
+/* ---------- 출력 인터랙션 — 종이가 출력구 아래로 계속 밀려 나오는 느낌 ----------
+ * 영수증 전체(41건+분석, 3000px대)가 아니라 화면에 다 들어오는 head 블록(기간·총액·
+ * 검색/필터)만 0 → 실제 높이(JS 로 측정한 --feed-h)로 늘린다. 전체를 늘리면 늘어나는
+ * 대부분이 뷰포트 아래에서 일어나 안 보인다 — 여기서는 그 구간이 통째로 화면 안에
+ * 들어오게 만들어서 "종이가 실제로 뻗어나오는" 움직임이 끝까지 보이게 한다.
+ * head 아래(.spend-receipt__body, 거래 목록·분석)는 늘어나는 애니메이션 없이 head 가
+ * 다 나온 뒤 바로 붙는다 — 그 부분은 원래도 스크롤해서 보는 영역이다. */
+.spend-feed {
+  height: 0;
+  overflow: hidden;
+  /* 목표 높이를 아주 살짝 넘었다가(overshoot) 제자리로 당겨지며 멈춘다 — 종이가
+   * 다 나온 순간 탄력으로 한 번 출렁이고 자리잡는 느낌(요구사항: "찰랑찰랑").
+   * y 값이 1을 넘는 구간(1.3)이 그 출렁임이다 — 표준 back-ease(1.56)보다 낮춰서
+   * 눈에 띄는 bounce/spring 이 아니라 은은한 탄성만 남긴다. */
+  transition: height 800ms cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.spend-feed.is-fed {
+  height: var(--feed-h, auto);
+}
+
+/* 프린터를 다시 눌렀을 때만: 종이를 0으로 되돌리는 그 한 프레임 동안 트랜지션을
+ * 끈다 — 아니면 "출력됐던 종이가 도로 훅 빨려 들어가는" 되감기 모션이 보인다. */
+.spend-feed.is-resetting {
+  transition: none;
+}
+
+/* head 가 다 나온 순간 거래 목록·분석이 통째로 붙는 "턱"을 부드럽게 가린다 —
+ * 늘어나는 애니메이션은 아니고 짧은 fade 만. */
+.spend-receipt__body {
+  animation: spend-fade-in 260ms ease both;
+}
+
+@keyframes spend-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 프린터 불빛의 reduced-motion 처리는 위 .spend-printer__slot 선언 바로 아래
+   * 미디어쿼리에서 이미 한다(정적인 밝기로 고정) — 여기서 또 손대지 않는다. */
+  .spend-feed {
+    transition: none;
+  }
+  .spend-receipt__body {
+    animation: none;
+  }
+}
+
+/* ================= 05 — 거래 상세 ================= */
+
+.spend-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-warm);
+  animation: spend-detail-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes spend-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spend-detail {
+    animation: none;
+  }
+}
+
+.spend-detail__head {
+  flex: none;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--screen-margin);
+}
+
+.spend-detail__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-left: calc(var(--space-sm) * -1);
+  border: 0;
+  background: none;
+}
+
+.spend-detail__back img {
+  width: 11px;
+  height: 20px;
+}
+
+.spend-detail__head h2 {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.spend-detail__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--screen-margin) var(--space-2xl);
+  text-align: center;
+}
+
+.spend-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface-widget);
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.spend-detail__merchant {
+  margin: var(--space-md) 0 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.spend-detail__amount {
+  margin: var(--space-xs) 0 0;
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.spend-detail__datetime {
+  margin: var(--space-xs) 0 0;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.spend-detail__divider {
+  height: 1px;
+  margin: var(--space-lg) 0;
+  background: var(--border-warm);
+}
+
+.spend-detail__list {
+  margin: 0;
+  text-align: left;
+}
+
+.spend-detail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) 0;
+}
+
+.spend-detail__row + .spend-detail__row {
+  border-top: 1px solid var(--border-warm);
+}
+
+.spend-detail__row dt {
+  font-family: var(--font-suit);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.spend-detail__row dd {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.spend-detail__memo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: var(--space-sm) 0;
+  border: 1px dashed var(--border-warm);
+  border-radius: var(--radius-m);
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.spend-detail__memo img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.spend-detail__share {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-md);
+}

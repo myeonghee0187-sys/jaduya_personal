@@ -26,6 +26,7 @@ import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
 import { BenefitDetailPage } from './pages/BenefitDetailPage';
+import { WidgetGallery } from './pages/WidgetGallery';
 import { NotificationPage } from './pages/NotificationPage';
 import { AppSettingsPage } from './pages/AppSettingsPage';
 import { CustomerCenterPage } from './pages/CustomerCenterPage';
@@ -33,6 +34,7 @@ import { AIChatbot } from './components/ai/AIChatbot';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
 import { MyMenuProvider } from './menu/MyMenuContext';
+import { HomeWidgetsProvider } from './widgets/HomeWidgetsContext';
 import { NotificationProvider } from './notifications/NotificationContext';
 
 function MainPages() {
@@ -78,6 +80,7 @@ function MainPages() {
       {page === 'life' && <LifePage />}
       {page === 'money' && <MoneyPage />}
       {page === 'money-budget' && <MoneyBudgetPage />}
+      {page === 'widget-gallery' && <WidgetGallery />}
       {page === 'life-first' && <LifeFirstPage />}
       {page === 'life-homecare' && <LifeHomecarePage />}
       {page === 'life-house' && <LifeHousePage />}
@@ -131,12 +134,15 @@ export default function App() {
   if (user) {
     return user.onboarded ? (
       <AppNavigationProvider key={user.email}>
-        {/* 커뮤니티·혜택 북마크와 GNB "내 메뉴"는 여러 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+        {/* 커뮤니티·혜택 북마크와 GNB "내 메뉴", Home 위젯 구성은 여러 화면이 같은 값을
+          * 봐야 해서 화면 위에서 한 번만 만든다 */}
         <BookmarkProvider>
           <MyMenuProvider>
             {/* 헤더 종(읽지 않은 표시)과 알림 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
             <NotificationProvider>
-              <MainPages />
+              <HomeWidgetsProvider>
+                <MainPages />
+              </HomeWidgetsProvider>
             </NotificationProvider>
           </MyMenuProvider>
         </BookmarkProvider>

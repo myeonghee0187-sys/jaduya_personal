@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { aiFabRef } from '../components/ai/aiFabRef';
-import { AddWidget } from '../components/AddWidget';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Coachmark } from '../components/Coachmark';
 import type { CoachmarkStep } from '../components/Coachmark';
@@ -13,57 +12,39 @@ import { HomeSheet } from '../components/HomeSheet';
 import { MyLifeSection } from '../components/MyLifeSection';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
-import { MAX_WIDGET } from '../data/widgetCatalog';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
-import { PERSONA_WIDGETS, layoutCatalogIds } from '../data/personaWidgets';
 import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
 import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
-import { useDraftSelection } from '../hooks/useDraftSelection';
 import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
 import { useMyMenu } from '../menu/MyMenuContext';
+import { useAppNavigation } from '../navigation/AppNavigation';
+import { useHomeWidgets } from '../widgets/HomeWidgetsContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
  *   Home
  *    ├─ GNB Open
  *    │   └─ My Menu Edit Bottom Sheet (menu/MyMenuContext — 모든 화면이 공유)
- *    └─ Add Widget Bottom Sheet
+ *    └─ 위젯 추가(+)는 이제 오버레이가 아니라 별도 페이지(위젯 갤러리)로 이동한다.
+ *       내 홈 위젯 상태 자체는 widgets/HomeWidgetsContext 가 화면 전환과 무관하게 들고 있다.
  */
 export function Home() {
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
   const persona = user?.persona ?? DEFAULT_PERSONA;
   const content = HOME_PERSONA_CONTENT[persona];
-  /* 내 생활 위젯 조합 (Figma Home Widget Container 342 × 194) */
-  const widgetLayout = PERSONA_WIDGETS[persona];
   /* 하트·레벨은 마이페이지와 같은 원본을 쓴다 (data/personaProfile.ts) */
   const level = resolveLevel(PERSONA_PROFILE[persona].level);
 
+  const navigation = useAppNavigation();
   const layers = useLayerStack();
   const sheet = useSheetGesture();
   /* GNB "내 메뉴" 선택 + 편집 시트 — 다른 화면과 공유하는 전역 상태 */
   const myMenu = useMyMenu();
-
-  /* 저장된 상태 */
-  const [myWidgets, setMyWidgets] = useState<string[]>(() => layoutCatalogIds(widgetLayout));
-  /* 위젯 구성을 한 번이라도 저장했는지 (Home 캔버스 높이 해제 조건) */
-  const [widgetsCustomized, setWidgetsCustomized] = useState(false);
-
-  /* 시트 작업본 */
-  const widgetDraft = useDraftSelection(layoutCatalogIds(widgetLayout), MAX_WIDGET);
-
-  const openAddWidget = () => {
-    widgetDraft.reset(myWidgets);
-    layers.open('addWidget');
-  };
-
-  const doneAddWidget = () => {
-    setMyWidgets(widgetDraft.draft.slice());
-    setWidgetsCustomized(true);
-    layers.close();
-  };
+  /* 내 생활 위젯 조합 + 저장된 위젯 목록 — 위젯 갤러리 페이지와 공유하는 전역 상태 */
+  const homeWidgets = useHomeWidgets();
 
   /* 홈 코치마크(첫 진입 4단계 가이드) — 이서준과 이서준으로 새로 가입한 일반 테스트
    * 계정(둘 다 persona: 'beginner')에서만, 계정당 한 번만 뜬다. 계정이 바뀌면 Home 이
@@ -126,7 +107,7 @@ export function Home() {
 
   return (
     <div
-      className={`app${sheet.isDragging ? ' is-dragging' : ''}`}
+      className={`home app${sheet.isDragging ? ' is-dragging' : ''}`}
       data-sheet-state={sheet.state}
     >
       <Hero />
@@ -145,12 +126,12 @@ export function Home() {
         handleProps={sheet.handleProps}
       >
         <MyLifeSection
-          layout={widgetLayout}
+          layout={homeWidgets.layout}
           heartsLabel={level.heartsLabel}
           levelLabel={level.levelLabel}
-          widgets={myWidgets}
-          isCustom={widgetsCustomized}
-          onAddWidget={openAddWidget}
+          widgets={homeWidgets.widgets}
+          isCustom={homeWidgets.isCustom}
+          onAddWidget={() => navigation?.navigate('widget-gallery')}
           statusRef={statusRef}
           addSlotRef={addSlotRef}
         />
@@ -158,8 +139,6 @@ export function Home() {
       </HomeSheet>
 
       <BottomNavigation />
-
-      {/* 전역 AI 챗봇 FAB + 패널 */}
 
       <GnbOverlay
         open={layers.isOpen('gnb')}
@@ -173,14 +152,6 @@ export function Home() {
         draft={myMenu.draft}
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
-      />
-
-      <AddWidget
-        open={layers.isOpen('addWidget')}
-        draft={widgetDraft}
-        layout={widgetLayout}
-        onClose={layers.close}
-        onDone={doneAddWidget}
       />
 
       {coachmarkOpen && (
