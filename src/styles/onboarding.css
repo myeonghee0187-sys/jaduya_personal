@@ -48,9 +48,14 @@
   color: var(--text-secondary);
 }
 
+/* Figma 는 화살표 아이콘이 아니라 "이전" 텍스트 링크를 쓴다 */
 .onboarding__back {
-  font-size: 22px;
-  line-height: 1;
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  letter-spacing: -0.14px;
+  color: var(--brand-primary);
   text-align: left;
   padding-left: var(--space-md);
 }
@@ -89,6 +94,10 @@
   height: 6px;
   border-radius: var(--radius-pill);
   background: var(--border-warm);
+  /* width/height 는 transition 을 걸지 않는다 — .onboarding__progress 가 높이를
+   * 점 크기에 맞춰 계산하는 구조라, 크기가 애니메이션되면 그 아래 본문 콘텐츠까지
+   * 프레임마다 미세하게 밀렸다 당겨지며 흔들려 보인다(요구사항). */
+  transition: background-color 220ms ease-out;
 }
 
 .onboarding__progress-dot.is-current {
@@ -98,14 +107,37 @@
 }
 
 .onboarding__progress-line {
+  position: relative;
   flex: 1 1 auto;
   height: 2px;
   margin: 0 4px;
+  border-radius: var(--radius-pill);
   background: var(--border-warm);
+  overflow: hidden;
 }
 
-.onboarding__progress-line.is-active {
+/* 배경색을 즉시 바꾸는 대신 왼쪽부터 차오르는 애니메이션 — 뒤로가기 시에는
+ * 같은 축을 따라 다시 줄어들어 방향을 굳이 계산하지 않아도 자연스럽다. */
+.onboarding__progress-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: var(--brand-primary);
+  border-radius: inherit;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.onboarding__progress-line.is-active::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__progress-dot,
+  .onboarding__progress-line::after {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* ================= 본문 ================= */
@@ -113,9 +145,56 @@
 .onboarding__body {
   flex: 1 1 auto;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: var(--space-xl) var(--screen-margin) var(--space-xl);
+  /* 진행바 → 첫 텍스트 간격(Figma 실측 40px = md+xl). 마스코트 삽화가 있는 시작/완료
+   * 화면만 아래 --visual 수정자로 48px(xl×2)로 늘어난다(Figma 실측). */
+  padding: calc(var(--space-md) + var(--space-xl)) var(--screen-margin) var(--space-xl);
   text-align: center;
+}
+
+.onboarding__body--visual {
+  padding-top: calc(var(--space-xl) * 2);
+}
+
+/* 완료 화면은 "선택한 정보" 카드까지 한 화면(스크롤 없이)에 들어와야 해서
+ * 시작 화면(--visual)보다 위/아래 여백을 좁힌다 — Figma 48px pt 대신 압축된 값을 쓴다. */
+.onboarding__body--complete {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-md);
+}
+
+/* 단계가 바뀔 때 콘텐츠가 뚝 끊기지 않도록, 새 단계가 들어오는 방향(다음=오른쪽에서,
+ * 이전=왼쪽에서)으로 살짝 밀려 들어오며 페이드인한다 — 프로그레스바 선 채우기(320ms)와
+ * 리듬을 맞췄다. React key={step} 로 매 단계마다 새로 마운트되어 애니메이션이 다시 실행된다. */
+.onboarding__step {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.onboarding__step--forward {
+  animation-name: onboarding-step-in-forward;
+}
+
+.onboarding__step--back {
+  animation-name: onboarding-step-in-back;
+}
+
+@keyframes onboarding-step-in-forward {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes onboarding-step-in-back {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__step {
+    animation-duration: 0.01ms;
+  }
 }
 
 .onboarding__body h1 {
@@ -128,8 +207,18 @@
   text-align: left;
 }
 
+.onboarding__body p {
+  margin: var(--space-md) 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
 /* 시작(welcome) 화면 전용 — 다른 단계는 좌측 정렬/Suit 폰트 그대로 두고
- * 이 화면(Figma "본문" 프레임, node 2628:24370)만 중앙 정렬 + Asta Sans 스펙을 따른다. */
+ * 이 화면(Figma "본문" 프레임, node 2628:24370)만 중앙 정렬 + Asta Sans 스펙을 따른다.
+ * (.onboarding__body p 보다 뒤에 둬야 text-align:center 가 이긴다 — 두 선택자의
+ * 명시도가 같아서 순서가 곧 우선순위다.) */
 .onboarding__welcome h1,
 .onboarding__welcome p {
   text-align: center;
@@ -147,12 +236,12 @@
   color: var(--text-primary);
 }
 
-.onboarding__body p {
-  margin: var(--space-sm) 0 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-  text-align: left;
+/* 완료(complete) 화면 헤딩/안내문 — Figma node 2628:24455/24456 이 text-center 라 이 화면만 가운데 정렬한다.
+ * .onboarding__body h1/p 와 명시도를 맞추기 위해 element+class 로 선택한다(그래야 이 뒤 순서가 이긴다). */
+h1.onboarding__complete-heading,
+p.onboarding__complete-text {
+  text-align: center;
+  margin-top: var(--space-sm);
 }
 
 .onboarding__body small {
@@ -185,17 +274,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: var(--space-xl) auto var(--space-lg);
+  /* 위쪽 여백은 .onboarding__body--visual 의 padding-top 이 담당한다(Figma 48px) */
+  margin: 0 auto var(--space-lg);
 }
 
+/* mascot-welcome.png 원본 해상도(342×258, Figma 실측과 동일)를 그대로 채운다 */
 .onboarding__visual--welcome {
   width: 100%;
-  height: 168px;
+  height: 258px;
 }
 
+/* 완료 화면 삽화는 배경 원 + 캐릭터 + 체크 배지가 합쳐진 단일 이미지(342×220, Figma 실측) */
 .onboarding__visual--complete {
   width: 100%;
-  height: 200px;
+  height: 220px;
+  margin-bottom: var(--space-sm);
 }
 
 .onboarding__mascot {
@@ -203,33 +296,20 @@
 }
 
 .onboarding__mascot--welcome {
-  width: 168px;
+  width: 100%;
   height: auto;
 }
 
 .onboarding__mascot--complete {
-  width: 176px;
+  width: 100%;
   height: auto;
 }
 
 .onboarding__mascot--guide {
-  width: 92px;
+  width: 108px;
   height: auto;
   flex: none;
 }
-
-/* 완료 화면 캐릭터 주변에 흩뿌리는 작은 컨페티 — 시트의 실제 조각을 그대로 쓰고
- * 위치/회전만 CSS 로 잡는다(형태·색은 건드리지 않는다). */
-.onboarding__confetti {
-  position: absolute;
-  pointer-events: none;
-}
-
-.onboarding__confetti--1 { top: 6px; left: 22%; width: 22px; transform: rotate(-8deg); }
-.onboarding__confetti--2 { top: 18px; right: 20%; width: 16px; transform: rotate(18deg); }
-.onboarding__confetti--3 { bottom: 34px; left: 14%; width: 18px; transform: rotate(-24deg); }
-.onboarding__confetti--4 { top: 46%; right: 12%; width: 16px; transform: rotate(10deg); }
-.onboarding__confetti--5 { bottom: 20px; right: 24%; width: 18px; transform: rotate(-14deg); }
 
 /* 캐릭터 옆 말풍선 — 시작(welcome) 화면 전용 */
 .onboarding__bubble {
@@ -250,27 +330,52 @@
   text-align: left;
 }
 
-/* 말풍선 — 자취 단계(stage) 선택 화면, 캐릭터 옆(아래 .onboarding__companion 안) */
-.onboarding__bubble--companion {
-  position: static;
-  max-width: none;
-  box-shadow: none;
-  flex: 1;
+/* 자취 단계(stage) 선택 화면 — 카드형 박스는 제거하되(테두리 없음) 말풍선
+ * 형태는 남긴다. 그림자만으로 붕 뜬 느낌을 주고, 왼쪽 꼬리로 캐릭터를 가리킨다. */
+.onboarding__companion-text {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+  box-shadow: 0 4px 14px rgba(60, 50, 45, 0.1);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: -0.14px;
+  color: var(--brand-primary);
+}
+
+/* 회전된 사각형(마름모) 대신 실제 말풍선 꼬리처럼 보이는 삼각형 — 캐릭터 쪽을 가리킨다 */
+.onboarding__companion-text::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 8px 7px 0;
+  border-color: transparent var(--surface-cream) transparent transparent;
+  transform: translateY(-50%);
+  filter: drop-shadow(-2px 1px 2px rgba(60, 50, 45, 0.1));
 }
 
 /* ================= 선택 카드 (interests / stage) ================= */
 
+/* 안내문 아래 간격(Figma 실측 40px = md+xl) — 선택 카드 그룹 하나로 합쳐서 쓴다 */
 .onboarding__choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-sm);
-  margin-top: var(--space-xl);
+  margin-top: calc(var(--space-md) + var(--space-xl));
 }
 
 .onboarding__stages {
   display: grid;
   gap: var(--space-sm);
-  margin-top: var(--space-xl);
+  margin-top: calc(var(--space-md) + var(--space-xl));
 }
 
 .onboarding__choices button,
@@ -394,23 +499,23 @@
 }
 
 /* 캐릭터 + 말풍선 — 자취 단계(stage) 선택 후 등장하는 안내 */
+/* 카드형 박스가 아니라 캐릭터가 직접 말을 거는 느낌으로 — 테두리/배경 없이
+ * 캐릭터 + 텍스트만 나란히 둔다(요구사항: "테두리 박스 제거, 미니멀하게"). */
 .onboarding__companion {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: center;
+  gap: var(--space-md);
   margin-top: var(--space-xl);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-m);
-  background: var(--surface-widget);
   text-align: left;
 }
 
 /* ================= 요약 (complete) ================= */
 
+/* 완료 화면은 카드까지 한 화면에 들어와야 해서 Figma 실측(36px = md+lg)보다 좁힌다 */
 .onboarding__summary {
   margin-top: var(--space-lg);
-  padding: var(--card-padding-m);
+  padding: var(--space-sm);
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
   background: var(--surface-cream);
@@ -421,7 +526,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .onboarding__summary-title {
@@ -446,7 +551,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-xs) 0;
+  padding: 6px 0;
 }
 
 .onboarding__summary-row + .onboarding__summary-row {
@@ -458,38 +563,6 @@
   font-weight: 500;
   font-size: 14px;
   line-height: 1.3;
-  color: var(--text-primary);
-}
-
-/* ================= 추천 안내 (complete) ================= */
-
-.onboarding__recommend {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-m);
-  background: #fdf1f0;
-}
-
-.onboarding__recommend-icon {
-  flex: none;
-  width: 36px;
-  height: auto;
-  object-fit: contain;
-}
-
-.onboarding__recommend p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-primary);
-}
-
-.onboarding__recommend strong {
-  display: block;
-  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -507,10 +580,6 @@
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-secondary);
-}
-
-.onboarding__footer-note {
-  margin: var(--space-sm) 0 0 !important;
 }
 
 /* CTA 는 로그인/회원가입과 같은 .auth-button 을 그대로 쓴다(auth.css) — 새 버튼 시스템을

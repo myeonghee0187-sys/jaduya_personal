@@ -11,7 +11,6 @@ export type OnboardingSelection = { interests: string[]; stage: string };
 interface OnboardingProps { onComplete?: (selection: OnboardingSelection) => void; userName?: string; }
 
 const TOTAL_STEPS = 4;
-const MAX_INTERESTS = 2;
 
 interface ChoiceOption { label: string; desc: string; icon: string }
 
@@ -40,6 +39,9 @@ const stageOptions: ChoiceOption[] = [
 
 export function Onboarding({ onComplete, userName }: OnboardingProps) {
   const [step, setStep] = useState(0);
+  /* 단계 전환 애니메이션 방향 — 다음/이전 버튼이 어느 쪽으로 눌렸는지에 따라
+   * 새 콘텐츠가 오른쪽/왼쪽 중 어디서 들어올지를 결정한다. */
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
   /* 레퍼런스 목업과 같은 기본 선택값 — 실제로는 사용자가 바꾼 순서 그대로 요약에 반영된다 */
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['생활 꿀팁', '자취 준비']);
   const [selectedStage, setSelectedStage] = useState('자취 준비 중');
@@ -49,15 +51,22 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
 
   const toggleInterest = (label: string) =>
     setSelectedInterests((current) =>
-      current.includes(label)
-        ? current.filter((item) => item !== label)
-        : current.length >= MAX_INTERESTS
-          ? current
-          : [...current, label],
+      current.includes(label) ? current.filter((item) => item !== label) : [...current, label],
     );
 
-  const goBack = () => setStep((current) => Math.max(0, current - 1));
-  const goNext = () => setStep((current) => Math.min(TOTAL_STEPS - 1, current + 1));
+  const goBack = () => {
+    setDirection('back');
+    setStep((current) => Math.max(0, current - 1));
+  };
+  const goNext = () => {
+    setDirection('forward');
+    setStep((current) => Math.min(TOTAL_STEPS - 1, current + 1));
+  };
+  /* "수정하기" 처럼 단계를 건너뛰어 되돌아가는 이동도 뒤로가기와 같은 방향으로 본다 */
+  const goToStep = (target: number) => {
+    setDirection(target < step ? 'back' : 'forward');
+    setStep(target);
+  };
   const finish = (selection: OnboardingSelection) => onComplete?.(selection);
 
   /* 요약(선택한 정보)은 카탈로그 순서가 아니라 "사용자가 선택한 순서" 그대로 보여준다 */
@@ -75,9 +84,8 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
           className="onboarding__back"
           onClick={goBack}
           disabled={step === 0}
-          aria-label="이전 단계로"
         >
-          ‹
+          이전
         </button>
         {step === 0 ? (
           <button
@@ -110,7 +118,8 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
         })()}
       </div>
 
-      <section className="onboarding__body">
+      <section className={`onboarding__body${step === 0 ? ' onboarding__body--visual' : step === 3 ? ' onboarding__body--complete' : ''}`}>
+      <div key={step} className={`onboarding__step onboarding__step--${direction}`}>
         {step === 0 && (
           <div className="onboarding__welcome">
             <div className="onboarding__visual onboarding__visual--welcome">
@@ -130,17 +139,15 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
           <>
             <small>나에게 필요한 정보</small>
             <h1>어떤 정보가<br />가장 필요하세요?</h1>
-            <p>관심 있는 항목을 선택해주세요.<br />(최대 {MAX_INTERESTS}개까지)</p>
-            <div className="onboarding__choices" role="group" aria-label={`관심 있는 정보, 최대 ${MAX_INTERESTS}개`}>
+            <p>관심 있는 항목을 선택해주세요.<br />여러 개 골라도 좋아요.</p>
+            <div className="onboarding__choices" role="group" aria-label="관심 있는 정보">
               {interestOptions.map(({ label, desc, icon: iconName }) => {
                 const selected = selectedInterests.includes(label);
-                const limitReached = !selected && selectedInterests.length >= MAX_INTERESTS;
                 return (
                   <button
                     type="button"
                     key={label}
                     className={selected ? 'is-selected' : ''}
-                    disabled={limitReached}
                     aria-pressed={selected}
                     aria-label={`${label}, ${desc}${selected ? ' (선택됨)' : ''}`}
                     onClick={() => toggleInterest(label)}
@@ -190,8 +197,8 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
               })}
             </div>
             <div className="onboarding__companion">
-              <img className="onboarding__mascot onboarding__mascot--guide" src={img('onboarding/mascot-guide.png')} alt="자두야가 노트북을 보고 있어요" />
-              <span className="onboarding__bubble onboarding__bubble--companion">지금의 자취 생활을<br />더 잘 맞춰볼게요!</span>
+              <img className="onboarding__mascot onboarding__mascot--guide" src={img('onboarding/mascot-guide-v2.png')} alt="자두야가 노트북을 보고 있어요" />
+              <span className="onboarding__companion-text">지금의 자취 생활을<br />더 잘 맞춰볼게요!</span>
             </div>
           </>
         )}
@@ -199,20 +206,15 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
         {step === 3 && (
           <>
             <div className="onboarding__visual onboarding__visual--complete">
-              <img className="onboarding__mascot onboarding__mascot--complete" src={img('onboarding/mascot-complete.png')} alt="자두야가 완료를 반겨요" />
-              <img className="onboarding__confetti onboarding__confetti--1" src={img('onboarding/deco-sparkle.png')} alt="" aria-hidden="true" />
-              <img className="onboarding__confetti onboarding__confetti--2" src={img('onboarding/deco-dash-mint.png')} alt="" aria-hidden="true" />
-              <img className="onboarding__confetti onboarding__confetti--3" src={img('onboarding/deco-dash-orange.png')} alt="" aria-hidden="true" />
-              <img className="onboarding__confetti onboarding__confetti--4" src={img('onboarding/deco-dash-purple.png')} alt="" aria-hidden="true" />
-              <img className="onboarding__confetti onboarding__confetti--5" src={img('onboarding/deco-dash-pink.png')} alt="" aria-hidden="true" />
+              <img className="onboarding__mascot onboarding__mascot--complete" src={img('onboarding/mascot-complete-v2.png')} alt="자두야가 완료를 반겨요" />
             </div>
-            <h1>좋아요!<br />이제 자두가 맞춰볼게요.</h1>
-            <p>선택한 정보를 바탕으로<br />{name}에게 꼭 맞는 콘텐츠를 준비했어요.</p>
+            <h1 className="onboarding__complete-heading">{name}을 위한 자두가<br />준비됐어요</h1>
+            <p className="onboarding__complete-text">선택한 정보를 바탕으로<br />홈과 추천 콘텐츠를 맞춰드릴게요.</p>
 
             <div className="onboarding__summary">
               <div className="onboarding__summary-head">
                 <span className="onboarding__summary-title">선택한 정보</span>
-                <button type="button" className="onboarding__summary-edit" onClick={() => setStep(1)}>
+                <button type="button" className="onboarding__summary-edit" onClick={() => goToStep(1)}>
                   수정하기
                 </button>
               </div>
@@ -223,22 +225,18 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
                 </div>
               ))}
             </div>
-
-            <div className="onboarding__recommend">
-              <img className="onboarding__recommend-icon" src={img('onboarding/target.png')} alt="" />
-              <p>
-                <strong>{name}에게 딱 맞는<br />자취 콘텐츠를 추천할게요.</strong>
-                지금, 자두야와 시작해요!
-              </p>
-            </div>
           </>
         )}
+      </div>
       </section>
 
       <footer className="onboarding__footer">
+        {step === 0 && <p>나중에 설정할 수 있어요</p>}
         {step === 1 && (
-          <p>{selectedInterests.length > 0 ? `${selectedInterests.length}개를 선택했어요!` : `관심 있는 항목을 최대 ${MAX_INTERESTS}개까지 선택해주세요.`}</p>
+          <p>{selectedInterests.length}개를 선택했어요 · 여러 개 골라도 좋아요</p>
         )}
+        {step === 2 && <p>선택한 단계에 맞춰 정보를 추천해드려요</p>}
+        {step === 3 && <p>이제 나에게 맞는 자취 생활을 만나보세요.</p>}
         <button
           type="button"
           className="auth-button onboarding__cta"
@@ -248,7 +246,6 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
           {step === 0 ? '시작하기' : step === TOTAL_STEPS - 1 ? '자두 시작하기' : '다음'}
           <img src={icon('chevron-right-white.svg')} alt="" />
         </button>
-        {step === 0 && <p className="onboarding__footer-note">나중에 설정할 수 있어요</p>}
       </footer>
     </main>
   );
