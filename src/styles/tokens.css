@@ -88,6 +88,30 @@
   --font-asta: "Asta Sans", "SUIT", "Pretendard", "Apple SD Gothic Neo", sans-serif;
   --font-system: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
 
+  /* ---------- Typography scale (Widget Gallery) ----------
+   * role 기반 신규 토큰 — 위젯마다 폰트 크기/굵기를 임의로 바꾸지 않도록 여기서만 고른다.
+   * --text-* 는 이미 색상 전용이라 이름이 겹치지 않게 --font-size-* / --font-weight-* 를 쓴다. */
+  --font-size-caption: 11px;
+  --font-size-xs: 12px;
+  --font-size-title: 13px; /* 기존 .wpick__name(13px)과 통일 */
+  --font-size-body: 14px;
+  --font-size-value-s: 17px; /* 기존 .wpick__main--17과 통일 */
+  --font-size-value-m: 18px; /* 기존 .wpick__main--18과 통일 */
+  --font-size-value-l: 22px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ---------- Icon size scale (Widget Gallery) ---------- */
+  --icon-size-xs: 12px;
+  --icon-size-sm: 14px;
+  --icon-size-md: 16px;
+  --icon-size-lg: 18px;
+  --icon-size-xl: 24px;
+  --widget-icon-title-gap: 6px;
+
   /* ---------- Widget system ---------- */
   --widget-canvas-h: 194px;
   --widget-large-h: 114px;

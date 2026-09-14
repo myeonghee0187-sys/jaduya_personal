@@ -62,6 +62,15 @@ a { text-decoration: none; color: inherit; }
   --my-life-gap: 16px;
 }
 
+/* Home 은 상단이 항상 Hero 하늘색(screen-background.png 맨 위 픽셀)이다 — iOS Safari 가
+ * viewport-fit=cover + 100dvh 조합에서 최초 렌더링 시 상단 safe-area(노치) 뒤를 Hero가
+ * 순간적으로 못 덮는 경우가 있는데(.hero__background 의 overscan 주석 참고), 그 틈으로
+ * .app 의 기본 배경(--screen-base, 핑크)이 아니라 이 하늘색이 보이게 한다.
+ * 클래스 두 개짜리 선택자라 .app 보다 명시도가 높아 순서와 무관하게 이긴다. */
+.home.app {
+  background: #90d2f9;
+}
+
 /* 예전엔 여기서 402px 보다 좁거나 짧은 화면의 .app 바깥 여백(레터박스) 배경을
  * 핑크(--screen-base)로 맞췄었다 — 지금은 app-shell.css 가 실제 모바일 폭(360~402)에서
  * .app 을 가로·세로 모두 뷰포트에 정확히 맞추므로 그런 레터박스 틈이 생기지 않아

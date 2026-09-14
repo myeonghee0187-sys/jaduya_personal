@@ -370,6 +370,113 @@ function WidgetCardBody({ id }: { id: string }) {
         </span>
       );
 
+    /* 아래는 위젯 갤러리(data/widgets.ts)에서 새로 추가한 개념 — Home에 실제로 추가됐을 때
+     * 렌더링할 내용만 여기 추가한다(추가 전용). 기존 case는 하나도 바꾸지 않았다. */
+    case 'life-check':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">생활 체크</span>
+          </span>
+          <span className="wpick__main" style={{ alignSelf: 'center' }}>
+            3/4 완료
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            이번 주 생활 루틴 점검
+          </span>
+        </span>
+      );
+
+    case 'benefit-urgent':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">마감 임박 혜택</span>
+          </span>
+          <span className="wpick__main" style={{ alignSelf: 'center' }}>
+            D-2
+          </span>
+          <span className="wpick__sub wpick__sub--accent" style={{ alignSelf: 'center' }}>
+            청년 월세 지원 신청 마감
+          </span>
+        </span>
+      );
+
+    case 'benefit-match':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">맞춤 혜택</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            5개
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            서준님 조건에 맞는 혜택
+          </span>
+        </span>
+      );
+
+    case 'benefit-pick':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">자두 추천</span>
+          </span>
+          <span className="wpick__main wpick__main--17" style={{ alignSelf: 'center' }}>
+            청년 월세 지원
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            월 최대 20만원 지원
+          </span>
+        </span>
+      );
+
+    case 'my-activity':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">나의 활동</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            12개
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            이번 달 작성한 글·댓글
+          </span>
+        </span>
+      );
+
+    case 'my-level':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">자두 레벨</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            Lv.12
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            다음 레벨까지 320 EXP
+          </span>
+        </span>
+      );
+
+    case 'my-profile':
+      return (
+        <span className="wpick__card">
+          <span className="wpick__row">
+            <span className="wpick__name">프로필</span>
+          </span>
+          <span className="wpick__main wpick__main--18" style={{ alignSelf: 'center' }}>
+            이서준
+          </span>
+          <span className="wpick__sub" style={{ alignSelf: 'center' }}>
+            자취 초보 · 가입 92일차
+          </span>
+        </span>
+      );
+
     default:
       return null;
   }
