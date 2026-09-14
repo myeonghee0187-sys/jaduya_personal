@@ -27,6 +27,9 @@ export type AppPage =
   | 'community-tip'
   | 'community-region'
   | 'community-spend-compare'
+  | 'benefits'
+  | 'benefits-recommend'
+  | 'benefit-detail'
   | 'ai-chat'
   | 'money'
   | 'money-budget';
@@ -37,6 +40,8 @@ export interface NavigateOptions {
   tab?: string;
   /** 도착 화면에서 처음 보여줄 섹션 id (예: 자취 프로필의 'recommend') */
   section?: string;
+  /** 혜택 상세 화면에서 조회할 혜택의 고유 id */
+  benefitId?: string;
   /** 뒤로가기로 돌아갈 화면. 없으면 도착 화면의 기본 상위 화면으로 간다.
    * history 스택을 만들지 않고 "어디서 들어왔는지" 한 단계만 기억한다. */
   returnTo?: AppPage;

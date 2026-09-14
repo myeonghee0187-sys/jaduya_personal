@@ -14,10 +14,10 @@ const LIFE_TABS = ['첫 자취', '홈케어', '살림', '먹거리'] as const;
 
 /* 집을 보러 갔을 때 확인할 생활 조건 — 정보만 알려주는 영역이라 클릭 동작이 없다 */
 const HOUSE_POINTS = [
-  { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.webp' },
-  { key: 'water', name: '수압', desc: '물을 틀어 세기를 확인', file: 'life/life_water.webp' },
-  { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.webp' },
-  { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life/life_convenience.webp' },
+  { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.png' },
+  { key: 'water', name: '수압', desc: '물을 틀어 세기를 확인', file: 'life/life_water.png' },
+  { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.png' },
+  { key: 'nearby', name: '생활 편의', desc: '주변 편의시설이 가까운지', file: 'life/life_convenience.png' },
 ] as const;
 
 /* 체크리스트를 보는 시점 */

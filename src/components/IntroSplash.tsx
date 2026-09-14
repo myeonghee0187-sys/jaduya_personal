@@ -6,8 +6,8 @@ import { img } from '../lib/asset';
  * 영상이 끝나면(onEnded) 바로 걷힌다. 자동재생이 막히거나 디코딩이 실패해
  * ended 가 오지 않는 경우를 대비해 INTRO_MS 를 안전장치로 함께 건다.
  * 아무 곳이나 누르거나 '건너뛰기' / ESC 로 바로 넘길 수 있다. */
-/** 영상 길이(8.9초)보다 넉넉한 상한 — 더 짧게 끊고 싶으면 이 값만 줄이면 된다 */
-const INTRO_MS = 11000;
+/** 인트로 재생 상한 — 영상(8.9초)이 끝나기 전에 4초에서 끊는다 */
+const INTRO_MS = 4000;
 /* .intro 의 opacity transition 과 같은 값이어야 한다 (intro.css) */
 const FADE_MS = 400;
 

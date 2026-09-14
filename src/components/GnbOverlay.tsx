@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { icon } from '../lib/asset';
 import { findMenu } from '../data/menuCatalog';
 import { GNB_CATEGORIES, GNB_DEFAULT_OPEN } from '../data/gnbMenu';
-import { BellButton } from './BellButton';
+import { HeaderIconButton } from './HeaderIconButton';
 import { GnbMenuItem } from './GnbMenuItem';
 import { ShortcutCard } from './ShortcutCard';
 import { StatusBar } from './StatusBar';
@@ -51,19 +51,8 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
             <span className="gnb__title">전체메뉴</span>
           </div>
           <div className="header-actions">
-            <BellButton />
-            <button
-              type="button"
-              className="gnb__close"
-              aria-label="전체메뉴 닫기"
-              onClick={onClose}
-            >
-              <span className="burger burger--morph" aria-hidden="true">
-                <span className="burger__bar" />
-                <span className="burger__bar" />
-                <span className="burger__bar" />
-              </span>
-            </button>
+            <HeaderIconButton iconName="bell" label="알림" />
+            <HeaderIconButton iconName="close" label="전체메뉴 닫기" onClick={onClose} />
           </div>
         </div>
       </div>
@@ -98,7 +87,7 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
                   {category.items.map((item) => (
                     <a
                       key={item.id}
-                      className="gnb-menu__sub-link"
+                      className={`gnb-menu__sub-link${item.home ? ' is-home' : ''}`}
                       href="#"
                       data-menu-id={item.id}
                       onClick={(event) => {

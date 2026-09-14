@@ -1,5 +1,5 @@
 import { icon } from '../lib/asset';
-import { BellButton } from './BellButton';
+import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
 
 interface HeaderProps {
@@ -19,14 +19,8 @@ export function Header({ onMenuClick, showActions = true }: HeaderProps) {
         </div>
         {showActions && (
           <div className="header-actions">
-            <BellButton />
-            <button type="button" className="icon-btn" aria-label="메뉴" onClick={onMenuClick}>
-              <span className="burger" aria-hidden="true">
-                <span className="burger__bar" />
-                <span className="burger__bar" />
-                <span className="burger__bar" />
-              </span>
-            </button>
+            <HeaderIconButton iconName="bell" label="알림" />
+            <HeaderIconButton iconName="menu" label="메뉴" onClick={onMenuClick} />
           </div>
         )}
       </div>

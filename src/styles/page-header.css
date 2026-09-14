@@ -23,8 +23,7 @@
   color: var(--brand-logo);
 }
 
-.page-header__back,
-.page-header__menu {
+.page-header__back {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -44,16 +43,9 @@
   height: var(--header-back-h);
 }
 
-.page-header__menu {
-  width: var(--header-icon-btn);
-  height: var(--header-icon-btn);
-}
-
-/* 메뉴 버튼 안은 Home Header 와 같은 .burger(home.css) 다 — 크기·색·모션이 한 곳에서 정해진다 */
-
 /* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
- * 기준값은 Home Header 다. 28×28 아이콘 버튼 두 개 + gap 12 = 68px 를 76px 폭
- * 안에서 가운데 정렬한다(402 기준 bell x=300 / menu x=340).
+ * 40×40 버튼 두 개를 기존 76px 액션 영역의 중심에 배치한다. 두 버튼의 중심 간격은
+ * 40px로 고정되며 기존 아이콘 중심축과 좌우 위치를 유지한다.
  * Header(.nav-header) / SubPageHeader(.page-header) / GnbOverlay(.gnb__header) 가
  * 같은 클래스를 쓰므로 페이지 이동·GNB 개폐에도 X 좌표가 움직이지 않는다.
  * 값은 여기에만 둔다 — 페이지별 CSS 에서 덮어쓰지 않는다. */
@@ -62,12 +54,54 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: 0;
   width: 76px;
   height: var(--header-icon-btn);
 }
 
-.header-actions .icon-btn {
+.header-icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
   width: var(--header-icon-btn);
   height: var(--header-icon-btn);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.header-icon-button > img {
+  display: block;
+  width: var(--header-icon-svg);
+  height: var(--header-icon-svg);
+}
+
+.filled-bell {
+  display: block;
+  width: var(--header-icon-svg);
+  height: var(--header-icon-svg);
+  color: var(--text-body);
+}
+
+.header-icon-button__badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 61, 61, 0.2);
+}
+
+.header-icon-button__badge::after {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 61, 61, 0.8);
+  content: '';
 }
