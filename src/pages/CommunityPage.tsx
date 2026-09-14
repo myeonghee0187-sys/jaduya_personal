@@ -7,6 +7,7 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
+import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
@@ -21,6 +22,7 @@ const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
 export function CommunityPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const [writeOpen, setWriteOpen] = useState(false);
   const myMenu = useMyMenu();
   /* 다른 화면에서 탭을 지정해 들어올 수 있다 (전용 화면이 있는 '질문'·'자취 꿀팁'은 제외).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
@@ -245,7 +247,7 @@ export function CommunityPage() {
         <button
           type="button"
           className="community-fab__button"
-          onClick={() => setNotice('글쓰기 화면은 준비 중이에요.')}
+          onClick={() => setWriteOpen(true)}
         >
           <img src={icon('community-pencil.svg')} alt="" />
           글쓰기
@@ -269,6 +271,7 @@ export function CommunityPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
+      <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
       {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
       <AIChatbot initialLift={68} />
     </div>

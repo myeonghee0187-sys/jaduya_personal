@@ -7,6 +7,7 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { AIChatbot } from '../components/ai/AIChatbot';
 import { CommunityPostCard } from '../components/CommunityPostCard';
+import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, QUESTION_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
@@ -19,6 +20,7 @@ const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
 export function CommunityQuestionPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
+  const [writeOpen, setWriteOpen] = useState(false);
   const myMenu = useMyMenu();
   const [sort, setSort] = useState<string>(SORT_FILTERS[0]);
   const [openFilter, setOpenFilter] = useState(false);
@@ -185,7 +187,7 @@ export function CommunityQuestionPage() {
         <button
           type="button"
           className="community-fab__button"
-          onClick={() => setNotice('글쓰기 화면은 준비 중이에요.')}
+          onClick={() => setWriteOpen(true)}
         >
           <img src={icon('community-pencil.svg')} alt="" />
           글쓰기
@@ -209,6 +211,7 @@ export function CommunityQuestionPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
+      <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
       <AIChatbot initialLift={68} />
     </div>
   );
