@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
+import { icon } from '../../lib/asset';
 
-/* JADUYA — "비상금" 탭 전용. 지금까지 모은 돈을 복권 은박지처럼 실제로 긁어야
- * 보이게 하는 스크래치 카드. Figma에는 없는, 대화 중 새로 정한 인터랙션이라
- * 참고할 디자인 소스가 없다.
+/* JADUYA — "비상금" 탭 전용. 지금까지 모은 돈을 바로 숫자로 보여주지 않고
+ * 문질러야 드러나는 카드로 가려 둔다. Figma에는 없는, 대화 중 새로 정한
+ * 인터랙션이라 참고할 디자인 소스가 없다.
  *
- * - 실제 값(children)은 항상 DOM에 그려져 있다 — canvas는 그 위를 덮는 "은박지"
+ * 복권 은박지가 아니라 "잠겨 있는 나의 저축"처럼 보이도록 커버를 아주 옅은
+ * neutral 톤으로 칠한다 — 금색/은색 그라디언트, 코인, 당첨 문구는 쓰지 않는다.
+ *
+ * - 실제 값(children)은 항상 DOM에 그려져 있다 — canvas는 그 위를 덮는
  *   레이어일 뿐이라, 긁어서 뚫린 구멍으로 아래 금액이 실제로 비쳐 보인다(진짜
- *   스크래치 복권과 같은 방식). 그래서 스크린리더에는 처음부터 그대로 읽힌다.
- * - 절반 이상 긁으면 나머지를 자동으로 걷어낸다(실제 스크래치 카드의 표준 동작).
+ *   스크래치 카드와 같은 방식). 그래서 스크린리더에는 처음부터 그대로 읽힌다.
+ * - 60% 이상 긁으면 나머지를 자동으로 걷어낸다(실제 스크래치 카드의 표준 동작).
  * - 마우스 클릭 한 번으로 바로 열리지는 않는다 — 실제로 드래그해서 긁어야 한다.
  *   다만 드래그가 불가능한 사용자를 위해 "비상금 금액 보기" 버튼과 Enter/Space 로
  *   같은 결과(전부 걷어내기)를 열어준다.
@@ -17,16 +21,20 @@ import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
  *   transform: scale() 이 걸려 있어도(getBoundingClientRect 값이 달라져도)
  *   항상 부모를 정확히 꽉 채운다. 포인터 좌표도 같은 이유로 비율 변환해서 쓴다. */
 
-const BRUSH_RADIUS = 28;
-const CLEAR_THRESHOLD = 0.58;
+const BRUSH_RADIUS = 22;
+const CLEAR_THRESHOLD = 0.6;
 const SAMPLE_STEP = 4;
-/* 남은 은박지가 부드럽게 사라지는 시간 — EmergencyFundCard 의 축하 연출 타이밍과 맞춘다 */
-const FADE_MS = 320;
+/* 남은 커버가 부드럽게 사라지는 시간 — EmergencyFundCard 의 count-up 시작과 맞춘다 */
+const FADE_MS = 280;
 
 type Phase = 'covered' | 'revealing' | 'revealed';
 
 interface ScratchRevealProps {
   children: ReactNode;
+  /** 커버 중앙에 보여줄 안내 문구 (두 줄까지) */
+  title?: string;
+  /** 안내 문구 아래 작은 보조 문구 */
+  cue?: string;
   /** 커버(버튼 역할)의 접근성 라벨 */
   ariaLabel?: string;
   /** 전부 걷어내기(자동완료 또는 접근성 버튼)로 완전히 공개된 순간 한 번 호출된다 */
@@ -35,7 +43,9 @@ interface ScratchRevealProps {
 
 export function ScratchReveal({
   children,
-  ariaLabel = '비상금 금액 긁어서 확인하기',
+  title = '긁어서 확인하기',
+  cue = '손가락으로 살짝 문질러보세요',
+  ariaLabel = '현재 비상금 잔액을 확인하려면 문질러 주세요.',
   onRevealed,
 }: ScratchRevealProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -60,28 +70,27 @@ export function ScratchReveal({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
 
-    /* 따뜻한 베이지/골드 "은박지" — 대각선 브러시드 그라디언트 + 옅은 종이 결 */
+    /* 아주 밝은 neutral 표면 — 복권 은박지가 아니라 "잠겨 있는 저축"처럼 보이도록
+     * 낮은 대비의 따뜻한 회백색 그라디언트만 쓴다(금색/은색 금지). */
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#e7cd9c');
-    gradient.addColorStop(0.24, '#f3e2bb');
-    gradient.addColorStop(0.48, '#dcb877');
-    gradient.addColorStop(0.68, '#f0dba6');
-    gradient.addColorStop(0.86, '#dcb877');
-    gradient.addColorStop(1, '#ecd3a0');
+    gradient.addColorStop(0, '#f6f3ee');
+    gradient.addColorStop(0.5, '#efe9df');
+    gradient.addColorStop(1, '#f6f3ee');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = 'rgba(255, 250, 235, 0.4)';
+    /* 아주 옅은 대각선 결 — 복권 광택이 아니라 종이 표면 정도의 은은한 sheen */
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.lineWidth = 2;
-    for (let i = -height; i < width; i += 11) {
+    for (let i = -height; i < width; i += 13) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
       ctx.lineTo(i + height, height);
       ctx.stroke();
     }
 
-    /* 옅은 종이 가루 질감 — 성능을 위해 개수를 적게 둔다(60개 고정) */
-    ctx.fillStyle = 'rgba(120, 90, 40, 0.08)';
+    /* 옅은 grain 질감 — 성능을 위해 개수를 적게 둔다(60개 고정) */
+    ctx.fillStyle = 'rgba(120, 108, 92, 0.07)';
     let seed = 42;
     const rand = () => {
       seed = (seed * 9301 + 49297) % 233280;
@@ -208,15 +217,9 @@ export function ScratchReveal({
             onPointerLeave={handlePointerUp}
           />
           <div className="fund-scratch__label">
-            <span className="fund-coin-stack" aria-hidden="true">
-              <span className="fund-coin-stack__back" />
-              <span className="fund-coin-stack__front">₩</span>
-            </span>
-            <p className="fund-scratch__title">
-              비상금을
-              <br />
-              긁어보세요!
-            </p>
+            <img src={icon('lock.svg')} alt="" className="fund-scratch__lock" aria-hidden="true" />
+            <p className="fund-scratch__title">{title}</p>
+            <span className="fund-scratch__cue">{cue}</span>
             <button
               type="button"
               className="fund-scratch__reveal-btn"
@@ -224,7 +227,6 @@ export function ScratchReveal({
             >
               비상금 금액 보기
             </button>
-            <span className="fund-scratch__cue">살짝 긁어보세요</span>
           </div>
         </div>
       )}

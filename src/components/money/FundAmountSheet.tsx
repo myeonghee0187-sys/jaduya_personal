@@ -8,7 +8,12 @@ import { icon } from '../../lib/asset';
  * 않고 mode props 로만 문구/기본값을 바꾼다. 별도 화면(route)을 새로 만들지 않고
  * 기존 GNB 메뉴 편집(BottomSheet.tsx)이 쓰는 공용 시트 셸을 그대로 재사용한다. */
 
-const QUICK_ADD_AMOUNTS = [10_000, 50_000, 100_000];
+const QUICK_ADD_AMOUNTS = [10_000, 50_000, 100_000, 500_000];
+
+/** 빠른 금액 버튼 라벨 — "+10,000" 대신 레퍼런스처럼 "+1만원" 단위로 보여준다 */
+function formatManwon(amount: number): string {
+  return `+${(amount / 10_000).toLocaleString()}만원`;
+}
 
 interface FundAmountSheetProps {
   open: boolean;
@@ -64,10 +69,12 @@ export function FundAmountSheet({ open, mode, referenceAmount, onClose, onSubmit
         </button>
       </div>
 
-      <p className="fund-sheet__ref">
-        {isGoal ? '현재 목표' : '지금까지 모은 비상금'}
-        <b>{referenceAmount.toLocaleString()}원</b>
-      </p>
+      {isGoal && (
+        <p className="fund-sheet__ref">
+          현재 목표
+          <b>{referenceAmount.toLocaleString()}원</b>
+        </p>
+      )}
 
       <form className="fund-sheet__form" onSubmit={handleSubmit}>
         <label className="fund-sheet__field">
@@ -94,9 +101,26 @@ export function FundAmountSheet({ open, mode, referenceAmount, onClose, onSubmit
                 className="fund-sheet__quick-btn"
                 onClick={() => addQuick(amount)}
               >
-                +{amount.toLocaleString()}
+                {formatManwon(amount)}
               </button>
             ))}
+          </div>
+        )}
+
+        {!isGoal && (
+          <div className="fund-sheet__summary">
+            <div className="fund-sheet__summary-row">
+              <span>현재 비상금</span>
+              <span>{referenceAmount.toLocaleString()}원</span>
+            </div>
+            <div className="fund-sheet__summary-row">
+              <span>추가할 금액</span>
+              <span className="fund-sheet__summary-plus">+{numeric.toLocaleString()}원</span>
+            </div>
+            <div className="fund-sheet__summary-row fund-sheet__summary-row--total">
+              <span>입금 후 비상금</span>
+              <span>{(referenceAmount + numeric).toLocaleString()}원</span>
+            </div>
           </div>
         )}
 

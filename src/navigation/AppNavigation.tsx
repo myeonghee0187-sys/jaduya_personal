@@ -32,7 +32,8 @@ export type AppPage =
   | 'benefit-detail'
   | 'ai-chat'
   | 'money'
-  | 'money-budget';
+  | 'money-budget'
+  | 'widget-gallery';
 
 /** 이동하면서 도착 화면에 넘기는 값. 도착 화면이 초기 상태를 잡는 데만 쓴다. */
 export interface NavigateOptions {
@@ -70,6 +71,19 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
         /* 라우터 없이 화면을 통째로 바꾸는 구조라, 이전 화면에서 스크롤해 내려간 채
          * 넘어오면 도착 화면도 그 위치에서 그려진다 — 새 화면은 항상 맨 위에서 보여야 한다. */
         window.scrollTo(0, 0);
+        /* Home 은 다른 화면으로 이동해도 언마운트되지 않고 display:none 으로만 숨는다
+         * (App.tsx) — 이동 직전에 포커스 가능한 요소(예: 위젯 추가 슬롯)를 누르면 브라우저가
+         * .app 자신의 스크롤(가로/세로)을 그 요소가 보이도록 슬쩍 밀어두는데, window.scrollTo 는
+         * 문서 스크롤만 되돌릴 뿐 .app 자신의 scrollLeft/scrollTop 은 그대로 남는다. 숨어있는
+         * 동안은 안 보이다가 다시 그 화면으로 돌아오면 전체 콘텐츠가 옆으로/아래로 밀려나
+         * 보이는 원인이라, 화면을 옮길 때마다 모든 .app 의 스크롤을 같이 0으로 되돌린다. */
+        document.querySelectorAll<HTMLElement>('.app').forEach((el) => {
+          el.scrollLeft = 0;
+          el.scrollTop = 0;
+        });
+        /* 같은 이유로 Home 의 하단 시트 내부 스크롤(sheet__scroll)도 같이 되돌린다 —
+         * 그대로 두면 다음에 Home 으로 돌아왔을 때 시트가 아래로 스크롤된 채로 보인다. */
+        document.getElementById('sheetScroll')?.scrollTo(0, 0);
         setRoute({ page, options });
       },
     }),

@@ -1,5 +1,5 @@
 /** Home 위에 상태로만 열리는 레이어 */
-export type LayerName = 'gnb' | 'menuEdit' | 'addWidget';
+export type LayerName = 'gnb' | 'menuEdit';
 
 /** Bottom Sheet 상태 (home_1 / home_2) */
 export type SheetState = 'peek' | 'expanded';

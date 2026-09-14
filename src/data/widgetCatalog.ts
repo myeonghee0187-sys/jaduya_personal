@@ -29,6 +29,15 @@ export const WIDGET_CATALOG: WidgetDef[] = [
   { id: 'vet', name: '병원 일정', size: 'medium', category: '생활' },
   { id: 'pet-cost', name: '반려 지출', size: 'small', category: '돈 관리' },
   { id: 'pet-supply', name: '사료·용품', size: 'small', category: '생활' },
+  /* 위젯 갤러리(data/widgets.ts)에서 새로 추가한 개념 — Home 캔버스에 실제로 올라갈 때
+   * 쓸 크기만 여기 등록한다(추가 전용, append-only). 기존 항목은 하나도 바꾸지 않았다. */
+  { id: 'life-check', name: '생활 체크', size: 'medium', category: '생활' },
+  { id: 'benefit-urgent', name: '마감 임박 혜택', size: 'medium', category: '혜택' },
+  { id: 'benefit-match', name: '맞춤 혜택', size: 'medium', category: '혜택' },
+  { id: 'benefit-pick', name: '자두 추천', size: 'medium', category: '혜택' },
+  { id: 'my-activity', name: '나의 활동', size: 'medium', category: '커뮤니티' },
+  { id: 'my-level', name: '자두 레벨', size: 'medium', category: '마이' },
+  { id: 'my-profile', name: '프로필', size: 'medium', category: '마이' },
 ];
 
 /** Home '내 생활'에 기본으로 올라가 있는 위젯 */

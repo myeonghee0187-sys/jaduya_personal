@@ -1,65 +1,85 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { ScratchReveal } from './ScratchReveal';
 import { usePrefersReducedMotion } from '../homecare/usePrefersReducedMotion';
-import { img } from '../../lib/asset';
+import { icon } from '../../lib/asset';
 
 /* JADUYA — "비상금" 탭의 대표 인터랙션. 금액을 바로 숫자로 보여주지 않고
- * 복권처럼 긁어서 확인하게 한다(대화 중 새로 정한 요구사항, Figma 소스 없음).
+ * 문질러서 확인하게 한다(대화 중 새로 정한 요구사항, Figma 소스 없음).
  *
- * 상태 머신(스펙 13.):
- *   scratch   — 은박지를 긁는 중 (ScratchReveal 이 담당)
- *   celebrate — 다 긁은 직후 ~1초 — count-up + confetti + 마스코트 bounce
- *   result    — 공개 완료. 금액/목표/진행률 + CTA 두 개
- * initialRevealed 가 true 면(이미 이번 달에 확인했으면) scratch 단계를 건너뛰고
- * 바로 result 로 시작한다(스펙 11. 재진입 규칙) — "다시 긁어보기"로만 다시 들어간다. */
+ * 실제 금융앱처럼 보이도록 복권 연출(코인·색종이·캐릭터·폭죽·금색)은 쓰지 않는다 —
+ * Minimal / Calm / Premium 톤을 유지하고, 숫자 count-up 과 아주 짧은 scale 정도로만
+ * "내가 모은 돈을 발견하는 순간"을 표현한다.
+ *
+ * 상태 머신:
+ *   scratch   — 커버를 긁는 중 (ScratchReveal 이 담당)
+ *   celebrate — 다 긁은 직후 ~600ms — count-up 만 있고 색종이는 없다
+ *   result    — 공개 완료. 금액/목표/진행률만 보여준다(상세 적립 내역은 화면 밖 — 아래 참고)
+ * initialRevealed 가 true 면(이번 방문에서 새로 늘어난 돈이 없으면) 스크래치를
+ * 건너뛰고 바로 result 로 시작한다 — "새로운 기록이 있어요"는 새 적립이 생겨
+ * 다시 가려졌을 때만(isNewRecord) 보여준다.
+ *
+ * 화면 전체가 스크롤 없이 한 화면(100dvh - 공용 헤더 - 상단 4탭 바)에 들어와야 해서
+ * (MoneyPage.tsx 의 .money__scroll--fund 참고), 예전에 있던 "적립 플랜"/"비상금 가이드"는
+ * 없앴다. 적립 상세는 기본으로는 "이번 달 N번 모았어요" 한 줄만 보여주고, 누르면 그
+ * 자리에서 아코디언으로 펼쳐진다(depositsExpanded) — 목록 자체는 내부 스크롤이라
+ * 항목이 많아도 페이지 전체 스크롤은 여전히 생기지 않는다. */
 
-const CELEBRATE_MS = 850;
-const CONFETTI_COLORS = ['#a2b123', '#b43936', '#fbdd78', '#c7753b', '#e8955c', '#f6e2ac'] as const;
-/* 복권 "짠!" 순간을 불꽃놀이처럼 더 풍성하게 보이려고 22 → 34조각으로 늘리고 크기 편차도 키웠다 —
- * 전부 i 기반 결정론적 계산이라 새로고침해도 같은 패턴을 그린다(다른 곳들과 동일한 방식). */
-const CONFETTI_PIECES = Array.from({ length: 34 }, (_, i) => ({
-  key: i,
-  left: 2 + ((i * 29) % 96),
-  delay: (i % 10) * 30,
-  duration: 650 + (i % 7) * 90,
-  rotate: (i * 53) % 360,
-  drift: ((i * 31) % 90) - 45,
-  size: i % 4 === 0 ? 9 : i % 3 === 0 ? 7 : 5,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-}));
+const CELEBRATE_MS = 600;
+
+export interface FundDeposit {
+  id: string;
+  amount: number;
+  date: string;
+}
 
 interface EmergencyFundCardProps {
   currentAmount: number;
   targetAmount: number;
-  /** 이번 달에 이미 확인한 적이 있는지 — true 면 스크래치를 건너뛰고 결과부터 보여준다 */
+  /** 이번 방문에서 이미 다 긁어서 확인한 상태인지 — true 면 스크래치를 건너뛰고 결과부터 보여준다 */
   initialRevealed: boolean;
-  /** 이번 세션에서 처음으로 다 긁었을 때 한 번 호출된다(영속 저장용) */
-  onFirstReveal: () => void;
+  /** 예전에 확인한 적은 있지만 그 뒤 새 적립이 생겨 다시 가려진 상태인지("새로운 기록이 있어요") */
+  isNewRecord: boolean;
+  /** 목표 달성 축하를 이미 한 번 보여줬는지 — 다시 보여주지 않기 위함 */
+  hasCelebratedGoal: boolean;
+  deposits: FundDeposit[];
+  onReveal: () => void;
+  onGoalCelebrated: () => void;
   onEditGoal: () => void;
   onAddMore: () => void;
+  onShowAllDeposits: () => void;
 }
 
 export function EmergencyFundCard({
   currentAmount,
   targetAmount,
   initialRevealed,
-  onFirstReveal,
+  isNewRecord,
+  hasCelebratedGoal,
+  deposits,
+  onReveal,
+  onGoalCelebrated,
   onEditGoal,
   onAddMore,
+  onShowAllDeposits,
 }: EmergencyFundCardProps) {
   const reduceMotion = usePrefersReducedMotion();
+  const isEmpty = currentAmount <= 0;
   const [view, setView] = useState<'scratch' | 'celebrate' | 'result'>(
-    initialRevealed ? 'result' : 'scratch',
+    isEmpty || initialRevealed ? 'result' : 'scratch',
   );
-  const [scratchKey, setScratchKey] = useState(0);
   const percent = targetAmount > 0 ? Math.min(100, Math.max(0, (currentAmount / targetAmount) * 100)) : 0;
-  const [displayAmount, setDisplayAmount] = useState(initialRevealed ? currentAmount : 0);
-  const [displayPercent, setDisplayPercent] = useState(initialRevealed ? percent : 0);
-  const hasPersistedRef = useRef(initialRevealed);
-  const [bounceKey, setBounceKey] = useState(0);
+  const isGoalMet = targetAmount > 0 && currentAmount >= targetAmount;
+  const remaining = Math.max(0, targetAmount - currentAmount);
+  const [displayAmount, setDisplayAmount] = useState(view === 'result' ? currentAmount : 0);
+  const [displayPercent, setDisplayPercent] = useState(view === 'result' ? percent : 0);
+  /* 목표를 이번에 처음 달성했을 때만 잠깐 보여주는 축하 화면 */
+  const [showAchievement, setShowAchievement] = useState(false);
+  /* "이번 달 N번 모았어요" — 레퍼런스처럼 눌렀을 때 아코디언으로 펼쳐진다(별도 화면 아님).
+   * 이미 공개된 채로 시작하면(initialRevealed) 처음부터 펼쳐 두고, 방금 긁어서 공개한
+   * 경우에도(handleRevealed) 바로 펼쳐서 레퍼런스 04번처럼 금액과 내역을 함께 보여준다. */
+  const [depositsExpanded, setDepositsExpanded] = useState(!isEmpty && initialRevealed);
 
-  /* 새로 들어온 값(추가로 모으기/목표 수정)은 이미 공개된 상태에서는 바로 반영한다.
-   * 아직 긁는 중이면 완료될 때 count-up 이 최신 값으로 시작하도록 그대로 둔다. */
+  /* 이미 공개된 상태에서 값이 바뀌면(목표 수정 등) count-up 없이 바로 반영한다 */
   useEffect(() => {
     if (view === 'result') {
       setDisplayAmount(currentAmount);
@@ -68,20 +88,21 @@ export function EmergencyFundCard({
   }, [currentAmount, percent, view]);
 
   const handleRevealed = () => {
-    setBounceKey((k) => k + 1);
     setView('celebrate');
-    if (!hasPersistedRef.current) {
-      hasPersistedRef.current = true;
-      onFirstReveal();
-    }
+    setDepositsExpanded(true);
+    onReveal();
   };
 
   useEffect(() => {
     if (view !== 'celebrate') return;
+    const finish = () => {
+      setShowAchievement(isGoalMet && !hasCelebratedGoal);
+      setView('result');
+    };
     if (reduceMotion) {
       setDisplayAmount(currentAmount);
       setDisplayPercent(percent);
-      const t = window.setTimeout(() => setView('result'), 80);
+      const t = window.setTimeout(finish, 80);
       return () => window.clearTimeout(t);
     }
     setDisplayAmount(0);
@@ -96,7 +117,7 @@ export function EmergencyFundCard({
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    const done = window.setTimeout(() => setView('result'), CELEBRATE_MS + 120);
+    const done = window.setTimeout(finish, CELEBRATE_MS + 100);
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(done);
@@ -104,100 +125,130 @@ export function EmergencyFundCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
-  const replay = () => {
-    setScratchKey((k) => k + 1);
-    setDisplayAmount(0);
-    setDisplayPercent(0);
-    setView('scratch');
+  const confirmAchievement = () => {
+    setShowAchievement(false);
+    onGoalCelebrated();
   };
 
-  const isOpen = view !== 'scratch';
+  const scratchTitle = isNewRecord ? '새로운 기록이 있어요' : '긁어서 확인하기';
+  const scratchCue = isNewRecord ? '긁어서 확인해보세요' : '손가락으로 살짝 문질러보세요';
 
   return (
     <section className="fund-hero">
-      <p className="fund-hero__title">{isOpen ? '지금까지 모아둔' : '지금까지 잘 모아왔어요!'}</p>
-      <p className="fund-hero__sub">{isOpen ? '비상금이에요!' : '이번 달 비상금을 확인해볼까요?'}</p>
+      <p className="fund-hero__title">
+        언제든 든든하게,
+        <br />
+        내가 지켜두는 돈
+      </p>
 
-      <div className={`fund-card${isOpen ? ' is-open' : ''}${view === 'celebrate' ? ' is-celebrating' : ''}`}>
-        {/* 마스코트는 카드의 형제 요소 — 카드(overflow:hidden)의 둥근 모서리 밖으로
-         * 얼굴이 자연스럽게 삐져나오려면 카드의 클리핑 영향을 받지 않아야 한다. */}
-        <div key={bounceKey} className="fund-mascot">
-          <img src={img('money-budget-character.png')} alt="" />
-        </div>
-
+      <div className={`fund-card${view === 'result' ? ' is-open' : ''}${view === 'celebrate' ? ' is-celebrating' : ''}`}>
         <div className="fund-card__body">
-          {view === 'scratch' ? (
-            <ScratchReveal key={scratchKey} onRevealed={handleRevealed}>
-              <div className="fund-card__peek">
-                <span className="fund-card__peek-coin" aria-hidden="true">
-                  ₩
-                </span>
-                <p className="fund-card__peek-amount">{currentAmount.toLocaleString()}원</p>
+          <div className="fund-card__stage">
+            {isEmpty ? (
+              <div className="fund-card__empty">
+                <img src={icon('lock.svg')} alt="" className="fund-card__empty-icon" />
+                <p className="fund-card__empty-title">아직 모은 비상금이 없어요.</p>
+                <p className="fund-card__empty-sub">첫 비상금을 만들어볼까요?</p>
               </div>
-            </ScratchReveal>
-          ) : (
-            <div className="fund-card__result">
-              <p className="fund-card__amount">{displayAmount.toLocaleString()}원</p>
-              <p className="fund-card__target">목표 {targetAmount.toLocaleString()}원</p>
-              <div className="fund-card__progress">
-                <div className="fund-card__progress-track">
-                  <div className="fund-card__progress-fill" style={{ width: `${displayPercent}%` }} />
+            ) : view === 'scratch' ? (
+              <ScratchReveal title={scratchTitle} cue={scratchCue} onRevealed={handleRevealed}>
+                <div className="fund-card__peek">
+                  <p className="fund-card__peek-amount">{currentAmount.toLocaleString()}원</p>
                 </div>
-                <span className="fund-card__progress-label">{Math.round(displayPercent)}%</span>
+              </ScratchReveal>
+            ) : showAchievement ? (
+              <div className="fund-achieved">
+                <span className="fund-achieved__badge" aria-hidden="true">
+                  <img src={icon('widget-check.svg')} alt="" />
+                </span>
+                <p className="fund-achieved__title">비상금 목표를 달성했어요!</p>
+                <p className="fund-achieved__sub">꾸준히 모은 나, 정말 멋져요.</p>
+                <button type="button" className="fund-achieved__confirm" onClick={confirmAchievement}>
+                  확인
+                </button>
+                <button type="button" className="fund-achieved__edit" onClick={onEditGoal}>
+                  목표 변경하기
+                </button>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* 컨페티도 마스코트처럼 카드(overflow:hidden) 밖의 형제 요소로 둬서,
-         * 카드 경계에 잘리지 않고 화면 위로 자유롭게 퍼지며 떨어지게 한다. */}
-        {view === 'celebrate' && (
-          <div className="fund-confetti" aria-hidden="true">
-            {CONFETTI_PIECES.map((p) => (
-              <span
-                key={p.key}
-                className="fund-confetti__piece"
-                style={
-                  {
-                    left: `${p.left}%`,
-                    width: `${p.size}px`,
-                    height: `${p.size + 4}px`,
-                    animationDelay: `${p.delay}ms`,
-                    animationDuration: `${p.duration}ms`,
-                    background: p.color,
-                    '--drift': `${p.drift}px`,
-                    '--rotate-end': `${p.rotate + 240}deg`,
-                  } as CSSProperties
-                }
-              />
-            ))}
+            ) : (
+              <div className="fund-card__result">
+                <p className="fund-card__label">지금까지 모은 비상금</p>
+                <p className="fund-card__amount">{displayAmount.toLocaleString()}원</p>
+                <button type="button" className="fund-card__target" onClick={onEditGoal}>
+                  목표 {targetAmount.toLocaleString()}원
+                </button>
+                <div className="fund-card__progress">
+                  <div className="fund-card__progress-track">
+                    <div className="fund-card__progress-fill" style={{ width: `${displayPercent}%` }} />
+                  </div>
+                  <span className="fund-card__progress-label">{Math.round(displayPercent)}%</span>
+                </div>
+                {isGoalMet ? (
+                  <p className="fund-card__remaining">목표를 모두 모았어요.</p>
+                ) : (
+                  <button type="button" className="fund-card__remaining fund-card__remaining--tap" onClick={onShowAllDeposits}>
+                    <span>
+                      목표까지 <b>{remaining.toLocaleString()}원</b> 남았어요.
+                    </span>
+                    <img src={icon('chevron-right-thin.svg')} alt="" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {view === 'result' && (
+      {/* "이번 달 N번 모았어요" — 레퍼런스처럼 누르면 그 자리에서 아코디언으로 펼쳐진다.
+       * 목록 자체는 내부 스크롤(max-height)로 가둬서, 항목이 많아져도 화면 전체 스크롤은
+       * 여전히 생기지 않는다("+ 비상금 채우기" 버튼이 항상 보여야 한다). */}
+      {!isEmpty && !showAchievement && (
         <>
-          <div className="fund-cheer">
-            <img src={img('money-budget-character.png')} alt="" className="fund-cheer__icon" />
-            <div className="fund-cheer__text">
-              <p className="fund-cheer__title">잘 모아왔어요!</p>
-              <p className="fund-cheer__sub">지금처럼 차근차근 이어가요.</p>
-            </div>
-          </div>
-
-          <div className="fund-actions">
-            <button type="button" className="fund-actions__secondary" onClick={onEditGoal}>
-              목표 수정하기
-            </button>
-            <button type="button" className="fund-actions__primary" onClick={onAddMore}>
-              추가로 모으기
-            </button>
-          </div>
-
-          <button type="button" className="fund-replay" onClick={replay}>
-            스크래치 다시 보기
+          <button
+            type="button"
+            className="fund-hint"
+            aria-expanded={depositsExpanded}
+            onClick={() => setDepositsExpanded((v) => !v)}
+          >
+            <img src={icon('menu-calendar.svg')} alt="" />
+            <span>이번 달 {deposits.length}번 모았어요</span>
+            <img
+              src={icon('chevron-right-thin.svg')}
+              alt=""
+              className={`fund-hint__chevron${depositsExpanded ? ' is-open' : ''}`}
+            />
           </button>
+
+          {depositsExpanded && (
+            <div className="fund-deposit-panel">
+              {deposits.length === 0 ? (
+                <p className="fund-deposit-panel__empty">아직 이번 달 적립 기록이 없어요.</p>
+              ) : (
+                <div className="fund-deposit-panel__list">
+                  {deposits.map((deposit) => (
+                    <div key={deposit.id} className="fund-deposit-row">
+                      <span className="fund-deposit-row__badge" aria-hidden="true">
+                        <img src={icon('money-fund-check.svg')} alt="" />
+                      </span>
+                      <span className="fund-deposit-row__date">{deposit.date}</span>
+                      <span className="fund-deposit-row__amount">+{deposit.amount.toLocaleString()}원</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button type="button" className="fund-deposit-panel__more" onClick={onShowAllDeposits}>
+                전체보기
+                <img src={icon('chevron-right-thin.svg')} alt="" />
+              </button>
+            </div>
+          )}
         </>
+      )}
+
+      {!showAchievement && (
+        <button type="button" className="fund-fill-cta" onClick={onAddMore}>
+          + 비상금 채우기
+        </button>
       )}
     </section>
   );
