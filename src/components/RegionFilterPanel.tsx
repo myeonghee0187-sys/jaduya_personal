@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { icon } from '../lib/asset';
 
 export const REGION_DWELLING_OPTIONS = ['원룸', '투룸', '오피스텔', '주택'];
@@ -38,13 +38,16 @@ export function RegionFilterPanel({
    * 중간 pointermove 에 정확히 실리지 않을 수 있어 믿지 않는다 — 대신
    * pointerId 를 직접 추적한다 (useSheetGesture 와 같은 방식). */
   const dragPointerId = useRef<number | null>(null);
+  /* 드래그 중에는 이 연속값(0~1)으로 핸들이 손가락을 그대로 따라가고,
+   * 손을 뗄 때만 가장 가까운 단계로 반올림해 onChangeRange 를 호출한다.
+   * null 이면 드래그 중이 아니라는 뜻 — 이때는 rangeStep 기준 위치를 쓴다. */
+  const [dragRatio, setDragRatio] = useState<number | null>(null);
 
-  const stepFromClientX = (clientX: number) => {
+  const ratioFromClientX = (clientX: number) => {
     const track = trackRef.current;
-    if (!track) return rangeStep;
+    if (!track) return rangeStep / lastIndex;
     const rect = track.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    return Math.round(ratio * lastIndex);
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
   const handleKnobPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -52,11 +55,12 @@ export function RegionFilterPanel({
     event.stopPropagation();
     dragPointerId.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
+    setDragRatio(rangeStep / lastIndex);
   };
 
   const handleKnobPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (dragPointerId.current !== event.pointerId) return;
-    onChangeRange(stepFromClientX(event.clientX));
+    setDragRatio(ratioFromClientX(event.clientX));
   };
 
   const endKnobDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -65,7 +69,12 @@ export function RegionFilterPanel({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+    if (dragRatio !== null) onChangeRange(Math.round(dragRatio * lastIndex));
+    setDragRatio(null);
   };
+
+  const isDragging = dragRatio !== null;
+  const displayRatio = dragRatio ?? rangeStep / lastIndex;
 
   return (
     <div className="region-filter" role="dialog" aria-label="지역 후기 필터">
@@ -133,13 +142,13 @@ export function RegionFilterPanel({
         <div className="region-filter__slider" aria-hidden={!outsideNeighborhood}>
           <div className="region-filter__track" ref={trackRef}>
             <div
-              className="region-filter__track-fill"
-              style={{ width: `${(rangeStep / lastIndex) * 100}%` }}
+              className={`region-filter__track-fill${isDragging ? ' is-dragging' : ''}`}
+              style={{ width: `${displayRatio * 100}%` }}
             />
             <button
               type="button"
-              className="region-filter__handle"
-              style={{ left: `${(rangeStep / lastIndex) * 100}%` }}
+              className={`region-filter__handle${isDragging ? ' is-dragging' : ''}`}
+              style={{ left: `${displayRatio * 100}%` }}
               aria-label="범위"
               aria-valuemin={0}
               aria-valuemax={lastIndex}
@@ -156,20 +165,17 @@ export function RegionFilterPanel({
           </div>
           <div className="region-filter__steps">
             {/* 클릭으로 이동하지 않는 표시 전용 라벨 — 값 변경은 핸들 드래그로만 한다.
-             * 양 끝은 핸들 쪽으로 정렬해 패널 밖으로 넘치지 않게 하고, 가운데만 중앙 정렬한다. */}
-            {REGION_RANGE_STEPS.map((label, index) => {
-              const align = index === 0 ? 'start' : index === lastIndex ? 'end' : 'center';
-              return (
-                <span
-                  key={label}
-                  className={`region-filter__step${index === rangeStep ? ' is-active' : ''}`}
-                  data-align={align}
-                  style={{ left: `${(index / lastIndex) * 100}%` }}
-                >
-                  {label}
-                </span>
-              );
-            })}
+             * 트랙과 같은 좌우 여백(30px)을 둔 좌표계 안에서, 4개 모두 핸들 위치(%)에
+             * 중앙 정렬한다 — 양 끝 라벨도 빨간 점 중심이 글자 한가운데에 오게 한다. */}
+            {REGION_RANGE_STEPS.map((label, index) => (
+              <span
+                key={label}
+                className={`region-filter__step${index === rangeStep ? ' is-active' : ''}`}
+                style={{ left: `${(index / lastIndex) * 100}%` }}
+              >
+                {label}
+              </span>
+            ))}
           </div>
         </div>
       </div>

@@ -209,7 +209,7 @@ export function CommunityQuestionPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
-      <AIChatbot initialLift={84} />
+      <AIChatbot initialLift={68} />
     </div>
   );
 }

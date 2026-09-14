@@ -36,7 +36,7 @@ export function CommunitySpendComparePage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      <main className="community__scroll">
+      <main className="community__scroll community__scroll--enter">
         {/* ============ 탭 — '전체' / '질문' / '자취 꿀팁' / '지역 후기' 는 각자의 화면으로 돌아간다 ============ */}
         <nav className="community-tabs" aria-label="커뮤니티 분류">
           {COMMUNITY_TABS.map((name) => (
