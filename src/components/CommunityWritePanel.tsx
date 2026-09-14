@@ -145,7 +145,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
           </div>
           <div className="header-actions">
             <BellButton />
-            <HeaderIconButton iconName="close" label="글쓰기 닫기" onClick={requestClose} />
+            <HeaderIconButton iconName="menu" label="글쓰기 닫기" open={open} onClick={requestClose} />
           </div>
         </div>
       </div>
