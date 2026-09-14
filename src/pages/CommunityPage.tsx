@@ -80,10 +80,9 @@ export function CommunityPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      <main className="community__scroll">
+      <main className="community__scroll community__scroll--enter">
         {/* ============ 검색 ============ */}
         <section className="community-search">
-          <p className="community-search__title">자취하는 사람들의 진짜 이야기를 만나보세요</p>
           <div className="community-search__input">
             <input
               ref={searchRef}
@@ -271,7 +270,7 @@ export function CommunityPage() {
         onSave={myMenu.saveEdit}
       />
       {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
-      <AIChatbot initialLift={84} />
+      <AIChatbot initialLift={68} />
     </div>
   );
 }

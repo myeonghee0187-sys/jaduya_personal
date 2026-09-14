@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ForwardedRef, PointerEvent as ReactPointerEvent } from 'react';
 import { img } from '../../lib/asset';
 
@@ -97,7 +97,10 @@ export function AIChatbotButton({
     setAppWidth(bounds.width);
   }, [initialLift]);
 
-  useEffect(() => {
+  /* useLayoutEffect: 첫 페인트 전에 위치를 계산해 확정한다.
+   * useEffect(페인트 이후)를 쓰면 기본 위치로 한 프레임 그려졌다가 실제 위치로
+   * 튀어 보인다 — 특히 탭마다 전체 화면이 다시 마운트되는 커뮤니티에서 두드러졌다. */
+  useLayoutEffect(() => {
     settle();
     window.addEventListener('resize', settle);
     return () => window.removeEventListener('resize', settle);

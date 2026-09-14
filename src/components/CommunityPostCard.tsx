@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { icon, img } from '../lib/asset';
 import type { CommunityPost } from '../data/communityPosts';
 
@@ -22,8 +23,26 @@ export function CommunityPostCard({
   onToggleLike,
   showChips = true,
 }: CommunityPostCardProps) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  /* 제목이 실제로 1줄로 끝났는지(줄바꿈 없이) 재서, 그럴 때만 미리보기 위 여백을 살짝 준다.
+   * -webkit-line-clamp 는 최대 줄 수만 제한할 뿐 실제 줄 수는 알려주지 않아서 직접 잰다. */
+  const [titleSingleLine, setTitleSingleLine] = useState(false);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = titleRef.current;
+      if (!el) return;
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      if (!lineHeight) return;
+      setTitleSingleLine(Math.round(el.scrollHeight / lineHeight) <= 1);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [post.title]);
+
   return (
-    <article className="post-card">
+    <article className={`post-card${titleSingleLine ? ' post-card--title-single-line' : ''}`}>
       <div className="post-card__header">
         <p className="post-card__author">
           <span className="post-card__badge" aria-hidden="true">
@@ -63,8 +82,9 @@ export function CommunityPostCard({
 
       <div className="post-card__body">
         <div className="post-card__text">
-          <h3 className="post-card__title">{post.title}</h3>
-          <p className="post-card__preview">{post.preview}</p>
+          <h3 className="post-card__title" ref={titleRef}>{post.title}</h3>
+          {/* 임시 비활성화 (검토 중) — 되돌리려면 이 주석만 풀면 된다 */}
+          {/* <p className="post-card__preview">{post.preview}</p> */}
           {showChips && (
             <div className="post-card__chips">
               <span className="post-card__chip post-card__chip--tag">{post.hashtag}</span>

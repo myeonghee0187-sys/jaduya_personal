@@ -3,7 +3,7 @@
 export const MY_SPENDING_REPORT = {
   title: '이번달 지출 리포트',
   deltaLabel: '지난달보다 8.2% 줄었어요',
-  amount: 642_000,
+  amount: 730_000,
   ctaLabel: '전체보기',
 };
 
@@ -27,8 +27,8 @@ export const PEER_COMPARISONS: PeerComparison[] = [
     avatarColor: '#c7753b',
     condition: '서울 · 원룸 · 1인가구',
     amount: 725_000,
-    deltaLabel: '알뜰이보다 11.4% 적게 썼어요',
-    deltaTone: 'positive',
+    deltaLabel: '알뜰이보다 0.7% 더 썼어요',
+    deltaTone: 'negative',
   },
   {
     id: 'minimalist',
@@ -37,7 +37,7 @@ export const PEER_COMPARISONS: PeerComparison[] = [
     avatarColor: '#a2b123',
     condition: '경기 · 오피스텔 · 1인가구',
     amount: 598_000,
-    deltaLabel: '미니멀러보다 7.4% 더 썼어요',
+    deltaLabel: '미니멀러보다 22.1% 더 썼어요',
     deltaTone: 'negative',
   },
   {
@@ -47,7 +47,7 @@ export const PEER_COMPARISONS: PeerComparison[] = [
     avatarColor: '#b43936',
     condition: '서울 · 원룸 · 1인가구',
     amount: 640_000,
-    deltaLabel: '자취고수보다 0.3% 더 썼어요',
+    deltaLabel: '자취고수보다 14.1% 더 썼어요',
     deltaTone: 'negative',
   },
 ];
