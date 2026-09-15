@@ -52,7 +52,6 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'weather-alert',
     },
     '1인 가구 살림템': {
-      /* '자취 추천템'(자취)과 같은 이미지를 쓴다 — 둘 다 자취 생활용 아이템 추천이다 */
       title: '개별 스위치 멀티탭을 써요',
       description: '안 쓰는 제품만 골라 꺼요.',
       imageKey: 'living-gadget',
@@ -71,8 +70,7 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'utility-saving',
     },
     '고정지출 관리': {
-      /* 원래 '고정비 관리' 이름으로 받은 콘텐츠 — 실제 주제명은 '고정지출 관리'.
-       * '월별 지출 체크'와 같은 이미지를 쓴다 — 둘 다 지출 관리 계열이다. */
+      /* 원래 '고정비 관리' 이름으로 받은 콘텐츠 — 실제 주제명은 '고정지출 관리' */
       title: '자동결제 목록을 모아봐요',
       description: '매달 빠지는 구독료를 확인해요.',
       imageKey: 'money-management',
@@ -90,16 +88,14 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'budget-planning',
     },
     '월별 지출 체크': {
-      /* '고정지출 관리'와 같은 이미지를 쓴다 — 둘 다 지출 관리 계열이다 */
       title: '지출은 주 1회 확인해요',
       description: '놓치는 소비를 줄일 수 있어요.',
-      imageKey: 'money-management',
+      imageKey: 'spending-check',
     },
   },
 
   장보기: {
     '장보기 할인': {
-      /* '소용량 식재료'와 같은 이미지를 쓴다 — 둘 다 "필요한 만큼만 산다"는 내용이다 */
       title: '필요한 만큼만 담아요',
       description: '다 못 먹으면 오히려 손해예요.',
       imageKey: 'grocery-discount',
@@ -117,10 +113,10 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
     },
     '소용량 식재료': {
       /* 원래 '1인분 구매' 이름으로 받은 콘텐츠 — 필요한 만큼만 사는 내용이라
-       * '소용량 식재료' 주제와 가장 가깝다. '장보기 할인'과 같은 이미지를 쓴다. */
+       * '소용량 식재료' 주제와 가장 가깝다. */
       title: '필요한 만큼만 사요',
       description: '다 못 먹으면 대용량도 손해예요.',
-      imageKey: 'grocery-discount',
+      imageKey: 'small-quantity',
     },
     '식비 절약': {
       title: '공복에 장 보지 마세요',
@@ -136,7 +132,6 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
 
   '이사·주거': {
     '이사 준비': {
-      /* '집 관리'와 같은 이미지를 쓴다 — 둘 다 이사·입주 시점의 일이다 */
       title: '박스에 방 이름을 적어요',
       description: '정리 시간을 크게 줄여줘요.',
       imageKey: 'moving-home',
@@ -163,16 +158,15 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
     },
     '집 관리': {
       /* 원래 '하자 점검' 이름으로 받은 콘텐츠 — 입주 시점 집 상태 기록이라
-       * '집 관리' 주제와 가장 가깝다. '이사 준비'와 같은 이미지를 쓴다. */
+       * '집 관리' 주제와 가장 가깝다. */
       title: '입주 첫날 집 상태 촬영',
       description: '기존 하자를 사진으로 남겨요.',
-      imageKey: 'moving-home',
+      imageKey: 'home-repair',
     },
   },
 
   인테리어: {
     '원룸 공간 활용': {
-      /* '가구 배치'와 같은 이미지를 쓴다 — 둘 다 방 안 공간·동선을 다루는 내용이다 */
       title: '큰 가구부터 자리를 정해요',
       description: '남은 공간을 활용하기 쉬워요.',
       imageKey: 'room-layout',
@@ -183,10 +177,9 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'storage-idea',
     },
     '가구 배치': {
-      /* '원룸 공간 활용'과 같은 이미지를 쓴다 */
       title: '생활 동선부터 확보해요',
       description: '움직이는 길이 막히지 않게요.',
-      imageKey: 'room-layout',
+      imageKey: 'furniture-layout',
     },
     홈데코: {
       title: '포인트는 한두 곳만 줘요',
@@ -207,7 +200,6 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
 
   자취: {
     '자취 꿀팁': {
-      /* '혼자 사는 루틴'과 같은 이미지를 쓴다 — 둘 다 집안일을 나눠서 하는 루틴 얘기다 */
       title: '집안일은 나눠서 해요',
       description: '주말에 한꺼번에 쌓이지 않아요.',
       imageKey: 'daily-routine',
@@ -218,10 +210,9 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'beginner-guide',
     },
     '혼자 사는 루틴': {
-      /* '자취 꿀팁'과 같은 이미지를 쓴다 */
       title: '집안일은 요일을 정해요',
       description: '생활 리듬을 만들기 쉬워져요.',
-      imageKey: 'daily-routine',
+      imageKey: 'living-routine',
     },
     '자취 실수 방지': {
       title: '외출 전 세 가지 확인해요',
@@ -229,10 +220,9 @@ export const RECOMMENDATION_TIPS: Record<InterestCategory, Record<string, Recomm
       imageKey: 'safety-check',
     },
     '자취 추천템': {
-      /* '1인 가구 살림템'(생활)과 같은 이미지를 쓴다 */
       title: '멀티탭과 공구는 꼭 챙겨요',
       description: '충전·간단 수리에 자주 써요.',
-      imageKey: 'living-gadget',
+      imageKey: 'alone-essentials',
     },
     '자취 경험담': {
       title: '직접 살아보며 방법을 찾아요',
