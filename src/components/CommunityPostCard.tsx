@@ -10,6 +10,9 @@ interface CommunityPostCardProps {
   onToggleLike: () => void;
   /** 자취 꿀팁 화면은 hashtag·category 칩 행이 없다 (Figma tip 2257:13827) */
   showChips?: boolean;
+  /** 게시글 상세보기 — 아직 일부 게시글에만 본문 데이터가 있어 선택적으로 넘긴다.
+   * 없으면 카드는 지금처럼 제목/미리보기를 눌러도 반응하지 않는다. */
+  onOpenDetail?: () => void;
 }
 
 /* 커뮤니티 게시글 카드.
@@ -22,6 +25,7 @@ export function CommunityPostCard({
   onToggleSave,
   onToggleLike,
   showChips = true,
+  onOpenDetail,
 }: CommunityPostCardProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   /* 제목이 실제로 1줄로 끝났는지(줄바꿈 없이) 재서, 그럴 때만 미리보기 위 여백을 살짝 준다.
@@ -42,7 +46,10 @@ export function CommunityPostCard({
   }, [post.title]);
 
   return (
-    <article className={`post-card${titleSingleLine ? ' post-card--title-single-line' : ''}`}>
+    <article
+      className={`post-card${titleSingleLine ? ' post-card--title-single-line' : ''}${onOpenDetail ? ' post-card--clickable' : ''}`}
+      onClick={onOpenDetail}
+    >
       <div className="post-card__header">
         <p className="post-card__author">
           <span className="post-card__badge" aria-hidden="true">
@@ -57,7 +64,10 @@ export function CommunityPostCard({
             className={`post-card__stat post-card__like${liked ? ' is-liked' : ''}`}
             aria-pressed={liked}
             aria-label={`${post.title} 좋아요`}
-            onClick={onToggleLike}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleLike();
+            }}
           >
             <img
               className="post-card__like-icon"
@@ -75,7 +85,10 @@ export function CommunityPostCard({
             className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
             aria-pressed={saved}
             aria-label={`${post.title} 저장`}
-            onClick={onToggleSave}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleSave();
+            }}
           />
         </div>
       </div>

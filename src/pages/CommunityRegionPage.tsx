@@ -30,7 +30,7 @@ export function CommunityRegionPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [dwelling, setDwelling] = useState<string[]>([]);
   const [nearby, setNearby] = useState<string[]>([]);
-  const [outsideNeighborhood, setOutsideNeighborhood] = useState(false);
+  const [outsideNeighborhood, setOutsideNeighborhood] = useState(true);
   const [rangeStep, setRangeStep] = useState(0);
   const filterRef = useRef<HTMLDivElement>(null);
 
