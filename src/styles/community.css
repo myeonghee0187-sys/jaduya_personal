@@ -141,39 +141,32 @@
 
 /* ================= 탭 ================= */
 
+/* 각 탭은 글자 폭만큼만 차지하고(flex:none), space-between 으로 줄 전체를 채운다 —
+ * space-between 은 탭 사이 간격을 수학적으로 똑같이 나눠주는 속성이라 글자 길이가
+ * 달라도 텍스트 사이 여백이 항상 동일하다. 좌우 padding을 조금 줘서, 그 여백의 일부가
+ * "탭 버튼 자체의 폭"으로 흡수되어 탭 사이 빈 간격이 과하게 넓어지지 않게 한다.
+ * 밑줄은 이 컨테이너 하나가 전체 폭에 긋고, 활성 탭만 자기 폭만큼 ::after 로 덧그린다. */
 .community-tabs {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-top: 26px;
+  border-bottom: 1px solid var(--border-warm);
 }
 
 .community-tabs__tab {
   position: relative;
-  flex: 1;
-  min-width: 0;
+  flex: none;
   border: 0;
-  border-bottom: 1px solid var(--border-warm);
-  padding: 12px 6px 14px;
+  padding: 12px 24px 14px;
   background: none;
   color: #737373;
   font: 400 14px/16px var(--font-suit);
-  text-align: center;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-/* '전체' · '질문' 은 두 글자라 균등 분할하면 과하게 넓어 보인다 — 글자 폭만큼만 쓴다 */
-.community-tabs__tab:nth-child(-n + 2) {
-  flex: none;
-  width: auto;
-  padding-right: 14px;
-  padding-left: 14px;
-}
-
 .community-tabs__tab.is-active {
-  /* 실제 border 는 높이 유지용으로 투명하게 두고, 보이는 밑줄은 ::after 가 그린다
-   * (돈관리 탭과 같은 방식 — 탭 전환마다 밑줄이 팝인되는 모션을 넣기 위해서다) */
-  border-bottom: 2px solid transparent;
-  padding-bottom: 14px;
   color: var(--brand-primary);
   font-weight: 700;
 }
@@ -287,7 +280,7 @@
 .tip-categories {
   display: flex;
   gap: 5px;
-  padding: 20px 0 10px;
+  padding: 10px 0;
 }
 
 .tip-category {
@@ -639,6 +632,10 @@
   display: block;
   width: 100%;
   height: 100%;
+  /* 브라우저 기본 이미지 드래그(다른 곳에 끌어다 놓기)가 커스텀 슬라이더 드래그를
+   * 가로채지 않도록 막는다 — draggable={false} 와 함께 적용한다 */
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 /* 트랙과 같은 좌우 여백(30px)의 좌표계를 공유해, 각 라벨이 핸들 위치(%)에
@@ -722,6 +719,10 @@
   border-radius: 16px;
   padding: 12px 16px;
   background: rgba(255, 255, 255, 0.6);
+}
+
+.post-card--clickable {
+  cursor: pointer;
 }
 
 /* ---------- 상단: 작성자 / 좋아요·댓글·북마크 ---------- */
@@ -1424,4 +1425,407 @@
   color: #fffdfb;
   font: 700 14px/1.3 var(--font-suit);
   cursor: pointer;
+}
+
+/* ================= 게시글 상세보기 — write-panel과 같은 슬라이드인 오버레이 구조 ================= */
+
+.post-detail {
+  background: var(--surface-subtle);
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+}
+
+.post-detail[hidden] {
+  display: flex;
+  opacity: 0;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 220ms cubic-bezier(0.4, 0, 1, 1),
+    transform 220ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0s linear 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-detail,
+  .post-detail[hidden] {
+    transition: none;
+  }
+}
+
+.post-detail__header {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  background: rgba(252, 250, 247, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.post-detail__title-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.post-detail__back {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.post-detail__back img {
+  width: var(--header-back-w);
+  height: var(--header-back-h);
+}
+
+.post-detail__title {
+  font-family: var(--font-a2z);
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--brand-primary);
+}
+
+.post-detail__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.post-detail__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.post-detail__content {
+  display: flex;
+  flex-direction: column;
+  padding: 26px var(--screen-margin) 45px;
+}
+
+/* 참고 이미지 레이아웃 순서: 카테고리 태그 → 제목 → 작성자 → 구분선 → 본문 → 이미지 */
+.post-detail__tags {
+  display: flex;
+  gap: 6px;
+}
+
+.post-detail__tag {
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font: 500 12px/1.4 var(--font-suit);
+  white-space: nowrap;
+}
+
+.post-detail__tag--hashtag {
+  background: #eef2de;
+  color: #757c33;
+}
+
+.post-detail__tag--category {
+  background: #f4ece0;
+  color: var(--cm-oat);
+}
+
+.post-detail__heading {
+  margin: 14px 0 0;
+  color: var(--text-nav);
+  font: 700 20px/1.35 var(--font-a2z);
+}
+
+.post-detail__author-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.post-detail__avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--cm-card-border, #eed6c4);
+  font-size: 18px;
+}
+
+.post-detail__author-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.post-detail__author-name {
+  color: var(--text-nav);
+  font: 600 14px/1.3 var(--font-suit);
+}
+
+.post-detail__author-meta {
+  color: var(--cm-oat);
+  font: 400 12px/1.4 var(--font-suit);
+}
+
+.post-detail__divider {
+  margin-top: 20px;
+  border-top: 1px solid #e9e4df;
+}
+
+.post-detail__body {
+  margin: 20px 0 0;
+  color: var(--text-nav);
+  font: 400 15px/1.7 var(--font-suit);
+  white-space: pre-line;
+}
+
+.post-detail__image {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  border-radius: var(--radius-m);
+  object-fit: cover;
+}
+
+/* ---------- 댓글 ---------- */
+
+.post-detail__comments {
+  margin-top: 32px;
+}
+
+/* 댓글 입력창 — '댓글 N' 제목 위에 있고, 스크롤을 올려 nav-header에 닿는 순간부터는
+ * 그 자리에 붙어(sticky) 있다가 다시 내려가면 같이 따라 내려온다.
+ * background 가 없으면 뒤에 깔린 댓글 목록이 그대로 비쳐 보인다. */
+.post-detail__comment-form {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-subtle);
+  padding: 16px 0;
+  margin: 0 calc(var(--screen-margin) * -1) 8px;
+  padding-left: var(--screen-margin);
+  padding-right: var(--screen-margin);
+  border-bottom: 1px solid #ececec;
+}
+
+.post-detail__comment-form-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.post-detail__comment-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.post-detail__comments-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.post-detail__comments-heading {
+  margin: 0;
+  color: var(--text-nav);
+  font: 700 15px/1.3 var(--font-suit);
+}
+
+.post-detail__comment-sort {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.post-detail__comment-sort-btn {
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  background: none;
+  color: var(--cm-oat);
+  font: 500 12px/1.4 var(--font-suit);
+  cursor: pointer;
+}
+
+.post-detail__comment-sort-btn.is-active {
+  background: var(--surface-widget);
+  color: var(--text-nav);
+  font-weight: 700;
+}
+
+.post-detail__comment-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.post-detail__comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid #ececec;
+}
+
+.post-detail__comment:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* 댓글 전용 축소 아바타 — 기본 .post-detail__avatar(38px)보다 작게, 사진도 원형으로 채운다 */
+.post-detail__avatar--comment {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.post-detail__avatar--comment img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-detail__comment-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.post-detail__comment-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.post-detail__comment-author {
+  color: var(--text-nav);
+  font: 600 13px/1.3 var(--font-suit);
+}
+
+/* 닉네임 옆 레벨 단계 아이콘 — 텍스트·배경 없이 아이콘 그림만, 닉네임 글자 높이에 맞춘다 */
+.post-detail__comment-level-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.post-detail__comment-new {
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  background: var(--brand-primary);
+  color: #fffdfb;
+  font: 700 9px/1.4 var(--font-suit);
+}
+
+.post-detail__comment-time {
+  margin-left: auto;
+  color: var(--cm-oat);
+  font: 400 11px/1.4 var(--font-suit);
+}
+
+.post-detail__comment-text {
+  margin: 4px 0 0;
+  color: var(--text-nav);
+  font: 400 13px/1.5 var(--font-suit);
+}
+
+/* 댓글 좋아요 — 카드 좋아요와 같은 아이콘, 댓글 본문 아래에 둔다 */
+.post-detail__comment-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--cm-oat);
+  font: 400 11px/1 var(--font-asta);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.post-detail__comment-like img {
+  width: 14px;
+  height: 14px;
+}
+
+.post-detail__comment-like.is-liked {
+  color: var(--brand-primary);
+}
+
+.post-detail__comments-more {
+  width: 100%;
+  margin-top: 16px;
+  border: 1px solid #e9e4df;
+  border-radius: var(--radius-m);
+  padding: 10px 0;
+  background: var(--surface-base);
+  color: var(--cm-oat);
+  font: 600 13px/1.3 var(--font-suit);
+  cursor: pointer;
+}
+
+.post-detail__comment-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--cm-oat);
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  background: #fffdfb;
+  color: var(--text-nav);
+  font: 400 13px/1.4 var(--font-suit);
+}
+
+.post-detail__comment-input::placeholder {
+  color: #e0cdad;
+}
+
+.post-detail__comment-input:focus {
+  outline-color: var(--cm-oat);
+  border-color: var(--cm-oat);
+}
+
+.post-detail__comment-submit {
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0 18px;
+  background: var(--brand-primary);
+  color: #fffdfb;
+  font: 700 13px/1.4 var(--font-suit);
+  cursor: pointer;
+}
+
+.post-detail__comment-submit:disabled {
+  background: #ececec;
+  color: #b7b2ac;
+  cursor: not-allowed;
 }

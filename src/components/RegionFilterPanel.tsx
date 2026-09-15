@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { icon } from '../lib/asset';
 
 export const REGION_DWELLING_OPTIONS = ['원룸', '투룸', '오피스텔', '주택'];
@@ -54,24 +54,35 @@ export function RegionFilterPanel({
     if (!outsideNeighborhood) return;
     event.stopPropagation();
     dragPointerId.current = event.pointerId;
-    event.currentTarget.setPointerCapture(event.pointerId);
     setDragRatio(rangeStep / lastIndex);
   };
 
-  const handleKnobPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (dragPointerId.current !== event.pointerId) return;
-    setDragRatio(ratioFromClientX(event.clientX));
-  };
-
-  const endKnobDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (dragPointerId.current !== event.pointerId) return;
-    dragPointerId.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    if (dragRatio !== null) onChangeRange(Math.round(dragRatio * lastIndex));
-    setDragRatio(null);
-  };
+  /* 핸들(18px)에만 pointermove/up 을 걸고 setPointerCapture 에 기대는 대신, window 에 직접
+   * 건다 — setPointerCapture 가 안 먹히는 환경(데스크톱 마우스 일부 경로에서 확인됨)에서도
+   * 마우스가 작은 핸들 밖으로 살짝만 벗어나면 이벤트를 놓쳐 드래그가 아예 안 움직이는
+   * 문제가 있었다. dragPointerId 로 지금 드래그 중인 포인터인지만 가른다. */
+  useEffect(() => {
+    const onMove = (event: PointerEvent) => {
+      if (dragPointerId.current === null || event.pointerId !== dragPointerId.current) return;
+      setDragRatio(ratioFromClientX(event.clientX));
+    };
+    const onUp = (event: PointerEvent) => {
+      if (dragPointerId.current === null || event.pointerId !== dragPointerId.current) return;
+      dragPointerId.current = null;
+      setDragRatio((current) => {
+        if (current !== null) onChangeRange(Math.round(current * lastIndex));
+        return null;
+      });
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [onChangeRange, lastIndex]);
 
   const isDragging = dragRatio !== null;
   const displayRatio = dragRatio ?? rangeStep / lastIndex;
@@ -156,11 +167,8 @@ export function RegionFilterPanel({
               aria-valuetext={REGION_RANGE_STEPS[rangeStep]}
               disabled={!outsideNeighborhood}
               onPointerDown={handleKnobPointerDown}
-              onPointerMove={handleKnobPointerMove}
-              onPointerUp={endKnobDrag}
-              onPointerCancel={endKnobDrag}
             >
-              <img src={icon('region-filter-handle.svg')} alt="" />
+              <img src={icon('region-filter-handle.svg')} alt="" draggable={false} />
             </button>
           </div>
           <div className="region-filter__steps">

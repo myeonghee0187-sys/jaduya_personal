@@ -10,6 +10,8 @@ export interface CommunityPost {
   title: string;
   /** 본문 미리보기 — 카드에서 한 줄로 줄임 */
   preview: string;
+  /** 게시글 상세보기용 본문 전체 — 아직 일부 게시글에만 있다 (없으면 카드가 안 눌린다) */
+  body?: string;
   /** 작성자 뱃지 이모지 */
   badge: string;
   author: string;
@@ -62,6 +64,13 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '다이소 바구니만으로 책상 정리 끝냈어요',
     preview:
       '책상 위에 충전기, 필기구, 영수증이 계속 쌓여서 정신없어 보였는데, 작은 트레이 하나로 정리하니까 확 달라졌어요',
+    body:
+      '책상 위에 충전기, 필기구, 영수증이 계속 쌓여서 정신없어 보였는데, 작은 트레이 하나로 정리하니까 확 달라졌어요.\n\n' +
+      '원래는 서랍에 다 몰아넣었는데, 막상 쓸 때마다 뒤지느라 시간이 더 걸리더라고요. 그래서 눈에 보이는 곳에 종류별로 나눠두는 걸로 방향을 바꿨어요.\n\n' +
+      '1. 충전 케이블 전용 트레이 하나\n' +
+      '2. 필기구는 세로 칸막이 바구니\n' +
+      '3. 영수증·메모는 작은 서류함\n\n' +
+      '다이소에서 산 바구니 3개, 트레이 1개가 전부인데 총 6천 원도 안 들었어요. 책상 위가 정리되니까 공부할 때 집중도 훨씬 잘 되는 느낌이에요. 자취 초반에 이것부터 해뒀으면 더 좋았을 것 같아요!',
     badge: '🐰',
     author: '수납장인',
     time: '어제',
@@ -106,11 +115,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '전입신고랑 확정일자, 이사 당일에 다 끝냈어요',
     preview: '동사무소 한 번 방문으로 두 가지 다 처리하고 왔어요',
     badge: '🐣',
-    thumbEmoji: '📋',
     author: '자취첫달',
     time: '3시간 전',
     likes: 14,
     comments: 5,
+    thumb: 'post-declaration.webp',
     level: '초보',
   },
   {
@@ -120,11 +129,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '우편함 열쇠 처음 받았는데 번호 안 맞아요',
     preview: '전 세입자가 바꾼 것 같은데 관리실에 문의하니 금방 해결됐어요',
     badge: '📬',
-    thumbEmoji: '📭',
     author: '자취뉴비',
     time: '어제',
     likes: 9,
     comments: 11,
+    thumb: 'post-mail.webp',
     level: '초보',
   },
   {
@@ -134,11 +143,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '카드 대신 체크카드로 바꾸니 소비가 눈에 보여요',
     preview: '한도 걱정 없이 통장 잔액 안에서만 쓰게 되니까 확실히 줄었어요',
     badge: '💳',
-    thumbEmoji: '🧾',
     author: '가계부3개월차',
     time: '6시간 전',
     likes: 26,
     comments: 8,
+    thumb: 'post-debitcard.webp',
     level: '중수',
   },
   {
@@ -148,11 +157,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '청소 요일 정해두니까 미루는 게 없어졌어요',
     preview: '화장실 화요일, 분리배출 금요일 이렇게 고정해두는 게 팁이에요',
     badge: '🧴',
-    thumbEmoji: '🗓️',
     author: '루틴정착중',
     time: '2일 전',
     likes: 31,
     comments: 13,
+    thumb: 'post-cleaning.webp',
     level: '중수',
   },
   {
@@ -162,11 +171,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '자취생 연말정산, 월세 세액공제 놓치지 마세요',
     preview: '계약서·이체 내역만 있으면 홈택스에서 5분이면 신청 끝나요',
     badge: '🧑‍💼',
-    thumbEmoji: '📊',
     author: '연말정산고수',
     time: '3일 전',
     likes: 48,
     comments: 22,
+    thumb: 'post-endtax.webp',
     level: '고수',
   },
   {
@@ -176,11 +185,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '계약 갱신할 때 이 조항들은 꼭 확인하세요',
     preview: '특약사항 하나 놓쳐서 보증금 돌려받는데 고생한 적 있어요',
     badge: '📄',
-    thumbEmoji: '🖋️',
     author: '전세계약3번째',
     time: '4일 전',
     likes: 55,
     comments: 19,
+    thumb: 'post-contract.webp',
     level: '고수',
   },
   {
@@ -190,11 +199,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     title: '포장이사 견적 비교, 이 순서로 하면 안 밀려요',
     preview: '업체 3곳 동시에 부르지 말고 순차적으로 비교하니까 협상이 됐어요',
     badge: '🚚',
-    thumbEmoji: '📦',
     author: '이사만다섯번',
     time: '5일 전',
     likes: 39,
     comments: 16,
+    thumb: 'post-move.webp',
     level: '고수',
   },
 ];
@@ -288,11 +297,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '일요일 2시간이면 평일 도시락 다 해결돼요',
     preview: '기본 반찬 3가지만 미리 만들어두면 평일 저녁 고민이 사라져요',
     badge: '🍳',
-    thumbEmoji: '🍱',
     author: '밀프렙러버',
     time: '2026.01.14',
     likes: 22,
     comments: 14,
+    thumb: 'post-lunch.webp',
     tipCategory: 'cooking',
   },
   {
@@ -302,11 +311,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '계란 하나로 만드는 자취 반찬 5가지',
     preview: '재료 부담 없이 냉장고에 계란만 있으면 끼니 해결돼요',
     badge: '🥚',
-    thumbEmoji: '🍳',
     author: '자취요리초보',
     time: '2026.02.27',
     likes: 31,
     comments: 9,
+    thumb: 'post-egg.webp',
     tipCategory: 'cooking',
   },
   {
@@ -316,11 +325,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '마트 마감할인 시간대 알아두면 식비 확 줄어요',
     preview: '저녁 8시 이후 채소·정육 코너 할인 스티커 붙는 시간 노려보세요',
     badge: '🛒',
-    thumbEmoji: '🥬',
     author: '장보기고수',
     time: '2026.06.09',
     likes: 27,
     comments: 18,
+    thumb: 'post-discount.webp',
     tipCategory: 'cooking',
   },
   {
@@ -330,11 +339,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '배달비 아까워서 시작한 자취 라면 업그레이드',
     preview: '계란·대파·치즈만 추가해도 분식집 부럽지 않아요',
     badge: '🍜',
-    thumbEmoji: '🥡',
     author: '배달비아까운사람',
     time: '2026.09.21',
     likes: 16,
     comments: 11,
+    thumb: 'post-ramen.webp',
     tipCategory: 'cooking',
   },
   {
@@ -344,11 +353,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '다이소 바구니로 서랍 속 칸막이 만들었어요',
     preview: '뒤죽박죽이던 서랍이 칸별로 정리되니까 찾는 시간이 줄었어요',
     badge: '🧺',
-    thumbEmoji: '🗂️',
     author: '수납초보',
     time: '2026.02.05',
     likes: 24,
     comments: 7,
+    thumb: 'post-drawer.webp',
     tipCategory: 'interior',
   },
   {
@@ -358,11 +367,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '책상 밑 전선 뭉치, 케이블 클립 하나로 해결',
     preview: '바닥에 늘어져 있던 충전선들을 책상 아래로 싹 숨겼어요',
     badge: '🔌',
-    thumbEmoji: '🧵',
     author: '전선정리장인',
     time: '2026.04.18',
     likes: 19,
     comments: 6,
+    thumb: 'post-clip.webp',
     tipCategory: 'interior',
   },
   {
@@ -372,11 +381,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '못 없이 벽 꾸미는 방법 정리했어요',
     preview: '못자국 걱정 없는 벽걸이형 후크로 포스터·거울 달았어요',
     badge: '🖼️',
-    thumbEmoji: '🎨',
     author: '무드등수집가',
     time: '2026.07.30',
     likes: 33,
     comments: 12,
+    thumb: 'post-wall.webp',
     tipCategory: 'interior',
   },
   {
@@ -386,11 +395,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '침대 밑 공간, 수납박스로 완전히 채웠어요',
     preview: '계절 옷·이불을 눕혀서 넣으니 옷장 하나가 새로 생긴 느낌이에요',
     badge: '🛏️',
-    thumbEmoji: '📦',
     author: '원룸수납덕후',
     time: '2026.11.03',
     likes: 41,
     comments: 20,
+    thumb: 'post-storagebox.webp',
     tipCategory: 'interior',
   },
   {
@@ -400,11 +409,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '화장실 물때, 이 순서로 닦으면 반절로 줄어요',
     preview: '샤워 끝나고 바로 3분만 투자하면 곰팡이 걱정이 없어져요',
     badge: '🧴',
-    thumbEmoji: '🚿',
     author: '청소루틴러',
     time: '2026.01.22',
     likes: 29,
     comments: 10,
+    thumb: 'post-watercleaning.webp',
     tipCategory: 'clean',
   },
   {
@@ -414,11 +423,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '빨래에서 쉰내 안 나게 하는 세탁 순서',
     preview: '세탁 후 바로 널지 못할 땐 이 순서만 지켜도 냄새가 덜해요',
     badge: '🧺',
-    thumbEmoji: '👕',
     author: '빨래냄새고민',
     time: '2026.03.28',
     likes: 37,
     comments: 15,
+    thumb: 'post-laundry.webp',
     tipCategory: 'clean',
   },
   {
@@ -428,11 +437,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '1년 동안 안 쓴 물건 기준으로 정리했어요',
     preview: '기준 하나만 정해두니까 버릴지 말지 고민하는 시간이 줄었어요',
     badge: '🗑️',
-    thumbEmoji: '🧹',
     author: '미니멀도전중',
     time: '2026.06.16',
     likes: 45,
     comments: 22,
+    thumb: 'post-fixup.webp',
     tipCategory: 'clean',
   },
   {
@@ -442,11 +451,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '가스레인지 기름때, 베이킹소다로 끝냈어요',
     preview: '뜨거울 때 바로 닦는 습관 하나로 찌든때가 안 생겨요',
     badge: '🍽️',
-    thumbEmoji: '🧽',
     author: '기름때와의전쟁',
     time: '2026.10.11',
     likes: 26,
     comments: 13,
+    thumb: 'post-oil.webp',
     tipCategory: 'clean',
   },
   {
@@ -456,11 +465,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '이사 오자마자 현관 비밀번호부터 바꿨어요',
     preview: '전 세입자가 알고 있을 수 있어서 제일 먼저 확인했어요',
     badge: '🔑',
-    thumbEmoji: '🚪',
     author: '현관비번변경',
     time: '2026.02.14',
     likes: 52,
     comments: 19,
+    thumb: 'post-password.webp',
     tipCategory: 'repair',
   },
   {
@@ -470,11 +479,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '싱크대 아래 물이 새는 것 같을 때 확인할 것들',
     preview: '관리실 부르기 전에 셀프로 체크할 수 있는 부분부터 봤어요',
     badge: '🚰',
-    thumbEmoji: '💧',
     author: '누수의심',
     time: '2026.05.06',
     likes: 18,
     comments: 8,
+    thumb: 'post-sink.webp',
     tipCategory: 'repair',
   },
   {
@@ -484,11 +493,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '윗집 소음, 관리실에 이렇게 말했더니 해결됐어요',
     preview: '감정적으로 항의하기보다 시간대 기록해서 전달하니 효과 있었어요',
     badge: '🔇',
-    thumbEmoji: '🏠',
     author: '층간소음고민',
     time: '2026.08.24',
     likes: 39,
     comments: 27,
+    thumb: 'post-noise.webp',
     tipCategory: 'repair',
   },
   {
@@ -498,11 +507,11 @@ export const TIP_POSTS: CommunityPost[] = [
     title: '방충망 틈으로 들어오는 벌레 완전 차단법',
     preview: '문틈 방충 테이프 붙이고부터 벌레가 확실히 줄었어요',
     badge: '🪳',
-    thumbEmoji: '🧯',
     author: '벌레비상',
     time: '2026.12.02',
     likes: 44,
     comments: 16,
+    thumb: 'post-screen.webp',
     tipCategory: 'repair',
   },
 ];
@@ -579,7 +588,7 @@ export const REGION_POSTS: CommunityPost[] = [
     time: '2시간 전',
     likes: 84,
     comments: 15,
-    thumb: 'post-region.jpg',
+    thumb: 'post-oneroom.webp',
   },
   {
     id: 'region-seongsu',
@@ -592,7 +601,7 @@ export const REGION_POSTS: CommunityPost[] = [
     time: '1일 전',
     likes: 63,
     comments: 9,
-    thumb: 'post-region.jpg',
+    thumb: 'post-officetel.webp',
   },
   {
     id: 'region-haebangchon',
@@ -605,7 +614,7 @@ export const REGION_POSTS: CommunityPost[] = [
     time: '4시간 전',
     likes: 51,
     comments: 7,
-    thumb: 'post-region.jpg',
+    thumb: 'post-house.webp',
   },
   {
     id: 'region-hwagok',
@@ -618,6 +627,6 @@ export const REGION_POSTS: CommunityPost[] = [
     time: '6시간 전',
     likes: 39,
     comments: 5,
-    thumb: 'post-region.jpg',
+    thumb: 'post-tworoom.webp',
   },
 ];
