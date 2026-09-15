@@ -54,6 +54,9 @@ interface AppNavigationValue {
   page: AppPage;
   options: NavigateOptions;
   navigate: (page: AppPage, options?: NavigateOptions) => void;
+  /** 자두AI는 현재 화면 위에만 얹는다. 닫을 때 기반 화면의 상태를 보존한다. */
+  isAIChatOpen: boolean;
+  closeAIChat: () => void;
 }
 
 const AppNavigationContext = createContext<AppNavigationValue | null>(null);
@@ -64,12 +67,19 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
     page: 'home',
     options: {},
   });
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   /* navigate(page) 형태의 기존 호출은 그대로 동작한다 — options 는 선택값이다 */
   const value = useMemo(
     () => ({
       page: route.page,
       options: route.options,
       navigate: (page: AppPage, options: NavigateOptions = {}) => {
+        /* AI는 독립 route로 화면을 교체하지 않는다. 현재 .app을 남겨 둔 상태에서
+         * fullscreen overlay만 올려야 닫는 동안 실제 이전 화면이 그대로 드러난다. */
+        if (page === 'ai-chat') {
+          setIsAIChatOpen(true);
+          return;
+        }
         /* 라우터 없이 화면을 통째로 바꾸는 구조라, 이전 화면에서 스크롤해 내려간 채
          * 넘어오면 도착 화면도 그 위치에서 그려진다 — 새 화면은 항상 맨 위에서 보여야 한다. */
         window.scrollTo(0, 0);
@@ -88,8 +98,10 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
         document.getElementById('sheetScroll')?.scrollTo(0, 0);
         setRoute({ page, options });
       },
+      isAIChatOpen,
+      closeAIChat: () => setIsAIChatOpen(false),
     }),
-    [route],
+    [isAIChatOpen, route],
   );
   return <AppNavigationContext.Provider value={value}>{children}</AppNavigationContext.Provider>;
 }

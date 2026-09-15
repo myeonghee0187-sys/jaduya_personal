@@ -20,8 +20,14 @@
   transition: left 200ms ease, right 200ms ease, top 200ms ease;
 }
 
-.ai-fab[hidden] {
-  display: none;
+.ai-fab.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 닫기 마지막 구간에서 overlay 뒤에 먼저 준비해 cross-fade한다. transform/scale은 쓰지 않는다. */
+.ai-fab.is-disabled {
+  pointer-events: none;
 }
 
 /* 드래그 중에는 손가락을 즉시 따라와야 하므로 트랜지션을 끈다 */
@@ -54,11 +60,11 @@
   /* 전환 중에는 아무것도 누르지 못하게 둔다 */
   pointer-events: none;
   transition:
-    left 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    top 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    width 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    height 340ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 340ms cubic-bezier(0.22, 1, 0.36, 1);
+    left 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 450ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* 아이콘은 확장되는 원과 형제다 — 컨테이너를 따라 늘어나지 않게 크기를 인라인으로 고정하고
@@ -87,6 +93,7 @@
   .ai-morph__icon {
     display: none;
   }
+
 }
 
 /* ================= 패널 ================= */

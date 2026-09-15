@@ -8,10 +8,13 @@ import { GnbOverlay } from '../components/GnbOverlay';
 import { Greeting } from '../components/Greeting';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
+import { HomeRecommendSettings, emptyRecommendDraft } from '../components/HomeRecommendSettings';
+import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
 import { MyLifeSection } from '../components/MyLifeSection';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
+import { loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
@@ -29,14 +32,28 @@ import { useHomeWidgets } from '../widgets/HomeWidgetsContext';
  *    │   └─ My Menu Edit Bottom Sheet (menu/MyMenuContext — 모든 화면이 공유)
  *    └─ 위젯 추가(+)는 이제 오버레이가 아니라 별도 페이지(위젯 갤러리)로 이동한다.
  *       내 홈 위젯 상태 자체는 widgets/HomeWidgetsContext 가 화면 전환과 무관하게 들고 있다.
+ *
+ * 시트 안은 다시 두 개의 View 로 나뉜다 — 새 시트를 겹쳐 띄우지 않고 콘텐츠만 바꾼다.
+ *
+ *   HomeSheet
+ *    ├─ 'home'      : 내 생활 + 자두가 알려드려요
+ *    └─ 'recommend' : 맞춤 추천 설정
  */
+
+/** 홈 시트 안에서 보여줄 콘텐츠 */
+type HomeSheetView = 'home' | 'recommend';
+
 export function Home() {
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
   const persona = user?.persona ?? DEFAULT_PERSONA;
   const content = HOME_PERSONA_CONTENT[persona];
+  const personaProfile = PERSONA_PROFILE[persona];
   /* 하트·레벨은 마이페이지와 같은 원본을 쓴다 (data/personaProfile.ts) */
-  const level = resolveLevel(PERSONA_PROFILE[persona].level);
+  const level = resolveLevel(personaProfile.level);
+  /* 맞춤 추천 설정의 저장값은 마이페이지 자취 프로필과 같은 계정별 키를 쓴다
+   * (data/livingProfile.ts) — 계정을 바꾸면 다른 계정 값과 섞이지 않는다 */
+  const ownerKey = user?.email ?? 'guest';
 
   const navigation = useAppNavigation();
   const layers = useLayerStack();
@@ -45,6 +62,46 @@ export function Home() {
   const myMenu = useMyMenu();
   /* 내 생활 위젯 조합 + 저장된 위젯 목록 — 위젯 갤러리 페이지와 공유하는 전역 상태 */
   const homeWidgets = useHomeWidgets();
+
+  /* 시트 안에서 지금 보여줄 View. 페이지 이동이 아니라 이 state 하나로만 갈린다. */
+  const [sheetView, setSheetView] = useState<HomeSheetView>('home');
+  /* 맞춤 추천 설정 View 에서 편집 중인 draft — 저장 전까지는 여기서만 바뀐다.
+   * 실제 저장값(source of truth)은 마이페이지와 같은 livingProfile 이다(data/livingProfile.ts) —
+   * 이 state 는 그 값을 복제해 영구 보관하는 곳이 아니라, 시트가 열려 있는 동안의
+   * 편집용 임시값일 뿐이다. */
+  const [recommendDraft, setRecommendDraft] = useState<RecommendDraft>(emptyRecommendDraft);
+  /* 한 번이라도 설정 View 를 다녀왔는지 — 돌아올 때만 전환 효과를 준다.
+   * (첫 진입에서 시트 콘텐츠가 괜히 움직여 보이지 않게) */
+  const cameBackRef = useRef(false);
+
+  /* View 를 바꾸면 시트 스크롤은 항상 맨 위에서 시작한다 — 시트 자체(peek/expanded)와
+   * 스크롤 구조는 그대로 두고 scrollTop 만 되돌린다. */
+  const showSheetView = (view: HomeSheetView) => {
+    setSheetView(view);
+    if (sheet.scrollRef.current) sheet.scrollRef.current.scrollTop = 0;
+  };
+
+  /* 설정 View 를 열 때마다 livingProfile 에 저장되어 있는 현재 값으로 draft 를 다시 채운다 —
+   * 이전에 이 화면에서 저장하지 않고 나간 값이 남아있지 않도록 한다. */
+  const openRecommendSetup = () => {
+    const saved = loadLivingProfile(ownerKey, personaProfile);
+    setRecommendDraft({ category: saved.category, topics: saved.topics });
+    showSheetView('recommend');
+  };
+
+  const closeRecommendSetup = () => {
+    cameBackRef.current = true;
+    showSheetView('home');
+  };
+
+  /* 설정 저장하기 — draft 의 관심 분야·주제만 livingProfile 에 반영한다.
+   * 자취 경험·주거 형태 등 이 화면이 다루지 않는 값은 그대로 둔다. */
+  const saveRecommendSetup = (draft: RecommendDraft) => {
+    const saved = loadLivingProfile(ownerKey, personaProfile);
+    saveLivingProfile(ownerKey, { ...saved, category: draft.category, topics: draft.topics });
+    setRecommendDraft(draft);
+    closeRecommendSetup();
+  };
 
   /* 홈 코치마크(첫 진입 4단계 가이드) — 이서준과 이서준으로 새로 가입한 일반 테스트
    * 계정(둘 다 persona: 'beginner')에서만, 계정당 한 번만 뜬다. 계정이 바뀌면 Home 이
@@ -125,17 +182,29 @@ export function Home() {
         handleRef={sheet.handleRef}
         handleProps={sheet.handleProps}
       >
-        <MyLifeSection
-          layout={homeWidgets.layout}
-          heartsLabel={level.heartsLabel}
-          levelLabel={level.levelLabel}
-          widgets={homeWidgets.widgets}
-          isCustom={homeWidgets.isCustom}
-          onAddWidget={() => navigation?.navigate('widget-gallery')}
-          statusRef={statusRef}
-          addSlotRef={addSlotRef}
-        />
-        <DiscoverySection />
+        {sheetView === 'home' ? (
+          <div
+            className={`sheet-view sheet-view--home${cameBackRef.current ? ' sheet-view--back' : ''}`}
+          >
+            <MyLifeSection
+              layout={homeWidgets.layout}
+              heartsLabel={level.heartsLabel}
+              levelLabel={level.levelLabel}
+              widgets={homeWidgets.widgets}
+              isCustom={homeWidgets.isCustom}
+              onAddWidget={() => navigation?.navigate('widget-gallery')}
+              statusRef={statusRef}
+              addSlotRef={addSlotRef}
+            />
+            <DiscoverySection onOpenRecommendSetup={openRecommendSetup} />
+          </div>
+        ) : (
+          <HomeRecommendSettings
+            value={recommendDraft}
+            onBack={closeRecommendSetup}
+            onSave={saveRecommendSetup}
+          />
+        )}
       </HomeSheet>
 
       <BottomNavigation />
