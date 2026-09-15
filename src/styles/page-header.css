@@ -43,6 +43,15 @@
   height: var(--header-back-h);
 }
 
+/* 제목과 header-actions(76px 고정 구역) 사이에 페이지별 보조 버튼(예: 위젯 관리의
+ * "가이드")을 끼워 넣는 자리. header-actions 는 절대 건드리지 않고, 이 요소도 같은
+ * margin-left: auto 로 오른쪽에 붙어 header-actions 바로 왼쪽에 자연스럽게 이어진다. */
+.page-header__extra {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
 /* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
  * 40×40 버튼 두 개를 기존 76px 액션 영역의 중심에 배치한다. 두 버튼의 중심 간격은
  * 40px로 고정되며 기존 아이콘 중심축과 좌우 위치를 유지한다.

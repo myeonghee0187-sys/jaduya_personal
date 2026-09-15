@@ -1,17 +1,11 @@
-/* JADUYA — 위젯 갤러리(Widget Gallery)
+/* JADUYA — 위젯 카드 공통 시스템 (.wcard)
  *
- * 값은 전부 tokens.css 의 토큰만 쓴다. 위젯 카드(.wcard)는 이 파일에서 새로 만든
- * 완전히 독립된 클래스 — Home 캔버스(home.css 의 .widget/.module-card)와 위젯 추가
- * 시트(overlays.css 의 .wpick)는 그대로 두고 이름이 겹치지 않게 한다.
+ * 값은 전부 tokens.css 의 토큰만 쓴다. Home '내 생활' 캔버스, 위젯 관리 화면(위젯 배치
+ * 그리드), 위젯 추가 화면(목록·미리보기)이 이 카드 하나를 그대로 공유한다 — "위젯"이
+ * 어디서 보이든 같은 모양이어야 한다는 원칙 때문에 화면마다 다른 카드를 새로 만들지 않는다.
  */
 
-.widget-gallery.app {
-  display: flex;
-  flex-direction: column;
-  background: var(--surface-subtle);
-}
-
-.wg-scroll {
+.wpg-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -19,84 +13,8 @@
   scrollbar-width: none;
 }
 
-.wg-scroll::-webkit-scrollbar {
+.wpg-scroll::-webkit-scrollbar {
   display: none;
-}
-
-.wg-sub {
-  margin: 0 0 var(--space-lg);
-  font-family: var(--font-suit);
-  font-size: var(--font-size-body);
-  color: var(--text-secondary);
-}
-
-/* ================= 검색 ================= */
-
-.wg-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  height: 44px;
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-m);
-  background: var(--surface-widget);
-  margin-bottom: var(--section-gap);
-}
-
-.wg-search img {
-  flex: none;
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
-}
-
-.wg-search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: none;
-  font-family: var(--font-suit);
-  font-size: var(--font-size-body);
-  color: var(--text-primary);
-}
-
-.wg-search input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.wg-search input:focus {
-  outline: none;
-}
-
-/* ================= 섹션 ================= */
-
-.wg-section {
-  margin-bottom: var(--section-gap);
-}
-
-.wg-section__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-}
-
-.wg-section__title {
-  margin: 0 0 var(--space-sm);
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-body);
-  color: var(--text-primary);
-}
-
-.wg-section__head .wg-section__title {
-  margin-bottom: 0;
-}
-
-.wg-section__count {
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
 }
 
 .wg-empty {
@@ -172,22 +90,45 @@
   width: var(--widget-medium-w);
   height: var(--widget-medium-h);
   padding: var(--card-padding-m);
+  /* 내용이 카드 높이를 다 안 채울 때 위쪽에만 붙어 보이지 않도록, 헤더부터 CTA까지
+   * 전체 블록을 세로 가운데로 둔다(내용이 꽉 찬 위젯은 어차피 여유가 없어 그대로다) */
+  justify-content: center;
 }
 
 .wcard--small {
   width: var(--widget-small-w);
   height: var(--widget-small-h);
-  padding: var(--space-sm) var(--space-md);
+  /* --card-padding-s(12px, tokens.css) 전용 값을 쓴다 — 전에는 space-md(16px)를 그대로
+   * 써서 M/L보다 훨씬 좁은 128.5px 카드 안에서 콘텐츠 폭이 96.5px밖에 안 남아, "최대 30%
+   * 할인"처럼 조금만 긴 값도 줄임표 직전까지 붙어 보였다. */
+  padding: var(--card-padding-s);
 }
 
 .wcard--large {
   width: var(--content-width);
   height: var(--widget-large-h);
-  padding: var(--card-padding-m);
+  /* L은 342px로 M(167px)보다 훨씬 넓은데 지금까지 같은 --card-padding-m(16px)을 그대로
+   * 써서, 상태 목록/순위 목록의 오른쪽 텍스트가 폭 대비 여백 없이 카드 끝에 바짝 붙어
+   * 보였다. 가로만 tokens.css의 L 전용 값(--card-padding-l: 20px)으로 늘린다 — 세로까지
+   * 늘리면 114px 높이 예산이 더 빠듯해져 5줄 체크리스트처럼 이미 꽉 찬 위젯들이 새로
+   * 넘치므로, 위아래는 기존 --card-padding-m(16px)을 그대로 둔다. */
+  padding: var(--card-padding-m) var(--card-padding-l);
+  /* M과 같은 이유로 세로 가운데 정렬 — 내용이 짧은 L 위젯(냉장고 등)이 위쪽에만
+   * 몰려 보이지 않게 한다 */
+  justify-content: center;
 }
 
-.wcard--preview {
+.wcard--preview,
+.wcard--home {
   cursor: default;
+}
+
+/* 위젯 관리 화면의 배치 그리드 안에서는 카드가 자리를 꽉 채운다(WidgetSlot 이 폭을 관리) */
+.wpg-slot .wcard--medium,
+.wpg-slot .wcard--small,
+.wpg-slot .wcard--large {
+  width: 100%;
+  height: 100%;
 }
 
 .wcard__header {
@@ -202,7 +143,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-suit);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   font-size: var(--font-size-title);
   color: var(--text-secondary);
   white-space: nowrap;
@@ -210,13 +151,41 @@
   text-overflow: ellipsis;
 }
 
-.wcard__meta {
+/* 위젯 아이콘 뱃지 — 카테고리별 톤 배경 + 아이콘. 카드 헤더와 목록 카드가 함께 쓴다 */
+.wicon-badge {
+  display: flex;
   flex: none;
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-caption);
-  color: var(--brand-primary);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-m);
 }
+
+.wicon-badge--sm {
+  width: 22px;
+  height: 22px;
+}
+
+.wicon-badge--sm img {
+  width: 12px;
+  height: 12px;
+}
+
+.wicon-badge--md {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-l);
+}
+
+.wicon-badge--md img {
+  width: 20px;
+  height: 20px;
+}
+
+.wicon-badge--green { background: rgba(162, 177, 35, 0.16); }
+.wicon-badge--orange { background: rgba(199, 117, 59, 0.16); }
+.wicon-badge--red { background: rgba(180, 57, 54, 0.12); }
+.wicon-badge--rose { background: rgba(195, 97, 94, 0.16); }
+.wicon-badge--yellow { background: rgba(251, 221, 120, 0.35); }
 
 .wcard--small .wcard__value {
   margin-top: auto;
@@ -225,6 +194,9 @@
 
 .wcard__value {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   width: 100%;
   margin-top: var(--space-sm);
   font-family: var(--font-suit);
@@ -241,7 +213,7 @@
 }
 
 /* 목록/체크리스트/불릿이 함께 오는 Large 위젯은 값 폰트를 한 단계 낮춰(M과 동일) 목록이
- * 114px 안에 들어오게 한다 — 생활 체크/오늘 할 일처럼 정보 밀도가 높은 위젯 전용 */
+ * 114px 안에 들어오게 한다 — 정보 밀도가 높은 위젯 전용 */
 .wcard--large.wcard--dense .wcard__value {
   font-size: var(--font-size-value-m);
 }
@@ -258,86 +230,70 @@
   text-overflow: ellipsis;
 }
 
-/* 공통 Progress Ring — 헤더 우측(meta 자리)에 붙는 배지형. 카드 크기와 무관하게
- * 항상 같은 지름(32px)을 써서 위젯마다 링 크기가 달라지지 않게 한다. */
-.wcard__ring {
+/* value 앞에 붙는 초록 체크 — 보증금 안전 전용 */
+.wcard__check {
   flex: none;
+  color: var(--brand-green);
 }
 
-.wcard__ring-label {
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-bold);
-  font-size: 8px;
-  fill: var(--text-primary);
+/* 공통 Progress Bar — Figma 위젯 시스템 전체가 원형 링이 아니라 이 막대를 쓴다 */
+.wcard__progress {
+  display: block;
+  flex: none;
+  width: 100%;
+  margin-top: var(--space-xs);
 }
 
-/* 공통 Service Chip 로우 — 고정지출처럼 연결된 서비스를 보여줘야 하는 위젯만 쓴다.
- * 배지 크기/간격은 여기 하나로만 관리해서 위젯마다 달라지지 않게 한다. */
-.wcard__services {
-  display: flex;
-  flex: none;
-  align-items: center;
-  margin-top: var(--space-2xs);
-}
-
-.wcard__service {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+.wcard__progress-track {
+  display: block;
+  width: 100%;
+  height: 6px;
   border-radius: var(--radius-pill);
-  font-family: var(--font-system);
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
+  background: var(--border-warm);
+  overflow: hidden;
 }
 
-.wcard__service + .wcard__service {
-  margin-left: -4px;
+.wcard--large .wcard__progress-track {
+  height: 7px;
 }
 
-.wcard__service--netflix {
-  background: #000;
-  color: #dc2626;
+.wcard__progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-primary);
 }
 
-.wcard__service--youtube {
-  background: #dc2626;
+.wcard__progress--green .wcard__progress-fill {
+  background: var(--brand-green);
 }
 
-.wcard__service--youtube img {
-  width: 10px;
-  height: 10px;
-}
-
-.wcard__service--disney {
-  background: #172554;
-  font-size: 8px;
-}
-
-.wcard__service-more {
-  margin-left: var(--space-2xs);
+/* 우측 상단 필(pill) 배지 — 혜택 위젯 Large 전용 */
+.wcard__chip {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--card-padding-l);
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
   font-family: var(--font-suit);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   font-size: var(--font-size-caption);
-  color: var(--text-secondary);
+  color: var(--brand-primary);
 }
 
-.wcard__caption {
+/* 맨 끝의 옅은 한 줄, 예: "+1개 더보기" */
+.wcard__more {
   flex: none;
   width: 100%;
   margin-top: var(--space-2xs);
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
-/* value 아래 붙는 브랜드 레드 강조 한 줄 — 이번 달 생활비 Small의 "84%" 전용 */
+/* value 아래 붙는 브랜드 레드 강조 한 줄 */
 .wcard__highlight {
   flex: none;
   margin-top: 2px;
@@ -361,15 +317,19 @@
   text-overflow: ellipsis;
 }
 
-/* 공통 목록 행 — 냉장고/오늘 할 일/다음 청소/소비 분석/나의 활동/인기글이 공유한다.
- * 강조(브랜드 레드)는 위젯마다 라벨/값 어느 쪽일 수도 있어 is-emphasis로만 표시한다. */
+/* 공통 목록 행 — 강조(브랜드 레드)는 위젯마다 라벨/값 어느 쪽일 수도 있어 is-emphasis로만 표시한다.
+ * gap은 아래 .wcard__status-rows/.wcard__rank-list와 같은 2px로 맞춘다 — 전에는 0이라
+ * 줄끼리 바짝 붙어 보였다(체크 상태 목록은 5줄까지 들어가야 하는 더 빠듯한 경우인데도
+ * 2px이 문제없이 들어가므로, 그보다 여유로운 목록에서 0을 쓸 이유가 없었다). */
 .wcard__rows {
   display: flex;
   flex-direction: column;
   flex: none;
   width: 100%;
-  gap: 0;
-  margin-top: 2px;
+  gap: 2px;
+  /* 제목 줄과 목록 사이는 2px면 거의 붙어 보인다 — 줄 사이 간격(gap)은 그대로 2px로
+   * 촘촘히 두고, 제목과의 간격만 띄운다 */
+  margin-top: var(--space-xs);
 }
 
 .wcard__row {
@@ -401,102 +361,179 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* 값 없이 한 줄씩만 나열하는 목록 — 받을 수 있는 혜택/맞춤 혜택/동네 소식/저장한 콘텐츠 */
-.wcard__bullets {
+/* 체크 상태 목록 — 자취 체크/집 살펴보기/생활 체크 Large 전용. 한 번에 5줄까지도
+ * 들어가야 해서 다른 목록보다 작은 폰트를 쓴다 */
+.wcard__status-rows {
   display: flex;
   flex-direction: column;
   flex: none;
   width: 100%;
-  gap: 0;
-  margin-top: 2px;
+  gap: 2px;
+  /* .wcard__rows 와 같은 이유로 제목과의 간격만 띄운다(줄 사이 gap은 2px 그대로) */
+  margin-top: var(--space-xs);
 }
 
-.wcard__bullet {
-  font-family: var(--font-suit);
-  font-size: var(--font-size-caption);
-  line-height: 1.2;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 체크 표시 목록 — 생활 체크 Large 전용. 한 번에 5줄까지 들어가야 해서 다른 목록보다
- * 더 작은 폰트를 쓴다(Figma 소스와 동일하게 9px, 줄간격 0) */
-.wcard__checklist {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  width: 100%;
-  gap: 0;
-  margin-top: 2px;
-}
-
-.wcard__check-row {
+.wcard__status-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 5px;
   font-family: var(--font-suit);
-  font-size: 9px;
-  line-height: 1.25;
-  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.3;
 }
 
-.wcard__check-mark {
+.wcard__status-mark {
+  flex: none;
+  font-weight: var(--font-weight-bold);
+  font-size: 10px;
   color: var(--text-tertiary);
 }
 
-.wcard__check-mark.is-done {
+.wcard__status-row--done .wcard__status-mark {
   color: var(--brand-primary);
-  font-weight: var(--font-weight-bold);
 }
 
-/* 가로 통계 칸 — 이번 달 생활비 Large 전용 */
-.wcard__stats {
-  display: flex;
-  flex: none;
-  width: 100%;
-  margin-top: var(--space-sm);
-}
-
-.wcard__stat {
-  display: flex;
-  flex-direction: column;
+.wcard__status-label {
   flex: 1;
   min-width: 0;
-  gap: 2px;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.wcard__stat-label {
+.wcard__status-value {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.wcard__status-row--done .wcard__status-value {
+  color: var(--brand-green);
+}
+
+/* 순위 목록 — 실시간 인기 Large 전용. gap·글씨 크기는 위 두 목록(.wcard__rows,
+ * .wcard__status-rows)과 같은 2px/caption(11px)으로 맞춘다 — 전에는 6px/13px로 유독
+ * 커서 같은 위젯 시스템인데 순위 목록만 다른 규칙을 쓰는 것처럼 보였다. */
+.wcard__rank-list {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 100%;
+  gap: 2px;
+  /* .wcard__rows 와 같은 이유로 제목과의 간격만 띄운다(줄 사이 gap은 2px 그대로) */
+  margin-top: var(--space-xs);
+}
+
+.wcard__rank-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+}
+
+.wcard__rank-num {
+  flex: none;
+  width: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-primary);
+}
+
+.wcard__rank-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wcard__rank-meta {
+  flex: none;
   font-size: var(--font-size-caption);
   color: var(--text-tertiary);
 }
 
-.wcard__stat-value {
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-body);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 구간별 비율 막대 + 범례 — 소비 분석 Large 전용 */
+.wcard__seg-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 100%;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
 }
 
-/* 구간별 비율 막대 — 소비 분석 Large 전용. 색은 SegmentedBar.tsx에서 고정 순서로 준다 */
 .wcard__segbar {
   display: flex;
   flex: none;
   width: 100%;
-  height: 6px;
-  margin-top: var(--space-xs);
-  border-radius: var(--radius-pill);
+  height: 12px;
+  border-radius: 6px;
   overflow: hidden;
-  gap: 2px;
+  background: #fff;
 }
 
 .wcard__seg {
   height: 100%;
+}
+
+.wcard__seg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.wcard__seg-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-medium);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.wcard__seg-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+}
+
+/* 요일별 막대그래프 — 나의 활동 Large 전용 */
+.wcard__weekchart {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: var(--space-2xs);
+  width: 132px;
+}
+
+.wcard__weekchart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  /* 58px는 헤더+막대+요일 라벨을 합치면 L 카드(114px) 예산을 넘겼다 — 헤더 22px과
+   * 라벨 줄을 뺀 나머지에 맞춰 줄인다(나의 활동 Large 전용, 다른 위젯엔 안 쓴다). */
+  height: 40px;
+}
+
+.wcard__weekchart-bar {
+  flex: none;
+  width: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+}
+
+.wcard__weekchart-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-suit);
+  font-size: 9px;
+  color: var(--text-primary);
 }
 
 .wcard__badge {
@@ -512,69 +549,7 @@
   height: 100%;
 }
 
-/* WidgetIcon — 공통 아이콘 size token */
-
-.wicon {
-  flex: none;
-  object-fit: contain;
-}
-
-.wicon--sm {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-}
-
-.wicon--md {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
-}
-
-.wicon--lg {
-  width: var(--icon-size-lg);
-  height: var(--icon-size-lg);
-}
-
-/* ================= Widget Preview Bottom Sheet ================= */
-
-.widget-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-sm) var(--screen-margin) calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
-  background: var(--surface-cream);
-  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
-}
-
-.widget-preview__handle {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: var(--space-sm) 0;
-  touch-action: none;
-  cursor: grab;
-}
-
-.widget-preview__grip {
-  width: 40px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--sheet-handle);
-}
-
-.widget-preview__title {
-  margin: 0 0 var(--space-lg);
-  font-family: var(--font-a2z);
-  font-weight: var(--font-weight-bold);
-  font-size: 18px;
-  color: var(--text-primary);
-}
-
-.widget-preview__stage {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: var(--space-lg) 0;
-}
+/* ================= 위젯 추가 화면 — 사이즈 선택 ================= */
 
 .wg-size {
   display: flex;
@@ -583,50 +558,42 @@
 }
 
 .wg-size__btn {
-  min-width: 56px;
-  height: 36px;
-  padding: 0 var(--space-md);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: #f6f0e6;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 52px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
   color: var(--text-secondary);
+}
+
+.wg-size__label {
   font-family: var(--font-suit);
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-body);
 }
 
+.wg-size__dim {
+  font-family: var(--font-suit);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
 .wg-size__btn.is-active {
+  border-color: var(--brand-primary);
   background: var(--brand-primary);
   color: var(--surface-cream);
 }
 
+.wg-size__btn.is-active .wg-size__dim {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .wg-size__btn.is-unavailable {
   opacity: 0.4;
-}
-
-.widget-preview__desc {
-  margin: var(--space-md) 0 0;
-  text-align: center;
-  font-family: var(--font-suit);
-  font-size: var(--font-size-body);
-  color: var(--text-secondary);
-}
-
-.widget-preview__warning {
-  min-height: 18px;
-  margin: var(--space-sm) 0 0;
-  text-align: center;
-  font-family: var(--font-suit);
-  font-size: var(--font-size-xs);
-  color: var(--brand-primary);
-  opacity: 0;
-}
-
-.widget-preview__warning.is-visible {
-  opacity: 1;
-}
-
-.widget-preview__cta {
-  width: 100%;
-  margin-top: var(--space-sm);
 }

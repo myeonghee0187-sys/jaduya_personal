@@ -1,7 +1,6 @@
-import type { WidgetChecklistItem, WidgetRow } from '../../data/widgets';
+import type { WidgetRankItem, WidgetRow, WidgetStatusRow } from '../../data/widgetRegistry';
 
-/** 라벨 + 값 목록 행 — 냉장고/오늘 할 일/다음 청소/소비 분석/나의 활동/인기글이 공유한다.
- * 강조(브랜드 레드)는 위젯마다 라벨 쪽일 수도, 값 쪽일 수도 있어 emphasis로 고른다. */
+/** 라벨 + 값 목록 행 — 강조(브랜드 레드)는 위젯마다 라벨 쪽일 수도, 값 쪽일 수도 있다 */
 export function ListRows({ rows }: { rows: WidgetRow[] }) {
   return (
     <span className="wcard__rows">
@@ -15,27 +14,32 @@ export function ListRows({ rows }: { rows: WidgetRow[] }) {
   );
 }
 
-/** 값 없이 한 줄씩만 나열하는 목록 — 받을 수 있는 혜택/맞춤 혜택/동네 소식/저장한 콘텐츠 */
-export function BulletList({ bullets }: { bullets: string[] }) {
+/** 체크 상태 목록 — 완료(✓, 그린 라벨) / 아직(○, 회색 라벨) */
+export function StatusRows({ rows }: { rows: WidgetStatusRow[] }) {
   return (
-    <span className="wcard__bullets">
-      {bullets.map((b, i) => (
-        <span className="wcard__bullet" key={i}>
-          {b}
+    <span className="wcard__status-rows">
+      {rows.map((row, i) => (
+        <span className={`wcard__status-row wcard__status-row--${row.tone}`} key={i}>
+          <span className="wcard__status-mark" aria-hidden="true">
+            {row.tone === 'done' ? '✓' : '○'}
+          </span>
+          <span className="wcard__status-label">{row.label}</span>
+          {row.status && <span className="wcard__status-value">{row.status}</span>}
         </span>
       ))}
     </span>
   );
 }
 
-/** 체크 표시 목록 — 생활 체크 Large 전용 */
-export function Checklist({ items }: { items: WidgetChecklistItem[] }) {
+/** 순위 목록 — 실시간 인기 Large 전용 */
+export function RankList({ items }: { items: WidgetRankItem[] }) {
   return (
-    <span className="wcard__checklist">
-      {items.map((item, i) => (
-        <span className="wcard__check-row" key={i}>
-          <span className="wcard__check-label">{item.label}</span>
-          <span className={`wcard__check-mark${item.done ? ' is-done' : ''}`}>{item.done ? '✓' : '○'}</span>
+    <span className="wcard__rank-list">
+      {items.map((item) => (
+        <span className="wcard__rank-row" key={item.rank}>
+          <span className="wcard__rank-num">{item.rank}</span>
+          <span className="wcard__rank-text">{item.text}</span>
+          <span className="wcard__rank-meta">{item.meta}</span>
         </span>
       ))}
     </span>

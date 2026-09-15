@@ -23,7 +23,7 @@ import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { useHomeWidgets } from '../widgets/HomeWidgetsContext';
+import { useWidgetPlacement } from '../widgets/WidgetPlacementContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
@@ -31,7 +31,7 @@ import { useHomeWidgets } from '../widgets/HomeWidgetsContext';
  *    ├─ GNB Open
  *    │   └─ My Menu Edit Bottom Sheet (menu/MyMenuContext — 모든 화면이 공유)
  *    └─ 위젯 추가(+)는 이제 오버레이가 아니라 별도 페이지(위젯 갤러리)로 이동한다.
- *       내 홈 위젯 상태 자체는 widgets/HomeWidgetsContext 가 화면 전환과 무관하게 들고 있다.
+ *       내 홈 위젯 상태 자체는 widgets/WidgetPlacementContext 가 화면 전환과 무관하게 들고 있다.
  *
  * 시트 안은 다시 두 개의 View 로 나뉜다 — 새 시트를 겹쳐 띄우지 않고 콘텐츠만 바꾼다.
  *
@@ -60,8 +60,8 @@ export function Home() {
   const sheet = useSheetGesture();
   /* GNB "내 메뉴" 선택 + 편집 시트 — 다른 화면과 공유하는 전역 상태 */
   const myMenu = useMyMenu();
-  /* 내 생활 위젯 조합 + 저장된 위젯 목록 — 위젯 갤러리 페이지와 공유하는 전역 상태 */
-  const homeWidgets = useHomeWidgets();
+  /* 내 생활 위젯 배치 — 위젯 관리 화면(WidgetPage)과 공유하는 전역 상태 */
+  const placement = useWidgetPlacement();
 
   /* 시트 안에서 지금 보여줄 View. 페이지 이동이 아니라 이 state 하나로만 갈린다. */
   const [sheetView, setSheetView] = useState<HomeSheetView>('home');
@@ -187,11 +187,9 @@ export function Home() {
             className={`sheet-view sheet-view--home${cameBackRef.current ? ' sheet-view--back' : ''}`}
           >
             <MyLifeSection
-              layout={homeWidgets.layout}
+              placement={placement.state}
               heartsLabel={level.heartsLabel}
               levelLabel={level.levelLabel}
-              widgets={homeWidgets.widgets}
-              isCustom={homeWidgets.isCustom}
               onAddWidget={() => navigation?.navigate('widget-gallery')}
               statusRef={statusRef}
               addSlotRef={addSlotRef}

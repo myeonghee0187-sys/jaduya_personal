@@ -1,0 +1,1477 @@
+/* JADUYA — 위젯 관리 화면 (WidgetPage)
+ *
+ * 값은 전부 tokens.css 토큰만 쓴다. 위젯 카드 자체(.wcard)는 widget-gallery.css 를
+ * 그대로 재사용하고, 여기서는 배치 그리드·편집 모드·가이드·목록 카드·모달·시트·토스트
+ * 등 이 화면 전용 레이아웃만 다룬다. "내 위젯 → 추천 위젯 → 전체 위젯"이 한 페이지
+ * 안에서 이어진다 — 위젯 추가는 더 이상 별도 페이지로 가지 않는다. */
+
+.widget-page.app {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-subtle);
+  /* Home 의 '+' 슬롯에서 들어올 때만 재생되는 진입 애니메이션 — 이 페이지는
+   * navigate('widget-gallery') 로만 마운트되므로(App.tsx) 마운트 시 1회 재생되는
+   * @keyframes 만으로 충분하고, [hidden] 토글용 두 단계 transition 은 필요 없다.
+   * 방향성 슬라이드 대신 fade + scale-up 으로 "새 화면이 나타난다"는 느낌만 준다. */
+  animation: wpg-fade-scale-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+}
+
+@keyframes wpg-fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ================= 내 위젯 =================
+ * 다른 화면의 섹션 리듬(money-section 등)과 맞춘다 — 제목은 font-a2z 18px, 섹션 사이는
+ * 32px(space-2xl)로 넉넉하게 띄워서 화면이 카드로 꽉 차 보이지 않게 한다. */
+
+.wpg-my {
+  margin-bottom: var(--space-2xl);
+}
+
+.wpg-my__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.wpg-my__head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+/* "●4/5" 배치 칸수 표시 */
+.wpg-my__count {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.wpg-my__count i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+}
+
+/* "가이드" / "편집" — 브랜드 포인트 컬러 톤(다른 보조 버튼들과 같은
+ * rgba(180,57,54,0.08) 틴트 + brand-primary 글자색, .wpg-modal__secondary-btn 등과
+ * 동일한 톤을 재사용한다 — 새 색을 만들지 않는다). */
+.wpg-edit-btn {
+  flex: none;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(180, 57, 54, 0.08);
+  color: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+}
+
+/* "가이드" 버튼 — "내 위젯" 헤드 줄의 "편집" 버튼 바로 왼쪽. 누르면
+ * PlacementGuideSheet(위젯 배치 방법 모달)가 뜬다. */
+.wpg-guide-btn {
+  flex: none;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(180, 57, 54, 0.08);
+  color: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+}
+
+/* ================= 배치 그리드 =================
+ * 위젯 카드들을 하나의 캔버스 프레임 안에 묶어서 "이게 곧 내 홈 화면"이라는 느낌을 준다.
+ * 안의 M 2개/S 2개는 Home 규격 그대로(content-width 342px) 고정 크기를 유지해야 하므로,
+ * 좌우 여백은 카드 padding이 아니라 음수 margin으로 카드 테두리 쪽을 화면 마진 쪽으로
+ * 살짝 밀어내 만든다 — 위젯 자체 크기는 그대로 두고 카드 테두리와 위젯 사이에만
+ * 숨 쉴 틈을 준다. */
+.wpg-canvas-card {
+  display: flex;
+  justify-content: center;
+  margin: 0 calc(var(--space-md) * -1);
+  padding: var(--space-xl) var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xl);
+  background: var(--surface-widget);
+}
+
+.wpg-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--widget-gap);
+}
+
+.wpg-grid__row {
+  display: flex;
+  gap: var(--widget-gap);
+}
+
+.wpg-slot {
+  box-sizing: border-box;
+}
+
+.wpg-slot--medium {
+  flex: none;
+  width: var(--widget-medium-w);
+  height: var(--widget-medium-h);
+}
+
+.wpg-slot--small {
+  flex: 1 0 0;
+  min-width: 0;
+  max-width: var(--widget-small-w);
+  height: var(--widget-small-h);
+}
+
+/* 2번째 줄의 "+" 추가 슬롯 — Home '내 생활' 캔버스(.module-card--add)와 같은 규격 */
+.wpg-add-slot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--widget-add-w);
+  height: var(--widget-add-h);
+  border: 1.5px dashed var(--brand-primary);
+  border-radius: 16px;
+  background: none;
+}
+
+.wpg-add-slot img {
+  width: 18px;
+  height: 18px;
+}
+
+.wpg-slot--large {
+  flex: none;
+  width: var(--content-width);
+  height: var(--widget-large-h);
+}
+
+/* 빈 자리 — 회색 박스 하나로 두지 않고 무엇을 해야 하는지 바로 보이게 한다(요구사항 6, 33).
+ * 크기는 .wpg-slot--medium/small/large 가 정하므로 여기서 width/height를 100%로 다시
+ * 덮어쓰지 않는다 — 안 그러면 이 규칙이 나중에 와서 고정 크기를 지워버려, 위젯을 삭제해
+ * 자리가 비는 순간 그 칸(과 flex로 엮인 나머지 칸들)이 콘텐츠 기준으로 다시 계산되며
+ * 캔버스 전체가 줄어드는 문제가 생긴다. */
+.wpg-slot--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px dashed var(--border-widget);
+  border-radius: var(--radius-xl);
+  background: var(--surface-widget);
+  color: var(--text-tertiary);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-caption);
+}
+
+.wpg-slot__plus {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  opacity: 0.6;
+}
+
+.wpg-slot--filled {
+  position: relative;
+}
+
+/* 편집 모드 — 살짝 흔들리는 느낌 없이, 카드 자체는 그대로 두고 − 버튼만 얹는다 */
+.wpg-slot__remove {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--surface-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: var(--font-weight-bold);
+}
+
+.wpg-grid.is-editing .wpg-slot--filled .wcard {
+  pointer-events: none;
+}
+
+/* ================= 위젯 배치 가이드 — 펼치기/접기 배너 =================
+ * 항상 한 줄(아이콘 + 제목 + 펼치기/접기 화살표)이 떠 있고, 그 아래 S/M/L 미리보기 +
+ * 마스코트만 펼쳐지거나 접힌다. dimming·overlay·모달 없이 항상 Placement Grid 아래
+ * 제자리에 있다. 자세한 배치 다이어그램/규칙은 헤더 "가이드" 버튼의 PlacementGuideSheet
+ * (모달)에서 본다 — 그쪽과 구분되도록 여기는 정보 안내 톤(블루)을 쓴다. */
+
+.wpg-guide {
+  margin-top: var(--space-lg);
+  margin-bottom: 14px;
+  border-radius: var(--radius-m);
+  background: rgba(74, 111, 165, 0.08);
+  overflow: hidden;
+}
+
+/* 행 전체가 버튼이다 — 터치 영역이 넓어서 화살표 하나만 누르기 편하려고 애쓸 필요가 없다 */
+.wpg-guide__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.wpg-guide__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: #4a6fa5;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: 10px;
+  line-height: 1;
+  color: #fff;
+}
+
+.wpg-guide__title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+/* 펼치기/접기 화살표 — CSS만으로 그리는 chevron. 접힘: 아래를 가리켜 "펼치면 아래로
+ * 열린다"를 보여주고, 펼침: 180도 돌려 위를 가리킨다. */
+.wpg-guide__toggle {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: -3px;
+  border-right: 1.6px solid var(--text-tertiary);
+  border-bottom: 1.6px solid var(--text-tertiary);
+  transform: rotate(45deg);
+  transition: transform 180ms ease;
+}
+
+.wpg-guide__toggle.is-open {
+  margin-top: 3px;
+  transform: rotate(225deg);
+}
+
+/* 펼침/접힘 — grid-template-rows 를 0fr↔1fr 로 트랜지션해서 height:auto 도 부드럽게
+ * 애니메이션한다. bounce/scale 없이 짧고 차분하게. */
+.wpg-guide__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms ease;
+}
+
+.wpg-guide__panel.is-open {
+  grid-template-rows: 1fr;
+}
+
+.wpg-guide__panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 var(--space-md);
+}
+
+.wpg-guide__panel.is-open .wpg-guide__panel-inner {
+  padding-bottom: var(--space-md);
+}
+
+.wpg-guide__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wpg-guide__sizes {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+}
+
+/* 레퍼런스는 S/M/L을 같은 색으로 두지만, 여기서는 크기를 한눈에 구분할 수 있도록
+ * PlacementGuideSheet 스와치와 같은 배색(L=레드/M=블루/S=그린)을 그대로 맞춘다 */
+.wpg-guide__size {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: var(--radius-s);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+}
+
+.wpg-guide__size--l {
+  background: rgba(180, 57, 54, 0.12);
+  color: var(--brand-primary);
+}
+
+.wpg-guide__size--m {
+  background: rgba(74, 111, 165, 0.12);
+  color: #4a6fa5;
+}
+
+.wpg-guide__size--s {
+  background: rgba(162, 177, 35, 0.16);
+  color: var(--brand-green);
+}
+
+.wpg-guide__mascot {
+  flex: none;
+  width: 48px;
+  height: auto;
+}
+
+/* ================= 추천 위젯 / 전체 위젯 — 제목 + 한 줄 설명 ================= */
+
+.wpg-recommend {
+  margin-bottom: var(--space-2xl);
+}
+
+.wpg-recommend__head,
+.wpg-all__head {
+  margin-bottom: var(--space-md);
+}
+
+.wpg-recommend__head h2,
+.wpg-all__head h2 {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.wpg-recommend__head p,
+.wpg-all__head p {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+}
+
+.wpg-all__head {
+  margin-bottom: var(--space-lg);
+}
+
+/* ================= 추천 위젯 — 가로 Swiper(레퍼런스) =================
+ * 카드 폭은 위젯 M 사이즈 폭(--widget-medium-w)에 맞춰서, 한 화면에 정확히 2장이
+ * 꽉 차게 보이고 더 있으면 옆으로 넘겨본다(money 카테고리 Swiper와 같은 결의
+ * scroll-snap + 점 페이지네이션 — WidgetRecommendSwiper.tsx). */
+
+.wpg-recommend-swiper-wrap {
+  overflow-x: hidden;
+}
+
+.wpg-recommend-swiper {
+  display: flex;
+  gap: var(--widget-gap);
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 2px 2px 4px;
+  margin: -2px -2px 0;
+}
+
+.wpg-recommend-swiper::-webkit-scrollbar {
+  display: none;
+}
+
+.wpg-recommend-card {
+  display: flex;
+  flex: 0 0 var(--widget-medium-w);
+  flex-direction: column;
+  scroll-snap-align: start;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-l);
+  background: var(--surface-cream);
+  overflow: hidden;
+  text-align: left;
+}
+
+.wpg-recommend-card__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--widget-medium-h) + var(--space-sm) * 2);
+  padding: var(--space-sm);
+}
+
+.wpg-recommend-card__stage--green { background: rgba(162, 177, 35, 0.12); }
+.wpg-recommend-card__stage--orange { background: rgba(199, 117, 59, 0.12); }
+.wpg-recommend-card__stage--red { background: rgba(180, 57, 54, 0.08); }
+.wpg-recommend-card__stage--rose { background: rgba(195, 97, 94, 0.12); }
+.wpg-recommend-card__stage--yellow { background: rgba(251, 221, 120, 0.25); }
+
+.wpg-recommend-card__viewport {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.wpg-recommend-card__stage-inner {
+  flex: none;
+  transform-origin: center center;
+}
+
+.wpg-recommend-card__name {
+  margin: var(--space-sm) var(--space-sm) 0;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+/* min-height로 항상 2줄 자리를 확보한다 — 짧은 설명은 1줄만 차도 카드 높이는
+ * 옆 카드와 똑같이 맞아야 한다(설명 길이에 따라 카드 높이가 들쭉날쭉해지는 문제) */
+.wpg-recommend-card__desc {
+  display: -webkit-box;
+  min-height: 2.8em;
+  margin: 2px var(--space-sm) 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.wpg-recommend-card__tag {
+  align-self: flex-start;
+  margin: var(--space-xs) var(--space-sm) var(--space-sm);
+  padding: 3px var(--space-xs);
+  border-radius: var(--radius-s);
+  background: var(--surface-widget);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.wpg-recommend-swiper__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: var(--space-sm);
+}
+
+.wpg-recommend-swiper__dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--border-warm);
+  cursor: pointer;
+  transition: width 200ms ease, background-color 200ms ease;
+}
+
+.wpg-recommend-swiper__dot.is-active {
+  width: 16px;
+  background: var(--brand-primary);
+}
+
+/* ================= 액션 / 배치 공간 만들기 시트 — 공용 톤 ================= */
+
+.wpg-action-sheet,
+.wpg-conflict-sheet {
+  padding: 0 var(--screen-margin) max(20px, env(safe-area-inset-bottom));
+  background: var(--surface-cream);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+}
+
+/* ================= 헤더 "가이드" 버튼 → 위젯 배치 방법 모달 =================
+ * 지금 뭘 골라야 하는 액션 시트가 아니라 그냥 읽고 닫는 정보 안내라, 하단 시트
+ * 대신 화면 중앙에 뜬다(레퍼런스 참고). .layer/.layer-dim 은 overlays.css 를 그대로
+ * 쓰고, 아래에서 올라오는 대신 살짝 커지며 나타나는 자체 트랜지션만 새로 정의한다. */
+
+.wpg-guide-modal-layer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--screen-margin);
+}
+
+.wpg-guide-modal-layer .layer-dim {
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+.wpg-guide-modal-layer .wpg-guide-modal {
+  width: 100%;
+  max-width: var(--content-width);
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 200ms ease-out, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layer.wpg-guide-modal-layer[hidden] {
+  display: flex;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 180ms;
+}
+
+.wpg-guide-modal-layer[hidden] .layer-dim {
+  opacity: 0;
+  transition: opacity 180ms ease-in;
+}
+
+.wpg-guide-modal-layer[hidden] .wpg-guide-modal {
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 180ms ease-in, transform 180ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wpg-guide-modal-layer .layer-dim,
+  .wpg-guide-modal-layer .wpg-guide-modal,
+  .wpg-guide-modal-layer[hidden] .layer-dim,
+  .wpg-guide-modal-layer[hidden] .wpg-guide-modal {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+
+  .widget-page.app {
+    animation: none;
+  }
+}
+
+.wpg-guide-modal__card {
+  padding: var(--space-xl) var(--space-lg) var(--space-lg);
+  background: var(--surface-cream);
+  border-radius: var(--radius-sheet);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.wpg-guide-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.wpg-guide-modal__title {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.wpg-guide-modal__close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px 0 0;
+  border: 0;
+  background: none;
+}
+
+.wpg-guide-modal__close img {
+  width: 14px;
+  height: 14px;
+}
+
+.wpg-guide-modal__subtitle {
+  margin: var(--space-2xs) 0 var(--space-lg);
+  font-family: var(--font-suit);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+}
+
+.wpg-guide-modal__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+  list-style: none;
+}
+
+.wpg-guide-modal__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* L은 박스 하나, M/S는 두 칸 — 셋 다 같은 폭(swatch 열)에 맞춰서 세로로 나란히
+ * 정렬되게 한다 */
+.wpg-guide-modal__swatches {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  width: 92px;
+}
+
+.wpg-guide-modal__swatch {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: var(--radius-m);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-value-m);
+}
+
+.wpg-guide-modal__swatch--wide {
+  flex: 1;
+}
+
+.wpg-guide-modal__swatch--l {
+  background: rgba(180, 57, 54, 0.12);
+  color: var(--brand-primary);
+}
+
+.wpg-guide-modal__swatch--m {
+  background: rgba(74, 111, 165, 0.12);
+  color: #4a6fa5;
+}
+
+.wpg-guide-modal__swatch--s {
+  background: rgba(162, 177, 35, 0.16);
+  color: var(--brand-green);
+}
+
+.wpg-guide-modal__text {
+  min-width: 0;
+}
+
+.wpg-guide-modal__row-title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-guide-modal__row-desc {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wpg-guide-modal__tip {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
+}
+
+.wpg-guide-modal__tip img {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  margin-top: 1px;
+}
+
+.wpg-guide-modal__tip p {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.wpg-guide-modal__confirm {
+  width: 100%;
+  height: 48px;
+  margin-top: var(--space-lg);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+}
+
+.wpg-action-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 var(--space-md);
+}
+
+/* ================= 위젯 액션 시트 (변경 / 삭제) ================= */
+
+.wpg-action-sheet__preview {
+  padding: var(--space-sm) 0 var(--space-lg);
+  text-align: center;
+}
+
+.wpg-action-sheet__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-action-sheet__value {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.wpg-action-sheet__desc {
+  margin: 2px 0 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+}
+
+.wpg-action-sheet__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+  width: 100%;
+  height: 52px;
+  border: 0;
+  border-top: 1px solid var(--border-warm);
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-action-sheet__row img {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  transform: rotate(180deg);
+  opacity: 0.4;
+}
+
+.wpg-action-sheet__row--danger {
+  color: var(--brand-primary);
+}
+
+.wpg-action-sheet__cancel {
+  width: 100%;
+  height: 48px;
+  margin-top: var(--space-xs);
+  border: 0;
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-tertiary);
+}
+
+/* ================= 배치 공간 만들기 시트 ================= */
+
+.wpg-conflict-sheet__title {
+  margin: var(--space-sm) 0 0;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.wpg-conflict-sheet__desc {
+  margin: var(--space-xs) 0 var(--space-lg);
+  font-family: var(--font-suit);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+}
+
+.wpg-conflict-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.wpg-conflict-sheet__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+  text-align: left;
+}
+
+.wpg-conflict-sheet__item.is-selected {
+  border-color: var(--brand-primary);
+  background: var(--surface-widget);
+}
+
+.wpg-conflict-sheet__check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-widget);
+  border-radius: var(--radius-pill);
+}
+
+.wpg-conflict-sheet__item.is-selected .wpg-conflict-sheet__check {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 10.5l3 3 7-7' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
+.wpg-conflict-sheet__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wpg-conflict-sheet__item-name {
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-conflict-sheet__item-value {
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wpg-conflict-sheet__submit {
+  margin-bottom: var(--space-sm);
+}
+
+.wpg-conflict-sheet__cancel {
+  width: 100%;
+  height: 44px;
+  margin-bottom: var(--space-xs);
+  border: 0;
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-tertiary);
+}
+
+/* ================= 토스트 ================= */
+
+.wpg-toast[hidden] {
+  display: none;
+}
+
+.wpg-toast {
+  position: absolute;
+  left: var(--screen-margin);
+  right: var(--screen-margin);
+  bottom: calc(var(--tab-bar-h) + var(--space-md) + env(safe-area-inset-bottom, 0px));
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-pill);
+  background: rgba(59, 51, 46, 0.92);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.wpg-toast__check {
+  flex: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  filter: brightness(0) invert(1);
+}
+
+.wpg-toast__message {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--surface-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wpg-toast__action {
+  flex: none;
+  border: 0;
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-caption);
+  color: var(--brand-secondary);
+}
+
+/* ================= 위젯 목록 카드 — 추천 위젯 / 전체 위젯이 함께 쓴다 ================= */
+
+.wpg-list-card {
+  display: block;
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-l);
+  background: var(--surface-cream);
+  text-align: left;
+}
+
+.wpg-list-card + .wpg-list-card {
+  margin-top: var(--space-sm);
+}
+
+/* "더보기" — 전체 위젯 목록을 처음엔 6개까지만 보여주고 눌러야 나머지가 펼쳐진다.
+ * 강한 CTA(auth-button)가 아니라 wpg-modal__size-btn 과 같은 결의 옅은 보조 버튼이다. */
+.wpg-all__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 44px;
+  margin-top: var(--space-sm);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+}
+
+.wpg-list-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wpg-list-card__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.wpg-list-card__cat {
+  align-self: flex-start;
+  margin-bottom: 2px;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-s);
+  background: var(--surface-widget);
+  color: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: 10px;
+}
+
+.wpg-list-card__name {
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-list-card__desc {
+  margin-top: 2px;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wpg-list-card__chevron {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  opacity: 0.35;
+  transform: rotate(-90deg);
+}
+
+/* ================= 위젯 미리보기 모달 — 화면 중앙 다이얼로그 ================= */
+
+.wpg-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: rgba(28, 25, 23, 0.5);
+}
+
+/* 높이를 고정한다 — step(preview/making-space/success)마다 내용 길이가 달라도 모달
+ * 크기 자체는 들쭉날쭉하지 않게, 가장 내용이 긴 상태(위젯 미리보기 전체)를 기준으로
+ * 잡았다. 화면이 이 높이보다 낮을 때만 max-height 가 줄이고 overflow-y 가 안전망으로
+ * 스크롤한다. */
+.wpg-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 320px;
+  height: 550px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  background: var(--surface-cream);
+}
+
+.wpg-modal__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+/* .wpg-modal__head 아래 나머지 전체 — 헤더만 빼고 step 전환마다 이 영역 안에서
+ * 바뀐다(모달 높이는 그대로, 내용만 바뀐다). */
+.wpg-modal__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* AnimatePresence 가 key={step} 로 갈아끼우는 한 단(preview/making-space/success) — 항상
+ * .wpg-modal__body 전체를 채운다. preview/success 는 내용(제목/설명/미리보기/CTA)이
+ * 길어서 위쪽부터 자연스럽게 흐르면 CTA 도 바닥 쪽에 온다. making-space 처럼 내용이
+ * 짧은 step 은 --center 를 붙여 제목+목록+CTA 그룹 전체를 세로 가운데로 모은다. */
+.wpg-modal__step {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wpg-modal__step--center {
+  justify-content: center;
+}
+
+/* CTA/하단 버튼 영역 — preview 의 5가지 상태, making-space 의 개수 표시+버튼, success 의
+ * 완료 메시지+버튼이 전부 이 클래스를 쓴다. 내용 뒤에 일정한 간격만 두고 자연스럽게
+ * 이어진다(예전처럼 margin-top:auto 로 억지로 바닥에 붙이지 않는다). */
+.wpg-modal__cta {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  margin-top: var(--space-lg);
+}
+
+.wpg-modal__head-title {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-modal__close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: none;
+  opacity: 0.6;
+}
+
+.wpg-modal__close img {
+  width: 100%;
+  height: 100%;
+}
+
+/* 카테고리 필 — 위젯 카드 아이콘 뱃지(wicon-badge)와 같은 톤을 쓰되, 배지보다 훨씬
+ * 작은 면적(11px 텍스트 + 얇은 padding)이라 배지와 같은 알파값을 쓰면 배경이 거의 안
+ * 보여서 "텍스트만 떠 있다"는 인상을 줬다 — 태두리로 텍스트를 감싸는 게 분명히 보이도록
+ * 알파를 한 단계씩 올렸다(노랑은 이미 0.35로 충분히 진해서 그대로 둔다). */
+/* .wpg-modal__step(부모)이 flex-direction:column인데 align-items를 안 정해서 기본값인
+ * stretch가 적용된다 — inline-flex를 줘도 그건 "이 안의 내용을 어떻게 배치할지"만
+ * 정할 뿐, 부모가 이 span 자체의 너비를 늘리는 건 막지 못한다. 그래서 텍스트는 왼쪽에
+ * 작게 있고 배경만 카드 전체 너비로 길게 늘어나 보였다 — align-self로 부모의 stretch를
+ * 거부해야 진짜로 텍스트만 감싸는 크기가 된다. 제목·설명이 가운데 정렬이라 이 필도
+ * center로 맞춘다(기본값 stretch만 벗어나면 되므로 start 대신 center를 써도 된다). */
+.wpg-modal__cat {
+  display: inline-flex;
+  align-self: center;
+  margin-bottom: var(--space-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+}
+
+.wpg-modal__cat--green { background: rgba(162, 177, 35, 0.28); color: #6f7a17; }
+.wpg-modal__cat--orange { background: rgba(199, 117, 59, 0.26); color: var(--brand-orange); }
+.wpg-modal__cat--red { background: rgba(180, 57, 54, 0.16); color: var(--brand-primary); }
+.wpg-modal__cat--rose { background: rgba(195, 97, 94, 0.26); color: var(--brand-rose); }
+.wpg-modal__cat--yellow { background: rgba(251, 221, 120, 0.35); color: #8a6d1f; }
+
+.wpg-modal__title {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+/* 제목 바로 아래 줄 — 4px는 다른 요소 간격(카테고리 필 margin-bottom 8px, 스테이지 위
+ * margin 16px)에 비해 유독 좁아서 제목과 설명이 붙어 보였다 */
+.wpg-modal__desc {
+  margin: 6px 0 0;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+}
+
+/* 고정 크기 Preview 영역 — S/M/L을 바꿔도 이 박스의 크기는 절대 바뀌지 않는다.
+ * 실제 위젯(.wcard)은 항상 자기 실제 픽셀 크기(128.5×72/167×114/342×114)로 그려지고,
+ * 그 결과를 담는 .wpg-modal__stage-inner 만 transform: scale() 로 줄어든다 — 잘라내지
+ * 않고(overflow:hidden은 안전망일 뿐, 실제로는 scale이 항상 담기게 계산한다) 비율 그대로
+ * 축소한다. L(342px)처럼 이 영역보다 넓은 위젯도 전체가 보이도록 줄어들고, S는 M/L
+ * 폭에 맞춰 억지로 커지지 않는다(scale은 1을 넘지 않는다). */
+.wpg-modal__stage {
+  box-sizing: border-box;
+  width: 100%;
+  /* M/L의 실제 높이(114px) + 위아래 패딩만큼만 — 170px는 S(72px)는 물론 M/L보다도
+   * 훨씬 커서 위젯 주위에 배경색만 넓게 비어 보였다. M/L이 축소 없이(scale 1) 꽉 차게
+   * 들어가는 딱 그만큼으로 줄인다. S를 고를 때도 이 높이를 그대로 쓴다 — S 기준으로
+   * 한 번 더 줄이면(과거 시도) S/M/L 버튼을 누를 때마다 이 박스 높이가 바뀌면서 아래
+   * CTA 전체가 위아래로 들썩였다. 위젯이 박스보다 작게 남는 것보다 크기 전환마다
+   * 레이아웃이 흔들리는 쪽이 더 눈에 띄는 문제라 판단했다. */
+  height: calc(114px + var(--space-md) * 2);
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.wpg-modal__stage--green { background: rgba(162, 177, 35, 0.12); }
+.wpg-modal__stage--orange { background: rgba(199, 117, 59, 0.12); }
+.wpg-modal__stage--red { background: rgba(180, 57, 54, 0.08); }
+.wpg-modal__stage--rose { background: rgba(195, 97, 94, 0.12); }
+.wpg-modal__stage--yellow { background: rgba(251, 221, 120, 0.25); }
+
+/* 실제 크기 측정 대상 — padding 없는 순수 콘텐츠 박스라 ResizeObserver 로 잰 크기가
+ * 곧 위젯이 실제로 쓸 수 있는 가용 크기와 정확히 같다(카드 배경의 padding에 영향받지 않는다) */
+.wpg-modal__viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.wpg-modal__stage-inner {
+  flex: none;
+  transform-origin: center center;
+}
+
+.wpg-modal__sizes {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.wpg-modal__size-btn {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+}
+
+.wpg-modal__size-btn.is-active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+/* ── CTA 상태 5가지 — 새로 추가 / 사용 중 / 크기 변경 / 공간 부족 / 지원하지 않는 크기 ── */
+
+/* "위젯 크기 변경" / "공간 만들기" — 실행은 되지만 새로 추가하는 강한 빨강(auth-button)
+ * 과는 구분되는 보조 톤 버튼. 짧은 라벨인데 폭 100%로 늘려서 색 배경만 옆으로 길게
+ * 남아 보였다 — 텍스트 길이에 맞춰 좌우 패딩만 주고 가운데 정렬한다(부모 .wpg-modal은
+ * align-items 기본값(stretch)이라 width:100% 없이도 그대로 두면 늘어나므로 align-self로
+ * 명시적으로 끊는다). */
+.wpg-modal__secondary-btn {
+  display: flex;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  height: 48px;
+  margin-top: var(--space-lg);
+  padding: 0 var(--space-xl);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: rgba(180, 57, 54, 0.08);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--brand-primary);
+  white-space: nowrap;
+}
+
+.wpg-modal__hint {
+  margin: var(--space-xs) 0 0;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+}
+
+/* 지원하지 않는 크기를 골랐을 때의 설명 — 위 힌트와 톤을 구분해 눈에 띄게 한다 */
+.wpg-modal__hint--warn {
+  color: var(--brand-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 공간 부족 경고 — 위 정보/버튼류보다 한 단계 더 옅게, 왼쪽 정렬로 구분한다. 문구를
+ * 줄바꿈 없이 한 흐름으로 바꾸면서(위 JSX) 대부분 한 줄로 끝나 아이콘을 텍스트 세로
+ * 중앙에 맞춘다 — flex-start로 맨 위에 붙어 있으면 한 줄일 때 아이콘만 위로 떠 보였다. */
+.wpg-modal__warn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-m);
+  background: rgba(180, 57, 54, 0.06);
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+  color: var(--brand-primary);
+}
+
+.wpg-modal__warn-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  font-size: 10px;
+}
+
+/* 경고 박스 바로 다음에 오는 버튼은 간격을 좁힌다(둘이 한 묶음으로 보이게) */
+.wpg-modal__warn + .wpg-modal__secondary-btn {
+  margin-top: var(--space-sm);
+}
+
+.wpg-modal__submit {
+  margin-top: var(--space-lg);
+}
+
+/* "위젯이 추가되었어요!" — 초록(성공) 톤 안내 줄 */
+.wpg-modal__success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 48px;
+  margin-top: var(--space-lg);
+  border-radius: var(--radius-m);
+  background: rgba(162, 177, 35, 0.14);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: #6f7a17;
+}
+
+/* ================= 공간 만들기(모달 내부 전환 화면) =================
+ * 별도 화면 이동이나 Bottom Sheet 없이 이 모달 안에서 바로 이어진다 — 헤더만
+ * 뒤로가기 + "공간 만들기" 제목으로 바뀌고, 아래 내용 전체가 비울 위젯 선택
+ * 리스트로 통째로 바뀐다(레퍼런스: "위젯 추가 플로우(최종안)" 3단계). */
+
+.wpg-modal__back {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: calc(var(--space-xs) * -1);
+  border: 0;
+  background: none;
+}
+
+.wpg-modal__back img {
+  width: var(--header-back-w);
+  height: var(--header-back-h);
+}
+
+/* 위젯 미리보기 화면(.wpg-modal__title/__desc)이 카테고리 필부터 설명까지 전부 가운데
+ * 정렬이라, 같은 모달 안에서 이어지는 이 화면의 제목도 왼쪽 정렬로 남겨두면 화면끼리
+ * 톤이 달라 보였다 — 가운데 정렬로 맞춘다. */
+.wpg-modal__space-title {
+  margin: 0 0 var(--space-md);
+  text-align: center;
+  font-family: var(--font-a2z);
+  font-weight: var(--font-weight-bold);
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.wpg-modal__space-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wpg-modal__space-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: var(--surface-cream);
+  text-align: left;
+}
+
+.wpg-modal__space-item.is-selected {
+  border-color: var(--brand-primary);
+  background: rgba(180, 57, 54, 0.05);
+}
+
+/* 체크박스 — 배치 그리드/액션 시트의 원형과 달리 여기는 사각(둥근 모서리) */
+.wpg-modal__space-check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-widget);
+  border-radius: var(--radius-s);
+  background: var(--surface-cream);
+}
+
+.wpg-modal__space-item.is-selected .wpg-modal__space-check {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 10.5l3 3 7-7' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 12px no-repeat;
+}
+
+.wpg-modal__space-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wpg-modal__space-name {
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.wpg-modal__space-desc {
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wpg-modal__space-tag {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-s);
+  background: rgba(180, 57, 54, 0.08);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-bold);
+  font-size: 11px;
+  color: var(--brand-primary);
+}
+
+.wpg-modal__space-count {
+  margin: var(--space-md) 0 0;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+}
+
