@@ -95,7 +95,9 @@
   --font-size-xs: 12px;
   --font-size-title: 13px; /* 기존 .wpick__name(13px)과 통일 */
   --font-size-body: 14px;
-  --font-size-value-s: 17px; /* 기존 .wpick__main--17과 통일 */
+  /* Small 위젯 카드(.wcard--small, 콘텐츠 폭 104.5px)에서만 쓴다 — 17px는 "최대 30% 할인"처럼
+   * 조금만 긴 값도 줄임표 직전까지 붙어 보여서 16px로 낮췄다(widget-gallery.css 참고) */
+  --font-size-value-s: 16px;
   --font-size-value-m: 18px; /* 기존 .wpick__main--18과 통일 */
   --font-size-value-l: 22px;
 

@@ -1,17 +1,33 @@
-/** 구간별 비율 막대 — 소비 분석 Large 전용. 색은 항상 이 4가지 순서로 고정한다(위젯마다
- * 색을 고르지 않는다) — 브랜드 레드 / 오렌지 / 그린 / 연한 보더 톤. */
-const SEGMENT_COLORS = ['var(--brand-primary)', 'var(--brand-orange)', 'var(--brand-green)', 'var(--border-warm)'];
+import type { WidgetLegendSegment } from '../../data/widgetRegistry';
 
-export function SegmentedBar({ segments }: { segments: number[] }) {
+const SEGMENT_COLOR: Record<WidgetLegendSegment['color'], string> = {
+  red: 'var(--brand-primary)',
+  orange: 'var(--brand-orange)',
+  green: 'var(--brand-green)',
+  yellow: 'var(--brand-secondary)',
+};
+
+/** 구간별 비율 막대 + 범례 — 소비 분석 Large 전용 */
+export function SegmentedBar({ segments }: { segments: WidgetLegendSegment[] }) {
   return (
-    <span className="wcard__segbar">
-      {segments.map((percent, i) => (
-        <span
-          key={i}
-          className="wcard__seg"
-          style={{ flexGrow: percent, background: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }}
-        />
-      ))}
+    <span className="wcard__seg-wrap">
+      <span className="wcard__segbar">
+        {segments.map((seg, i) => (
+          <span
+            key={i}
+            className="wcard__seg"
+            style={{ flexGrow: seg.percent, background: SEGMENT_COLOR[seg.color] }}
+          />
+        ))}
+      </span>
+      <span className="wcard__seg-legend">
+        {segments.map((seg, i) => (
+          <span className="wcard__seg-legend-item" key={i}>
+            <span className="wcard__seg-dot" style={{ background: SEGMENT_COLOR[seg.color] }} />
+            {seg.label}
+          </span>
+        ))}
+      </span>
     </span>
   );
 }

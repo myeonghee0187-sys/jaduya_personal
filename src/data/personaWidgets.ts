@@ -1,5 +1,4 @@
 import type { Persona } from '../auth/mockUsers';
-import type { WidgetSize } from '../types';
 
 /* persona 별 Home '내 생활' 위젯 조합.
  *
@@ -59,73 +58,3 @@ export const PERSONA_WIDGETS: Record<Persona, PersonaWidgetLayout> = {
 };
 
 export const DEFAULT_PERSONA_LAYOUT = PERSONA_WIDGETS.beginner;
-
-/* 슬롯 id → 위젯 추가 시트(WIDGET_CATALOG)의 동일 위젯 id.
- * 같은 위젯이 크기만 다른 경우가 있어 매핑해 둔다. */
-const LAYOUT_TO_CATALOG: Partial<Record<MediumWidgetId | SmallWidgetId, string>> = {
-  'living-cost': 'living-cost',
-  rent: 'rent',
-  fridge: 'fridge',
-  'fridge-s': 'fridge-s',
-  todo: 'todo-m',
-  'todo-s': 'todo-s',
-  'clean-s': 'clean-s',
-  benefit: 'benefit',
-  deposit: 'deposit',
-  'fixed-cost': 'fixed-cost',
-  vet: 'vet',
-  'pet-cost': 'pet-cost',
-  'pet-supply': 'pet-supply',
-};
-
-/** 슬롯 id → 실제 배치된 크기(medium/small)까지 담은 카탈로그 항목.
- *  위젯 추가 시트의 '현재 사용 중인 위젯'이 Home 캔버스와 같은 크기로 보이도록 쓴다. */
-export function layoutCatalogEntries(
-  layout: PersonaWidgetLayout,
-): { id: string; size: WidgetSize }[] {
-  const entries: { id: string; size: WidgetSize }[] = [];
-  layout.medium.forEach((slot) => {
-    const id = LAYOUT_TO_CATALOG[slot];
-    if (id) entries.push({ id, size: 'medium' });
-  });
-  layout.small.forEach((slot) => {
-    const id = LAYOUT_TO_CATALOG[slot];
-    if (id) entries.push({ id, size: 'small' });
-  });
-  return entries;
-}
-
-/** 지금 draft/저장된 위젯 목록(catalog id)을 기준으로, persona 고정 슬롯 중
- *  실제로 켜져 있는 것만 남긴다 — 위젯 추가 시트에서 끄면 Home에서도 그 자리가 사라지고,
- *  다시 켜면 원래 자리에 돌아온다. 총 개수는 항상 widgets.length 이하로 유지된다. */
-export function activeLayoutSlots(
-  layout: PersonaWidgetLayout,
-  widgets: string[],
-): { medium: MediumWidgetId[]; small: SmallWidgetId[] } {
-  const isActive = (slotId: MediumWidgetId | SmallWidgetId) => {
-    const catalogId = LAYOUT_TO_CATALOG[slotId];
-    return catalogId ? widgets.includes(catalogId) : true;
-  };
-  return {
-    medium: layout.medium.filter(isActive),
-    small: layout.small.filter(isActive),
-  };
-}
-
-/** 캔버스 슬롯이 이미 보여주는 위젯 id (슬롯 id + 카탈로그 동치 id).
- *  추가 행에서 같은 위젯이 중복 노출되는 걸 막는 데 쓴다. */
-export function layoutWidgetIds(layout: PersonaWidgetLayout): string[] {
-  const slots = [...layout.medium, ...layout.small];
-  const mapped = slots
-    .map((id) => LAYOUT_TO_CATALOG[id])
-    .filter((id): id is string => Boolean(id));
-  return [...new Set([...slots, ...mapped])];
-}
-
-/** 위젯 추가 시트의 초기 선택 상태 — 카탈로그에 있는 위젯만 */
-export function layoutCatalogIds(layout: PersonaWidgetLayout): string[] {
-  const ids = [...layout.medium, ...layout.small]
-    .map((id) => LAYOUT_TO_CATALOG[id])
-    .filter((id): id is string => Boolean(id));
-  return [...new Set(ids)];
-}
