@@ -52,6 +52,8 @@ interface AIChatbotButtonProps {
    * 진입 모프가 버튼의 현재(드래그된) 위치를 시작점으로 쓰므로 버튼 자체를 넘긴다. */
   onClick: (button: HTMLButtonElement | null) => void;
   hidden?: boolean;
+  /** fullscreen AI overlay 아래에 남아 있을 때는 보이지 않지만, 입력만 막는다. */
+  disabled?: boolean;
   /** 최초 배치를 기본(바텀네비 바로 위)보다 이만큼(px) 위로 올린다.
    * 커뮤니티 글쓰기 버튼처럼 그 자리에 이미 다른 플로팅 버튼이 있을 때만 쓴다.
    * 최초 배치에만 영향을 주고, 이후 드래그/리사이즈 동작은 그대로다. */
@@ -64,6 +66,7 @@ interface AIChatbotButtonProps {
 export function AIChatbotButton({
   onClick,
   hidden = false,
+  disabled = false,
   initialLift = 0,
   coachmarkRef,
 }: AIChatbotButtonProps) {
@@ -198,9 +201,11 @@ export function AIChatbotButton({
         else if (coachmarkRef) coachmarkRef.current = node;
       }}
       type="button"
-      className={`ai-fab${dragging ? ' is-dragging' : ''}`}
+      className={`ai-fab${dragging ? ' is-dragging' : ''}${hidden ? ' is-hidden' : ''}${disabled ? ' is-disabled' : ''}`}
       style={style}
-      hidden={hidden}
+      disabled={disabled}
+      aria-hidden={hidden}
+      tabIndex={hidden || disabled ? -1 : 0}
       aria-label="자두 AI 챗봇 열기"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

@@ -395,6 +395,117 @@ a { text-decoration: none; color: inherit; }
 
 .app[data-sheet-state="peek"] .sheet__scroll { overflow: hidden; }
 
+/* ---------- 시트 안의 View 전환 ----------
+ * 새 시트를 겹쳐 띄우지 않고 같은 시트의 콘텐츠만 바꾼다. 그래서 시트가 올라오는
+ * 모션이 아니라, 콘텐츠가 옆에서 밀려 들어오는 짧은 전환만 준다. */
+
+@keyframes sheet-view-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sheet-view-back {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.sheet-view {
+  display: flex;
+  flex-direction: column;
+  /* 시트 스크롤이 직접 주던 섹션 간격을 그대로 이어받는다 */
+  gap: var(--sheet-section-gap);
+}
+
+.sheet-view--recommend {
+  gap: 24px;
+  animation: sheet-view-in 200ms ease-out both;
+}
+
+/* 설정에서 돌아왔을 때만 붙는다 — 홈 첫 진입에는 전환을 주지 않는다 */
+.sheet-view--back {
+  animation: sheet-view-back 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-view--recommend,
+  .sheet-view--back {
+    animation: none;
+  }
+}
+
+/* ---------- 맞춤 추천 설정 View ----------
+ * 선택 그리드 · 안내 박스 · 저장 버튼은 마이페이지 자취 프로필과 같은
+ * .profile-settings__* 를 그대로 쓴다. 여기서는 시트 안에서만 필요한 것만 둔다. */
+
+.recommend-setup__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommend-setup__back {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.recommend-setup__back img {
+  width: 18px;
+  height: 18px;
+}
+
+.recommend-setup__back:focus:not(:focus-visible) { outline: none; }
+
+.recommend-setup__back:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+
+/* 자두가 알려드려요(.discovery__top h2)와 같은 제목 위계를 쓴다 */
+.recommend-setup__top h2 {
+  margin: 0;
+  font: 600 18px/1 var(--font-a2z);
+  color: #0c0c0c;
+}
+
+.recommend-setup__lead {
+  margin: -16px 0 0;
+  font: 400 12px/1.4 var(--font-suit);
+  color: #78716c;
+}
+
+/* 관심 주제는 분야를 고른 뒤에 나타난다 — 높이를 접었다 펴는 대신
+ * 살짝 올라오며 나타나기만 한다(분야를 바꿀 때도 같은 효과가 다시 재생된다). */
+.recommend-setup__topics {
+  animation: recommend-topics-in 170ms ease-out both;
+}
+
+@keyframes recommend-topics-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recommend-setup__topics { animation: none; }
+}
+
+/* 시트 안에서는 하단 고정 CTA 를 쓰지 않는다 — 탭바·FAB 와 겹치지 않도록
+ * 콘텐츠 흐름 마지막에 두고, 시트의 기존 스크롤 구조를 그대로 둔다. */
+.recommend-setup__save:disabled {
+  background: #d6d3d1;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* ================= ② 내 생활 ================= */
 
 .my-life {
@@ -1088,11 +1199,26 @@ a { text-decoration: none; color: inherit; }
   width: var(--content-width);
 }
 
+/* 점은 이제 실제로 날짜 칸을 고르는 버튼이다 — 크기·색은 그대로 두고
+ * 브라우저 기본 버튼 스타일만 걷어낸다. */
 .dot {
   width: 6px;
   height: 6px;
+  padding: 0;
+  border: 0;
+  appearance: none;
   border-radius: var(--radius-pill);
   background: var(--dot-idle);
+  cursor: pointer;
+  position: relative;
+}
+
+/* 6px 점은 손가락으로 누르기 작아서 보이지 않는 터치 영역만 넓힌다.
+ * 가로는 점 사이 간격(6px)의 절반까지만 넓혀 옆 점과 영역이 겹치지 않게 한다. */
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: -12px -3px;
 }
 
 .dot + .dot { margin-left: 6px; }

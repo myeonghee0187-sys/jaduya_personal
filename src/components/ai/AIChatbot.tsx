@@ -12,6 +12,8 @@ interface AIChatbotProps {
   /** 자두AI 전체 화면처럼 버튼이 필요 없는 화면에서 감춘다.
    * 컴포넌트를 지우지 않고 감추기만 해야 드래그해 둔 위치가 남는다. */
   hidden?: boolean;
+  /** overlay가 FAB를 덮는 동안 DOM/위치는 유지하고 입력만 차단한다. */
+  disabled?: boolean;
 }
 
 /** 지금 화면에 보이는 .app — Home 은 다른 화면에서도 DOM 에 남아 있으므로(hidden)
@@ -30,7 +32,7 @@ function visibleApp(): HTMLElement | null {
  * 드래그로 옮긴 위치(컴포넌트 state)가 화면을 이동해도 그대로 남는다.
  *
  * 누르면 자두AI 전체 화면(AIChatPage)으로 이동한다. */
-export function AIChatbot({ initialLift, hidden = false }: AIChatbotProps) {
+export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIChatbotProps) {
   const navigation = useAppNavigation();
   const page = navigation?.page;
 
@@ -52,7 +54,7 @@ export function AIChatbot({ initialLift, hidden = false }: AIChatbotProps) {
 
   /* 누른 자리에서 화면이 펼쳐지는 전환. 재생할 수 없는 상황이면 바로 이동한다. */
   const openChat = (button: HTMLButtonElement | null) => {
-    const go = () => navigation?.navigate('ai-chat');
+    const go = () => navigation?.navigate('ai-chat', { returnTo: navigation.page });
     if (!playAIChatMorph(button, go)) go();
   };
 
@@ -63,6 +65,7 @@ export function AIChatbot({ initialLift, hidden = false }: AIChatbotProps) {
       onClick={openChat}
       initialLift={initialLift}
       hidden={hidden}
+      disabled={disabled}
       coachmarkRef={aiFabRef}
     />,
     hostRef.current,

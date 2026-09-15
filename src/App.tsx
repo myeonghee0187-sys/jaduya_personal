@@ -40,6 +40,7 @@ import { NotificationProvider } from './notifications/NotificationContext';
 function MainPages() {
   const navigation = useAppNavigation();
   const page = navigation?.page ?? 'home';
+  const isAIChatOpen = navigation?.isAIChatOpen ?? false;
   const isHome = page === 'home';
   return (
     <>
@@ -93,7 +94,6 @@ function MainPages() {
       {page === 'benefits' && <BenefitsPage />}
       {page === 'benefits-recommend' && <BenefitsRecommendPage />}
       {page === 'benefit-detail' && <BenefitDetailPage />}
-      {page === 'ai-chat' && <AIChatPage />}
       {page === 'notifications' && <NotificationPage />}
       {page === 'settings' && <AppSettingsPage />}
       {page === 'support' && <CustomerCenterPage />}
@@ -103,9 +103,12 @@ function MainPages() {
         * (지우지 않고 감추기만 해야 돌아왔을 때 옮겨 둔 자리가 그대로 남는다).
         * 커뮤니티는 글쓰기 버튼이 같은 자리에 있어 처음 놓이는 높이만 올려 준다. */}
       <AIChatbot
-        hidden={page === 'ai-chat' || page === 'settings' || page === 'support'}
+        hidden={page === 'settings' || page === 'support'}
+        disabled={isAIChatOpen}
         initialLift={page.startsWith('community') ? 68 : 0}
       />
+      {/* 기반 화면은 계속 마운트된 채로 두고 자두AI만 최상단 overlay로 올린다. */}
+      {isAIChatOpen && <AIChatPage />}
     </>
   );
 }
