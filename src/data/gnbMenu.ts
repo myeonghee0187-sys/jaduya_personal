@@ -65,8 +65,6 @@ export const GNB_CATEGORIES: GnbCategory[] = [
       { id: 'community-qna', name: '질문', route: 'community-question' },
       { id: 'community-tip', name: '자취꿀팁', route: 'community-tip' },
       { id: 'community-region', name: '지역후기', route: 'community-region' },
-      /* 비슷한 조건의 사용자끼리 실제 소비/지출 내역을 비교하는 기능 */
-      { id: 'community-spend-compare', name: '소비 비교', route: 'community-spend-compare' },
     ],
   },
   {

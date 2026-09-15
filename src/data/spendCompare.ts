@@ -1,11 +1,5 @@
-/* 커뮤니티 '소비 비교' 게시글 데이터 — Figma compare_spending (2257:17167) 내용 그대로. */
-
-export const MY_SPENDING_REPORT = {
-  title: '이번달 지출 리포트',
-  deltaLabel: '지난달보다 8.2% 줄었어요',
-  amount: 730_000,
-  ctaLabel: '전체보기',
-};
+/* 돈 관리 '소비' 탭 맨 아래 — 비슷한 자취생과 비교 / 소비 인사이트 공유 데이터.
+ * 원래 커뮤니티 '소비 비교' 탭 데이터였다 (Figma compare_spending 2257:17167 내용 그대로). */
 
 export interface PeerComparison {
   id: string;
