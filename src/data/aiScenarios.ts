@@ -54,10 +54,24 @@ export const AI_SCENARIOS: Record<string, FlowScenario> = {
       'error-code-input': { message: '표시된 오류 코드를 입력해주세요. 예: 03, E1', inputMode: 'text' },
     },
   },
+  'pest-photo': {
+    id: 'pest-photo', type: 'diagnosis',
+    stages: {
+      location: { message: '어디에서 발견했나요?', quickReplies: [
+        { label: '싱크대 주변', value: 'sink_area' }, { label: '화장실', value: 'bathroom' },
+        { label: '방', value: 'room' }, { label: '현관', value: 'entrance' },
+      ] },
+      'sink-food': { message: '최근 음식물 쓰레기를 오래 둔 적 있었나요?', quickReplies: [
+        { label: '응 있었어', value: 'yes' }, { label: '아니 없어', value: 'no' }, { label: '잘 모르겠어', value: 'unknown' },
+      ] },
+    },
+  },
   moveIn: {
     id: 'moveIn', type: 'guide', persona: 'beginner',
     stages: {
-      'move-stage': { message: (user) => `${user.name ?? '처음 자취를 준비 중인'} 분이 처음 해도 헷갈리지 않도록 순서대로 알려드릴게요.\n지금 이사는 어느 단계까지 진행됐나요?`, quickReplies: [
+      'move-stage': { message: (user) => user.name
+        ? `${user.name}님이 처음 해도 헷갈리지 않도록 순서대로 알려드릴게요.\n지금 이사는 어느 단계까지 진행됐나요?`
+        : '처음 자취를 준비 중인 분이 처음 해도 헷갈리지 않도록 순서대로 알려드릴게요.\n지금 이사는 어느 단계까지 진행됐나요?', quickReplies: [
         { label: '아직 이사 전이에요', value: 'before' }, { label: '오늘 이사했어요', value: 'today' }, { label: '이미 이사했어요', value: 'moved' },
       ] },
       'before-move': { message: '전입신고는 실제 거주를 시작한 뒤 진행하면 돼요. 무엇부터 볼까요?', quickReplies: [

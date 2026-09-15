@@ -160,6 +160,10 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
    * 따로 움직이지 않는다). count 는 pages.length(=날짜 개수) 그대로다. */
   const pageCarousel = useCardCarousel({ count: pages.length });
   const canPage = pages.length > 1;
+  /* 이전(‹)은 01에서 막힌다(그 앞 페이지가 없다는 뜻이라 비활성 처리) — goTo(index-1)로만
+   * 옮긴다. 다음(›)은 반대로 04에서도 계속 활성 상태로 두고 goNext()(무한 순환, 이미
+   * swipe 가 쓰는 것과 같은 함수)를 그대로 써서 04 → 01 로 끊김 없이 돈다. */
+  const isFirstPage = pageCarousel.index === 0;
 
   return (
     <section className="discovery">
@@ -172,10 +176,51 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
         </button>
       </div>
 
+      {/* 얇은 숫자형 페이지네이션 — 새 page state 를 따로 만들지 않고 3카드 슬라이드와
+        * 이미 같은 값을 공유하는 pageCarousel.index/goTo 를 그대로 쓴다 — swipe·화살표(현재는
+        * 제거)와 완전히 같은 하나의 상태라 서로 어긋날 일이 없다. */}
+      <div className="discovery__pagination" role="tablist" aria-label="날짜 페이지 선택">
+        <button
+          type="button"
+          className="discovery__page-chevron"
+          aria-label="이전 페이지"
+          disabled={isFirstPage}
+          onClick={() => pageCarousel.goTo(pageCarousel.index - 1)}
+        >
+          <span aria-hidden="true">‹</span>
+        </button>
+        {pages.map(({ key, day }, index) => {
+          const isActive = index === pageCarousel.index;
+          const isLast = index === pages.length - 1;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              className={`discovery__page-item${isActive ? ' is-active' : ''}`}
+              aria-selected={isActive}
+              aria-label={day.date}
+              onClick={() => pageCarousel.goTo(index)}
+            >
+              {isActive && isLast && <span className="discovery__page-line" aria-hidden="true" />}
+              <span className="discovery__page-num">{String(index + 1).padStart(2, '0')}</span>
+              {isActive && !isLast && <span className="discovery__page-line" aria-hidden="true" />}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className="discovery__page-chevron"
+          aria-label="다음 페이지"
+          onClick={pageCarousel.goNext}
+        >
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+
       <div className="discovery__body">
-        {/* discovery-page__carousel 은 버튼의 절대위치 기준(3카드 전체 폭)이고,
-          * 실제로 슬라이드를 자르는 overflow:hidden 은 그 안의 viewport 만 갖는다 —
-          * 그래야 버튼이 viewport 폭 바깥(카드 테두리 밖)에 있어도 잘리지 않는다. */}
+        {/* 실제로 슬라이드를 자르는 overflow:hidden 은 안쪽 viewport 만 갖는다 —
+          * 페이지 전환(3카드 전체 슬라이드)과 카드 폭·gap·padding 은 이전과 완전히 같다. */}
         <div className="discovery-page__carousel">
           <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
             <div
@@ -191,49 +236,7 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
               ))}
             </div>
           </div>
-
-          {/* 생활 페이지 해결팁 캐러셀과 같은 좌우 버튼 — 오른쪽 카드 하나가 아니라
-            * 3카드 전체 슬라이드(discovery-page__carousel)를 기준으로 카드 테두리 바깥에
-            * 서고, pageCarousel.goPrev/goNext 로 그 슬라이드를 통째로 넘긴다.
-            * swipe·dot 클릭과 똑같이 currentPage(pageCarousel.index) 하나만 쓴다. */}
-          {canPage && (
-            <>
-              <button
-                type="button"
-                className="discovery-page__nav discovery-page__nav--prev"
-                aria-label="이전 페이지"
-                onClick={pageCarousel.goPrev}
-              >
-                <span aria-hidden="true">‹</span>
-              </button>
-              <button
-                type="button"
-                className="discovery-page__nav discovery-page__nav--next"
-                aria-label="다음 페이지"
-                onClick={pageCarousel.goNext}
-              >
-                <span aria-hidden="true">›</span>
-              </button>
-            </>
-          )}
         </div>
-
-        {/* 페이지 수만큼의 점 — 날짜 개수(4)를 그대로 따른다. */}
-        {canPage && (
-          <div className="carousel-dots" role="tablist" aria-label="날짜 페이지 선택">
-            {pages.map(({ key, day }, index) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                className={`dot${index === pageCarousel.index ? ' dot--active' : ''}`}
-                aria-selected={index === pageCarousel.index}
-                aria-label={day.date}
-                onClick={() => pageCarousel.goTo(index)}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );

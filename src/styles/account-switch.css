@@ -1,7 +1,9 @@
 /* JADUYA — 개발·발표용 계정 전환
  *
  * 시트 본체는 auth.css 의 .bsheet / .test-account* 를 그대로 쓰고,
- * 여기에는 이 기능에서만 필요한 것(현재 계정 블록 / 배지 / hover 말풍선)만 둔다.
+ * 여기에는 이 기능에서만 필요한 것(현재 계정 블록 / 배지)만 둔다.
+ * 진입점은 마이페이지 프로필의 '계정 관리' 버튼이다(mypage.css 의
+ * .mypage__account-btn) — 예전에 여기 있던 하단 탭바 hover 말풍선은 제거했다.
  */
 
 /* ================= 시트 ================= */
@@ -34,49 +36,9 @@
   color: var(--text-secondary);
 }
 
-/* ================= 하단 네비 hover 말풍선 (데스크톱) ================= */
-
-/* 탭 자체 레이아웃은 건드리지 않고, 말풍선만 absolute 로 띄운다. */
+/* 하단 탭바 각 탭의 공통 wrap — 계정 전환 기능과 무관하게 tab-item 레이아웃에
+ * 계속 쓰이므로 그대로 둔다(이전엔 여기에 hover 말풍선을 absolute 로 띄우기 위한
+ * position:relative 도 있었지만, 말풍선 자체가 없어져 display:flex 만 남긴다). */
 .tab-item-wrap {
-  position: relative;
   display: flex;
-}
-
-.account-switch__bubble {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 6px);
-  transform: translateX(-50%);
-  z-index: 50;
-  /* 탭 ↔ 말풍선 사이 마우스 이동 중에 hover 가 끊기지 않도록 아래쪽 여백을 포함시킨다 */
-  padding-bottom: 6px;
-}
-
-.account-switch__bubble[hidden] {
-  display: none;
-}
-
-.account-switch__bubble button {
-  display: block;
-  white-space: nowrap;
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-m);
-  background: var(--surface-cream);
-  box-shadow: 0 6px 16px rgba(60, 50, 45, 0.16);
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-primary);
-}
-
-
-/* 노출 여부는 React state(hidden 속성)가 결정한다.
- * hover 는 데스크톱 보조 효과일 뿐이라 여기서 display 를 건드리지 않는다.
- * (터치 기기에서는 마이 탭을 눌러 열고, 바깥을 눌러 닫는다.) */
-@media (hover: hover) and (pointer: fine) {
-  .account-switch__bubble button:hover {
-    color: var(--brand-primary);
-  }
 }
