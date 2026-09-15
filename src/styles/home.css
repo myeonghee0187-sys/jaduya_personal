@@ -440,17 +440,23 @@ a { text-decoration: none; color: inherit; }
 .recommend-setup__top {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* SubPageHeader(.page-header__nav)와 같은 뒤로가기-제목 간격 규칙을 쓴다 */
+  gap: var(--space-sm);
 }
 
 .recommend-setup__back {
+  /* 가로 폭·왼쪽 시작 위치 모두 이 프로젝트의 다른 뒤로가기 버튼(SubPageHeader 의
+   * .page-header__back 등, 같은 gnb-back.svg 를 쓴다)과 동일한 규칙을 그대로
+   * 재사용한다 — width 를 height(28px)와 같은 값으로 고정하면 정사각형이 되어
+   * 아이콘보다 버튼이 과하게 넓어진다. margin-left 를 따로 주지 않아 버튼 왼쪽 끝이
+   * 화면 여백(--screen-margin)에 그대로 맞는다. 세로(28px)는 제목과의 클릭 정렬을
+   * 위해 그대로 둔다. */
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 24px;
   height: 28px;
-  margin-left: -6px;
   padding: 0;
   border: 0;
   background: none;
@@ -803,7 +809,6 @@ a { text-decoration: none; color: inherit; }
 .discovery {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
   flex: none;
   width: var(--content-width);
   /* 시트 배경(--surface-subtle, #fcfaf7)보다 한 톤 더 연하게 — "내 생활" 위젯 등
@@ -812,12 +817,14 @@ a { text-decoration: none; color: inherit; }
   background: #fffcf9;
 }
 
-/* 제목 왼쪽 · 추천 설정 링크 오른쪽 */
+/* 제목 왼쪽 · 추천 설정 링크 오른쪽 — 아래 숫자 페이지네이션과 간격을 8px 로 따로
+ * 주기 위해 discovery 의 공통 gap 대신 이 줄 자체에 margin-bottom 을 둔다. */
 .discovery__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xs);
+  margin-bottom: 8px;
 }
 
 .discovery__top h2 {
@@ -856,6 +863,71 @@ a { text-decoration: none; color: inherit; }
   border-radius: var(--radius-s);
 }
 
+/* 헤더 아래, 카드 시작 전에 놓는 얇은 숫자형 페이지네이션 — 현재 페이지 숫자만
+ * 진하게 쓰고 옆에 짧은 선을 붙인다(마지막 페이지는 선이 화면 밖으로 나가지
+ * 않도록 숫자 앞쪽에 둔다). 3카드 슬라이드·swipe 와 같은 pageCarousel.index 를 그대로 쓴다. */
+.discovery__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.discovery__page-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  font: 500 12px/1 var(--font-suit);
+  letter-spacing: -0.1px;
+  color: var(--text-secondary);
+}
+
+.discovery__page-item.is-active {
+  color: var(--text-black);
+  font-weight: 600;
+}
+
+.discovery__page-line {
+  display: block;
+  width: 32px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--brand-primary);
+}
+
+/* 페이지네이션 줄 양 끝의 이전/다음 — 카드 옆 원형 화살표가 아니라 숫자 옆에 붙는
+ * 작은 아이콘이다(배경·테두리·그림자 없음, 숫자보다 한 톤 진한 primary 색만 쓴다). */
+.discovery__page-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 2px;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  color: var(--brand-primary);
+  font: 500 14px/1 var(--font-suit);
+  cursor: pointer;
+}
+
+.discovery__page-chevron:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .discovery__page-chevron:not(:disabled):hover {
+    opacity: 0.65;
+  }
+}
+
 .discovery__body {
   display: flex;
   flex-direction: column;
@@ -889,7 +961,10 @@ a { text-decoration: none; color: inherit; }
   flex-direction: column;
   gap: 2px;
   justify-content: center;
-  width: 100%;
+  /* 오른쪽 카드 쪽에서 보고된 우측 1px 서브픽셀 여유 확보용 — 왼쪽 컬럼의 두 박스만
+   * 1px 씩 줄인다(컬럼 자체의 flex-basis 는 그대로 두어 오른쪽 카드 폭 계산에는
+   * 영향을 주지 않는다). */
+  width: calc(100% - 1px);
   padding: 10px 12px;
   border: 1px solid var(--border-today);
   border-radius: var(--radius-l);
@@ -953,7 +1028,8 @@ a { text-decoration: none; color: inherit; }
   flex: 1 0 0;
   min-height: 0;
   justify-content: space-between;
-  width: 100%;
+  /* .today-card 와 같은 이유로 1px 줄인다 */
+  width: calc(100% - 1px);
   padding: var(--card-padding-m);
 }
 
@@ -1102,19 +1178,15 @@ a { text-decoration: none; color: inherit; }
  * "오늘부터 3일 + 오늘의 장보기 + 자두의 맞춤 팁" 3장 전체가 하나의 슬라이드다 —
  * 오른쪽 맞춤 팁 카드만 바뀌는 게 아니라 discovery__row 통째로 페이지 단위로 넘어간다
  * (카드 각각 따로 움직이지 않는다). 페이지 전환 자체(트랙 transform + 드래그 중 transition
- * 끄기)는 생활 페이지 해결팁 캐러셀과 같은 방식이고, 하단 페이지네이션은 이미 있는
- * .carousel-dots/.dot/.dot--active 를 그대로 재사용한다(오늘부터 3일의 날짜 dot 이었던
- * 자리를 이제 이 페이지 dot 이 대신한다 — 위치·디자인은 그대로다). */
-/* 버튼의 절대위치 기준 — 3카드 전체 폭(342px) 그대로다. overflow 는 주지 않는다,
- * 버튼이 안의 viewport 보다 바깥(카드 테두리 밖)에 서야 해서 여기서 잘리면 안 된다. */
+ * 끄기)는 생활 페이지 해결팁 캐러셀과 같은 방식이고, 페이지네이션은 헤더 아래 숫자형
+ * .discovery__pagination 이 맡는다(좌우 화살표·하단 dot 은 쓰지 않는다). */
 .discovery-page__carousel {
   position: relative;
   width: 100%;
 }
 
 /* 실제로 슬라이드를 자르는 곳 — 카드 폭은 기존 discovery__row 와 완전히 같다(100%,
- * inset 없음). 화살표는 이 요소의 폭을 줄이는 방식이 아니라 부모(discovery-page__carousel)
- * 기준 absolute 로, 화면 여백 쪽에 최대한 붙여서 뺀다(아래 .discovery-page__nav 참고). */
+ * inset 없음). */
 .discovery-page__viewport {
   position: relative;
   width: 100%;
@@ -1139,77 +1211,6 @@ a { text-decoration: none; color: inherit; }
 .discovery-page__slide {
   flex: 0 0 100%;
   min-width: 0;
-}
-
-/* 좌우 이동 버튼 — 생활 페이지(LifePage.tsx) "자취생들의 해결팁" 캐러셀의 .life-tips__nav
- * 와 시각적으로 동일하다(크기·원형 배경·테두리·그림자·backdrop-blur·글자 색·hover 만
- * 있는 전환 규칙까지 값을 그대로 옮겼다 — life.css 는 건드리지 않고 여기 새로 적었다).
- * 자리만 다르다: 생활 페이지는 가운데 카드 밖 여백에 버튼을 띄우지만(카드가 뷰포트보다
- * 좁아 옆 카드가 살짝 보이는 레이아웃), 여기는 카드가 뷰포트 폭 대부분을 채운다 —
- * discovery-page__carousel(3카드 전체 폭) 기준으로 카드 테두리 바깥, 화면 여백 쪽에
- * 얹는다(음수 offset). 제어 대상은 오른쪽 카드 하나가 아니라 3카드 슬라이드 전체다. */
-.discovery-page__nav {
-  /* 화면 여백(--screen-margin)보다 2px 작게 — 카드 폭은 그대로 두면서 이 여백 안에
-   * 버튼이 완전히 들어가게 한다(360px 약 25px, 390px 약 27px, 402px 28px로 화면폭에
-   * 따라 자연스럽게 반응한다). 생활 페이지 버튼(36px 고정)과 지름만 다르고 원형·배경·
-   * 그림자·글자색·hover 등 나머지 스타일은 전부 그대로다. */
-  --nav-size: calc(var(--screen-margin) - 2px);
-  position: absolute;
-  top: 50%;
-  z-index: 15;
-  opacity: 1;
-  visibility: visible;
-  filter: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--nav-size);
-  height: var(--nav-size);
-  border: 1px solid rgba(180, 57, 54, 0.12);
-  border-radius: 50%;
-  padding: 0;
-  background: rgba(255, 250, 245, 0.9);
-  color: var(--brand-primary);
-  font: 400 20px/1 var(--font-suit);
-  /* 화살표 아이콘도 버튼과 같은 비율로(원래 20px ÷ 36px) 살짝 줄인다 */
-  font-size: calc(var(--nav-size) * 5 / 9);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  transform: translateY(-50%);
-  /* hover 배경만 부드럽게 — opacity / transform / filter 는 절대 전환하지 않는다
-   * (페이지가 넘어가는 동안 버튼이 깜빡이거나 움직이면 안 된다) */
-  transition: background-color 160ms ease;
-}
-
-/* 보이는 크기는 줄었지만 누르는 범위는 그대로 넓게 잡는다 */
-.discovery-page__nav::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-}
-
-.discovery-page__nav span {
-  /* 화살표 글리프가 세로 가운데에 오도록 미세 보정 */
-  margin-top: -2px;
-}
-
-/* 화면 여백(--screen-margin)을 그대로 음수로 써서 화면 진짜 가장자리까지 뺀다 — 카드
- * 폭은 전혀 줄이지 않는다. 버튼 자체가 이제 (여백 - 2px) 크기라 이 위치에 그대로 둬도
- * 카드 시작 지점(0) 앞에서 버튼이 끝나 2px 여유를 두고 카드와 겹치지 않는다. */
-.discovery-page__nav--prev {
-  left: calc(var(--screen-margin) * -1);
-}
-
-.discovery-page__nav--next {
-  right: calc(var(--screen-margin) * -1);
-}
-
-@media (hover: hover) {
-  .discovery-page__nav:hover {
-    background: rgba(255, 250, 245, 1);
-  }
 }
 
 /* ---------- 외출 팁: 맞춤 추천 설정 전 ----------
@@ -1322,48 +1323,6 @@ a { text-decoration: none; color: inherit; }
   width: 217.87%;
   height: 100%;
   max-width: none;
-}
-
-/* carousel */
-
-.carousel-dots {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: var(--space-xs);
-  width: var(--content-width);
-}
-
-/* 점은 실제로 페이지를 고르는 버튼이다 — 생활 페이지(LifePage.tsx) "자취생들의 해결팁"
- * 캐러셀의 .life-tips__dot / .is-active 와 크기·간격·active pill 애니메이션까지 값을
- * 그대로 옮겼다(life.css 는 건드리지 않고 여기 다시 적었다). */
-.dot {
-  width: 6px;
-  height: 6px;
-  padding: 0;
-  border: 0;
-  appearance: none;
-  border-radius: var(--radius-pill);
-  background: var(--dot-idle);
-  cursor: pointer;
-  position: relative;
-  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease;
-}
-
-/* 6px 점은 손가락으로 누르기 작아서 보이지 않는 터치 영역만 넓힌다.
- * 가로는 점 사이 간격(6px)의 절반까지만 넓혀 옆 점과 영역이 겹치지 않게 한다. */
-.dot::after {
-  content: '';
-  position: absolute;
-  inset: -12px -3px;
-}
-
-.dot + .dot { margin-left: 6px; }
-
-/* 현재 페이지만 Primary 컬러의 가로로 긴 pill 로 늘어난다 — 색만 바뀌는 점이 아니다 */
-.dot--active {
-  width: 18px;
-  background: var(--brand-primary);
 }
 
 /* discovery__col 에 min-width:0 + flex-basis:50% 가 이미 있어 2열 그대로도 360px,

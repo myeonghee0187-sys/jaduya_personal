@@ -63,10 +63,38 @@
   gap: 4px;
 }
 
+.mypage__profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .mypage__profile-copy h2 {
   margin: 0;
   font: 700 24px/1.4 var(--font-suit);
   color: var(--text-primary);
+}
+
+/* 계정 전환 진입점 — 이전엔 GNB(하단 탭바) '마이' hover/click 에서 열었지만 이제
+ * 여기서 연다. 이름 옆 보조 액션이라 메인 CTA처럼 크게 만들지 않는다. */
+.mypage__account-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 12px/1 'Pretendard', var(--font-suit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mypage__account-btn:active {
+  opacity: 0.7;
 }
 
 /* 아래 여백 8px 은 '프로필 관리' 버튼과 띄우려던 값이라 버튼과 함께 걷어낸다 —

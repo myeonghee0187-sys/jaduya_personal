@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { AccountSwitchSheet } from '../components/auth/AccountSwitchSheet';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
@@ -42,6 +43,10 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   /* Home stat bar 와 같은 원본에서 계산한다 */
   const level = resolveLevel(profile.level);
   const [gnbOpen, setGnbOpen] = useState(false);
+  /* 계정 전환 진입점 — 예전에는 GNB(하단 탭바) '마이' hover/click 에서 열었지만,
+   * 이제는 여기 프로필 영역의 '계정 관리' 버튼에서만 연다. 시트 자체(AccountSwitchSheet)와
+   * 데모 로그인/로그아웃 로직은 그대로 재사용하고 진입점만 옮긴다. */
+  const [accountSwitchOpen, setAccountSwitchOpen] = useState(false);
   const myMenu = useMyMenu();
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
@@ -86,7 +91,19 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           <img className="mypage__avatar" src={img(profile.profileImage)} alt="" />
           {/* 자취 정보 수정은 아래 '자취 프로필' 메뉴에서만 한다 — 여기서는 보여주기만 */}
           <div className="mypage__profile-copy">
-            <h2 id="profile-title">{name}님</h2>
+            <div className="mypage__profile-name-row">
+              <h2 id="profile-title">{name}님</h2>
+              {/* 예전 GNB '마이' hover/click 계정 전환 진입점을 여기로 옮겼다 —
+                * 시트(AccountSwitchSheet)·데모 로그인 로직은 그대로, 여는 자리만 바뀐다.
+                * 로그아웃까지 포괄할 진입점이라 '계정 전환'이 아니라 '계정 관리'로 고정한다. */}
+              <button
+                type="button"
+                className="mypage__account-btn"
+                onClick={() => setAccountSwitchOpen(true)}
+              >
+                계정 관리
+              </button>
+            </div>
             <p>{profileSummary(profile)}</p>
           </div>
         </section>
@@ -218,6 +235,8 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
           onClose={() => setLevelInfo(null)}
         />
       )}
+
+      <AccountSwitchSheet open={accountSwitchOpen} onClose={() => setAccountSwitchOpen(false)} />
 
       <BottomNavigation activeTab="my" />
       <GnbOverlay

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AnimationEvent, FormEvent } from 'react';
+import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
@@ -25,7 +25,56 @@ type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
   content: string;
+  ctas?: ChatCta[];
+  attachments?: ChatAttachment[];
+  benefitRecommendations?: BenefitRecommendation[];
+  benefitCtaText?: string;
+  pestDiagnosis?: boolean;
+  pestSolution?: PestSolution;
 };
+
+type ImageAttachment = {
+  type: 'image';
+  id: string;
+  name: string;
+  previewUrl: string;
+  source: 'camera' | 'photo';
+};
+
+type FileAttachment = { type: 'file'; id: string; name: string; size: number };
+type ContactAttachment = { type: 'contact'; id: string; name?: string; tel: string };
+type ChatAttachment = ImageAttachment | FileAttachment | ContactAttachment;
+
+type ChatCta = {
+  label: string;
+  copyText?: string;
+};
+
+type PestSolution = {
+  causeItems: string[];
+  steps: string[];
+};
+
+/* 실제 Vision API 응답이 아닌, 이미지 첨부 + 벌레 문구 테스트에만 쓰는 데모 진단값이다. */
+const MOCK_PEST_PHOTO_DIAGNOSIS = {
+  title: '바퀴벌레로 보여요.',
+  confidence: '일치 가능성 94%',
+  risk: '위험도 높음',
+} as const;
+
+/* 지원 대상 여부를 확정하지 않는 데모용 후보 목록이다. 카드의 다음 행동은 기존
+ * 혜택·복지 화면으로 연결해, 챗봇 안에서 끝나는 추천이 되지 않게 한다. */
+type BenefitRecommendation = {
+  title: string;
+  description: string;
+  status: '신청 가능' | '조건 확인 필요';
+};
+
+const BENEFIT_RECOMMENDATIONS: BenefitRecommendation[] = [
+  { status: '신청 가능', title: '청년월세 지원', description: '월세 부담을 줄여주는\n청년 주거 지원' },
+  { status: '신청 가능', title: '경기 지역 청년 지원', description: '경기도 거주 청년 대상\n생활 지원' },
+  { status: '조건 확인 필요', title: '구직 급여', description: '취업 준비 기간\n생활비 지원' },
+];
 
 type PowerAnswer = 'power_off' | 'power_on';
 type BoilerStage =
@@ -56,7 +105,28 @@ const EMPTY_CONVERSATION: AIConversationContext = {
   flowId: null, flowType: null, stage: null, persona: null, answers: {},
 };
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS = 5;
+const PHOTO_CHOICES = ['thumb/thumb-bathroom.png', 'thumb/thumb-fridge.png', 'thumb/thumb-recycle.webp', 'thumb/thumb-electricity.webp'] as const;
+
+function formatFileSize(size: number): string {
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))}KB`;
+  return `${(size / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')}MB`;
+}
+
 type ScenarioReply = { content: string; conversation: AIConversationContext };
+
+/* 결과 문구 끝의 CTA 목록은 말풍선 본문과 분리해 실제 액션 버튼으로 렌더링한다.
+ * 시나리오/진단의 응답 문자열과 stage 전환은 그대로 유지한다. */
+function splitMessageCtas(content: string): Pick<ChatMessage, 'content' | 'ctas'> {
+  const match = content.match(/\n\n((?:• [^\n]+)(?:\n• [^\n]+)*)$/);
+  if (!match || match.index === undefined) return { content };
+
+  return {
+    content: content.slice(0, match.index),
+    ctas: match[1].split('\n').map((line) => ({ label: line.replace(/^•\s*/, '') })),
+  };
+}
 
 function stageMessage(scenarioId: string, stage: string, user: ScenarioUserContext): string {
   const message = scenarioStage(scenarioId, stage)?.message;
@@ -87,11 +157,72 @@ function recommendationResult(user: ScenarioUserContext, answers: Record<string,
   return `현재 알려주신 조건을 기준으로 ${category} 지원 중 확인해볼 만한 항목을 정리해볼게요.\n\n${location} 청년 주거·생활 지원과 공공 지원 제도의 신청 조건을 확인해보세요. 실제 대상 여부는 소득·계약·모집 기간을 추가로 확인해야 해요.\n\n• 신청 조건 자세히 보기\n• 신청 방법 보기\n• 다른 지원도 찾아보기`;
 }
 
+function pestSolutionFor(answers: Record<string, string>): PestSolution {
+  const foodWaste = answers.foodWaste;
+  return {
+    causeItems: foodWaste === 'yes'
+      ? ['음식물 쓰레기 장시간 방치 가능성', '싱크대 음식물 잔여물', '습한 배수구', '벽이나 문틈을 통한 유입']
+      : foodWaste === 'no'
+        ? ['습한 배수구', '벽이나 문틈을 통한 유입', '싱크대 주변의 남은 음식물', '공용 배수구 유입 가능성']
+        : ['싱크대 음식물 잔여물', '습한 배수구', '벽이나 문틈을 통한 유입'],
+    steps: foodWaste === 'no'
+      ? ['싱크대와 배수구 주변 닦기', '배수구 주변의 습기 확인하기', '벽·문틈 주변 확인하기']
+      : ['쓰레기 비우기', '싱크대 닦기', '배수구 확인하기'],
+  };
+}
+
 function getScenarioReply(message: string, conversation: AIConversationContext, user: ScenarioUserContext): ScenarioReply {
   const answer = normalizeAnswer(message);
   const scenario = conversation.flowId ? AI_SCENARIOS[conversation.flowId] : null;
   if (!scenario || !conversation.stage) {
     return { content: '어느 쪽에 가까운가요?', conversation };
+  }
+
+  if (conversation.flowId === 'pest-photo') {
+    if (conversation.stage === 'location') {
+      const location = /싱크대|주방|부엌/.test(answer)
+        ? 'sink_area'
+        : /화장실|욕실/.test(answer)
+          ? 'bathroom'
+          : /현관|신발장/.test(answer)
+            ? 'entrance'
+            : /방|침실/.test(answer)
+              ? 'room'
+              : null;
+      if (!location) {
+        return { content: '어디에서 발견했는지 가까운 위치를 골라주세요.', conversation };
+      }
+      if (location === 'sink_area') {
+        const next = nextScenarioContext(conversation, 'sink-food', 'pestLocation', location);
+        return { content: stageMessage('pest-photo', 'sink-food', user), conversation: next };
+      }
+      return {
+        content: '발견한 주변의 습기와 틈을 먼저 확인해보는 게 좋아요.',
+        conversation: nextScenarioContext(conversation, 'result', 'pestLocation', location),
+      };
+    }
+
+    if (conversation.stage === 'sink-food') {
+      const foodAnswer = /응|있었|며칠|놔뒀/.test(answer)
+        ? 'yes'
+        : /아니|없어|바로버/.test(answer)
+          ? 'no'
+          : isUnknownAnswer(answer) || /기억안/.test(answer)
+            ? 'unknown'
+            : null;
+      if (!foodAnswer) {
+        return { content: '최근 음식물 쓰레기 상태를 골라주세요.', conversation };
+      }
+      const content = foodAnswer === 'yes'
+        ? '그렇다면 음식물 잔여물이나 배수구 주변부터 확인해보는 게 좋아요.'
+        : foodAnswer === 'no'
+          ? '음식물 때문이 아닐 수도 있어요.\n배수구나 벽·문틈 같은 유입 경로도 확인해볼게요.'
+          : '괜찮아요.\n우선 싱크대와 배수구 주변부터 확인해보면 좋아요.';
+      return {
+        content,
+        conversation: nextScenarioContext(conversation, 'result', 'foodWaste', foodAnswer),
+      };
+    }
   }
 
   if (conversation.flowId === 'moveIn') {
@@ -195,7 +326,7 @@ function getDiagnosticReply(message: string, diagnosis: Diagnosis, location: str
     return {
       diagnosis: null,
       content:
-        '안전이 먼저예요. 가스·전기·화재·누수 위험이 의심되면 기기를 직접 분해하거나 수리하지 말고, 가능하면 전원을 끄고 안전한 곳으로 이동해주세요.\n\n책임 주체: 관리실 또는 전문기사\n\n• 관리실에 긴급 접수하기\n• 위험이 계속되면 119에 연락하기',
+        '안전이 먼저예요. 가스·전기·화재·누수 위험이 의심되면 기기를 직접 분해하거나 수리하지 말고, 가능하면 전원을 끄고 안전한 곳으로 이동해주세요.\n\n책임 주체: 관리실 또는 전문기사\n\n• 관리실에 문의하기\n• 위험이 계속되면 119에 연락하기',
     };
   }
 
@@ -357,11 +488,33 @@ export function AIChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis>(null);
   const [conversation, setConversation] = useState<AIConversationContext>(EMPTY_CONVERSATION);
+  const [isTerminalResult, setIsTerminalResult] = useState(false);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+  const [isImageLocationQuestion, setIsImageLocationQuestion] = useState(false);
+  const [attachmentFollowup, setAttachmentFollowup] = useState<'file' | 'contact' | null>(null);
+  const [attachmentPanel, setAttachmentPanel] = useState<'camera' | 'photo' | 'file' | 'contact' | null>(null);
+  const [selectedDemoPhoto, setSelectedDemoPhoto] = useState(0);
+  const [contactName, setContactName] = useState('');
+  const [contactTel, setContactTel] = useState('');
+  const [attachmentNotice, setAttachmentNotice] = useState('');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
   const pageRef = useRef<HTMLDivElement>(null);
   const messageIdRef = useRef(0);
   const chatRef = useRef<HTMLDivElement>(null);
   const responseTimerRef = useRef<number | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef(new Set<string>());
+  const benefitRailDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startScrollLeft: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressBenefitCardClickRef = useRef(false);
+  const [isBenefitRailDragging, setIsBenefitRailDragging] = useState(false);
   const location = user?.preferences?.answers.location?.[0];
   const userChips = [location, ...BASE_USER_CHIPS].filter((chip): chip is string => Boolean(chip));
   const personaProfile = PERSONA_PROFILE[user?.persona ?? 'beginner'];
@@ -377,20 +530,344 @@ export function AIChatPage() {
       ?? user?.preferences?.answers.leaseType?.[0],
   };
 
-  const sendMessage = (content: string, expectedStage?: string) => {
+  const appendAssistantMessage = (
+    content: string,
+    ctas?: ChatCta[],
+    benefitRecommendations?: BenefitRecommendation[],
+    benefitCtaText?: string,
+    pestDiagnosis?: boolean,
+  ) => {
+    setMessages((current) => [
+      ...current,
+      {
+        id: ++messageIdRef.current,
+        role: 'assistant',
+        ...(ctas ? { content, ctas } : splitMessageCtas(content)),
+        ...(benefitRecommendations ? { benefitRecommendations } : {}),
+        ...(benefitCtaText ? { benefitCtaText } : {}),
+        ...(pestDiagnosis ? { pestDiagnosis } : {}),
+      },
+    ]);
+  };
+
+  const makeBoilerTransferMessage = (recipient: '집주인' | '관리실', source: string) => {
+    const powerChecked = source.includes('전원 공급은 정상') || source.includes('차단기 상태');
+    const recipientLine = recipient === '집주인'
+      ? '보일러 또는 조절기 점검이 필요할 것 같아 연락드립니다.'
+      : '관리실에서 확인 가능한 사항인지 문의드립니다.';
+    return `안녕하세요.\n보일러가 작동하지 않아 확인해봤습니다.${powerChecked
+      ? '\n플러그와 차단기는 정상인 상태입니다.'
+      : '\n조절기 화면과 전원 상태를 확인했지만 문제가 계속됩니다.'}\n${recipientLine}`;
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const field = document.createElement('textarea');
+        field.value = text;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.append(field);
+        field.select();
+        document.execCommand('copy');
+        field.remove();
+      }
+      appendAssistantMessage('전달 문구를 복사했어요. 필요한 곳에 붙여넣어 보내주세요.');
+    } catch {
+      appendAssistantMessage('복사 기능을 사용할 수 없어요. 아래 문구를 직접 선택해 전달해주세요.\n\n' + text);
+    }
+  };
+
+  const handleCta = (cta: ChatCta, source: string) => {
+    switch (cta.label) {
+      case '집주인에게 연락하기': {
+        const message = makeBoilerTransferMessage('집주인', source);
+        appendAssistantMessage(`집주인에게 이렇게 전달해보세요.\n\n${message}`, [
+          { label: '내용 복사하기', copyText: message },
+          { label: '다른 방법 보기' },
+        ]);
+        return;
+      }
+      case '관리실에 문의하기': {
+        const message = makeBoilerTransferMessage('관리실', source);
+        appendAssistantMessage(`관리실에 이렇게 문의해보세요.\n\n${message}`, [
+          { label: '내용 복사하기', copyText: message },
+        ]);
+        return;
+      }
+      case '내용 복사하기':
+        void copyText(cta.copyText ?? source);
+        return;
+      case '다른 방법 보기':
+        appendAssistantMessage('집주인과 바로 연결하기 어렵다면 관리실에 먼저 문의하거나, 수리 가능 업체를 찾아볼 수 있어요.', [
+          { label: '관리실에 문의하기' },
+          { label: '근처 수리기사 찾기' },
+        ]);
+        return;
+      case '근처 수리기사 찾기':
+        if (!location) {
+          appendAssistantMessage('주변 수리업체를 찾으려면 지역 설정이 필요해요.', [
+            { label: '지역 설정하기' },
+          ]);
+          return;
+        }
+        window.open(
+          `https://map.naver.com/p/search/${encodeURIComponent(`${location} 보일러 수리`)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        appendAssistantMessage(`${location} 보일러 수리 검색을 새 탭에서 열었어요. 업체의 후기와 영업시간을 확인한 뒤 연락해보세요.`);
+        return;
+      case '지역 설정하기':
+        navigation?.closeAIChat();
+        navigation?.navigate('living-profile', { returnTo: navigation.page });
+        return;
+      case '맞춤 혜택 전체 보기':
+        navigation?.closeAIChat();
+        navigation?.navigate('benefits-recommend');
+        return;
+      case '건물 생활 정보 보기':
+        navigation?.closeAIChat();
+        navigation?.navigate('community-region');
+        return;
+      case '해결 방법 보기':
+        appendAssistantMessage('직접 확인할 수 있는 범위부터 한 단계씩 볼게요.\n\nSTEP 1\n보일러 플러그가 콘센트에 단단히 꽂혀 있는지 확인해주세요.', [
+          { label: '다음 단계 보기' },
+        ]);
+        return;
+      case '다음 단계 보기':
+        appendAssistantMessage('STEP 2\n분전함에서 보일러·난방 차단기가 내려가 있지 않은지 확인해주세요.\n\nSTEP 3\n조절기를 1분 뒤 다시 켜고 난방·온수 설정을 확인해주세요.', [
+          { label: '확인 결과 정리하기' },
+        ]);
+        return;
+      case '확인 결과 정리하기':
+        appendAssistantMessage('확인한 뒤에도 문제가 계속되면 직접 분해하지 말고 점검을 요청해주세요.', [
+          { label: '집주인에게 연락하기' },
+          { label: '근처 수리기사 찾기' },
+        ]);
+        return;
+      case '위험이 계속되면 119에 연락하기':
+        window.location.href = 'tel:119';
+        return;
+      case '이사 후 순서 보기':
+        appendAssistantMessage('이사 후에는 전입신고를 먼저 진행하고, 확정일자를 확인한 뒤 주소 변경이 필요한 서비스를 정리하면 돼요.', [
+          { label: '전입신고 방법 보기' },
+          { label: '확정일자 확인하기' },
+        ]);
+        return;
+      case '전입신고 방법 보기':
+        appendAssistantMessage('전입신고는 정부24 온라인 신청 또는 관할 주민센터 방문으로 진행할 수 있어요. 본인에게 편한 방법을 선택해보세요.', [
+          { label: '온라인 신청 순서 보기' },
+          { label: '방문 준비물 보기' },
+        ]);
+        return;
+      case '확정일자 확인하기':
+        appendAssistantMessage('확정일자는 임대차계약서를 기준으로 주민센터 또는 온라인에서 확인할 수 있어요. 전입신고 후 함께 확인해두세요.', [
+          { label: '전입신고 방법 보기' },
+        ]);
+        return;
+      case '온라인 신청 순서 보기':
+        appendAssistantMessage('정부24에서 본인 인증 후 전입신고 메뉴를 선택하세요. 새 주소와 세대 정보를 입력하고 제출 전 내용을 한 번 더 확인하면 됩니다.');
+        return;
+      case '방문 준비물 보기':
+        appendAssistantMessage('주민센터 방문 전 신분증과 임대차계약서를 챙기세요. 이사한 주소의 관할 주민센터에서 접수할 수 있어요.');
+        return;
+      case '신청 조건 자세히 보기':
+        appendAssistantMessage('지원 제도마다 나이, 소득, 주거 형태, 모집 기간이 달라요. 현재 저장된 조건을 기준으로 공고의 세부 조건을 확인한 뒤 신청 여부를 판단해주세요.', [
+          { label: '신청 방법 보기' },
+        ]);
+        return;
+      case '신청 방법 보기':
+        appendAssistantMessage('지원 공고에서 접수 기간과 제출 서류를 확인한 뒤, 안내된 공식 신청 경로로 진행해주세요. 대상 여부는 최종 심사에서 결정됩니다.', [
+          { label: '다른 지원도 찾아보기' },
+        ]);
+        return;
+      case '다른 지원도 찾아보기':
+        appendAssistantMessage('현재 조건만으로 지원 대상 여부를 확정할 수는 없어요. 다른 공고도 비교하며 신청 조건을 확인해보세요.', [
+          { label: '신청 조건 자세히 보기' },
+        ]);
+        return;
+      default:
+        appendAssistantMessage('이 안내와 관련해 필요한 정보를 정리했어요. 이전 단계로 돌아가 다른 선택지를 확인해보세요.');
+    }
+  };
+
+  const openBenefitRecommendations = () => {
+    navigation?.closeAIChat();
+    navigation?.navigate('benefits-recommend');
+  };
+
+  const handleBenefitRailPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    // 터치 입력은 브라우저의 네이티브 swipe 스크롤을 그대로 사용한다.
+    if (event.pointerType === 'touch') return;
+
+    const rail = event.currentTarget;
+    benefitRailDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: rail.scrollLeft,
+      moved: false,
+    };
+    rail.setPointerCapture(event.pointerId);
+    setIsBenefitRailDragging(true);
+  };
+
+  const handleBenefitRailPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = benefitRailDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const distance = event.clientX - drag.startX;
+    if (Math.abs(distance) > 6) drag.moved = true;
+    event.currentTarget.scrollLeft = drag.startScrollLeft - distance;
+    if (drag.moved) event.preventDefault();
+  };
+
+  const finishBenefitRailDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = benefitRailDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (drag.moved) {
+      suppressBenefitCardClickRef.current = true;
+      window.setTimeout(() => {
+        suppressBenefitCardClickRef.current = false;
+      }, 0);
+    }
+    benefitRailDragRef.current = null;
+    setIsBenefitRailDragging(false);
+  };
+
+  const handleBenefitCardClick = () => {
+    if (suppressBenefitCardClickRef.current) {
+      suppressBenefitCardClickRef.current = false;
+      return;
+    }
+    openBenefitRecommendations();
+  };
+
+  const discardPendingAttachments = () => {
+    setAttachments((current) => {
+      current.filter((attachment): attachment is ImageAttachment => attachment.type === 'image').forEach(({ previewUrl }) => {
+        URL.revokeObjectURL(previewUrl);
+        objectUrlsRef.current.delete(previewUrl);
+      });
+      return [];
+    });
+  };
+
+  const revokeAllAttachmentUrls = () => {
+    objectUrlsRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    objectUrlsRef.current.clear();
+  };
+
+  const addImageAttachment = (photo: File, source: ImageAttachment['source']) => {
+    if (attachments.length >= MAX_ATTACHMENTS) {
+      setAttachmentNotice('첨부는 최대 5개까지 가능해요.');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(photo);
+    objectUrlsRef.current.add(previewUrl);
+    setAttachments((current) => [...current, {
+      type: 'image', id: `${photo.name}-${photo.lastModified}-${source}`, name: photo.name, previewUrl, source,
+    }]);
+  };
+
+  const handleImageSelection = (event: ChangeEvent<HTMLInputElement>, source: ImageAttachment['source']) => {
+    const photo = Array.from(event.target.files ?? []).find((file) => file.type.startsWith('image/'));
+    event.target.value = '';
+    if (!photo) return;
+    addImageAttachment(photo, source);
+    setIsAttachMenuOpen(false);
+    setAttachmentPanel(null);
+  };
+
+  const handleFileSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    const invalidFile = selectedFiles.find((file) => file.size > MAX_FILE_SIZE);
+    if (invalidFile) {
+      setAttachmentNotice('10MB 이하의 파일만 첨부할 수 있어요.');
+      return;
+    }
+    if (attachments.length + selectedFiles.length > MAX_ATTACHMENTS) {
+      setAttachmentNotice('첨부는 최대 5개까지 가능해요.');
+      return;
+    }
+    setAttachments((current) => [...current, ...selectedFiles.map((file) => ({
+      type: 'file' as const, id: `${file.name}-${file.lastModified}`, name: file.name, size: file.size,
+    }))]);
+    setIsAttachMenuOpen(false);
+    setAttachmentPanel(null);
+  };
+
+  const removePendingAttachment = (attachmentId: string) => {
+    setAttachments((current) => {
+      const removed = current.find((attachment) => attachment.id === attachmentId);
+      if (removed?.type === 'image') {
+        URL.revokeObjectURL(removed.previewUrl);
+        objectUrlsRef.current.delete(removed.previewUrl);
+      }
+      return current.filter((attachment) => attachment.id !== attachmentId);
+    });
+  };
+
+  const addContactAttachment = (name: string, tel: string) => {
+    if (!tel.trim()) return;
+    if (attachments.length >= MAX_ATTACHMENTS) {
+      setAttachmentNotice('첨부는 최대 5개까지 가능해요.');
+      return;
+    }
+    setAttachments((current) => [...current, {
+      type: 'contact', id: `contact-${Date.now()}`, name: name.trim() || undefined, tel: tel.trim(),
+    }]);
+    setContactName('');
+    setContactTel('');
+    setAttachmentPanel(null);
+  };
+
+  const openContactPicker = async () => {
+    setIsAttachMenuOpen(false);
+    const contacts = (navigator as Navigator & { contacts?: { select: (properties: string[], options: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>> } }).contacts;
+    if (!contacts?.select) {
+      setAttachmentPanel('contact');
+      return;
+    }
+    try {
+      const [contact] = await contacts.select(['name', 'tel'], { multiple: false });
+      if (contact?.tel?.[0]) addContactAttachment(contact.name?.[0] ?? '', contact.tel[0]);
+    } catch {
+      /* 사용자가 시스템 선택기를 닫았을 때는 별도 오류를 노출하지 않는다. */
+    }
+  };
+
+  const sendMessage = (content: string, expectedStage?: string, pendingAttachments: ChatAttachment[] = []) => {
     const question = content.trim();
-    if (!question || isTyping) return;
-    if (expectedStage && (diagnosis?.stage ?? conversation.stage) !== expectedStage) return;
+    if ((!question && pendingAttachments.length === 0) || isTyping) return;
+    const activeStage = isImageLocationQuestion ? 'image-location' : (attachmentFollowup ? `attachment-${attachmentFollowup}` : (diagnosis?.stage ?? conversation.stage));
+    if (expectedStage && activeStage !== expectedStage) return;
+
+    /* 최종 결과 뒤에 직접 새 질문을 입력하면 exit action은 새 응답이 올 때까지 숨긴다. */
+    setIsTerminalResult(false);
 
     setMessages((current) => [
       ...current,
-      { id: ++messageIdRef.current, role: 'user', content: question },
+      { id: ++messageIdRef.current, role: 'user', content: question, ...(pendingAttachments.length ? { attachments: pendingAttachments } : {}) },
     ]);
     setDraft('');
+    setAttachments([]);
     setIsTyping(true);
+    const hasImage = pendingAttachments.some((attachment) => attachment.type === 'image');
+    const hasFile = pendingAttachments.some((attachment) => attachment.type === 'file');
+    const hasContact = pendingAttachments.some((attachment) => attachment.type === 'contact');
+    const startsPestPhoto = hasImage && /벌레|바퀴|해충/.test(question) && !diagnosis && !conversation.flowId;
+    const answersImageLocationQuestion = isImageLocationQuestion;
     const startsGuide = !diagnosis && !conversation.flowId && /전입.?신고/.test(question);
     const startsRecommendation = !diagnosis && !conversation.flowId && /지원금|지원.?사업|혜택/.test(question);
-    const scenarioReply = conversation.flowId && conversation.flowType !== 'diagnosis'
+    const scenarioReply = conversation.flowId && (conversation.flowType !== 'diagnosis' || conversation.flowId === 'pest-photo')
       ? getScenarioReply(question, conversation, profileContext)
       : null;
     const startedConversation = startsGuide
@@ -398,21 +875,107 @@ export function AIChatPage() {
       : startsRecommendation
         ? { flowId: 'support', flowType: 'recommendation' as const, stage: 'category', persona: user?.persona ?? null, answers: {} }
         : null;
-    const reply = scenarioReply ? null : getDiagnosticReply(question, diagnosis, location);
+    const startsFileQuestion = hasFile && !question && !diagnosis && !conversation.flowId;
+    const startsContactQuestion = hasContact && /보일러|집주인/.test(question) && !diagnosis && !conversation.flowId;
+    const answersAttachmentFollowup = attachmentFollowup;
+    const reply = scenarioReply || startsPestPhoto || answersImageLocationQuestion || startsFileQuestion || startsContactQuestion || answersAttachmentFollowup
+      ? null
+      : getDiagnosticReply(question, diagnosis, location);
+    const isSupportResult = scenarioReply?.conversation.flowId === 'support'
+      && scenarioReply.conversation.stage === 'result';
+    const isPestResult = scenarioReply?.conversation.flowId === 'pest-photo'
+      && scenarioReply.conversation.stage === 'result';
 
     responseTimerRef.current = window.setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        {
-          id: ++messageIdRef.current,
-          role: 'assistant',
-          content: scenarioReply?.content
-            ?? (startedConversation ? stageMessage(startedConversation.flowId, startedConversation.stage, profileContext) : reply!.content),
-        },
-      ]);
-      if (scenarioReply) setConversation(scenarioReply.conversation);
+      const assistantContent = startsPestPhoto
+        ? '사진 속 벌레를 확인하고 있어요'
+        : answersImageLocationQuestion
+          ? '사진 내용은 직접 분석하지 않지만, 발견 위치를 바탕으로 다음 조치를 함께 확인해볼 수 있어요.'
+          : startsFileQuestion
+            ? '파일을 첨부해주셨네요.\n어떤 부분이 궁금한가요?'
+            : startsContactQuestion
+              ? '집주인에게 전달할 문구를 만들어드릴까요?'
+              : answersAttachmentFollowup === 'contact'
+                ? (question.includes('문구') ? '보일러 문제와 확인한 내용을 알려주시면 집주인에게 전달할 문구를 만들어드릴게요.' : '필요한 상황이 생기면 언제든 전달 문구를 함께 정리해드릴게요.')
+                : answersAttachmentFollowup === 'file'
+                  ? '파일 내용은 직접 읽지 않아요. 선택한 항목과 관련된 상황을 알려주시면 필요한 확인 순서를 안내해드릴게요.'
+          : isSupportResult
+            ? '내 조건에 맞는 혜택을 확인하고 있어요'
+          : scenarioReply?.content
+            ?? (startedConversation ? stageMessage(startedConversation.flowId, startedConversation.stage, profileContext) : reply!.content);
+      if (!isPestResult) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: ++messageIdRef.current,
+            role: 'assistant',
+            ...splitMessageCtas(assistantContent),
+          },
+        ]);
+      }
+      if (startsPestPhoto) {
+        setConversation({ flowId: 'pest-photo', flowType: 'diagnosis', stage: 'analyzing', persona: user?.persona ?? null, answers: {} });
+        setDiagnosis(null);
+      } else if (answersImageLocationQuestion) {
+        setIsImageLocationQuestion(false);
+      } else if (startsFileQuestion) {
+        setAttachmentFollowup('file');
+      } else if (startsContactQuestion) {
+        setAttachmentFollowup('contact');
+      } else if (answersAttachmentFollowup) {
+        setAttachmentFollowup(null);
+      } else if (scenarioReply) setConversation(
+        isSupportResult
+          ? { ...scenarioReply.conversation, stage: 'analyzing' }
+          : scenarioReply.conversation,
+      );
       else if (startedConversation) setConversation(startedConversation);
       else setDiagnosis(reply!.diagnosis);
+      if (isSupportResult) {
+        /* 한 번의 response timer를 순차 재사용해 분석 문구와 결과가 중복되지 않게 한다. */
+        responseTimerRef.current = window.setTimeout(() => {
+          appendAssistantMessage(
+            '현재 조건에 맞는 혜택을 찾았어요.\n신청 가능성이 높은 순서대로 보여드릴게요.',
+            [{ label: '맞춤 혜택 전체 보기' }],
+            BENEFIT_RECOMMENDATIONS,
+            '더 자세한 조건과 신청 방법도 확인할 수 있어요.',
+          );
+          setConversation(scenarioReply.conversation);
+          setIsTerminalResult(true);
+          setIsTyping(false);
+          responseTimerRef.current = null;
+        }, 800);
+        return;
+      }
+      if (startsPestPhoto) {
+        responseTimerRef.current = window.setTimeout(() => {
+          appendAssistantMessage('사진을 확인해봤어요.', undefined, undefined, undefined, true);
+          setConversation({ flowId: 'pest-photo', flowType: 'diagnosis', stage: 'location', persona: user?.persona ?? null, answers: {} });
+          setIsTyping(false);
+          responseTimerRef.current = null;
+        }, 800);
+        return;
+      }
+      if (isPestResult && scenarioReply) {
+        const solution = pestSolutionFor(scenarioReply.conversation.answers);
+        setMessages((current) => [
+          ...current,
+          {
+            id: ++messageIdRef.current,
+            role: 'assistant',
+            content: assistantContent,
+            pestSolution: solution,
+            ctas: [{ label: '건물 생활 정보 보기' }],
+          },
+        ]);
+      }
+      setIsTerminalResult(
+        scenarioReply?.conversation.stage === 'result'
+        || reply?.diagnosis?.stage === 'result'
+        || answersImageLocationQuestion
+        || Boolean(answersAttachmentFollowup)
+        || (!scenarioReply && !startedConversation && isSafetyRisk(question)),
+      );
       setIsTyping(false);
       responseTimerRef.current = null;
     }, 700);
@@ -420,7 +983,7 @@ export function AIChatPage() {
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    sendMessage(draft);
+    sendMessage(draft, undefined, attachments);
   };
 
   const resetConversation = () => {
@@ -433,6 +996,21 @@ export function AIChatPage() {
     setIsTyping(false);
     setDiagnosis(null);
     setConversation(EMPTY_CONVERSATION);
+    setIsTerminalResult(false);
+    setIsImageLocationQuestion(false);
+    setAttachmentFollowup(null);
+    setIsAttachMenuOpen(false);
+    setAttachmentPanel(null);
+    setContactName('');
+    setContactTel('');
+    setAttachmentNotice('');
+    if (photoInputRef.current) photoInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    discardPendingAttachments();
+    /* 화면에서 대화 기록을 제거한 뒤에는 전송 완료 이미지의 URL도 더 이상 필요 없다. */
+    revokeAllAttachmentUrls();
+    messageIdRef.current = 0;
   };
 
   useEffect(() => {
@@ -442,13 +1020,22 @@ export function AIChatPage() {
   useEffect(
     () => () => {
       if (responseTimerRef.current !== null) window.clearTimeout(responseTimerRef.current);
+      revokeAllAttachmentUrls();
     },
     [],
   );
 
   const conversationStarted = messages.length > 0;
+  const imageQuickReplies: QuickReply[] = isImageLocationQuestion
+    ? ['주방', '화장실', '방', '현관'].map((label) => ({ id: `image-location-${label}`, label, stage: 'image-location' }))
+    : [];
+  const attachmentQuickReplies: QuickReply[] = attachmentFollowup === 'file'
+    ? ['계약 기간', '보증금·월세', '특약', '수리 책임'].map((label) => ({ id: `file-${label}`, label, stage: 'attachment-file' }))
+    : attachmentFollowup === 'contact'
+      ? ['문구 만들어줘', '괜찮아요'].map((label) => ({ id: `contact-${label}`, label, stage: 'attachment-contact' }))
+      : [];
   const quickReplies = !isTyping
-    ? (diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioQuickReplies(conversation))
+    ? (isImageLocationQuestion ? imageQuickReplies : attachmentFollowup ? attachmentQuickReplies : diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioQuickReplies(conversation))
     : [];
 
   const closeChat = () => {
@@ -513,11 +1100,6 @@ export function AIChatPage() {
 
       {conversationStarted ? (
         <div className="ai-chat-page__conversation-wrap">
-          <div className="ai-chat-page__conversation-actions">
-            <button type="button" className="ai-chat-page__reset" onClick={resetConversation}>
-              처음으로
-            </button>
-          </div>
           <div ref={chatRef} className="ai-chat-page__conversation" role="log" aria-live="polite">
             {messages.map((message) => (
             <div
@@ -531,7 +1113,95 @@ export function AIChatPage() {
                 {message.role === 'assistant' && (
                   <span className="ai-chat-page__message-sender">자두AI</span>
                 )}
-                <p className="ai-chat-page__bubble">{message.content}</p>
+                {message.attachments && (
+                  <div className="ai-chat-page__message-attachments">
+                    {message.attachments.map((attachment) => attachment.type === 'image' ? (
+                      <img key={attachment.id} className="ai-chat-page__message-image" src={attachment.previewUrl} alt="첨부한 이미지" />
+                    ) : attachment.type === 'file' ? (
+                      <div key={attachment.id} className="ai-chat-page__attachment-card">
+                        <span aria-hidden="true">▤</span><span><strong>{attachment.name}</strong><small>{formatFileSize(attachment.size)}</small></span>
+                      </div>
+                    ) : (
+                      <div key={attachment.id} className="ai-chat-page__attachment-card ai-chat-page__attachment-card--contact">
+                        <span aria-hidden="true">♙</span><span><strong>{attachment.name ?? '연락처'}</strong><small>{attachment.tel}</small></span>
+                        <span className="ai-chat-page__contact-actions"><a href={`tel:${attachment.tel}`} aria-label={`${attachment.name ?? '연락처'} 전화하기`}>전화</a><a href={`sms:${attachment.tel}`} aria-label={`${attachment.name ?? '연락처'} 문자 보내기`}>문자</a></span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {message.content && <p className="ai-chat-page__bubble">{message.content}</p>}
+                {message.role === 'assistant' && message.pestDiagnosis && (
+                  <section className="ai-chat-page__pest-diagnosis" aria-label="사진 기반 벌레 진단">
+                    <p>{MOCK_PEST_PHOTO_DIAGNOSIS.title}</p>
+                    <div className="ai-chat-page__pest-diagnosis-score">
+                      <strong>{MOCK_PEST_PHOTO_DIAGNOSIS.confidence}</strong>
+                      <span>{MOCK_PEST_PHOTO_DIAGNOSIS.risk}</span>
+                    </div>
+                    <h3>어디에서 발견했나요?</h3>
+                  </section>
+                )}
+                {message.role === 'assistant' && message.pestSolution && (
+                  <>
+                    <section className="ai-chat-page__pest-solution" aria-label="벌레 문제 원인과 해결 방법">
+                      <div>
+                        <h3>왜 생겼을까요?</h3>
+                        <ul>{message.pestSolution.causeItems.map((item) => <li key={item}>{item}</li>)}</ul>
+                      </div>
+                      <div>
+                        <h3>지금 이렇게 해보세요</h3>
+                        <ol>{message.pestSolution.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+                      </div>
+                    </section>
+                    <section className="ai-chat-page__building-info" aria-label="건물 생활 정보">
+                      <h3>건물 공용부도 확인해보세요</h3>
+                      <p>공용 배수구, 복도, 쓰레기 배출 공간처럼 건물 공용부도 함께 확인해보세요.</p>
+                    </section>
+                  </>
+                )}
+                {message.role === 'assistant' && message.benefitRecommendations && (
+                  <div className="ai-chat-page__benefit-result" aria-label="추천 혜택">
+                    <div
+                      className={`ai-chat-page__benefit-cards${isBenefitRailDragging ? ' is-dragging' : ''}`}
+                      onPointerDown={handleBenefitRailPointerDown}
+                      onPointerMove={handleBenefitRailPointerMove}
+                      onPointerUp={finishBenefitRailDrag}
+                      onPointerCancel={finishBenefitRailDrag}
+                    >
+                      {message.benefitRecommendations.map((benefit) => (
+                        <button
+                          key={benefit.title}
+                          type="button"
+                          className="ai-chat-page__benefit-card"
+                          onClick={handleBenefitCardClick}
+                          aria-label={`${benefit.title} 혜택 목록에서 자세히 보기`}
+                        >
+                          <span className={`ai-chat-page__benefit-status${benefit.status === '조건 확인 필요' ? ' is-pending' : ''}`}>
+                            {benefit.status}
+                          </span>
+                          <strong>{benefit.title}</strong>
+                          <span className="ai-chat-page__benefit-description">{benefit.description}</span>
+                          <span className="ai-chat-page__benefit-symbol" aria-hidden="true">₩</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {message.role === 'assistant' && message.ctas && (
+                  <div className={`ai-chat-page__ctas${message.benefitCtaText ? ' ai-chat-page__ctas--benefit' : ''}`} aria-label="다음 행동">
+                    {message.benefitCtaText && <p className="ai-chat-page__benefit-cta-copy">{message.benefitCtaText}</p>}
+                    {message.ctas.map((cta, index) => (
+                      <button
+                        key={`${cta.label}-${index}`}
+                        type="button"
+                        className="ai-chat-page__cta"
+                        onClick={() => handleCta(cta, message.content)}
+                      >
+                        <span>{cta.label}</span>
+                        <span className="ai-chat-page__cta-arrow" aria-hidden="true">→</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             ))}
@@ -560,6 +1230,13 @@ export function AIChatPage() {
                     <span />
                   </div>
                 </div>
+              </div>
+            )}
+            {isTerminalResult && !isTyping && (
+              <div className="ai-chat-page__exit-action">
+                <button type="button" className="ai-chat-page__exit-button" onClick={resetConversation}>
+                  다른 문제 물어보기
+                </button>
               </div>
             )}
           </div>
@@ -595,8 +1272,37 @@ export function AIChatPage() {
       )}
 
       <form className="ai-chat-page__input-area" onSubmit={onSubmit}>
+        <input
+          ref={photoInputRef}
+          className="ai-chat-page__photo-input"
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(event) => handleImageSelection(event, 'photo')}
+        />
+        <input ref={cameraInputRef} className="ai-chat-page__photo-input" type="file" accept="image/*" capture="environment" onChange={(event) => handleImageSelection(event, 'camera')} />
+        <input ref={fileInputRef} className="ai-chat-page__photo-input" type="file" multiple onChange={handleFileSelection} />
+        {attachmentNotice && <p className="ai-chat-page__attachment-notice" role="status">{attachmentNotice}</p>}
+        {attachments.length > 0 && (
+          <div className="ai-chat-page__attachment-preview" aria-label="첨부 미리보기">
+            {attachments.map((attachment) => (
+              <div key={attachment.id} className="ai-chat-page__attachment-preview-item">
+                {attachment.type === 'image' ? <img src={attachment.previewUrl} alt={`${attachment.name} 미리보기`} /> : (
+                  <div className="ai-chat-page__attachment-preview-card"><span aria-hidden="true">{attachment.type === 'file' ? '▤' : '♙'}</span><strong>{attachment.type === 'file' ? attachment.name : attachment.name ?? '연락처'}</strong><small>{attachment.type === 'file' ? formatFileSize(attachment.size) : attachment.tel}</small></div>
+                )}
+                <button type="button" aria-label="첨부 삭제" onClick={() => removePendingAttachment(attachment.id)}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="ai-chat-page__input-bar">
-          <button type="button" className="ai-chat-page__input-icon" aria-label="첨부">
+          <button
+            type="button"
+            className="ai-chat-page__input-icon"
+            aria-label="첨부하기"
+            aria-expanded={isAttachMenuOpen}
+            onClick={() => setIsAttachMenuOpen((isOpen) => !isOpen)}
+          >
             <img src={icon('ai-plus.svg')} alt="" />
           </button>
           <input
@@ -609,8 +1315,39 @@ export function AIChatPage() {
           <button type="button" className="ai-chat-page__input-icon" aria-label="음성 입력">
             <img src={icon('ai-mic.svg')} alt="" />
           </button>
+          <button
+            type="submit"
+            className="ai-chat-page__send"
+            aria-label="메시지 전송"
+            disabled={isTyping || (!draft.trim() && attachments.length === 0)}
+          >
+            ↑
+          </button>
         </div>
       </form>
+
+      {(isAttachMenuOpen || attachmentPanel) && (
+        <div className="ai-chat-page__attachment-layer">
+          <button type="button" className="ai-chat-page__attach-backdrop" aria-label="첨부 화면 닫기" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel(null); }} />
+          {isAttachMenuOpen && (
+            <div className="ai-chat-page__attach-menu" role="menu" aria-label="첨부 메뉴">
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('camera'); }}><span aria-hidden="true">◉</span> 카메라</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('photo'); }}><span aria-hidden="true">▣</span> 사진</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('file'); }}><span aria-hidden="true">▤</span> 파일</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { void openContactPicker(); }}><span aria-hidden="true">♙</span> 연락처</button>
+            </div>
+          )}
+          {attachmentPanel && (
+            <section className="ai-chat-page__attachment-sheet" role="dialog" aria-modal="true" aria-label={`${attachmentPanel} 첨부`}>
+              <header><strong>{attachmentPanel === 'photo' ? '사진 선택' : attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={() => setAttachmentPanel(null)}>×</button></header>
+              {attachmentPanel === 'photo' && <><div className="ai-chat-page__photo-grid">{PHOTO_CHOICES.map((choice, index) => <button key={choice} type="button" className={selectedDemoPhoto === index ? 'is-selected' : ''} onClick={() => setSelectedDemoPhoto(index)}><img src={img(choice)} alt="사진 선택 예시" /></button>)}</div><p>{selectedDemoPhoto + 1}개 선택됨</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => photoInputRef.current?.click()}>선택한 사진 불러오기</button></>}
+              {attachmentPanel === 'camera' && <><p>촬영한 사진은 입력창 위 미리보기로 추가돼요.</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => cameraInputRef.current?.click()}>사진 촬영하기</button></>}
+              {attachmentPanel === 'file' && <><ul className="ai-chat-page__file-list"><li><span>▤</span><span><strong>문서 파일</strong><small>PDF, TXT, DOC, DOCX 등 · 최대 10MB</small></span></li></ul><button type="button" className="ai-chat-page__sheet-action" onClick={() => fileInputRef.current?.click()}>기기에서 파일 선택</button></>}
+              {attachmentPanel === 'contact' && <><p>이 환경에서는 연락처를 직접 입력해주세요.</p><input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름 (선택)" aria-label="연락처 이름" /><input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호" inputMode="tel" aria-label="연락처 전화번호" /><button type="button" className="ai-chat-page__sheet-action" disabled={!contactTel.trim()} onClick={() => addContactAttachment(contactName, contactTel)}>연락처 추가</button></>}
+            </section>
+          )}
+        </div>
+      )}
 
     </div>
   );
