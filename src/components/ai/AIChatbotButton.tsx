@@ -37,6 +37,60 @@ function readBounds(host: HTMLElement | null): Bounds | null {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
+/* 커뮤니티 글쓰기 버튼 둘레로 비워 둘 여백(px) */
+const RESERVED_PAD = 14;
+
+/* 같은 .app 안에 글쓰기 버튼이 있으면 그 자리를 레이아웃 px 로 돌려준다.
+ * 글쓰기 버튼도 .app 기준 absolute 라 offset* 값이 곧 레이아웃 좌표다 —
+ * getBoundingClientRect 와 달리 데스크톱 프리뷰의 zoom 배율을 신경 쓸 필요가 없다.
+ * 커뮤니티가 아닌 화면에는 이 요소가 없어 null 이 되고, 아무것도 제한하지 않는다. */
+function readReservedZone(host: HTMLElement | null) {
+  const app = host?.offsetParent as HTMLElement | null;
+  const fab = app?.querySelector<HTMLElement>('.community-fab');
+  if (!app || !fab || fab.offsetParent !== app) return null;
+  return {
+    left: fab.offsetLeft - RESERVED_PAD,
+    top: fab.offsetTop - RESERVED_PAD,
+    right: fab.offsetLeft + fab.offsetWidth + RESERVED_PAD,
+    bottom: fab.offsetTop + fab.offsetHeight + RESERVED_PAD,
+  };
+}
+
+/* 챗봇(72px 정사각)이 금지 영역과 겹치면 가장 적게 움직이는 안전한 자리로 옮긴다.
+ * 중심점이 아니라 버튼 박스 전체로 겹침을 본다. */
+function avoidReserved(
+  side: Side,
+  top: number,
+  bounds: Bounds,
+  zone: ReturnType<typeof readReservedZone>,
+): { side: Side; top: number } {
+  if (!zone) return { side, top };
+  const leftOf = (value: Side) => (value === 'left' ? EDGE : bounds.width - EDGE - SIZE);
+  const hits = (value: Side, y: number) => {
+    const x = leftOf(value);
+    return x < zone.right && x + SIZE > zone.left && y < zone.bottom && y + SIZE > zone.top;
+  };
+  if (!hits(side, top)) return { side, top };
+
+  /* ① 같은 쪽에서 위로 — 바텀네비/헤더 범위를 벗어나지 않을 때만 쓴다 */
+  const above = zone.top - SIZE;
+  const upward =
+    above >= bounds.minTop && !hits(side, above) ? { side, top: above, move: top - above } : null;
+  /* ② 반대쪽으로 — 세로 위치는 그대로 둔다 */
+  const other: Side = side === 'left' ? 'right' : 'left';
+  const sideways = !hits(other, top)
+    ? { side: other, top, move: Math.abs(leftOf(other) - leftOf(side)) }
+    : null;
+
+  const best = [upward, sideways]
+    .filter((option): option is NonNullable<typeof option> => option !== null)
+    .sort((a, b) => a.move - b.move)[0];
+  /* 둘 다 막히면(아주 좁은 화면) 최소한 범위 안에는 남긴다 */
+  return best
+    ? { side: best.side, top: best.top }
+    : { side, top: clamp(above, bounds.minTop, bounds.maxTop) };
+}
+
 /* 데스크톱 프리뷰(IPhoneFrame)는 .app 을 zoom: var(--phone-scale) 로 축소한다.
  * getBoundingClientRect() 는 줌이 적용된 "화면" px 를, offsetWidth / style.top 은 줌과
  * 무관한 "레이아웃" px 를 쓴다. 둘을 섞으면 드래그가 끝나는 순간 버튼이 줌 배율만큼
@@ -61,6 +115,10 @@ interface AIChatbotButtonProps {
   /** 코치마크가 강조 영역을 잴 때만 쓰는 DOM 참조. 버튼은 드래그로 위치가 바뀌므로
    * 좌표를 고정값으로 들고 있지 말고 이 ref 로 매번 실측해야 한다. */
   coachmarkRef?: ForwardedRef<HTMLButtonElement>;
+  /** 화면이 바뀐 뒤 다시 배치해야 할 때 부모가 부르는 통로.
+   * 이 버튼은 화면을 옮겨도 다시 마운트되지 않아서, 새 화면의 금지 영역(글쓰기 버튼)을
+   * 다시 재려면 바깥에서 한 번 불러 줘야 한다. */
+  settleRef?: { current: (() => void) | null };
 }
 
 export function AIChatbotButton({
@@ -69,6 +127,7 @@ export function AIChatbotButton({
   disabled = false,
   initialLift = 0,
   coachmarkRef,
+  settleRef,
 }: AIChatbotButtonProps) {
   /* coachmarkRef 병합을 위해 직접 .current 를 대입해야 해서 MutableRefObject 로 잡는다 */
   const ref = useRef<HTMLButtonElement | null>(null);
@@ -79,6 +138,11 @@ export function AIChatbotButton({
   const [freePos, setFreePos] = useState<{ left: number; top: number } | null>(null);
   /* 오른쪽 스냅 위치를 left 로 계산하기 위한 .app 폭. null 이면 아직 측정 전이다. */
   const [appWidth, setAppWidth] = useState<number | null>(null);
+  /* settle 이 side 와 top 을 한 번에 보정해야 해서 지금 값을 그대로 비춰 둔다(읽기 전용) */
+  const sideRef = useRef(side);
+  const topRef = useRef(top);
+  sideRef.current = side;
+  topRef.current = top;
 
   const drag = useRef<{
     id: number;
@@ -96,7 +160,11 @@ export function AIChatbotButton({
     const bounds = readBounds(ref.current);
     if (!bounds) return;
     const defaultTop = bounds.maxTop - initialLift;
-    setTop((current) => clamp(current ?? defaultTop, bounds.minTop, bounds.maxTop));
+    const safeTop = clamp(topRef.current ?? defaultTop, bounds.minTop, bounds.maxTop);
+    /* 저장해 둔 자리가 글쓰기 버튼과 겹치면(커뮤니티 재진입·화면 회전 등) 여기서 바로 비켜 준다 */
+    const fixed = avoidReserved(sideRef.current, safeTop, bounds, readReservedZone(ref.current));
+    setSide(fixed.side);
+    setTop(fixed.top);
     setAppWidth(bounds.width);
   }, [initialLift]);
 
@@ -106,8 +174,12 @@ export function AIChatbotButton({
   useLayoutEffect(() => {
     settle();
     window.addEventListener('resize', settle);
-    return () => window.removeEventListener('resize', settle);
-  }, [settle]);
+    if (settleRef) settleRef.current = settle;
+    return () => {
+      window.removeEventListener('resize', settle);
+      if (settleRef) settleRef.current = null;
+    };
+  }, [settle, settleRef]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const bounds = readBounds(ref.current);
@@ -170,8 +242,16 @@ export function AIChatbotButton({
     if (bounds && info.moved) {
       /* 가까운 사이드로 스냅하고, 세로 위치는 그대로 유지한다 */
       const center = info.left + SIZE / 2;
-      setSide(center < bounds.width / 2 ? 'left' : 'right');
-      setTop(clamp(info.top, bounds.minTop, bounds.maxTop));
+      const snapped = center < bounds.width / 2 ? 'left' : 'right';
+      /* 놓은 자리가 글쓰기 버튼과 겹치면 가장 가까운 안전한 자리로 보정한다 */
+      const fixed = avoidReserved(
+        snapped,
+        clamp(info.top, bounds.minTop, bounds.maxTop),
+        bounds,
+        readReservedZone(ref.current),
+      );
+      setSide(fixed.side);
+      setTop(fixed.top);
       setAppWidth(bounds.width);
     }
     setFreePos(null);

@@ -935,23 +935,60 @@
   z-index: 4;
 }
 
+/* 처음엔 '연필 + 글쓰기' 로 펼쳐졌다가 잠시 뒤 아이콘만 남게 접힌다.
+ * .community-fab 이 right 로 붙어 있어 폭이 줄면 왼쪽만 당겨지고 오른쪽 끝은 그대로다.
+ * 접힌 뒤에도 56px 이라 터치 영역이 작아지지 않는다. */
 .community-fab__button {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0;
+  width: 56px;
   height: 56px;
   overflow: hidden;
   border: 0;
   border-radius: 28px;
-  padding: 0 20px;
+  padding: 0;
   background: var(--brand-green);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   color: var(--surface-base);
   font: 600 16px/1 var(--font-a2z);
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    width 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 펼친 상태 — 글자 폭까지 합친 크기 */
+.community-fab__button.is-expanded {
+  gap: 8px;
+  width: 124px;
+  padding: 0 20px;
+}
+
+/* 글자는 지우지 않고 폭·투명도만 줄인다 */
+.community-fab__label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-width 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 240ms ease;
+}
+
+.community-fab__button.is-expanded .community-fab__label {
+  max-width: 60px;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .community-fab__button,
+  .community-fab__label {
+    transition: none;
+  }
 }
 
 .community-fab__button img {
@@ -959,312 +996,6 @@
   display: block;
   width: 24px;
   height: 24px;
-}
-
-/* ================= 소비 비교 (Figma compare_spending 2257:17167) ================= */
-
-.spend-compare-report {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-top: 26px;
-  border: 1px solid var(--cm-card-border);
-  border-radius: var(--radius-m);
-  padding: 14px 16px;
-  background: var(--surface-base);
-}
-
-.spend-compare-report__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-}
-
-.spend-compare-report__label {
-  margin: 0;
-  color: var(--cm-oat);
-  font: 600 14px/1.3 var(--font-suit);
-  letter-spacing: -0.14px;
-}
-
-.spend-compare-report__badge {
-  flex: none;
-  border-radius: var(--radius-pill);
-  padding: 5px 10px;
-  background: #eef2de;
-  color: #828e1c;
-  font: 500 11px/1.5 var(--font-suit);
-  white-space: nowrap;
-}
-
-.spend-compare-report__amount {
-  margin: 0;
-  padding-top: 10px;
-  color: #453b36;
-  font: 700 24px/1 var(--font-asta);
-}
-
-.spend-compare-report__more {
-  align-self: flex-end;
-  margin-top: 2px;
-  border: 0;
-  padding: 0;
-  background: none;
-  color: var(--cm-oat);
-  font: 400 12px/1.4 var(--font-suit);
-  cursor: pointer;
-}
-
-.spend-compare-peers {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  border-top: 1px solid #d6d6d6;
-  padding-top: 26px;
-  margin-top: 26px;
-}
-
-.spend-compare-peers__title {
-  margin: 0;
-  color: var(--text-nav);
-  font: 600 18px/1 var(--font-a2z);
-}
-
-.spend-compare-peers__sub {
-  margin: 0;
-  color: var(--cm-oat);
-  font: 500 12px/1.3 var(--font-suit);
-  letter-spacing: -0.12px;
-}
-
-.spend-compare-peers__row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  overflow-x: auto;
-  padding: 26px 0;
-  scrollbar-width: none;
-  cursor: grab;
-  /* 드래그 중 텍스트가 선택되지 않게 하고, 끝에서 당길 때 transform 이 바로 반영되게 한다 */
-  touch-action: pan-y;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.spend-compare-peers__row.is-dragging {
-  cursor: grabbing;
-  scroll-behavior: auto;
-}
-
-.spend-compare-peers__row::-webkit-scrollbar {
-  display: none;
-}
-
-.peer-card {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 196px;
-  border: 1px solid var(--cm-filter-border);
-  border-radius: 14px;
-  padding: 16px;
-  background: var(--surface-base);
-}
-
-.peer-card__top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.peer-card__avatar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  color: #fff;
-  font: 700 15px/1 var(--font-suit);
-}
-
-.peer-card__names {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.peer-card__name {
-  color: var(--text-nav);
-  font: 600 14px/1.3 var(--font-suit);
-  letter-spacing: -0.14px;
-}
-
-.peer-card__condition {
-  color: var(--cm-oat);
-  font: 400 10px/1.4 var(--font-suit);
-  white-space: nowrap;
-}
-
-.peer-card__amount {
-  margin: 0;
-  color: #766548;
-  font: 600 18px/1.25 var(--font-suit);
-}
-
-.peer-card__badge {
-  align-self: flex-start;
-  margin-top: 3px;
-  border: 1px solid;
-  border-radius: var(--radius-pill);
-  padding: 4px 9px;
-  font: 500 11px/1.5 var(--font-suit);
-  white-space: nowrap;
-}
-
-.peer-card__badge--positive {
-  border-color: #c7d07a;
-  background: #f5f7e7;
-  color: #857456;
-}
-
-.peer-card__badge--negative {
-  border-color: #c7753b;
-  background: #f4e3d8;
-  color: #a15a28;
-}
-
-.spend-compare-insight {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  border-top: 1px solid #d6d6d6;
-  padding-top: 26px;
-  margin-top: 26px;
-  padding-bottom: 26px;
-}
-
-.spend-compare-insight__title {
-  margin: 0;
-  color: var(--text-nav);
-  font: 600 18px/1 var(--font-a2z);
-}
-
-.spend-app-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  border: 1px solid var(--cm-filter-border);
-  border-radius: 14px;
-  padding: 14px;
-  background: var(--surface-base);
-  cursor: pointer;
-}
-
-.spend-app-link__left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.spend-app-cluster {
-  position: relative;
-  flex: none;
-  display: flex;
-  align-items: center;
-  width: 70px;
-  height: 44px;
-}
-
-.spend-app-icon {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-right: -7px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 3px 3px 1.5px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-
-.spend-app-icon--yellow {
-  background: #ffe812;
-}
-
-.spend-app-icon img {
-  display: block;
-  width: 18px;
-  height: 16px;
-  object-fit: contain;
-}
-
-/* 첫 아이콘은 원본이 가로로 긴 스프라이트라 18px 정사각형 영역만 잘라서 보여준다 */
-.spend-app-icon__clip {
-  position: relative;
-  display: block;
-  width: 18px;
-  height: 18px;
-  overflow: hidden;
-}
-
-.spend-app-icon__clip img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 611.94%;
-  height: 100%;
-  max-width: none;
-  object-fit: unset;
-}
-
-.spend-app-cluster__marker {
-  position: absolute;
-  left: 13px;
-  top: 1px;
-  width: 5px;
-  height: 5px;
-}
-
-.spend-app-link__text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.spend-app-link__title {
-  color: var(--text-nav);
-  font: 700 15px/1.4 var(--font-suit);
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-}
-
-.spend-app-link__sub {
-  color: var(--cm-oat);
-  font: 400 10px/1.4 var(--font-suit);
-  white-space: nowrap;
-}
-
-.spend-app-link__arrow {
-  flex: none;
-  display: block;
-  width: 20px;
-  height: 14px;
 }
 
 /* ================= 준비 중 안내 ================= */

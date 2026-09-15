@@ -38,6 +38,8 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
 
   /* 버튼이 담길 고정 host — 한 번만 만들고 계속 재사용한다 */
   const hostRef = useRef<HTMLDivElement | null>(null);
+  /* 화면을 옮긴 뒤 버튼에게 '다시 자리 잡아라' 고 알리는 통로 */
+  const settleRef = useRef<(() => void) | null>(null);
   if (!hostRef.current && typeof document !== 'undefined') {
     const host = document.createElement('div');
     /* 레이아웃에 아무 영향도 주지 않아야 한다 — 버튼의 offsetParent 는 .app 그대로다 */
@@ -50,6 +52,9 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
     const host = hostRef.current;
     const app = visibleApp();
     if (host && app && host.parentElement !== app) app.appendChild(host);
+    /* 새 화면의 헤더·탭바·금지 영역을 다시 재서 필요하면 비켜 준다
+     * (커뮤니티 글쓰기 버튼과 겹친 채로 들어오는 경우) */
+    settleRef.current?.();
   }, [page]);
 
   /* 누른 자리에서 화면이 펼쳐지는 전환. 재생할 수 없는 상황이면 바로 이동한다. */
@@ -67,6 +72,7 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
       hidden={hidden}
       disabled={disabled}
       coachmarkRef={aiFabRef}
+      settleRef={settleRef}
     />,
     hostRef.current,
   );

@@ -11,7 +11,6 @@ import type { ReactNode } from 'react';
 /** 'community-question' 은 커뮤니티 '질문' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 /** 'community-tip' 은 커뮤니티 '자취 꿀팁' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 /** 'community-region' 은 커뮤니티 '지역 후기' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
-/** 'community-spend-compare' 는 커뮤니티 '소비 비교' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 export type AppPage =
   | 'home'
   | 'my'
@@ -29,7 +28,6 @@ export type AppPage =
   | 'community-question'
   | 'community-tip'
   | 'community-region'
-  | 'community-spend-compare'
   | 'benefits'
   | 'benefits-recommend'
   | 'benefit-detail'

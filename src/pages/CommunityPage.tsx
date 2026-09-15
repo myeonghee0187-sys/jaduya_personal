@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
@@ -146,7 +147,6 @@ export function CommunityPage() {
                 if (name === '질문') navigation?.navigate('community-question');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
                 else if (name === '지역 후기') navigation?.navigate('community-region');
-                else if (name === '소비 비교') navigation?.navigate('community-spend-compare');
                 else setTab(name);
               }}
             >
@@ -242,16 +242,7 @@ export function CommunityPage() {
 
       {/* 글쓰기 — 항상 보이는 단일 버튼. '내가 쓴 글'과의 Speed Dial 토글은 없앴다.
         * 글쓰기 화면은 아직 없어 route 를 만들지 않고 토스트로 안내한다. */}
-      <div className="community-fab">
-        <button
-          type="button"
-          className="community-fab__button"
-          onClick={() => setWriteOpen(true)}
-        >
-          <img src={icon('community-pencil.svg')} alt="" />
-          글쓰기
-        </button>
-      </div>
+      <CommunityWriteFab onClick={() => setWriteOpen(true)} />
 
       <p className="community-notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}
