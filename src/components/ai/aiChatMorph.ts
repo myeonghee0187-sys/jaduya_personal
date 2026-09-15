@@ -9,8 +9,9 @@ import { img } from '../../lib/asset';
  * 좌표는 처음부터 끝까지 viewport px(getBoundingClientRect)만 쓴다. body 에 붙어서
  * 모바일 프리뷰의 zoom 을 타지 않으므로 .app 좌표계와 섞일 일이 없다. */
 
-/** 펼쳐지는 시간 */
-const EXPAND_MS = 340;
+/** 열기와 닫기가 공유하는 morph 시간/곡선 */
+export const AI_CHAT_MORPH_MS = 450;
+export const AI_CHAT_MORPH_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 /** 다 펼친 뒤 오버레이가 걷히는 시간 — 그만큼 챗봇 화면이 드러난다 */
 const FADE_MS = 180;
 
@@ -27,6 +28,20 @@ function endRadius(button: HTMLElement): number {
   if (!screen) return 0;
   const scale = screen.offsetWidth ? screen.getBoundingClientRect().width / screen.offsetWidth : 1;
   return parseFloat(getComputedStyle(screen).borderTopLeftRadius) * scale;
+}
+
+/** getBoundingClientRect() 좌표를 node의 실제 position 기준 좌표로 바꾼다.
+ * body에 붙는 열기 레이어와 iPhoneFrame 안 absolute overlay의 닫기 레이어가
+ * 같은 FAB/fullscreen rect 계산을 공유할 수 있게 한다. */
+function setMorphRect(node: HTMLElement, rect: DOMRect): number {
+  const parent = node.offsetParent as HTMLElement | null;
+  const parentRect = parent?.getBoundingClientRect();
+  const scale = parent && parent.offsetWidth ? parentRect!.width / parent.offsetWidth : 1;
+  node.style.left = `${(rect.left - (parentRect?.left ?? 0)) / scale}px`;
+  node.style.top = `${(rect.top - (parentRect?.top ?? 0)) / scale}px`;
+  node.style.width = `${rect.width / scale}px`;
+  node.style.height = `${rect.height / scale}px`;
+  return scale;
 }
 
 /**
@@ -47,10 +62,7 @@ export function playAIChatMorph(button: HTMLElement | null, navigate: () => void
 
   const node = document.createElement('div');
   node.className = 'ai-morph';
-  node.style.left = `${from.left}px`;
-  node.style.top = `${from.top}px`;
-  node.style.width = `${from.width}px`;
-  node.style.height = `${from.height}px`;
+  setMorphRect(node, from);
   /* 시작은 버튼과 같은 원 */
   node.style.borderRadius = `${from.width / 2}px`;
 
@@ -76,10 +88,7 @@ export function playAIChatMorph(button: HTMLElement | null, navigate: () => void
   void node.offsetWidth;
   node.classList.add('is-open');
   icon.classList.add('is-gone');
-  node.style.left = `${to.left}px`;
-  node.style.top = `${to.top}px`;
-  node.style.width = `${to.width}px`;
-  node.style.height = `${to.height}px`;
+  setMorphRect(node, to);
   node.style.borderRadius = `${endRadius(button)}px`;
 
   /* 화면을 다 덮은 뒤에 페이지를 바꾼다 — 전환 자체는 오버레이에 가려 보이지 않는다 */
@@ -88,14 +97,14 @@ export function playAIChatMorph(button: HTMLElement | null, navigate: () => void
     /* 챗봇 화면이 먼저 그려진 뒤에 걷는다 */
     void node.offsetWidth;
     node.classList.add('is-gone');
-  }, EXPAND_MS);
+  }, AI_CHAT_MORPH_MS);
 
   window.setTimeout(() => {
     node.remove();
     icon.remove();
     button.style.visibility = '';
     running = false;
-  }, EXPAND_MS + FADE_MS + 40);
+  }, AI_CHAT_MORPH_MS + FADE_MS + 40);
 
   return true;
 }

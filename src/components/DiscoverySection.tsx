@@ -1,141 +1,239 @@
-import { useAppNavigation } from '../navigation/AppNavigation';
 import { useAuth } from '../auth/AuthContext';
-import { loadLivingProfile } from '../data/livingProfile';
+import { INTEREST_TOPICS, loadLivingProfile } from '../data/livingProfile';
+import { RECOMMENDATION_TIPS } from '../data/recommendationTips';
+import type { RecommendationTip } from '../data/recommendationTips';
+import { getRecommendationImagePath } from '../data/recommendationImages';
 import { useSeoulDays } from '../hooks/useSeoulToday';
-import { useElasticDragScroll } from '../hooks/useElasticDragScroll';
+import type { SeoulDay } from '../hooks/useSeoulToday';
+import { useCardCarousel } from '../hooks/useCardCarousel';
 import { img } from '../lib/asset';
 
+interface DiscoverySectionProps {
+  /* 맞춤 추천 카드의 '설정하기' · 헤더의 '추천 설정' 공통 진입점 —
+   * 페이지를 옮기지 않고 홈 시트 안의 맞춤 추천 설정 View 만 연다. */
+  onOpenRecommendSetup?: () => void;
+}
+
+interface DiscoveryPageProps {
+  /** 이 페이지가 대표하는 하루 — 왼쪽 위 카드는 페이지마다 이 날짜로 바뀐다 */
+  day: SeoulDay;
+  /** 이 페이지의 맞춤 팁 — 아직 추천 설정 전이면 null(설정 CTA 를 대신 보여준다) */
+  tip: RecommendationTip | null;
+  onOpenRecommendSetup?: () => void;
+}
+
+/** "자두가 알려드려요"의 3카드 세트(오늘부터 3일 중 하루 / 오늘의 장보기 / 자두의 맞춤 팁)
+ * 한 장. 페이지 캐러셀의 슬라이드 하나가 곧 이 컴포넌트 하나다 — 왼쪽 아래(오늘의 장보기)는
+ * 페이지마다 내용이 똑같지만, 왼쪽 위 날짜 카드는 페이지의 날짜를 그대로 따라간다. 페이지
+ * 자체가 통째로 넘어가는 슬라이드 단위라 각 페이지마다 새로 그린다(카드만 따로 바뀌고
+ * 나머지가 고정된 것처럼 보이면 안 된다).
+ *
+ * 날짜 카드 자체는 더 이상 자기 안에서 좌우로 끌리지 않는다 — 이 영역 위에서 잡고 움직여도
+ * discovery-page__viewport(부모, 3카드 전체 페이지 전환)가 그 제스처를 받아야 하기
+ * 때문이다. `.today-card__track`은 페이지당 날짜 하나만 담아 그 자체로 넘길 내용이
+ * 없고(overflow: hidden), 페이지가 넘어갈 때 부모가 다음 날짜의 카드로 통째로 바꿔친다. */
+function DiscoveryPage({ day, tip, onOpenRecommendSetup }: DiscoveryPageProps) {
+  /* 36개 관심 주제 모두 이미지가 있어 정상 데이터라면 항상 값이 있지만, 혹시 못
+   * 찾아도(mismatch) null 이라 아래에서 이미지 없이 텍스트만 안전하게 보여준다. */
+  const imagePath = tip ? getRecommendationImagePath(tip.imageKey) : null;
+
+  return (
+    <div className="discovery__row">
+      <div className="discovery__col">
+        {/* 읽기만 하는 정보다 — 화살표·hover·클릭·자체 스와이프를 두지 않는다.
+          * 가로 이동은 이 카드가 아니라 3카드 페이지 전체(부모)가 담당한다. */}
+        <article className="today-card">
+          <div className="today-card__track" role="group" aria-label={day.date}>
+            <div className="today-card__day">
+              <p className="today-card__date">{day.date}</p>
+              <p className="today-card__note">{day.tip}</p>
+            </div>
+          </div>
+        </article>
+
+        <article className="info-card info-card--sale">
+          <div className="info-card__top">
+            <div className="info-card__label-row">
+              <p className="info-card__label">오늘의 장보기</p>
+              <span className="info-card__ad">AD</span>
+            </div>
+            <div className="info-card__tit">
+              <p className="info-card__headline">이마트 세일</p>
+              <p className="info-card__period">9.3 – 9.5</p>
+            </div>
+          </div>
+          <div className="info-card__foot">
+            <p className="info-card__foot-label">신선식품</p>
+            <p className="info-card__foot-value">최대 30%</p>
+          </div>
+        </article>
+
+        {/* 장보기 일러스트는 카드 밖(컬럼 기준)에 배치된다 — Figma 동일.
+         * 컬럼 기준으로 앵커링해 컬럼이 좁아져도 옆 날씨 카드 쪽으로 번지지 않는다. */}
+        <div className="info-card__art info-card__art--basket" aria-hidden="true">
+          <img src={img('discovery-sprite.png')} alt="" />
+        </div>
+      </div>
+
+      {/* 카드 껍데기(.info-card--weather, 167×235 고정)는 설정 전후가 같다 —
+        * 안의 내용만 갈아끼워 홈 레이아웃이 흔들리지 않게 한다. */}
+      <article className="info-card info-card--weather">
+        {tip ? (
+          /* title/description 은 RECOMMENDATION_TIPS 에서 실제 저장된 관심 분야·주제로
+           * 고른 콘텐츠다 — 더 이상 날씨 목업이 아니라서 그 전용 일러스트(우산)·기온
+           * 표기는 함께 뺐다. */
+          <div className="info-card__top">
+            <p className="info-card__label">자두의 맞춤 팁</p>
+            <div className="info-card__tit">
+              <p className="info-card__headline">{tip.title}</p>
+              <p className="info-card__desc">{tip.description}</p>
+            </div>
+            {imagePath && (
+              <div className="info-card__thumb">
+                <img src={imagePath} alt="" />
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 관심 분야를 아직 안 고른 사용자 — 팁 대신 설정을 권한다.
+            * 일러스트는 문구·버튼 자리를 위해 띄우지 않는다. */
+          <div className="info-card__setup">
+            <p className="info-card__label">자두의 맞춤 팁</p>
+            <div className="info-card__setup-copy">
+              <p className="info-card__headline">맞춤 추천 전이에요</p>
+              <p className="info-card__desc">
+                관심 분야를 설정하면
+                <br />
+                맞춤 팁을 알려드려요.
+              </p>
+            </div>
+            <button type="button" className="info-card__setup-cta" onClick={onOpenRecommendSetup}>
+              설정하기
+            </button>
+          </div>
+        )}
+      </article>
+    </div>
+  );
+}
+
 /** ③ 자두의 발견 — 정적 콘텐츠 + 추천 설정 진입점 */
-export function DiscoverySection() {
-  const navigation = useAppNavigation();
+export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps = {}) {
   const { user } = useAuth();
   /* 오늘부터 +3일 — 한국 시간 기준 'MM.DD 요일' + 그 날의 꿀팁
-   * (자정이 지나면 네 날짜가 함께 하루씩 밀린다) */
+   * (자정이 지나면 네 날짜가 함께 하루씩 밀린다). "자두가 알려드려요"의 페이지 수는
+   * 항상 이 날짜 개수(4)를 그대로 따른다 — 관심 주제를 몇 개 골랐는지와 무관하다. */
   const days = useSeoulDays(4);
-  /* 데스크톱에서도 마우스로 끌어 넘길 수 있게 — 커뮤니티 카드 줄과 같은 훅을 쓴다 */
-  const daysDrag = useElasticDragScroll<HTMLDivElement>();
 
   /* 맞춤 추천 설정 여부는 별도 플래그가 아니라 실제 저장값으로 판단한다 —
    * 관심 분야(category)를 한 번이라도 고르면 설정을 마친 것으로 본다.
    * 어떤 분야를 골랐는지(생활/돈 관리/…)는 여기서 따지지 않는다. */
   const ownerKey = user?.email.trim().toLowerCase() ?? 'guest';
-  const hasRecommendSetup = loadLivingProfile(ownerKey).category !== null;
+  const livingProfile = loadLivingProfile(ownerKey);
+  const category = livingProfile.category;
 
-  /* 홈에서 들어왔으므로 뒤로가기도 홈으로 돌아간다 */
-  const openRecommendSettings = () =>
-    navigation?.navigate('living-profile', { section: 'recommend', returnTo: 'home' });
+  /* 이 분야에서 보여줄 관심 주제들 — INTEREST_TOPICS 순서대로 나열한다(저장된 배열
+   * 순서가 아니라 항상 같은 순서로 나오게 한다). 하나도 안 골랐으면 그 분야의 첫 주제
+   * 하나만 fallback 으로 쓴다(마이페이지 '주제 0개도 저장 가능' 규칙과 맞춘다). */
+  const selectedTopics = category
+    ? (() => {
+        const orderedTopics = INTEREST_TOPICS[category];
+        const chosenTopics = livingProfile.topics[category] ?? [];
+        const matchedTopics = orderedTopics.filter((topic) => chosenTopics.includes(topic));
+        return matchedTopics.length > 0 ? matchedTopics : orderedTopics.slice(0, 1);
+      })()
+    : [];
+
+  /* 페이지(=3카드 세트) 목록 — 날짜 4개에 1:1로 대응해 항상 4장이다. 각 페이지의 맞춤
+   * 팁은 관심 주제를 페이지 인덱스로 순환시켜 고른다(topics[index % topics.length]) —
+   * 예를 들어 주제 3개를 골랐다면 09.15→첫 주제, 09.16→둘째, 09.17→셋째,
+   * 09.18→다시 첫 주제 순으로 돌아간다. 아직 추천 설정 전이면(category 없음) 모든
+   * 페이지가 설정 CTA(tip: null)를 보여준다. 정상 데이터라면 항상 찾지만, 혹시 못 찾는
+   * topic 이 있어도(mismatch) null 로 걸러내 화면이 깨지지 않게 한다. */
+  const pages = days.map((day, index) => {
+    const topic = selectedTopics.length > 0 ? selectedTopics[index % selectedTopics.length] : null;
+    const tip = category && topic ? (RECOMMENDATION_TIPS[category][topic] ?? null) : null;
+    return { key: day.date, day, tip };
+  });
+
+  /* 페이지 넘기기 — 3카드 세트 전체가 하나의 슬라이드로 통째로 좌우 이동한다(카드 하나씩
+   * 따로 움직이지 않는다). count 는 pages.length(=날짜 개수) 그대로다. */
+  const pageCarousel = useCardCarousel({ count: pages.length });
+  const canPage = pages.length > 1;
 
   return (
     <section className="discovery">
       <div className="discovery__top">
         <h2>자두가 알려드려요</h2>
-        {/* 여기 노출되는 정보를 고르는 곳으로 바로 보낸다.
-          * 홈에서 들어왔으므로 뒤로가기도 홈으로 돌아가야 한다(returnTo). */}
-        <button
-          type="button"
-          className="discovery__settings"
-          onClick={openRecommendSettings}
-        >
+        {/* 카드 안 '설정하기'와 같은 진입점이다 — 페이지를 옮기지 않고
+          * 홈 시트 안의 맞춤 추천 설정 View 를 연다. */}
+        <button type="button" className="discovery__settings" onClick={onOpenRecommendSetup}>
           추천 설정
         </button>
       </div>
 
       <div className="discovery__body">
-        <div className="discovery__row">
-          <div className="discovery__col">
-            {/* 읽기만 하는 정보다 — 화살표·hover·클릭을 두지 않는다.
-              * 카드 크기는 하루치 그대로이고, 오늘~+3일은 좌우로 넘겨서 본다. */}
-            <article className="today-card">
-              <div
-                className="today-card__track"
-                ref={daysDrag.ref}
-                {...daysDrag.dragProps}
-                role="group"
-                aria-label="오늘부터 3일 뒤까지 — 좌우로 넘겨보세요"
-              >
-                {days.map((day) => (
-                  <div key={day.date} className="today-card__day">
-                    <p className="today-card__date">{day.date}</p>
-                    <p className="today-card__note">{day.tip}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="info-card info-card--sale">
-              <div className="info-card__top">
-                <div className="info-card__label-row">
-                  <p className="info-card__label">오늘의 장보기</p>
-                  <span className="info-card__ad">AD</span>
+        {/* discovery-page__carousel 은 버튼의 절대위치 기준(3카드 전체 폭)이고,
+          * 실제로 슬라이드를 자르는 overflow:hidden 은 그 안의 viewport 만 갖는다 —
+          * 그래야 버튼이 viewport 폭 바깥(카드 테두리 밖)에 있어도 잘리지 않는다. */}
+        <div className="discovery-page__carousel">
+          <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
+            <div
+              className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}`}
+              style={{
+                transform: `translateX(calc(${-pageCarousel.index * 100}% + ${pageCarousel.dragOffset}px))`,
+              }}
+            >
+              {pages.map(({ key, day, tip }) => (
+                <div className="discovery-page__slide" key={key}>
+                  <DiscoveryPage day={day} tip={tip} onOpenRecommendSetup={onOpenRecommendSetup} />
                 </div>
-                <div className="info-card__tit">
-                  <p className="info-card__headline">이마트 세일</p>
-                  <p className="info-card__period">9.3 – 9.5</p>
-                </div>
-              </div>
-              <div className="info-card__foot">
-                <p className="info-card__foot-label">신선식품</p>
-                <p className="info-card__foot-value">최대 30%</p>
-              </div>
-            </article>
-
-            {/* 장보기 일러스트는 카드 밖(컬럼 기준)에 배치된다 — Figma 동일.
-             * 컬럼 기준으로 앵커링해 컬럼이 좁아져도 옆 날씨 카드 쪽으로 번지지 않는다. */}
-            <div className="info-card__art info-card__art--basket" aria-hidden="true">
-              <img src={img('discovery-sprite.png')} alt="" />
+              ))}
             </div>
           </div>
 
-          {/* 카드 껍데기(.info-card--weather, 167×235 고정)는 설정 전후가 같다 —
-            * 안의 내용만 갈아끼워 홈 레이아웃이 흔들리지 않게 한다. */}
-          <article className="info-card info-card--weather">
-            {hasRecommendSetup ? (
-              <>
-                <div className="info-card__top">
-                  <p className="info-card__label">자두의 맞춤 팁</p>
-                  <div className="info-card__tit">
-                    <p className="info-card__headline">우산 챙기세요!</p>
-                    <p className="info-card__desc">소나기 소식이 있어요</p>
-                  </div>
-                </div>
-                <p className="info-card__temp">최고 기온 24°</p>
-                <div className="info-card__art info-card__art--umbrella" aria-hidden="true">
-                  <div className="info-card__art-rotate">
-                    <img src={img('discovery-sprite.png')} alt="" />
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* 관심 분야를 아직 안 고른 사용자 — 팁 대신 설정을 권한다.
-                * 일러스트는 문구·버튼 자리를 위해 띄우지 않는다. */
-              <div className="info-card__setup">
-                <p className="info-card__label">자두의 맞춤 팁</p>
-                <div className="info-card__setup-copy">
-                  <p className="info-card__headline">맞춤 추천 전이에요</p>
-                  <p className="info-card__desc">
-                    관심 분야를 설정하면
-                    <br />
-                    맞춤 팁을 알려드려요.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="info-card__setup-cta"
-                  onClick={openRecommendSettings}
-                >
-                  설정하기
-                </button>
-              </div>
-            )}
-          </article>
+          {/* 생활 페이지 해결팁 캐러셀과 같은 좌우 버튼 — 오른쪽 카드 하나가 아니라
+            * 3카드 전체 슬라이드(discovery-page__carousel)를 기준으로 카드 테두리 바깥에
+            * 서고, pageCarousel.goPrev/goNext 로 그 슬라이드를 통째로 넘긴다.
+            * swipe·dot 클릭과 똑같이 currentPage(pageCarousel.index) 하나만 쓴다. */}
+          {canPage && (
+            <>
+              <button
+                type="button"
+                className="discovery-page__nav discovery-page__nav--prev"
+                aria-label="이전 페이지"
+                onClick={pageCarousel.goPrev}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                type="button"
+                className="discovery-page__nav discovery-page__nav--next"
+                aria-label="다음 페이지"
+                onClick={pageCarousel.goNext}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </>
+          )}
         </div>
 
-        <div className="carousel-dots" aria-hidden="true">
-          <span className="dot dot--active" />
-          <span className="dot" />
-          <span className="dot" />
-          <span className="dot" />
-        </div>
+        {/* 페이지 수만큼의 점 — 날짜 개수(4)를 그대로 따른다. */}
+        {canPage && (
+          <div className="carousel-dots" role="tablist" aria-label="날짜 페이지 선택">
+            {pages.map(({ key, day }, index) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                className={`dot${index === pageCarousel.index ? ' dot--active' : ''}`}
+                aria-selected={index === pageCarousel.index}
+                aria-label={day.date}
+                onClick={() => pageCarousel.goTo(index)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
