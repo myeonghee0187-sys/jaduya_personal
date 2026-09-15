@@ -21,7 +21,6 @@ import { CommunityPage } from './pages/CommunityPage';
 import { CommunityQuestionPage } from './pages/CommunityQuestionPage';
 import { CommunityTipPage } from './pages/CommunityTipPage';
 import { CommunityRegionPage } from './pages/CommunityRegionPage';
-import { CommunitySpendComparePage } from './pages/CommunitySpendComparePage';
 import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
@@ -89,7 +88,6 @@ function MainPages() {
       {page === 'community-question' && <CommunityQuestionPage />}
       {page === 'community-tip' && <CommunityTipPage />}
       {page === 'community-region' && <CommunityRegionPage />}
-      {page === 'community-spend-compare' && <CommunitySpendComparePage />}
       {page === 'benefits' && <BenefitsPage />}
       {page === 'benefits-recommend' && <BenefitsRecommendPage />}
       {page === 'benefit-detail' && <BenefitDetailPage />}

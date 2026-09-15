@@ -131,7 +131,6 @@ export function CommunityRegionPage() {
                 if (name === '전체') navigation?.navigate('community');
                 else if (name === '질문') navigation?.navigate('community-question');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
-                else if (name === '소비 비교') navigation?.navigate('community-spend-compare');
               }}
             >
               {name}

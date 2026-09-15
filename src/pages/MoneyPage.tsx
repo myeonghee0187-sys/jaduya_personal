@@ -19,6 +19,8 @@ import {
   CONSUME_CHANGE_PERCENT,
   EXPENSE_TRANSACTIONS,
 } from '../data/moneyTransactions';
+import { PEER_COMPARISONS, SPEND_INSIGHT_APP_LINK } from '../data/spendCompare';
+import { useElasticDragScroll } from '../hooks/useElasticDragScroll';
 
 /* 돈 관리 상단 탭 — Figma IA 그대로 4개. 이제 4개 모두 실제 화면이 있다. */
 const TABS = ['이번 달', '소비', '고정비', '비상금'] as const;
@@ -226,7 +228,7 @@ export function MoneyPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  /* 커뮤니티 '소비 비교'의 "전체보기" 처럼 다른 화면에서 시작 탭을 지정해 들어올 수 있다.
+  /* 다른 화면에서 시작 탭을 지정해 들어올 수 있다 (예: 알림, 딥링크).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '이번 달'로 연다. */
   const requestedTab = navigation?.options.tab;
   const [tab, setTab] = useState<Tab>(() =>
@@ -271,6 +273,8 @@ export function MoneyPage() {
     const timer = window.setTimeout(() => setNotice(''), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+  /* 소비 탭 맨 아래 "비슷한 자취생과 비교" 가로 스크롤 — 커뮤니티 소비 비교 탭에서 그대로 가져왔다 */
+  const peersDrag = useElasticDragScroll<HTMLDivElement>();
 
   /* 고정비 캘린더 — 2026년 9월(mock 데이터가 있는 유일한 달)일 때만 실제 항목을 보여준다.
    * 다른 달로 이동하면 정직하게 빈 상태를 보여준다(예전 드롭다운의 "준비 중" 잠금 대신). */
@@ -532,7 +536,74 @@ export function MoneyPage() {
           </>
         )}
 
-        {tab === '소비' && <SpendingReceipt onNotice={setNotice} />}
+        {tab === '소비' && (
+          <>
+            <SpendingReceipt onNotice={setNotice} />
+
+            {/* ============ 비슷한 자취생과 비교 — 커뮤니티 '소비 비교' 탭에서 그대로 옮겨왔다 ============ */}
+            <section className="spend-compare-peers">
+              <h2 className="spend-compare-peers__title">비슷한 자취생과 비교</h2>
+              <p className="spend-compare-peers__sub">나와 비슷한 조건의 자취생 3명과 비교했어요</p>
+
+              <div className="spend-compare-peers__row" ref={peersDrag.ref} {...peersDrag.dragProps}>
+                {PEER_COMPARISONS.map((peer) => (
+                  <article key={peer.id} className="peer-card">
+                    <div className="peer-card__top">
+                      <span
+                        className="peer-card__avatar"
+                        style={{ backgroundColor: peer.avatarColor }}
+                        aria-hidden="true"
+                      >
+                        {peer.avatarInitial}
+                      </span>
+                      <span className="peer-card__names">
+                        <span className="peer-card__name">{peer.name}</span>
+                        <span className="peer-card__condition">{peer.condition}</span>
+                      </span>
+                    </div>
+                    <p className="peer-card__amount">총 {peer.amount.toLocaleString()}원</p>
+                    <span className={`peer-card__badge peer-card__badge--${peer.deltaTone}`}>
+                      {peer.deltaLabel}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            {/* ============ 소비 인사이트 공유 ============ */}
+            <section className="spend-compare-insight">
+              <h2 className="spend-compare-insight__title">소비 인사이트 공유</h2>
+
+              <button
+                type="button"
+                className="spend-app-link"
+                onClick={() => setNotice('가계부 앱 연동은 준비 중이에요.')}
+              >
+                <span className="spend-app-link__left">
+                  <span className="spend-app-cluster">
+                    <span className="spend-app-icon">
+                      <span className="spend-app-icon__clip">
+                        <img src={icon('spend-app-icon-1.png')} alt="" />
+                      </span>
+                    </span>
+                    <span className="spend-app-icon spend-app-icon--yellow">
+                      <img src={icon('spend-app-icon-2.svg')} alt="" />
+                    </span>
+                    <span className="spend-app-icon">
+                      <img src={icon('spend-app-icon-3.png')} alt="" />
+                    </span>
+                    <img className="spend-app-cluster__marker" src={icon('spend-app-marker.svg')} alt="" />
+                  </span>
+                  <span className="spend-app-link__text">
+                    <span className="spend-app-link__title">{SPEND_INSIGHT_APP_LINK.title}</span>
+                    <span className="spend-app-link__sub">{SPEND_INSIGHT_APP_LINK.sub}</span>
+                  </span>
+                </span>
+                <img className="spend-app-link__arrow" src={icon('spend-east-arrow.svg')} alt="" />
+              </button>
+            </section>
+          </>
+        )}
 
         {tab === '고정비' && (
           <>
