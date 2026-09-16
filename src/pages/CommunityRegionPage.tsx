@@ -9,7 +9,7 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { RegionFilterPanel } from '../components/RegionFilterPanel';
-import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
+import { COMMUNITY_BOARD_TAB, COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 
 /* 커뮤니티 '지역 후기' — Figma local_reviews_v4 (3092:20677).
@@ -119,7 +119,7 @@ export function CommunityRegionPage() {
           </div>
         </section>
 
-        {/* ============ 탭 — '전체' / '질문' / '자취 꿀팁' 은 각자의 화면으로 돌아간다 ============ */}
+        {/* ============ 탭 — '전체' / '게시판' / '자취 꿀팁' 은 각자의 화면으로 돌아간다 ============ */}
         <nav className="community-tabs" aria-label="커뮤니티 분류">
           {COMMUNITY_TABS.map((name) => (
             <button
@@ -129,7 +129,7 @@ export function CommunityRegionPage() {
               aria-current={name === '지역 후기' ? 'page' : undefined}
               onClick={() => {
                 if (name === '전체') navigation?.navigate('community');
-                else if (name === '질문') navigation?.navigate('community-question');
+                else if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
               }}
             >

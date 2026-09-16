@@ -1,25 +1,25 @@
 {
-  "name": "2조_안녕자두야",
-  "short_name": "2조_안녕자두야",
+  "name": "자두야",
+  "short_name": "자두야",
   "icons": [
     {
-      "src": "/favicon/icon-192.png",
+      "src": "/assets/img/favicon/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/favicon/icon-512.png",
+      "src": "/assets/img/favicon/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/favicon/icon-512-maskable.png",
+      "src": "/assets/img/favicon/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ff8a1e",
-  "background_color": "#ff8a1e",
+  "theme_color": "#b43936",
+  "background_color": "#faf8f5",
   "display": "standalone"
 }

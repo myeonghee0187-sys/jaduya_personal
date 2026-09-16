@@ -9,15 +9,24 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS, mergeOwnPosts } from '../data/communityPosts';
+import {
+  COMMUNITY_BOARD_TAB,
+  COMMUNITY_TABS,
+  COMMUNITY_TIP_TAB,
+  TIP_CATEGORIES,
+  TIP_POSTS,
+  mergeOwnPosts,
+} from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
- * ("고정·관리" → "고정" / "관리", "청소·정리" → "청소" / "정리").
- * '·' 가 있으면 그 자리에서, 없으면 마지막 공백에서 나눈다. 넓은 화면에서는
- * CSS 로 구분자(·)만 보이고 줄바꿈은 숨긴다 — TIP_CATEGORIES 라벨 순서를
- * 그대로 유지한다. */
+ * ("고정·관리" → "고정" / "관리", "청소·정리" → "청소" / "정리",
+ * "인테리어" → "인테" / "리어", "생활문제" → "생활" / "문제").
+ * '·' 가 있으면 그 자리에서, 공백이 있으면 마지막 공백에서, 둘 다 없으면(인테리어·
+ * 생활문제처럼 구분자 없이 붙은 라벨) 글자 수 절반에서 나눈다. 넓은 화면에서는
+ * CSS 로 구분자(·)만 보이고 줄바꿈은 숨긴다 — TIP_CATEGORIES 라벨 순서를 그대로
+ * 유지한다. */
 function renderTipLabel(label: string) {
   const dotIndex = label.indexOf('·');
   if (dotIndex !== -1) {
@@ -33,12 +42,21 @@ function renderTipLabel(label: string) {
     );
   }
   const spaceIndex = label.lastIndexOf(' ');
-  if (spaceIndex === -1) return label;
+  if (spaceIndex !== -1) {
+    return (
+      <>
+        {label.slice(0, spaceIndex)}{' '}
+        <br className="tip-category__label-break" />
+        {label.slice(spaceIndex + 1)}
+      </>
+    );
+  }
+  const midIndex = Math.ceil(label.length / 2);
   return (
     <>
-      {label.slice(0, spaceIndex)}{' '}
+      {label.slice(0, midIndex)}
       <br className="tip-category__label-break" />
-      {label.slice(spaceIndex + 1)}
+      {label.slice(midIndex)}
     </>
   );
 }
@@ -68,11 +86,13 @@ export function CommunityTipPage() {
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
-  /* 내가 쓴 글 중 같은 서브탭 카테고리인 것만 정적 목록 맨 앞에 붙인다 */
+  /* 내가 쓴 글 중 같은 서브탭 카테고리 + 게시글종류가 "정보"인 것만 정적 목록 맨 앞에 붙인다.
+   * "질문"·"후기"·"잡담"으로 쓴 글은 자취 꿀팁 취지(가르쳐주는 글)에 안 맞아 전체/질문 탭에만
+   * 보이게 두고 여기서는 제외한다. */
   const visiblePosts = mergeOwnPosts(
     TIP_POSTS.filter((post) => post.tipCategory === category),
     ownPosts,
-    (post) => post.tipCategory === category,
+    (post) => post.tipCategory === category && post.category === '정보',
   );
 
   return (
@@ -130,7 +150,7 @@ export function CommunityTipPage() {
           </div>
         </section>
 
-        {/* ============ 탭 — '전체' / '질문' 은 각자의 화면으로 돌아간다 ============ */}
+        {/* ============ 탭 — '전체' / '게시판' 은 각자의 화면으로 돌아간다 ============ */}
         <nav className="community-tabs" aria-label="커뮤니티 분류">
           {COMMUNITY_TABS.map((name) => (
             <button
@@ -140,7 +160,7 @@ export function CommunityTipPage() {
               aria-current={name === COMMUNITY_TIP_TAB ? 'page' : undefined}
               onClick={() => {
                 if (name === '전체') navigation?.navigate('community');
-                else if (name === '질문') navigation?.navigate('community-question');
+                else if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
                 else if (name === '지역 후기') navigation?.navigate('community-region');
               }}
             >

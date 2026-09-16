@@ -229,8 +229,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
 /** 상단 탭 */
 /** 다른 화면(생활 > 살림의 살림 팁)에서도 이 탭을 지정해 들어오므로 이름을 한 곳에 둔다 */
 export const COMMUNITY_TIP_TAB = '자취 꿀팁';
+/** 예전엔 '질문' 전용 화면이었지만, 정보·질문·후기·잡담을 다 볼 수 있게 넓어져 이름을 바꿨다.
+ * route 는 그대로 'community-question' 을 쓴다(화면 자체를 새로 만들지 않았다). */
+export const COMMUNITY_BOARD_TAB = '게시판';
 
-export const COMMUNITY_TABS = ['전체', '질문', COMMUNITY_TIP_TAB, '지역 후기'] as const;
+export const COMMUNITY_TABS = ['전체', COMMUNITY_BOARD_TAB, COMMUNITY_TIP_TAB, '지역 후기'] as const;
 
 /* 자취 꿀팁 전용 서브탭 — Figma tip (2257:13827) 의 TipTiles.
  * '자취 꿀팁' 탭에서만 쓰는 카테고리 선택 UI라 다른 탭 데이터와 분리해 둔다. */

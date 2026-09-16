@@ -62,7 +62,7 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     iconFile: 'gnb-nav-community.svg',
     route: null,
     items: [
-      { id: 'community-qna', name: '질문', route: 'community-question' },
+      { id: 'community-qna', name: '게시판', route: 'community-question' },
       { id: 'community-tip', name: '자취꿀팁', route: 'community-tip' },
       { id: 'community-region', name: '지역후기', route: 'community-region' },
     ],

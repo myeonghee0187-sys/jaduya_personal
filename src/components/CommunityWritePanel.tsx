@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { icon, img } from '../lib/asset';
 import { useAuth } from '../auth/AuthContext';
+import type { Persona } from '../auth/mockUsers';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
+import type { WriteDraft } from '../community/drafts';
+import { readDrafts, writeDrafts } from '../community/drafts';
 import type { CommunityPost } from '../data/communityPosts';
 import { tipCategoryIdForLabel } from '../data/communityPosts';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { BellButton } from './BellButton';
+import { CommunityDraftListPanel } from './CommunityDraftListPanel';
 import { StatusBar } from './StatusBar';
 
 /** 태그 하나에 허용하는 최대 개수 — 카테고리 칩으로 자동 붙는 1개 + 직접 입력 3개 */
@@ -16,29 +20,43 @@ const LEVEL_OPTIONS = ['초보', '중수', '고수', '전문가'];
 const POST_TYPE_OPTIONS = ['정보', '질문', '후기', '잡담'];
 const HASHTAG_CATEGORY_OPTIONS = ['고정·관리', '자취·식비', '인테리어', '청소·정리', '생활문제', '기타'];
 
-/** 임시저장 글 — 등록 글과 달리 미완성이어도 저장할 수 있어 CommunityPost 보다 느슨하다 */
-interface WriteDraft {
-  id: string;
-  level: string | null;
+interface PersonaSamplePost {
+  level: string;
   title: string;
   body: string;
-  postType: string | null;
-  hashtagCategory: string | null;
-  hashtags: string[];
-  savedAt: string;
+  postType: string;
+  hashtagCategory: string;
+  extraHashtags: string[];
 }
 
-const DRAFTS_STORAGE_KEY = 'jaduya.community.writeDrafts';
-
-function readDrafts(): WriteDraft[] {
-  try {
-    const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+/** "예시로 빠르게 써보기" 버튼이 채우는 내용 — persona 별로 실제 겪을 법한 고민을 다르게 둔다.
+ * 해시태그는 카테고리 자동 태그(1개) + 직접 태그 3개로 MAX_HASHTAGS(4)를 정확히 채운다. */
+const PERSONA_SAMPLE_POST: Record<Persona, PersonaSamplePost> = {
+  beginner: {
+    level: '초보',
+    title: '처음 계약하는 거라 보증금 떼일까봐 무서워요',
+    body: '이제 곧 첫 자취를 시작하는데 계약서도 등기부등본도 처음 봐서 뭘 확인해야 하는지 하나도 모르겠어요. 보증금 떼이는 사고 뉴스를 하도 많이 봐서 계약하기가 겁나는데, 계약 전에 꼭 확인해야 할 것들 알려주세요.',
+    postType: '질문',
+    hashtagCategory: '생활문제',
+    extraHashtags: ['#자취초보', '#첫계약', '#보증금'],
+  },
+  worker: {
+    level: '고수',
+    title: '야근하고 오면 저녁 챙겨먹기가 너무 힘들어요',
+    body: '퇴근이 늦어지는 날은 저녁을 그냥 굶거나 배달만 시켜 먹게 되는데, 배달비가 매달 만만치 않게 나가요. 평일 저녁 대충이라도 챙겨 먹으면서 배달비도 줄일 수 있는 방법 있을까요?',
+    postType: '질문',
+    hashtagCategory: '자취·식비',
+    extraHashtags: ['#배달비절약', '#야근러', '#원룸살림'],
+  },
+  pet: {
+    level: '중수',
+    title: '고양이 키우는 투룸, 털 때문에 청소가 끝이 없어요',
+    body: '아무리 매일 청소기를 돌려도 소파랑 옷에 고양이 털이 계속 붙어있어요. 투룸이라 청소할 공간도 넓어서 더 힘든데, 반려동물 키우면서 털 관리하는 노하우 있으면 공유해주세요.',
+    postType: '질문',
+    hashtagCategory: '청소·정리',
+    extraHashtags: ['#고양이집사', '#반려동물자취', '#털청소'],
+  },
+};
 
 interface CommunityWritePanelProps {
   open: boolean;
@@ -49,9 +67,12 @@ interface CommunityWritePanelProps {
  * GNB 전체메뉴와 같은 방식(hidden + CSS transition)으로 오른쪽에서 슬라이드인한다.
  * 뒤로가기/닫기를 누르면 바로 닫히지 않고, 나가기 확인 다이얼로그를 먼저 띄운다.
  * 등록은 CommunityPostsContext 에 저장돼 전체/질문/자취 꿀팁 목록에 바로 반영되고,
- * 임시저장은 localStorage 에 쌓여 임시목록 버튼 위 빨간 점으로 표시된다.
+ * 임시저장은 localStorage 에 쌓여 임시목록 버튼 위 빨간 점으로 표시된다. "임시목록"
+ * 버튼은 글쓰기와 같은 방식(오른쪽 슬라이드인)으로 CommunityDraftListPanel 을 그 위에
+ * 한 겹 더 연다 — 거기서 "수정하기" 를 누르면 그 임시글 내용이 이 폼에 그대로 채워지고
+ * (editingDraftId 로 기억), 그 상태에서 등록에 성공하면 그 임시글 하나만 사라진다.
  * 사진 첨부는 FileReader 로 data URL 을 만들어 미리보기로 보여주고 등록 시 같이 저장한다
- * (카메라 촬영·파일 첨부·임시목록 열람은 아직 화면이 없어 '준비 중' 토스트로 안내한다).
+ * (카메라 촬영·파일 첨부는 아직 화면이 없어 '준비 중' 토스트로 안내한다).
  * 뱃지는 이모지 대신 로그인 계정의 프로필 사진(user.profileImage 또는 persona 기본 사진)을 쓴다.
  * 레벨/게시글종류/해시태그 카테고리는 기본 선택 없이 시작해 사용자가 직접 골라야 한다.
  * 등록을 누른 뒤에만(attemptedSubmit) 미작성 항목으로 스크롤 이동 + 안내 문구를 보여준다. */
@@ -68,7 +89,10 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [draftCount, setDraftCount] = useState(() => readDrafts().length);
+  const [drafts, setDrafts] = useState<WriteDraft[]>(() => readDrafts());
+  const [draftListOpen, setDraftListOpen] = useState(false);
+  /** 지금 이 폼이 어떤 임시글을 불러와 수정하는 중인지 — 등록에 성공하면 이 임시글만 지운다 */
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   /** 첨부한 사진 — data URL. 백엔드가 없어 그대로 게시글 데이터에 들고 다닌다 */
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
 
@@ -112,6 +136,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
     setHashtags([]);
     setAttemptedSubmit(false);
     setAttachedImage(null);
+    setEditingDraftId(null);
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
@@ -234,6 +259,13 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
       tipCategory: tipCategoryIdForLabel(hashtagCategory),
       level: level as CommunityPost['level'],
     });
+
+    /* 임시글을 불러와 수정하던 중이었다면, 실제로 등록됐으니 그 임시글만 목록에서 지운다 */
+    if (editingDraftId) {
+      const nextDrafts = drafts.filter((draft) => draft.id !== editingDraftId);
+      writeDrafts(nextDrafts);
+      setDrafts(nextDrafts);
+    }
     resetForm();
     onClose();
   };
@@ -243,27 +275,72 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
       setNotice('저장할 내용이 없어요.');
       return;
     }
-    const draft: WriteDraft = {
-      id: `draft-${Date.now()}`,
-      level,
-      title,
-      body,
-      postType,
-      hashtagCategory,
-      hashtags,
-      savedAt: new Date().toISOString(),
-    };
-    const nextDrafts = [draft, ...readDrafts()];
-    try {
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(nextDrafts));
-    } catch {
-      /* 저장에 실패해도 화면 동작은 그대로 둔다 */
-    }
-    setDraftCount(nextDrafts.length);
+    const savedAt = new Date().toISOString();
+    /* 임시글을 불러와 수정하던 중이면 새로 만들지 않고 그 항목을 덮어쓴다 */
+    const nextDrafts = editingDraftId
+      ? drafts.map((draft) =>
+          draft.id === editingDraftId
+            ? { ...draft, level, title, body, postType, hashtagCategory, hashtags, attachedImage, savedAt }
+            : draft,
+        )
+      : [
+          {
+            id: `draft-${Date.now()}`,
+            level,
+            title,
+            body,
+            postType,
+            hashtagCategory,
+            hashtags,
+            attachedImage,
+            savedAt,
+          },
+          ...drafts,
+        ];
+    writeDrafts(nextDrafts);
+    setDrafts(nextDrafts);
     setNotice('임시저장했어요.');
+    resetForm();
+  };
+
+  const handleEditDraft = (draft: WriteDraft) => {
+    setLevel(draft.level);
+    setTitle(draft.title);
+    setBody(draft.body);
+    setPostType(draft.postType);
+    setHashtagCategory(draft.hashtagCategory);
+    setHashtags(draft.hashtags);
+    setAttachedImage(draft.attachedImage);
+    setEditingDraftId(draft.id);
+    setDraftListOpen(false);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    const nextDrafts = drafts.filter((draft) => draft.id !== id);
+    writeDrafts(nextDrafts);
+    setDrafts(nextDrafts);
+    if (editingDraftId === id) setEditingDraftId(null);
+  };
+
+  /* "예시로 빠르게 써보기" — 로그인한 persona 의 고민 예시로 폼 전체를 채운다.
+   * 태그는 카테고리 자동 태그 + 직접 태그로 미리 조합해두므로 selectHashtagCategory 를
+   * 거치지 않고 hashtags 를 통째로 새로 지정한다. */
+  const handleFillSample = () => {
+    const sample = PERSONA_SAMPLE_POST[user?.persona ?? 'beginner'];
+    setLevel(sample.level);
+    setTitle(sample.title);
+    setBody(sample.body);
+    setPostType(sample.postType);
+    setHashtagCategory(sample.hashtagCategory);
+    setHashtags([`#${sample.hashtagCategory}`, ...sample.extraHashtags]);
+    setHashtagText('');
+    setAttachedImage(null);
+    setEditingDraftId(null);
+    setAttemptedSubmit(false);
   };
 
   return (
+    <>
     <section className="layer write-panel" hidden={!open} aria-label="글쓰기">
       <div className="write-panel__header">
         <StatusBar />
@@ -292,16 +369,20 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
 
       <div className="write-panel__scroll">
         <div className="write-panel__content">
+          <button type="button" className="write-panel__sample-btn" onClick={handleFillSample}>
+            예시로 빠르게 써보기
+          </button>
+
           <section className="write-panel__section" ref={levelRef}>
             <div className="write-panel__label-row">
               <p className="write-panel__label">레벨 선택</p>
               <button
                 type="button"
                 className="write-panel__draft-list-btn"
-                onClick={() => setNotice('임시저장 목록 열람은 준비 중이에요.')}
+                onClick={() => setDraftListOpen(true)}
               >
                 임시목록
-                {draftCount > 0 && <span className="write-panel__draft-list-badge" aria-hidden="true" />}
+                {drafts.length > 0 && <span className="write-panel__draft-list-badge" aria-hidden="true" />}
               </button>
             </div>
             <div className="write-panel__chips">
@@ -493,6 +574,14 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
         </>
       )}
     </section>
+    <CommunityDraftListPanel
+      open={draftListOpen}
+      drafts={drafts}
+      onClose={() => setDraftListOpen(false)}
+      onEdit={handleEditDraft}
+      onDelete={handleDeleteDraft}
+    />
+    </>
   );
 }
 

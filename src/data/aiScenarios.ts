@@ -34,10 +34,13 @@ export type FlowScenario = {
 
 /** 자유 입력을 기존 시나리오의 첫 단계로 연결하기 위한 해석 결과다. */
 export type ScenarioIntent =
+  | { scenarioId: 'boiler'; stage: 'power' }
   | { scenarioId: 'plumbing-leak'; stage: 'location' }
   | { scenarioId: 'plumbing-leak'; stage: 'sink-check' }
   | { scenarioId: 'toilet-clog'; stage: 'water-level' }
   | { scenarioId: 'power-outage'; stage: 'scope' }
+  | { scenarioId: 'moveIn'; stage: 'move-stage' }
+  | { scenarioId: 'support'; stage: 'category' }
   | null;
 
 export const AI_SCENARIOS: Record<string, FlowScenario> = {
@@ -135,14 +138,19 @@ export function scenarioStage(scenarioId: string, stage: string): FlowStage | nu
 /** 문장 전체 일치가 아닌 증상·장소 키워드를 함께 보며 문제 시나리오를 고른다. */
 export function resolveScenarioIntent(message: string): ScenarioIntent {
   const text = message.replace(/\s/g, '').toLowerCase();
+  const hasBoilerSubject = /보일러|난방/.test(text);
+  const hasBoilerFailure = /안켜|작동.*안|안돼|안되|전원.*안들어|추워/.test(text);
   const hasLeak = /누수|물이.*(새|샌|떨어|뚝뚝)|새는.*물|물.*계속/.test(text);
   const hasSink = /싱크대|주방|부엌|수전|배수관/.test(text);
   const hasToilet = /변기|물이.*안.*내려|물.*차올|배변/.test(text);
   const hasPower = /정전|전기.*(나가|나갔)|불.*(꺼|나가|나갔)|집.*어두|차단기/.test(text);
 
+  if (hasBoilerSubject && hasBoilerFailure) return { scenarioId: 'boiler', stage: 'power' };
   if (hasToilet) return { scenarioId: 'toilet-clog', stage: 'water-level' };
   if (hasPower) return { scenarioId: 'power-outage', stage: 'scope' };
   if (hasLeak && hasSink) return { scenarioId: 'plumbing-leak', stage: 'sink-check' };
   if (hasLeak) return { scenarioId: 'plumbing-leak', stage: 'location' };
+  if (/전입.?신고/.test(text)) return { scenarioId: 'moveIn', stage: 'move-stage' };
+  if (/지원금|지원.?사업|혜택/.test(text)) return { scenarioId: 'support', stage: 'category' };
   return null;
 }
