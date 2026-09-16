@@ -111,7 +111,8 @@
  * 숨 쉴 틈을 준다. */
 .wpg-canvas-card {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin: 0 calc(var(--space-md) * -1);
   padding: var(--space-xl) var(--space-md);
   border: 1px solid var(--border-warm);
@@ -225,31 +226,22 @@
   pointer-events: none;
 }
 
-/* ================= 위젯 배치 가이드 — 펼치기/접기 배너 =================
- * 항상 한 줄(아이콘 + 제목 + 펼치기/접기 화살표)이 떠 있고, 그 아래 S/M/L 미리보기 +
- * 마스코트만 펼쳐지거나 접힌다. dimming·overlay·모달 없이 항상 Placement Grid 아래
- * 제자리에 있다. 자세한 배치 다이어그램/규칙은 헤더 "가이드" 버튼의 PlacementGuideSheet
- * (모달)에서 본다 — 그쪽과 구분되도록 여기는 정보 안내 톤(블루)을 쓴다. */
+/* ================= 위젯 배치 가이드 배너 =================
+ * 펼치기/접기 없이 한 줄(아이콘 + 문구)로만 항상 떠 있다. "내 위젯" 캔버스 카드(베이지
+ * 배경) 맨 위, 배치 그리드 바로 위에 자리한다. 자세한 배치 다이어그램/규칙은 헤더
+ * "가이드" 버튼의 PlacementGuideSheet(모달)에서 본다. 브랜드 포인트 컬러(자두색,
+ * brand-primary) 톤으로 다른 보조 칩(.wpg-guide-btn 등)과 톤을 맞춘다. */
 
 .wpg-guide {
-  margin-top: var(--space-lg);
-  margin-bottom: 14px;
-  border-radius: var(--radius-m);
-  background: rgba(74, 111, 165, 0.08);
-  overflow: hidden;
-}
-
-/* 행 전체가 버튼이다 — 터치 영역이 넓어서 화살표 하나만 누르기 편하려고 애쓸 필요가 없다 */
-.wpg-guide__head {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   width: 100%;
-  min-height: 44px;
-  padding: var(--space-sm) var(--space-md);
-  border: 0;
-  background: none;
-  text-align: left;
+  min-height: 36px;
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-m);
+  background: rgba(180, 57, 54, 0.08);
 }
 
 .wpg-guide__icon {
@@ -260,7 +252,7 @@
   width: 16px;
   height: 16px;
   border-radius: var(--radius-pill);
-  background: #4a6fa5;
+  background: var(--brand-primary);
   font-family: var(--font-suit);
   font-weight: var(--font-weight-bold);
   font-size: 10px;
@@ -276,93 +268,6 @@
   font-size: var(--font-size-xs);
   line-height: 1.4;
   color: var(--text-primary);
-}
-
-/* 펼치기/접기 화살표 — CSS만으로 그리는 chevron. 접힘: 아래를 가리켜 "펼치면 아래로
- * 열린다"를 보여주고, 펼침: 180도 돌려 위를 가리킨다. */
-.wpg-guide__toggle {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  margin-top: -3px;
-  border-right: 1.6px solid var(--text-tertiary);
-  border-bottom: 1.6px solid var(--text-tertiary);
-  transform: rotate(45deg);
-  transition: transform 180ms ease;
-}
-
-.wpg-guide__toggle.is-open {
-  margin-top: 3px;
-  transform: rotate(225deg);
-}
-
-/* 펼침/접힘 — grid-template-rows 를 0fr↔1fr 로 트랜지션해서 height:auto 도 부드럽게
- * 애니메이션한다. bounce/scale 없이 짧고 차분하게. */
-.wpg-guide__panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 220ms ease;
-}
-
-.wpg-guide__panel.is-open {
-  grid-template-rows: 1fr;
-}
-
-.wpg-guide__panel-inner {
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 var(--space-md);
-}
-
-.wpg-guide__panel.is-open .wpg-guide__panel-inner {
-  padding-bottom: var(--space-md);
-}
-
-.wpg-guide__preview {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.wpg-guide__sizes {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-}
-
-/* 레퍼런스는 S/M/L을 같은 색으로 두지만, 여기서는 크기를 한눈에 구분할 수 있도록
- * PlacementGuideSheet 스와치와 같은 배색(L=레드/M=블루/S=그린)을 그대로 맞춘다 */
-.wpg-guide__size {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  border-radius: var(--radius-s);
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xs);
-}
-
-.wpg-guide__size--l {
-  background: rgba(180, 57, 54, 0.12);
-  color: var(--brand-primary);
-}
-
-.wpg-guide__size--m {
-  background: rgba(74, 111, 165, 0.12);
-  color: #4a6fa5;
-}
-
-.wpg-guide__size--s {
-  background: rgba(162, 177, 35, 0.16);
-  color: var(--brand-green);
-}
-
-.wpg-guide__mascot {
-  flex: none;
-  width: 48px;
-  height: auto;
 }
 
 /* ================= 추천 위젯 / 전체 위젯 — 제목 + 한 줄 설명 ================= */
@@ -394,7 +299,7 @@
 }
 
 .wpg-all__head {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 /* ================= 추천 위젯 — 가로 Swiper(레퍼런스) =================
@@ -414,8 +319,12 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 2px 2px 4px;
-  margin: -2px -2px 0;
+  /* 가로 방향 padding/margin 상쇄 트릭은 쓰지 않는다 — .wpg-recommend-card엔 그 여유가
+   * 필요한 box-shadow/hover 확대 효과가 없고, 오히려 .wpg-recommend-swiper-wrap의
+   * overflow-x:hidden이 그 2px을 그대로 잘라내 첫 카드 왼쪽 테두리가 항상 잘려 보이는
+   * 버그였다(요구사항 아님, 발견된 버그 수정). */
+  padding: 2px 0 4px;
+  margin: -2px 0 0;
 }
 
 .wpg-recommend-swiper::-webkit-scrollbar {
@@ -1050,8 +959,12 @@
 
 /* ================= 위젯 미리보기 모달 — 화면 중앙 다이얼로그 ================= */
 
+/* position: fixed 는 브라우저 뷰포트 기준이라, 데스크톱 IPhoneFrame 프리뷰처럼 .app
+ * 프레임이 뷰포트 가운데가 아니라 한쪽으로 치우쳐 배치될 때 이 배경/모달이 프레임 밖으로
+ * 삐져나온다. 다른 오버레이(overlays.css 의 .layer, PlacementGuideSheet 등)와 같은
+ * absolute + inset:0 규칙으로 맞춰 .app(position: relative) 안에 항상 갇히게 한다. */
 .wpg-modal-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 90;
   display: flex;
@@ -1353,26 +1266,9 @@
 }
 
 /* ================= 공간 만들기(모달 내부 전환 화면) =================
- * 별도 화면 이동이나 Bottom Sheet 없이 이 모달 안에서 바로 이어진다 — 헤더만
- * 뒤로가기 + "공간 만들기" 제목으로 바뀌고, 아래 내용 전체가 비울 위젯 선택
- * 리스트로 통째로 바뀐다(레퍼런스: "위젯 추가 플로우(최종안)" 3단계). */
-
-.wpg-modal__back {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-left: calc(var(--space-xs) * -1);
-  border: 0;
-  background: none;
-}
-
-.wpg-modal__back img {
-  width: var(--header-back-w);
-  height: var(--header-back-h);
-}
+ * 별도 화면 이동이나 Bottom Sheet 없이 이 모달 안에서 바로 이어진다 — 헤더는
+ * 다른 단계와 똑같이 "위젯 미리보기" + X(전체 닫기)를 유지하고, 아래 내용
+ * 전체만 비울 위젯 선택 리스트로 통째로 바뀐다. */
 
 /* 위젯 미리보기 화면(.wpg-modal__title/__desc)이 카테고리 필부터 설명까지 전부 가운데
  * 정렬이라, 같은 모달 안에서 이어지는 이 화면의 제목도 왼쪽 정렬로 남겨두면 화면끼리

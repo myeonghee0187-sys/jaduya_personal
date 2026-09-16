@@ -113,6 +113,17 @@
   background: var(--brand-secondary);
 }
 
+/* 계정 전환(appKey remount) 크로스페이드 컨테이너 — absolute + inset:0 으로
+ * iphone-frame__screen(position:relative) 을 꽉 채운다. AnimatePresence 가 mode="wait"
+ * 없이 이전/다음 앱을 동시에 렌더하는 구간이 있는데, 여기서 position:static(기본값)이면
+ * 두 카피가 순서대로 쌓여 화면이 위아래로 늘어나 보인다 — absolute 로 같은 자리에
+ * 겹치게 해야 진짜 크로스페이드(둘 다 같은 자리에서 opacity만 넘나듦)가 된다.
+ * iphone-frame__screen 자체가 overflow:hidden 이라 scale(0.98)의 여유분도 안전하게 잘린다. */
+.login-showcase__app-transition {
+  position: absolute;
+  inset: 0;
+}
+
 /* ---------- 스테이지 (카피 + 폰 + 패널) ----------
  * 넓은 웹(1700px~): 카피 + 폰 + 패널이 한 줄에 다 들어간다.
  * 태블릿/좁은 웹(768~1699px): 카피는 아예 숨기고(display:none) 폰 + 패널 "둘만" 남긴 뒤
@@ -314,11 +325,11 @@
 }
 
 .login-showcase__tab {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   height: 44px;
   padding: 0 6px;
   border-radius: 14px;
@@ -331,6 +342,34 @@
   letter-spacing: -0.01em;
   color: var(--text-secondary);
   cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* 이 패널은 데스크톱/태블릿(768px~) 전용이라 마우스 사용자가 대부분이다 — 선택된
+ * 탭은 이미 배경으로 표시되니, 아직 안 고른 탭에만 호버를 준다. */
+.login-showcase__tab:not(.login-showcase__tab--active):hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
+}
+
+/* 선택된 탭의 배경 — 탭을 바꿀 때 새로 나타나는 대신 이전 위치에서 지금 위치로
+ * 부드럽게 미끄러진다(motion의 layoutId 공유 애니메이션, 세그먼트 컨트롤에서 흔한
+ * 패턴). 절대 위치라 텍스트/아이콘 위에 겹치므로 그 둘은 .login-showcase__tab-content
+ * 로 감싸 z-index로 위에 둔다. */
+.login-showcase__tab-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #fdeceb;
+  border: 1px solid rgba(180, 57, 54, 0.3);
+}
+
+.login-showcase__tab-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* currentColor 를 따라가야 해서 <img> 대신 mask-image 로 그린다 —
@@ -340,6 +379,7 @@
   height: 18px;
   flex-shrink: 0;
   background-color: currentColor;
+  transition: background-color 150ms ease;
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
@@ -349,8 +389,6 @@
 }
 
 .login-showcase__tab--active {
-  background: #fdeceb;
-  border-color: rgba(180, 57, 54, 0.3);
   color: var(--brand-primary);
 }
 
@@ -420,10 +458,17 @@
   font-size: 14px;
   letter-spacing: -0.01em;
   cursor: pointer;
+  transition: filter 150ms ease, box-shadow 150ms ease;
+}
+
+.login-showcase__cta:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 10px 24px rgba(180, 57, 54, 0.28);
 }
 
 .login-showcase__cta:active {
   filter: brightness(0.94);
+  box-shadow: none;
 }
 
 .login-showcase__new-link {
@@ -440,4 +485,9 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.login-showcase__new-link:hover {
+  color: var(--text-primary);
 }

@@ -17,13 +17,20 @@
   position: absolute;
   /* 이 박스 자체는 완전히 투명하게 비워두고, 화면 전체를 덮는 그림자만 그려서
    * 결과적으로 "이 박스만 뚫린 딤" 처럼 보이게 하는 스포트라이트 트릭.
-   * 앞의 두 겹(브랜드 레드 링 + 은은한 글로우)이 딤보다 위(먼저 적힌 shadow 가 위로
-   * 그려짐)에 그려져서 강조 영역 가장자리를 도드라지게 하고, 맨 뒤의 9999px 짜리가
-   * 나머지 화면을 전부 덮는다. */
+   *
+   * 진짜 원인은 spread 크기가 아니라 줌이었다 — 모바일 폭(.app 조상에 zoom 없음,
+   * scale=1)에서는 안 보이고, 데스크톱 프리뷰(768px 이상, IPhoneFrame 이 .app 을
+   * zoom: var(--phone-scale) 로 줄이는 화면)에서만 강조 영역 테두리를 따라 진한 선이
+   * 보였다(요구사항 아님, 발견된 문제 — "모바일에선 안 보이는데 웹에서 보인다"로
+   * 확인됨). blur·spread 는 여기 CSS 클래스에 고정된 "로컬" px 값이라, 줌이 곱해진
+   * 채로 화면에 찍히면 실제 화면 크기가 --phone-scale 만큼 줄어든다 — 꼬리·글로우
+   * 간격을 맞추려고 Coachmark.tsx 에서 잡은 여유(PAD/BUBBLE_GAP)도 같은 이유로 줄어
+   * 있어서, 결국 꼬리와 스포트라이트가 다시 붙어 보였다. Coachmark.tsx 가 실측한
+   * 줌 배율의 역수를 --coachmark-zoom-comp 로 루트에 내려주므로, 여기서도 같은 값을
+   * 곱해 blur·spread 가 화면에 항상 같은 실제 px 로 보이게 한다. */
   box-shadow:
-    0 0 0 3px rgba(180, 57, 54, 0.55),
-    0 0 20px 6px rgba(180, 57, 54, 0.32),
-    0 0 0 9999px rgba(20, 14, 12, 0.62);
+    0 0 calc(28px * var(--coachmark-zoom-comp, 1)) calc(4px * var(--coachmark-zoom-comp, 1)) rgba(180, 57, 54, 0.3),
+    0 0 calc(90px * var(--coachmark-zoom-comp, 1)) calc(1200px * var(--coachmark-zoom-comp, 1)) rgba(20, 14, 12, 0.62);
   pointer-events: none;
 }
 
@@ -35,6 +42,21 @@
   cursor: pointer;
 }
 
+/* 화면 우측 상단 고정 SKIP — 말풍선 안 "건너뛰기"와 별개로, 어느 단계에서든 같은
+ * 자리에서 바로 투어를 끝낼 수 있다. 오버레이 안의 다른 텍스트(.coachmark__label)와
+ * 같은 폰트/크기로 맞춘다. */
+.coachmark__skip {
+  position: absolute;
+  top: calc(var(--header-h) / 2);
+  right: var(--screen-margin);
+  transform: translateY(-50%);
+  font-family: var(--font-asta);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.14px;
+  color: var(--surface-cream);
+}
+
 .coachmark__bubble {
   position: absolute;
   display: flex;
@@ -43,7 +65,12 @@
   padding: var(--space-md);
   background: var(--surface-cream);
   border-radius: var(--radius-l);
-  box-shadow: 0 12px 32px rgba(46, 26, 36, 0.22);
+  /* 아래로만 떨어지는 그림자(offset-y)를 쓰면, 말풍선이 타겟보다 위에 있어 꼬리가
+   * 아래(--down)를 향하는 단계에서 그 그림자가 꼬리 삼각형과 겹쳐 타겟 쪽으로 어두운
+   * 줄이 번져 보였다(요구사항 아님, 발견된 버그 수정 — 1·2·4·5단계는 보이고 꼬리가
+   * 위(--up)를 향하는 3단계만 안 보이던 이유). 방향에 따라 갈라 쓰는 대신, 어느 쪽으로도
+   * 안 치우치는 그림자로 바꿔 두 방향 모두에서 꼬리와 겹치지 않게 한다. */
+  box-shadow: 0 0 24px rgba(46, 26, 36, 0.22);
   cursor: default;
 }
 
@@ -92,48 +119,59 @@
   white-space: pre-line;
 }
 
-/* 단계마다 반복하지 않고 화면 우측 상단에 한 번만 고정 — Figma "코지 마크" 온보딩의
- * SKIP 과 같은 자리/스타일(Handon 3gyeopsal 600, 밑줄, 크림색) */
-.coachmark__skip {
-  position: absolute;
-  top: calc(var(--header-h) / 2);
-  right: var(--screen-margin);
-  transform: translateY(-50%);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 20px;
-  color: var(--surface-cream);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-/* 진행 도트 — SKIP 과 같은 높이, 화면 가로 중앙. 라벨의 "N/4" 텍스트를 눈으로 다시
- * 읽지 않아도 몇 단계 남았는지 한눈에 보이게 한다 */
-.coachmark__dots {
-  position: absolute;
-  top: calc(var(--header-h) / 2);
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* 건너뛰기 / 이전 / 다음(마지막 단계는 완료) — 말풍선 맨 아래 한 줄, 레퍼런스와 같은
+ * 배치(건너뛰기는 왼쪽 끝, 이전·다음은 오른쪽에 묶어서). 온보딩(Onboarding.tsx)의
+ * 같은 위계 버튼들과 톤을 맞춘다 — 새 버튼 시스템을 만들지 않는다. */
+.coachmark__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  margin-top: 2px;
 }
 
-.coachmark__dot {
-  width: 6px;
-  height: 6px;
+.coachmark__actions-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.coachmark__action-skip,
+.coachmark__action-back {
+  border: 0;
+  background: none;
+  padding: 6px 2px;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.coachmark__action-skip {
+  color: var(--text-tertiary);
+}
+
+.coachmark__action-back {
+  color: var(--text-secondary);
+}
+
+/* 1단계에서는 더 돌아갈 곳이 없다 — Onboarding.tsx 의 "이전"과 같은 규칙
+ * (disabled 시 자리만 차지하고 안 보이게) */
+.coachmark__action-back:disabled {
+  visibility: hidden;
+}
+
+.coachmark__action-next {
+  border: 0;
   border-radius: var(--radius-pill);
-  background: rgba(255, 253, 249, 0.35);
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  padding: 8px 18px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
 }
 
-.coachmark__dot.is-done {
-  background: rgba(255, 253, 249, 0.65);
-}
-
-.coachmark__dot.is-current {
-  background: var(--surface-cream);
-  transform: scale(1.3);
+.coachmark__action-next:active {
+  filter: brightness(0.94);
 }
 
 /* 마지막 단계 — 작은 말풍선 대신 화면 가운데쯤에 크게 뜨는 종료 안내 */

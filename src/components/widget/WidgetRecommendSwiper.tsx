@@ -14,6 +14,30 @@ const DRAG_MOVE_TOLERANCE = 6;
  * 시작하기까지의 대기 시간도 동일하게 맞춘다. */
 const AUTO_SCROLL_INTERVAL_MS = 4000;
 
+/* 카드 4장이 clientWidth(한 페이지 폭)에 정확히 나누어떨어지지 않아서(예: 카드 폭 175px ×
+ * 4 = 700px가 346px 페이지 폭의 정확히 2배가 아님), "페이지 = clientWidth × n" 으로
+ * 계산하면 마지막 페이지 목표 지점이 실제 스크롤 가능한 최대 거리(scrollWidth-clientWidth)를
+ * 넘어서서 브라우저가 조용히 clamp해버린다. 그러면 scrollLeft로 역산한 현재 페이지 번호가
+ * 실제와 어긋나 자동 재생이 같은 자리에서 멈추거나 다음 바퀴에 엉뚱한 페이지로 튄다
+ * (요구사항 아님, 발견된 버그 수정). 대신 [0, 실제 최대 스크롤 거리] 구간을
+ * pageCount-1 등분해 페이지 목표/현재 페이지를 계산한다 — 마지막 페이지는 항상 정확히
+ * 최대 스크롤 지점에 닿고, 첫 페이지는 항상 정확히 0에 닿는다. */
+function maxScrollOf(el: HTMLElement): number {
+  return Math.max(0, el.scrollWidth - el.clientWidth);
+}
+
+function scrollTargetFor(el: HTMLElement, page: number, pageCount: number): number {
+  if (pageCount <= 1) return 0;
+  return (page / (pageCount - 1)) * maxScrollOf(el);
+}
+
+function currentPageOf(el: HTMLElement, pageCount: number): number {
+  const max = maxScrollOf(el);
+  if (max <= 0 || pageCount <= 1) return 0;
+  const idx = Math.round((el.scrollLeft / max) * (pageCount - 1));
+  return Math.max(0, Math.min(pageCount - 1, idx));
+}
+
 interface WidgetRecommendSwiperProps {
   widgets: WidgetDef[];
   onSelect: (widgetId: string) => void;
@@ -86,9 +110,9 @@ export function WidgetRecommendSwiper({ widgets, onSelect }: WidgetRecommendSwip
       if (autoPausedRef.current || document.hidden) return;
       const el = trackRef.current;
       if (!el || el.clientWidth <= 0) return;
-      const current = Math.round(el.scrollLeft / el.clientWidth);
+      const current = currentPageOf(el, pageCount);
       const next = (current + 1) % pageCount;
-      el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
+      el.scrollTo({ left: scrollTargetFor(el, next, pageCount), behavior: 'smooth' });
     }, AUTO_SCROLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [reduceMotion, pageCount, isVisible]);
@@ -97,17 +121,14 @@ export function WidgetRecommendSwiper({ widgets, onSelect }: WidgetRecommendSwip
     const el = trackRef.current;
     if (!el) return;
     const clamped = Math.max(0, Math.min(pageCount - 1, index));
-    el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' });
+    el.scrollTo({ left: scrollTargetFor(el, clamped, pageCount), behavior: 'smooth' });
   };
 
   const handleScroll = () => {
     const el = trackRef.current;
     if (!el || el.clientWidth <= 0) return;
-    const idx = Math.round(el.scrollLeft / el.clientWidth);
-    setPage((prev) => {
-      const next = Math.max(0, Math.min(pageCount - 1, idx));
-      return next === prev ? prev : next;
-    });
+    const idx = currentPageOf(el, pageCount);
+    setPage((prev) => (idx === prev ? prev : idx));
   };
 
   const pointerIdRef = useRef<number | null>(null);

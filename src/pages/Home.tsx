@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { aiFabRef } from '../components/ai/aiFabRef';
+import { triggerAiFabDemoMove } from '../components/ai/aiFabDemoMove';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Coachmark } from '../components/Coachmark';
 import type { CoachmarkStep } from '../components/Coachmark';
@@ -119,6 +120,9 @@ export function Home() {
    * 해당 단계에 들어서면 시트를 강제로 올리고, 1·2단계로 돌아오면 다시 내린다. */
   const onCoachmarkStepChange = (step: CoachmarkStep) => {
     if (step.sheetState && step.sheetState !== sheet.state) sheet.apply(step.sheetState);
+    /* "자두는 원하는 곳으로 이동할 수 있어요" 단계 — 말로 설명하는 대신 버튼이 실제로
+     * 반대쪽까지 갔다 돌아오는 모습을 보여준다(AIChatbotButton.tsx 가 재생). */
+    if (step.key === 'move') triggerAiFabDemoMove();
   };
 
   /* 강조할 실제 DOM — 좌표를 하드코딩하지 않고 Coachmark 가 매 단계 실측한다 */
@@ -126,7 +130,13 @@ export function Home() {
   const statusRef = useRef<HTMLDivElement>(null);
   const addSlotRef = useRef<HTMLDivElement>(null);
 
-  const coachmarkSteps: CoachmarkStep[] = [
+  /* useMemo 로 고정한다 — 배열 리터럴을 렌더마다 새로 만들면 stepIndex 가 그대로여도
+   * steps[stepIndex] 객체 참조가 매번 바뀌어, Coachmark 의 재측정 effect(참조가 dep)가
+   * Home 이 재렌더될 때마다 다시 걸린다. sheet.apply() 로 시트가 올라가는 동안(peek→
+   * expanded, 320ms)에도 Home 이 여러 번 재렌더되는데, 그때마다 "아직 안 바뀐" 이전
+   * 단계 타겟(시트 안에 있어 함께 떠오르는 중)을 다시 재서, 스포트라이트가 다음 단계로
+   * 넘어가기도 전에 시트를 따라 위로 슬쩍 튀었다가 새 위치로 다시 튀는 문제가 있었다. */
+  const coachmarkSteps: CoachmarkStep[] = useMemo(() => [
     {
       key: 'notice',
       title: '중요한 알림을 한눈에',
@@ -154,13 +164,24 @@ export function Home() {
     },
     {
       key: 'chatbot',
-      title: '자두는 어디든 이동 가능해요',
-      body: '화면 내 원하는 곳으로\n언제든 편하게 옮겨보세요.',
+      title: '자취생활이 궁금할 땐, 자두야 AI!',
+      body: '생활 · 혜택 · 돈 관리까지\n궁금한 건 뭐든 물어보세요.',
       targetRef: aiFabRef,
       radius: 'circle',
       sheetState: 'expanded',
     },
-  ];
+    {
+      key: 'move',
+      title: '자두를 원하는 곳으로 옮겨보세요',
+      body: '길게 눌러 편한 위치에 놓을 수 있어요.',
+      targetRef: aiFabRef,
+      radius: 'circle',
+      sheetState: 'expanded',
+      /* 이 단계에서만 버튼이 데모 애니메이션으로 실제 움직인다 — 스포트라이트가
+       * 그 이동을 따라가야 해서 계속 재측정이 필요하다(Coachmark.tsx 참고). */
+      trackContinuously: true,
+    },
+  ], [tipBoxRef, statusRef, addSlotRef]);
 
   return (
     <div
