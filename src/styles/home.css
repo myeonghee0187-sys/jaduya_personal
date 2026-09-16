@@ -93,7 +93,6 @@ a { text-decoration: none; color: inherit; }
   top: -110px;
   width: 402px;
   height: 871px;
-  transform: scaleX(-1);
 }
 
 .hero__background img {
@@ -110,7 +109,7 @@ a { text-decoration: none; color: inherit; }
   height: 157px;
 }
 
-.hero__illustration img { position: absolute; object-fit: cover; }
+.hero__illustration img { position: absolute; }
 
 .hero__tree      { left: 40px;   top: -106px; width: 206.474px; height: 258px; }
 .hero__ground    { left: -91px;  top: 43px;   width: 294px;     height: 220px; }

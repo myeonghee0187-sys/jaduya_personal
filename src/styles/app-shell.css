@@ -166,7 +166,7 @@ body {
    * overflow:hidden 이 넘치는 부분을 그냥 잘라주므로 실제 레이아웃엔 영향이 없다. */
   height: calc(100% + 60px);
   top: auto;
-  bottom: 0;
+  bottom: 220px;
 }
 
 /* 시트 peek 높이 기준 고정 오프셋 — 펼침(expanded) 상태에서는 시트에 덮인다.

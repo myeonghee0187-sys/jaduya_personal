@@ -4,7 +4,9 @@ export function Hero() {
   return (
     <div className="hero" aria-hidden="true">
       <div className="hero__background">
-        <img src={img('screen-background.png')} alt="" />
+        {/* WebKit에서 FAB가 겹칠 때 repaint artifact를 만들던 scaleX 합성 레이어를
+            피하기 위해, 같은 원본을 빌드 시점에 반전한 정적 에셋을 사용한다. */}
+        <img src={img('screen-background-flipped.png')} alt="" />
       </div>
       <div className="hero__illustration">
         <img className="hero__tree" src={img('hero-tree.png')} alt="" />
