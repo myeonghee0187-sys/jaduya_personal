@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { icon, img } from '../lib/asset';
+import { authorBadgeColor } from '../lib/authorBadgeColor';
 import type { CommunityPost } from '../data/communityPosts';
 
 interface CommunityPostCardProps {
@@ -52,8 +53,12 @@ export function CommunityPostCard({
     >
       <div className="post-card__header">
         <p className="post-card__author">
-          <span className="post-card__badge" aria-hidden="true">
-            {post.badge}
+          <span
+            className="post-card__badge"
+            style={post.badgeImage ? undefined : { backgroundColor: authorBadgeColor(post.author) }}
+            aria-hidden="true"
+          >
+            {post.badgeImage ? <img src={post.badgeImage} alt="" /> : post.badge}
           </span>
           {post.author} · {post.time}
         </p>
@@ -105,8 +110,12 @@ export function CommunityPostCard({
             </div>
           )}
         </div>
-        {post.thumb ? (
-          <img className="post-card__thumb" src={img(`community/${post.thumb}`)} alt="" />
+        {post.thumbDataUrl || post.thumb ? (
+          <img
+            className="post-card__thumb"
+            src={post.thumbDataUrl ?? img(`community/${post.thumb}`)}
+            alt=""
+          />
         ) : (
           <span className="post-card__thumb post-card__thumb--placeholder" aria-hidden="true">
             {post.thumbEmoji}

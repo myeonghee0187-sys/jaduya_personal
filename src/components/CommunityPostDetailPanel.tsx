@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { icon, img } from '../lib/asset';
+import { authorBadgeColor } from '../lib/authorBadgeColor';
 import { BellButton } from './BellButton';
 import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
@@ -46,13 +47,34 @@ interface CommentRow {
   isNew: boolean;
 }
 
-/** 기본으로 펼쳐 보여주는 댓글 수 — 이보다 많으면 '댓글 전체보기'로 접어둔다 */
-const COLLAPSED_COMMENT_COUNT = 10;
+/** 한 페이지에 보여주는 댓글 수 — 이보다 많으면 페이지 번호로 나눠 넘겨본다 */
+const COMMENTS_PER_PAGE = 10;
 
 type CommentSort = '최신' | '인기';
 
 function levelIconFor(level: LevelValue): string {
   return img(`level_icon/${LEVEL_STAGES[level].iconFile}`);
+}
+
+/* mock 댓글 배열은 이미 최신순으로 작성돼 있다(실제 타임스탬프가 없어 배열 순서를 그대로 쓴다).
+ * 내가 쓴 댓글은 좋아요 0개로 시작한다 — 정렬 방식에 따라 위치가 달라진다:
+ * 최신 탭: 방금 쓴 거라 맨 앞(여러 개면 가장 최근에 쓴 게 더 앞)
+ * 인기 탭: mock 댓글과 합쳐서 좋아요 수로 다시 정렬 — 자연히 뒤로 밀려도 된다.
+ * handleSubmit 에서 "방금 쓴 댓글이 몇 번째 페이지에 놓이는지" 미리 계산할 때도 그대로 재사용한다. */
+function buildAllRows(
+  sortMode: CommentSort,
+  mockComments: CommunityComment[],
+  ownComments: OwnComment[],
+): CommentRow[] {
+  return sortMode === '인기'
+    ? [
+        ...mockComments.map((c) => ({ ...c, avatarEmoji: c.avatar, isNew: false })),
+        ...ownComments.map((c) => ({ ...c, time: '방금 전', isNew: true })),
+      ].sort((a, b) => b.likes - a.likes)
+    : [
+        ...[...ownComments].reverse().map((c) => ({ ...c, time: '방금 전', isNew: true })),
+        ...mockComments.map((c) => ({ ...c, avatarEmoji: c.avatar, isNew: false })),
+      ];
 }
 
 /* 게시글 상세보기 — 커뮤니티 글쓰기 패널(CommunityWritePanel)과 같은 방식으로
@@ -70,35 +92,67 @@ export function CommunityPostDetailPanel({
   onToggleSave,
 }: CommunityPostDetailPanelProps) {
   const { user } = useAuth();
-  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(1);
   const [draft, setDraft] = useState('');
-  const [sort, setSort] = useState<CommentSort>('최신');
+  /** 항상 인기 탭으로 시작한다 */
+  const [sort, setSort] = useState<CommentSort>('인기');
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   /** 게시글 id → 내가 이번 세션에 등록한 댓글. 다른 글로 넘어가도 서로 안 섞이게 id로 나눠 들고 있는다 */
   const [ownCommentsByPost, setOwnCommentsByPost] = useState<Record<string, OwnComment[]>>({});
   /** 이번 세션에 좋아요를 누른 댓글 id — mock·내 댓글 공통, id가 서로 겹치지 않아 하나로 관리한다 */
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
+  /** 방금 등록한 댓글 id — 렌더 후 그 댓글로 스크롤하고 나면 비운다 */
+  const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(null);
 
-  /* 다른 글을 열면 입력창·펼침·정렬 상태는 그 글의 새 상태로 시작한다 (내가 쓴 댓글은 글별로 남는다) */
+  /* 다른 글을 열면 입력창·페이지·정렬 상태는 그 글의 새 상태로 시작한다 (내가 쓴 댓글은 글별로 남는다) */
   useEffect(() => {
-    setExpanded(false);
+    setPage(1);
     setDraft('');
-    setSort('최신');
+    setSort('인기');
+    setSortOpen(false);
   }, [post?.id]);
+
+  /* 방금 등록한 댓글 페이지로 넘어간 뒤, 그 댓글 엘리먼트가 그려지면 화면에 보이도록 스크롤한다.
+   * 그 댓글이 목록의 맨 마지막 줄(인기 탭에서 좋아요 0개로 밀린 경우)이면, 댓글만 하단에 맞추면
+   * 그 아래 페이지 번호(1 2 3 4) 버튼이 화면 밖으로 밀려나 답답해 보인다 — 페이지 번호 영역까지
+   * 포함해서 하단에 맞춘다. 맨 마지막 줄이 아니면(최신 탭처럼 맨 위에 오는 경우) 댓글 자체로 맞춘다. */
+  useEffect(() => {
+    if (!scrollToCommentId) return;
+    const el = document.querySelector(`[data-comment-id="${scrollToCommentId}"]`);
+    if (el) {
+      const isLastInList = el.parentElement?.lastElementChild === el;
+      const pagesEl = document.querySelector('.post-detail__comment-pages');
+      const scrollTarget = isLastInList && pagesEl ? pagesEl : el;
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+    setScrollToCommentId(null);
+  }, [scrollToCommentId, page]);
+
+  /* 정렬 드롭다운 바깥을 누르면 닫는다 (다른 커뮤니티 필터와 동일한 동작) */
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onOutside = (event: PointerEvent) => {
+      if (!sortRef.current?.contains(event.target as Node)) setSortOpen(false);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [sortOpen]);
 
   const toggleCommentLike = (id: string) =>
     setLikedCommentIds((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
   const mockComments: CommunityComment[] = (post && COMMUNITY_COMMENTS[post.id]) || [];
-  const sortedMockComments = sort === '인기' ? [...mockComments].sort((a, b) => b.likes - a.likes) : mockComments;
   const ownComments = (post && ownCommentsByPost[post.id]) || [];
-  const visibleMockComments = expanded ? sortedMockComments : sortedMockComments.slice(0, COLLAPSED_COMMENT_COUNT);
-  const hiddenCount = sortedMockComments.length - visibleMockComments.length;
   const totalCommentCount = mockComments.length + ownComments.length;
 
-  const rows: CommentRow[] = [
-    ...visibleMockComments.map((c) => ({ ...c, avatarEmoji: c.avatar, isNew: false })),
-    ...ownComments.map((c) => ({ ...c, time: '방금 전', isNew: true })),
-  ];
+  const allRows = buildAllRows(sort, mockComments, ownComments);
+  const pageCount = Math.max(1, Math.ceil(allRows.length / COMMENTS_PER_PAGE));
+  const rows = allRows.slice((page - 1) * COMMENTS_PER_PAGE, page * COMMENTS_PER_PAGE);
+
+  /* 이미지를 본문 첫 문단 바로 아래에 넣기 위해 문단 단위(빈 줄 기준)로 쪼갠다 */
+  const bodyParagraphs = (post?.body ?? post?.preview ?? '').split('\n\n');
+  const [firstParagraph, ...restParagraphs] = bodyParagraphs;
 
   const handleSubmit = () => {
     const text = draft.trim();
@@ -112,11 +166,20 @@ export function CommunityPostDetailPanel({
       body: text,
       likes: 0,
     };
+    const nextOwnComments = [...ownComments, comment];
     setOwnCommentsByPost((prev) => ({
       ...prev,
-      [post.id]: [...(prev[post.id] ?? []), comment],
+      [post.id]: nextOwnComments,
     }));
     setDraft('');
+
+    /* 방금 쓴 댓글이 지금 정렬 방식에서 몇 번째 줄에 놓이는지 미리 계산해서,
+     * 그 댓글이 있는 페이지로 바로 넘어가고 스크롤도 그 댓글로 이동시킨다 */
+    const nextRows = buildAllRows(sort, mockComments, nextOwnComments);
+    const index = nextRows.findIndex((row) => row.id === comment.id);
+    const targetPage = index === -1 ? 1 : Math.floor(index / COMMENTS_PER_PAGE) + 1;
+    setPage(targetPage);
+    setScrollToCommentId(comment.id);
   };
 
   return (
@@ -148,8 +211,12 @@ export function CommunityPostDetailPanel({
             <h1 className="post-detail__heading">{post.title}</h1>
 
             <div className="post-detail__author-row">
-              <span className="post-detail__avatar" aria-hidden="true">
-                {post.badge}
+              <span
+                className="post-detail__avatar"
+                style={post.badgeImage ? undefined : { backgroundColor: authorBadgeColor(post.author) }}
+                aria-hidden="true"
+              >
+                {post.badgeImage ? <img src={post.badgeImage} alt="" /> : post.badge}
               </span>
               <span className="post-detail__author-text">
                 <span className="post-detail__author-name">{post.author}</span>
@@ -157,42 +224,49 @@ export function CommunityPostDetailPanel({
                   {post.time} · 좋아요 {post.likes + (liked ? 1 : 0)} · 댓글 {totalCommentCount}
                 </span>
               </span>
+              <div className="post-detail__comment-form-toolbar">
+                <button
+                  type="button"
+                  className={`post-card__stat post-card__like${liked ? ' is-liked' : ''}`}
+                  aria-pressed={liked}
+                  aria-label={`${post.title} 좋아요`}
+                  onClick={onToggleLike}
+                >
+                  <img
+                    className="post-card__like-icon"
+                    src={icon(liked ? 'community-like.svg' : 'community-like-off.svg')}
+                    alt=""
+                  />
+                  <span className="post-card__like-count">{post.likes + (liked ? 1 : 0)}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
+                  aria-pressed={saved}
+                  aria-label={`${post.title} 저장`}
+                  onClick={onToggleSave}
+                />
+              </div>
             </div>
 
             <div className="post-detail__divider" />
 
-            <p className="post-detail__body">{post.body ?? post.preview}</p>
+            <p className="post-detail__body">{firstParagraph}</p>
 
-            {post.thumb && (
-              <img className="post-detail__image" src={img(`community/${post.thumb}`)} alt="" />
+            {(post.thumbDataUrl || post.thumb) && (
+              <img
+                className="post-detail__image"
+                src={post.thumbDataUrl ?? img(`community/${post.thumb}`)}
+                alt=""
+              />
+            )}
+
+            {restParagraphs.length > 0 && (
+              <p className="post-detail__body post-detail__body--rest">{restParagraphs.join('\n\n')}</p>
             )}
 
             <div className="post-detail__comments">
               <div className="post-detail__comment-form">
-                <div className="post-detail__comment-form-toolbar">
-                  <button
-                    type="button"
-                    className={`post-card__stat post-card__like${liked ? ' is-liked' : ''}`}
-                    aria-pressed={liked}
-                    aria-label={`${post.title} 좋아요`}
-                    onClick={onToggleLike}
-                  >
-                    <img
-                      className="post-card__like-icon"
-                      src={icon(liked ? 'community-like.svg' : 'community-like-off.svg')}
-                      alt=""
-                    />
-                    <span className="post-card__like-count">{post.likes + (liked ? 1 : 0)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
-                    aria-pressed={saved}
-                    aria-label={`${post.title} 저장`}
-                    onClick={onToggleSave}
-                  />
-                </div>
-
                 <div className="post-detail__comment-form-row">
                   <input
                     type="text"
@@ -217,18 +291,34 @@ export function CommunityPostDetailPanel({
 
               <div className="post-detail__comments-head">
                 <h2 className="post-detail__comments-heading">댓글 {totalCommentCount}</h2>
-                <div className="post-detail__comment-sort" role="group" aria-label="댓글 정렬">
-                  {(['최신', '인기'] as const).map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      className={`post-detail__comment-sort-btn${sort === option ? ' is-active' : ''}`}
-                      aria-pressed={sort === option}
-                      onClick={() => setSort(option)}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="community-filter" ref={sortRef}>
+                  <button
+                    type="button"
+                    className="community-filter__button"
+                    aria-expanded={sortOpen}
+                    aria-haspopup="listbox"
+                    onClick={() => setSortOpen((next) => !next)}
+                  >
+                    {sort}
+                    <img src={icon('community-filter-arrow.svg')} alt="" />
+                  </button>
+                  <ul className="community-filter__list" role="listbox" hidden={!sortOpen}>
+                    {(['최신', '인기'] as const).map((option) => (
+                      <li key={option} role="option" aria-selected={option === sort}>
+                        <button
+                          type="button"
+                          className={option === sort ? 'is-selected' : undefined}
+                          onClick={() => {
+                            setSort(option);
+                            setPage(1);
+                            setSortOpen(false);
+                          }}
+                        >
+                          {option}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
@@ -236,8 +326,12 @@ export function CommunityPostDetailPanel({
                 {rows.map((row) => {
                   const commentLiked = likedCommentIds.includes(row.id);
                   return (
-                    <li key={row.id} className="post-detail__comment">
-                      <span className="post-detail__avatar post-detail__avatar--comment" aria-hidden="true">
+                    <li key={row.id} className="post-detail__comment" data-comment-id={row.id}>
+                      <span
+                        className="post-detail__avatar post-detail__avatar--comment"
+                        style={row.avatarImage ? undefined : { backgroundColor: authorBadgeColor(row.author) }}
+                        aria-hidden="true"
+                      >
                         {row.avatarImage ? <img src={row.avatarImage} alt="" /> : row.avatarEmoji}
                       </span>
                       <div className="post-detail__comment-body">
@@ -271,14 +365,20 @@ export function CommunityPostDetailPanel({
                 })}
               </ul>
 
-              {!expanded && hiddenCount > 0 && (
-                <button
-                  type="button"
-                  className="post-detail__comments-more"
-                  onClick={() => setExpanded(true)}
-                >
-                  댓글 전체보기 ({hiddenCount}개 더보기)
-                </button>
+              {pageCount > 1 && (
+                <div className="post-detail__comment-pages" role="navigation" aria-label="댓글 페이지">
+                  {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                    <button
+                      key={number}
+                      type="button"
+                      className={`post-detail__comment-page${number === page ? ' is-active' : ''}`}
+                      aria-current={number === page ? 'page' : undefined}
+                      onClick={() => setPage(number)}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>

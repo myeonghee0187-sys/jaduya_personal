@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
+import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -8,12 +9,12 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS } from '../data/communityPosts';
+import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, TIP_CATEGORIES, TIP_POSTS, mergeOwnPosts } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
- * ("고정비·관리비" → "고정비" / "관리비", "생활 문제 해결" → "생활 문제" / "해결").
+ * ("고정·관리" → "고정" / "관리", "청소·정리" → "청소" / "정리").
  * '·' 가 있으면 그 자리에서, 없으면 마지막 공백에서 나눈다. 넓은 화면에서는
  * CSS 로 구분자(·)만 보이고 줄바꿈은 숨긴다 — TIP_CATEGORIES 라벨 순서를
  * 그대로 유지한다. */
@@ -56,6 +57,7 @@ export function CommunityTipPage() {
   const [keyword, setKeyword] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState('');
+  const { ownPosts } = useCommunityPosts();
 
   useEffect(() => {
     if (!notice) return;
@@ -66,7 +68,12 @@ export function CommunityTipPage() {
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
-  const visiblePosts = TIP_POSTS.filter((post) => post.tipCategory === category);
+  /* 내가 쓴 글 중 같은 서브탭 카테고리인 것만 정적 목록 맨 앞에 붙인다 */
+  const visiblePosts = mergeOwnPosts(
+    TIP_POSTS.filter((post) => post.tipCategory === category),
+    ownPosts,
+    (post) => post.tipCategory === category,
+  );
 
   return (
     <div className="community app">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
+import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -9,7 +10,7 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityPostDetailPanel } from '../components/CommunityPostDetailPanel';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB } from '../data/communityPosts';
+import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB, mergeOwnPosts } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -41,6 +42,9 @@ export function CommunityPage() {
   const [openFilter, setOpenFilter] = useState<'level' | 'sort' | null>(null);
   /* 저장은 마이페이지와 공유하는 전역 상태, 좋아요는 이 화면 안에서만 쓴다 */
   const bookmarks = useBookmarks();
+  /* 내가 쓴 글 — 정적 목록 맨 앞에 붙여서 등록하자마자 보이게 한다 */
+  const { ownPosts } = useCommunityPosts();
+  const allPosts = useMemo(() => mergeOwnPosts(COMMUNITY_POSTS, ownPosts), [ownPosts]);
   const [liked, setLiked] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -69,12 +73,11 @@ export function CommunityPage() {
   /* '최신순' 은 실제 날짜 대신 상대 시간 텍스트라 정렬 기준으로 쓸 수 없다 —
    * COMMUNITY_POSTS 가 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
   const visiblePosts = useMemo(() => {
-    const filtered =
-      level === '레벨 전체' ? COMMUNITY_POSTS : COMMUNITY_POSTS.filter((post) => post.level === level);
+    const filtered = level === '레벨 전체' ? allPosts : allPosts.filter((post) => post.level === level);
     if (sort === '인기순') return [...filtered].sort((a, b) => b.likes - a.likes);
     if (sort === '댓글순') return [...filtered].sort((a, b) => b.comments - a.comments);
     return filtered;
-  }, [level, sort]);
+  }, [allPosts, level, sort]);
 
   return (
     <div className="community app">
@@ -267,7 +270,7 @@ export function CommunityPage() {
       />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
       <CommunityPostDetailPanel
-        post={COMMUNITY_POSTS.find((item) => item.id === detailPostId) ?? null}
+        post={allPosts.find((item) => item.id === detailPostId) ?? null}
         open={detailPostId !== null}
         onClose={() => setDetailPostId(null)}
         liked={detailPostId !== null && liked.includes(detailPostId)}
