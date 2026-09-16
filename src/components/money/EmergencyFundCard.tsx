@@ -135,12 +135,6 @@ export function EmergencyFundCard({
 
   return (
     <section className="fund-hero">
-      <p className="fund-hero__title">
-        언제든 든든하게,
-        <br />
-        내가 지켜두는 돈
-      </p>
-
       <div className={`fund-card${view === 'result' ? ' is-open' : ''}${view === 'celebrate' ? ' is-celebrating' : ''}`}>
         <div className="fund-card__body">
           <div className="fund-card__stage">
