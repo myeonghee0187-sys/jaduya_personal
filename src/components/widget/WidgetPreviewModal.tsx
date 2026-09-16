@@ -160,8 +160,6 @@ export function WidgetPreviewModal({
     setStep('success');
   };
 
-  const showingSpaceFlow = step === 'making-space';
-
   /* preview / success 두 화면이 함께 쓰는 위젯 미리보기 + 크기 선택 블록 — 이후 CTA만 다르다.
    * S/M/L 아래에 실측 픽셀(예: "342 × 114")은 표시하지 않는다 — 사용자에게 필요한 건
    * 크기 라벨뿐이다. 지원하지 않는 크기도 버튼 자체는 항상 보여주고 disabled 로 둬서
@@ -350,30 +348,12 @@ export function WidgetPreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="wpg-modal__head">
-          {showingSpaceFlow ? (
-            <>
-              <button
-                type="button"
-                className="wpg-modal__back"
-                aria-label="뒤로"
-                onClick={() => setStep('preview')}
-              >
-                <img src={icon('gnb-back.svg')} alt="" />
-              </button>
-              <h2 className="wpg-modal__head-title" id={titleId}>
-                공간 만들기
-              </h2>
-            </>
-          ) : (
-            <>
-              <h2 className="wpg-modal__head-title" id={titleId}>
-                위젯 미리보기
-              </h2>
-              <button type="button" className="wpg-modal__close" aria-label="닫기" onClick={onClose}>
-                <img src={icon('widget-close.svg')} alt="" />
-              </button>
-            </>
-          )}
+          <h2 className="wpg-modal__head-title" id={titleId}>
+            위젯 미리보기
+          </h2>
+          <button type="button" className="wpg-modal__close" aria-label="닫기" onClick={onClose}>
+            <img src={icon('widget-close.svg')} alt="" />
+          </button>
         </div>
 
         <div className="wpg-modal__body">

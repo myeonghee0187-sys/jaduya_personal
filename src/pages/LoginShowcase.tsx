@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
 import { IntroSplash } from '../components/IntroSplash';
+import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
 import { Login } from './Login';
 import { Signup } from './Signup';
@@ -11,6 +13,8 @@ import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
 import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { icon, img } from '../lib/asset';
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 /** IPhoneFrame 쇼케이스는 데스크톱/태블릿(768px 이상) 전용이다.
  * 실제 모바일 기기 폭에서는 프레임이 아예 사라지고 앱을 그대로 전체화면으로 보여준다. */
@@ -71,6 +75,7 @@ const ACCOUNT_BLURBS: Record<string, string> = {
  * CTA 를 눌러야 실제로 로그인 폼/회원가입 폼에 반영된다(자동 제출은 하지 않는다). */
 export function LoginShowcase() {
   const isDesktop = useIsDesktop();
+  const reduceMotion = usePrefersReducedMotion();
   const { user, loginDemo, logout, demoSignedUp } = useAuth();
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -170,8 +175,22 @@ export function LoginShowcase() {
           {/* 인트로는 목업 화면 안에서 재생된다 (.iphone-frame__screen 기준) */}
           <IntroSplash />
           {user ? (
-            /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다 (진행 상태는 localStorage 유지) */
-            <App key={appKey} />
+            /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다(진행 상태는 localStorage
+             * 유지) — remount 자체는 순간적이라, 오른쪽 프로필 카드 전환과 같은 톤(fade +
+             * 살짝 scale, 같은 EASE·시간)으로 감싸서 계정을 바꿀 때 화면이 "팝" 하고 튀지
+             * 않고 자연스럽게 넘어가 보이게 한다. */
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={appKey}
+                className="login-showcase__app-transition"
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
+                transition={{ duration: reduceMotion ? 0 : 0.22, ease: EASE }}
+              >
+                <App />
+              </motion.div>
+            </AnimatePresence>
           ) : authView === 'login' ? (
             <Login
               onGoSignup={(profile) => {
@@ -204,35 +223,57 @@ export function LoginShowcase() {
           </p>
 
           <div className="login-showcase__tabs" role="tablist">
-            {TEST_ACCOUNTS.map((account, index) => (
-              <button
-                key={account.email}
-                type="button"
-                role="tab"
-                aria-selected={index === selectedIndex}
-                className={`login-showcase__tab${index === selectedIndex ? ' login-showcase__tab--active' : ''}`}
-                onClick={() => setSelectedIndex(index)}
-              >
-                <span
-                  className="login-showcase__tab-icon"
-                  style={{ maskImage: `url(${icon(PERSONA_ICON[account.persona])})`, WebkitMaskImage: `url(${icon(PERSONA_ICON[account.persona])})` }}
-                  aria-hidden="true"
-                />
-                {PERSONA_LABEL[account.persona]}
-              </button>
-            ))}
+            {TEST_ACCOUNTS.map((account, index) => {
+              const active = index === selectedIndex;
+              return (
+                <button
+                  key={account.email}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`login-showcase__tab${active ? ' login-showcase__tab--active' : ''}`}
+                  onClick={() => setSelectedIndex(index)}
+                >
+                  {active && (
+                    <motion.span
+                      className="login-showcase__tab-highlight"
+                      layoutId="login-showcase-tab-highlight"
+                      aria-hidden="true"
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+                    />
+                  )}
+                  <span className="login-showcase__tab-content">
+                    <span
+                      className="login-showcase__tab-icon"
+                      style={{ maskImage: `url(${icon(PERSONA_ICON[account.persona])})`, WebkitMaskImage: `url(${icon(PERSONA_ICON[account.persona])})` }}
+                      aria-hidden="true"
+                    />
+                    {PERSONA_LABEL[account.persona]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="login-showcase__profile">
-            <img
-              className="login-showcase__profile-avatar"
-              src={img(`profile_${activeAccount.email.split('@')[0]}.png`)}
-              alt=""
-            />
-            <h3 className="login-showcase__profile-name">{activeAccount.name}</h3>
-            <p className="login-showcase__profile-tag">{PERSONA_LABEL[activeAccount.persona]}</p>
-            <p className="login-showcase__profile-desc">{ACCOUNT_BLURBS[activeAccount.email]}</p>
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeAccount.email}
+              className="login-showcase__profile"
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.2, ease: EASE }}
+            >
+              <img
+                className="login-showcase__profile-avatar"
+                src={img(`profile_${activeAccount.email.split('@')[0]}.png`)}
+                alt=""
+              />
+              <h3 className="login-showcase__profile-name">{activeAccount.name}</h3>
+              <p className="login-showcase__profile-tag">{PERSONA_LABEL[activeAccount.persona]}</p>
+              <p className="login-showcase__profile-desc">{ACCOUNT_BLURBS[activeAccount.email]}</p>
+            </motion.div>
+          </AnimatePresence>
 
           {/* CTA 는 currentUser 기준으로 갈린다 —
             * 없음: 시작하기 / 다른 계정: 변경하기 / 현재 계정: 계속 보기 */}

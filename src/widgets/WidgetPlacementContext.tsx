@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import type { Persona } from '../auth/mockUsers';
+import { DEFAULT_PERSONA } from '../data/personaHome';
 import {
   EMPTY_PLACEMENT,
   addWidget as placeWidget,
@@ -19,19 +22,41 @@ import type { WidgetSize } from '../types';
  * 배치 규칙 자체(어디에 몇 개까지, 뭘 빼야 하는지)는 utils/placement.ts 에만 있고
  * 여기서는 그 함수들을 호출해 상태만 갈아끼운다. */
 
-/** 데모 기본 배치 — 실제 서비스라면 persona/사용자별로 다르겠지만, 지금은 위젯 관리
- * 화면의 편집/삭제/공간 부족 플로우를 바로 확인할 수 있도록 1번째 줄 M 2개 + 2번째 줄
- * S 2개를 채워서 시작한다. */
-const DEFAULT_PLACEMENT: PlacementState = {
-  large: null,
-  medium: [
-    { widgetId: 'living-cost', size: 'medium' },
-    { widgetId: 'spend-analysis', size: 'medium' },
-  ],
-  small: [
-    { widgetId: 'life-check', size: 'small' },
-    { widgetId: 'today-benefit', size: 'small' },
-  ],
+/** 데모 기본 배치 — persona별로 다르게 시작한다(요구사항: 세 계정이 전부 같은 배치를
+ * 받던 문제 수정). 세 계정이 쓰는 위젯은 서로 겹치지 않고, 사이즈도 L/M/S로 갈린다.
+ *   beginner(이서준·자취 초보) — L: 자취 체크 / S: 집 살펴보기·보증금 안전
+ *   worker(김하린·깔끔·음식)   — M: 냉장고·생활 체크 / S: 다음 청소·오늘 할 일
+ *   pet(조아영·돈관리·혜택)    — L: 소비 분석 / S: 생활비·오늘의 혜택
+ *   (L과 M은 1번째 줄을 배타적으로 나눠 쓰므로(placement.ts) 소비 분석을 L로 두면서
+ *   같은 줄에 있던 M(생활비)은 S로 옮겨 자리를 지켰다) */
+const PERSONA_DEFAULT_PLACEMENT: Record<Persona, PlacementState> = {
+  beginner: {
+    large: { widgetId: 'life-check', size: 'large' },
+    medium: [null, null],
+    small: [
+      { widgetId: 'house-check', size: 'small' },
+      { widgetId: 'deposit-safety', size: 'small' },
+    ],
+  },
+  worker: {
+    large: null,
+    medium: [
+      { widgetId: 'fridge', size: 'medium' },
+      { widgetId: 'home-checklist', size: 'medium' },
+    ],
+    small: [
+      { widgetId: 'next-cleaning', size: 'small' },
+      { widgetId: 'todo-today', size: 'small' },
+    ],
+  },
+  pet: {
+    large: { widgetId: 'spend-analysis', size: 'large' },
+    medium: [null, null],
+    small: [
+      { widgetId: 'living-cost', size: 'small' },
+      { widgetId: 'today-benefit', size: 'small' },
+    ],
+  },
 };
 
 interface UndoSnapshot {
@@ -65,7 +90,11 @@ interface WidgetPlacementValue {
 const WidgetPlacementContext = createContext<WidgetPlacementValue | null>(null);
 
 export function WidgetPlacementProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PlacementState>(DEFAULT_PLACEMENT);
+  const { user } = useAuth();
+  const persona = user?.persona ?? DEFAULT_PERSONA;
+  /* 계정을 바꾸면 App.tsx의 <AppNavigationProvider key={user.email}>가 이 아래를
+   * 통째로 리마운트하므로, 여기서는 마운트 시점의 persona로 한 번만 고르면 된다. */
+  const [state, setState] = useState<PlacementState>(() => PERSONA_DEFAULT_PLACEMENT[persona]);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
 
   const checkPlacement = useCallback(

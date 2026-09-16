@@ -13,14 +13,8 @@ import { WidgetRecommendSwiper } from '../components/widget/WidgetRecommendSwipe
 import { WidgetPreviewModal } from '../components/widget/WidgetPreviewModal';
 import { WidgetToast } from '../components/widget/WidgetToast';
 import { getWidgetDef, WIDGET_REGISTRY } from '../data/widgetRegistry';
-import { DEFAULT_PERSONA } from '../data/personaHome';
 import { useAuth } from '../auth/AuthContext';
-import {
-  isWidgetGuideDismissed,
-  isWidgetGuideSheetSeen,
-  markWidgetGuideDismissed,
-  markWidgetGuideSheetSeen,
-} from '../widgets/widgetGuideProgress';
+import { isWidgetGuideSheetSeen, markWidgetGuideSheetSeen } from '../widgets/widgetGuideProgress';
 import { useWidgetPlacement } from '../widgets/WidgetPlacementContext';
 import { listPlaced } from '../utils/placement';
 import type { SlotRef } from '../utils/placement';
@@ -44,22 +38,18 @@ const SIZE_LABEL: Record<WidgetSize, string> = { small: 'S', medium: 'M', large:
 export function WidgetPage() {
   const navigation = useAppNavigation();
   const { user } = useAuth();
-  const persona = user?.persona ?? DEFAULT_PERSONA;
   const placement = useWidgetPlacement();
   const allWidgetsRef = useRef<HTMLElement>(null);
   const myWidgetsRef = useRef<HTMLElement>(null);
 
   const [editing, setEditing] = useState(false);
-  const [guideExpanded, setGuideExpanded] = useState(
-    () => !!user?.email && !isWidgetGuideDismissed(user.email),
-  );
   const [category, setCategory] = useState<CategoryFilter>('전체');
   const [allExpanded, setAllExpanded] = useState(false);
-  /* 이서준(과 이서준으로 새로 가입한 테스트 계정, persona: beginner)은 "가이드" 버튼을
-   * 누르지 않아도 위젯 페이지에 처음 들어왔을 때 이 모달이 자동으로 한 번 뜬다 —
-   * Home 의 Coachmark 와 같은 대상·같은 "계정당 한 번" 규칙(coachmarkProgress.ts 패턴). */
+  /* "가이드" 버튼을 누르지 않아도 위젯 페이지에 처음 들어왔을 때 이 모달이 자동으로
+   * 한 번 뜬다 — 페르소나 상관없이 모든 계정에 적용. Home 의 Coachmark 와 같은
+   * "계정당 한 번" 규칙(coachmarkProgress.ts 패턴). */
   const [guideSheetOpen, setGuideSheetOpen] = useState(
-    () => persona === 'beginner' && !!user?.email && !isWidgetGuideSheetSeen(user.email),
+    () => !!user?.email && !isWidgetGuideSheetSeen(user.email),
   );
   const [actionTarget, setActionTarget] = useState<SlotRef | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -121,14 +111,6 @@ export function WidgetPage() {
   };
 
   const scrollToAll = () => scrollToSection(allWidgetsRef);
-
-  const toggleGuide = () => {
-    setGuideExpanded((prev) => {
-      const next = !prev;
-      if (!next && user?.email) markWidgetGuideDismissed(user.email);
-      return next;
-    });
-  };
 
   const handleRemove = (ref: SlotRef) => {
     placement.removeAt(ref);
@@ -201,6 +183,7 @@ export function WidgetPage() {
           </div>
 
           <div className="wpg-canvas-card">
+            <WidgetGuidePanel />
             <PlacementGrid
               state={placement.state}
               editing={editing}
@@ -210,8 +193,6 @@ export function WidgetPage() {
               onAddCta={() => scrollToAll()}
             />
           </div>
-
-          <WidgetGuidePanel expanded={guideExpanded} onToggle={toggleGuide} />
         </section>
 
         <section className="wpg-recommend">

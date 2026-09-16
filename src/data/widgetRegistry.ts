@@ -99,7 +99,11 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   /* ---------- 생활 ---------- */
   {
     id: 'life-check',
-    icon: 'life-check-on.svg',
+    /* life-check-on.svg는 원래 "완료" 상태 배지(노란 원 + 체크)라 목록 아이콘 자리에
+     * 놓으면 정보가 아니라 UI 상태 아이콘처럼 보였다. todo-today/home-checklist와
+     * 같은 menu-checklist.svg로 한 번 바꿨더니 이번엔 셋이 다 똑같아 보여서(요구사항:
+     * 안 겹치게), 서로 다른 아이콘으로 나눈다. */
+    icon: 'money-fund-check.svg',
     category: '생활',
     name: '자취 체크',
     description: '이번 주 생활 체크리스트를 확인해보세요.',
@@ -168,12 +172,11 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
      * 줄로 합친다(M/L의 "우유 D-2" 행과 같은 표현). */
     content: {
       small: { value: '우유 · D-2' },
-      medium: {
-        rows: [
-          { label: '우유', value: 'D-2', emphasis: 'value' },
-          { label: '계란', value: 'D-4', emphasis: 'value' },
-        ],
-      },
+      /* rows만 있으면 다른 M 위젯들과 달리 굵은 강조 값(value) 없이 시작해서 카드가
+       * 유독 작고 밋밋해 보였다 — 나머지 16개 위젯의 M 콘텐츠는 전부 value를 가진다
+       * (요구사항: 통일성). "고정지출"(fixed-expense)과 같은 escalation 패턴으로 맞춘다:
+       * M은 value + 한 줄 description, 상세 행 목록(rows)은 L에서만 보여준다. */
+      medium: { value: '임박 2개', description: '우유 D-2 · 계란 D-4' },
       large: {
         rows: [
           { label: '우유', value: 'D-2', emphasis: 'value' },
@@ -185,7 +188,9 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'todo-today',
-    icon: 'menu-checklist.svg',
+    /* "오늘" 하루 안의 할 일이라 체크리스트 대신 날짜/일정을 뜻하는 캘린더 아이콘을 쓴다
+     * (자취 체크/생활 체크와 겹치지 않게) */
+    icon: 'menu-calendar.svg',
     category: '생활',
     name: '오늘 할 일',
     nameOverride: { large: '이번 주 할 일 3개' },
@@ -205,7 +210,9 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'home-checklist',
-    icon: 'life-check-on.svg',
+    /* 환기·청소·분리수거 같은 생활 루틴 위젯이라 재활용 아이콘을 쓴다
+     * (자취 체크/오늘 할 일과 겹치지 않게) */
+    icon: 'menu-recycle.svg',
     category: '생활',
     name: '생활 체크',
     nameOverride: { large: '이번 주 생활 체크' },
@@ -264,7 +271,11 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'budget',
-    icon: 'money-balance.svg',
+    /* money-balance.svg는 채우기(fill) 없는 선(outline) 아이콘이라, 배경 박스를 뺀 뒤로는
+     * 다른 위젯들의 색이 꽉 찬 아이콘과 나란히 있으면 유독 가늘고 흐리게 보였다 —
+     * 다른 돈 관리 메뉴 아이콘과 같은 계열(menu-wallet.svg, 생활비 위젯)의 채워진
+     * 아이콘으로 바꾼다. */
+    icon: 'menu-wallet.svg',
     category: '돈 관리',
     name: '예산',
     nameOverride: { medium: '이번 달 예산', large: '이번 달 예산' },
@@ -279,7 +290,10 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'spend-analysis',
-    icon: 'money-spend.svg',
+    /* money-spend.svg 도 선(outline) 아이콘이라 채워진(fill) 아이콘들 사이에서 유독 흐렸다.
+     * GNB '내 메뉴' 카탈로그(menuCatalog.ts)가 이미 "지출 내역"→menu-receipt.svg 로 쓰고
+     * 있어서 같은 아이콘을 그대로 재사용한다(새 아이콘을 만들지 않는다). */
+    icon: 'menu-receipt.svg',
     category: '돈 관리',
     name: '소비 분석',
     nameOverride: { large: '이번 달 지출 비율' },
@@ -301,7 +315,9 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'fixed-expense',
-    icon: 'money-fixed.svg',
+    /* money-fixed.svg 도 선(outline) 아이콘이었다. GNB '내 메뉴' 카탈로그가 이미
+     * "고정지출"→menu-card.svg 로 쓰고 있어서 그 아이콘을 그대로 재사용한다. */
+    icon: 'menu-card.svg',
     category: '돈 관리',
     name: '고정지출',
     nameOverride: { large: '이번 달 고정지출' },
@@ -352,7 +368,9 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   /* ---------- 커뮤니티 ---------- */
   {
     id: 'realtime-popular',
-    icon: 'community-like.svg',
+    /* community-like.svg는 손+하트+잎사귀가 겹친 일러스트라 mask로 한 가지 색만
+     * 남기면 뭉개져 보였다 — 순위·트렌드를 뜻하는 꺾은선 아이콘으로 바꾼다. */
+    icon: 'money-trend-flat.svg',
     category: '커뮤니티',
     name: '실시간 인기',
     description: '지금 인기 있는 글을 확인해보세요.',
@@ -371,7 +389,8 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'new-news',
-    icon: 'community-book.svg',
+    /* "책" 아이콘은 댓글·알림 성격과 안 맞았다 — 새 소식(알림) 개념에 맞는 종 아이콘으로 */
+    icon: 'bell-body.svg',
     category: '커뮤니티',
     name: '새 소식',
     description: '내 글과 저장한 글의 새 소식을 확인해요.',

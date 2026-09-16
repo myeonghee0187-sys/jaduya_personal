@@ -1,6 +1,8 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ForwardedRef, PointerEvent as ReactPointerEvent } from 'react';
 import { img } from '../../lib/asset';
+import { subscribeAiFabDemoMove } from './aiFabDemoMove';
+import { usePrefersReducedMotion } from '../homecare/usePrefersReducedMotion';
 
 /* 전역 AI 챗봇 플로팅 버튼 (JADUYA AGENTS/CLAUDE.md: 챗봇은 카드가 아니라 FAB).
  *
@@ -133,6 +135,7 @@ export function AIChatbotButton({
 }: AIChatbotButtonProps) {
   /* coachmarkRef 병합을 위해 직접 .current 를 대입해야 해서 MutableRefObject 로 잡는다 */
   const ref = useRef<HTMLButtonElement | null>(null);
+  const reduceMotion = usePrefersReducedMotion();
   const [side, setSide] = useState<Side>('right');
   /* 세로 위치. null 이면 아직 측정 전 — 기본값(바텀네비 바로 위)으로 배치한다. */
   const [top, setTop] = useState<number | null>(null);
@@ -140,6 +143,9 @@ export function AIChatbotButton({
   const [freePos, setFreePos] = useState<{ left: number; top: number } | null>(null);
   /* 오른쪽 스냅 위치를 left 로 계산하기 위한 .app 폭. null 이면 아직 측정 전이다. */
   const [appWidth, setAppWidth] = useState<number | null>(null);
+  /* 코치마크 "위치 이동" 단계 전용 — 실제 위치는 바꾸지 않고 반대쪽으로 갔다 돌아오는
+   * 시각 데모만 재생한다. */
+  const [demoMove, setDemoMove] = useState(false);
   /* settle 이 side 와 top 을 한 번에 보정해야 해서 지금 값을 그대로 비춰 둔다(읽기 전용) */
   const sideRef = useRef(side);
   const topRef = useRef(top);
@@ -188,6 +194,13 @@ export function AIChatbotButton({
       if (settleRef) settleRef.current = null;
     };
   }, [settle, settleRef]);
+
+  useEffect(
+    () => subscribeAiFabDemoMove(() => {
+      if (!reduceMotion) setDemoMove(true);
+    }),
+    [reduceMotion],
+  );
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const bounds = readBounds(ref.current);
@@ -272,7 +285,7 @@ export function AIChatbotButton({
   /* 양쪽 모두 left 로 배치한다 — 오른쪽만 right 로 두면 스냅할 때 left 가 px→auto 로
    * 바뀌어 transition 이 걸리지 않고 툭 붙는다(왼쪽만 부드럽던 이유).
    * 폭을 아직 못 쟀을 때(첫 렌더)만 right 로 두고, settle() 직후 left 배치로 넘어간다. */
-  const style = dragging
+  const style: Record<string, string | undefined> = dragging
     ? { left: `${freePos.left}px`, top: `${freePos.top}px`, right: 'auto' }
     : appWidth === null
       /* layout effect 전에도 CSS 기본 위치를 그대로 써 (0, 0)이나 화면 밖 좌표를
@@ -286,6 +299,23 @@ export function AIChatbotButton({
           top: restTop,
         };
 
+  /* 데모 애니메이션의 이동 거리 — 실제 저장된 자리(left/top)는 건드리지 않고 transform
+   * 으로만 왕복한다. 가로만 반대쪽으로 갔다 오면 "좌/우 두 자리 중 하나"로 오해할 수
+   * 있어(요구사항: 실제로는 화면 어디든 놓을 수 있다는 걸 보여줘야 함), 반대쪽으로 간
+   * 뒤 그 쪽에서 세로로도 위→아래를 오가는 경로로 만든다. 세로 범위(minTop/maxTop)는
+   * readBounds() 가 매번 실측하는 값과 같은 걸 써야 실제 드래그 가능 범위와 정확히
+   * 일치한다 — settle()/handlePointerMove 가 쓰는 것과 동일한 함수를 그대로 재사용한다. */
+  if (demoMove && appWidth !== null) {
+    const dx = (appWidth - EDGE * 2 - SIZE) * (side === 'left' ? 1 : -1);
+    style['--fab-demo-dx'] = `${dx}px`;
+    const bounds = readBounds(ref.current);
+    if (bounds) {
+      const currentTop = top ?? bounds.maxTop;
+      style['--fab-demo-dy-top'] = `${bounds.minTop - currentTop}px`;
+      style['--fab-demo-dy-bottom'] = `${bounds.maxTop - currentTop}px`;
+    }
+  }
+
   return (
     <button
       ref={(node) => {
@@ -294,7 +324,7 @@ export function AIChatbotButton({
         else if (coachmarkRef) coachmarkRef.current = node;
       }}
       type="button"
-      className={`ai-fab${dragging ? ' is-dragging' : ''}${hidden ? ' is-hidden' : ''}${disabled ? ' is-disabled' : ''}`}
+      className={`ai-fab${dragging ? ' is-dragging' : ''}${hidden ? ' is-hidden' : ''}${disabled ? ' is-disabled' : ''}${demoMove ? ' ai-fab--demo-move' : ''}`}
       style={style}
       disabled={disabled}
       aria-hidden={hidden}
@@ -304,8 +334,25 @@ export function AIChatbotButton({
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
+      onAnimationEnd={() => setDemoMove(false)}
     >
       <img src={img('ai_icon.png')} alt="" draggable={false} />
+      {/* "옮길 수 있어요" 데모 전용 — 버튼이 스스로 움직이는 것만으로는 드래그 가능한
+       * 요소라는 게 잘 안 읽혀서(요구사항: Figma 온보딩 레퍼런스처럼 손 커서로 표시),
+       * 버튼의 자식으로 넣어 이동 transform 을 그대로 같이 탄다. */}
+      {demoMove && (
+        <span className="ai-fab__drag-hint" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"
+              fill="#FFFFFF"
+              stroke="#2B211D"
+              strokeWidth="0.75"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      )}
     </button>
   );
 }

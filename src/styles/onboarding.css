@@ -142,15 +142,34 @@
 
 /* ================= 본문 ================= */
 
+/* flex-grow 를 주지 않는다(예전엔 1 1 auto 로 남는 세로 공간을 전부 떠안아 버튼이 항상
+ * 화면 맨 아래에 붙었다). 대신 1~3단계 중 가장 긴 콘텐츠(자취 단계, ~526px 콘텐츠 +
+ * 64px 패딩)를 기준으로 min-height 를 잡아, 짧은 단계도 이 높이만큼은 자리를 차지하게
+ * 한다 — 그래야 버튼이 매 단계 콘텐츠 양에 따라 위아래로 들쭉날쭉하지 않고 항상 같은
+ * 위치에 보인다(요구사항: "버튼 위치 공통적으로", 1~3단계 위치가 기준). 완료(complete)
+ * 화면은 콘텐츠가 이 기준보다 길어질 수 있는데, 그때는 min-height 대신 완료 화면
+ * 자체의 여백(.onboarding__body--complete)을 줄여 같은 높이 안에 맞춘다 — min-height
+ * 를 올려 전체를 완료 화면에 맞추면(전에 그렇게 했다가) 1~3단계 버튼이 20px 아래로
+ * 밀려 내려가 보여 되돌렸다(요구사항: 1~3단계 위치를 기준으로 맞춘다). 남는 공간은
+ * 아래 __footer-spacer 가 흡수해 화면 맨 아래로 밀어낸다. 화면 자체가 이 높이보다
+ * 작을 만큼 좁을 때는 flex-shrink 가 그만큼 줄여준다. */
 .onboarding__body {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 1 auto;
+  min-height: min(590px, 68vh);
   overflow-x: hidden;
   overflow-y: auto;
   /* 진행바 → 첫 텍스트 간격(Figma 실측 40px = md+xl). 마스코트 삽화가 있는 시작/완료
    * 화면만 아래 --visual 수정자로 48px(xl×2)로 늘어난다(Figma 실측). */
   padding: calc(var(--space-md) + var(--space-xl)) var(--screen-margin) var(--space-xl);
   text-align: center;
+}
+
+/* 남는 세로 공간을 흡수해 화면 맨 아래로 밀어내는 투명 스페이서 — 이게 있어야
+ * 버튼(__footer)이 항상 콘텐츠 바로 아래에 붙고, 화면이 다 안 찼을 때 생기는 여백은
+ * 버튼 위가 아니라 버튼 "아래"(물리적 화면 하단)에 남는다. */
+.onboarding__footer-spacer {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .onboarding__body--visual {
@@ -241,7 +260,7 @@
 h1.onboarding__complete-heading,
 p.onboarding__complete-text {
   text-align: center;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .onboarding__body small {
@@ -284,10 +303,14 @@ p.onboarding__complete-text {
   height: 258px;
 }
 
-/* 완료 화면 삽화는 배경 원 + 캐릭터 + 체크 배지가 합쳐진 단일 이미지(342×220, Figma 실측) */
+/* 완료 화면 삽화는 배경 원 + 캐릭터 + 체크 배지가 합쳐진 단일 이미지(342×220, Figma 실측).
+ * .onboarding__body 의 공통 min-height(1~3단계 기준, 590px)를 이 단계도 그대로 같이
+ * 쓴다 — 190px 로 두면 콘텐츠+패딩 합이 그 안에 들어와 버튼이 1~3단계와 같은 위치에
+ * 보인다(요구사항: "1~3단계 위치가 기준" — 210px 였을 때는 20px 초과해 버튼이 아래로
+ * 밀렸다). */
 .onboarding__visual--complete {
   width: 100%;
-  height: 220px;
+  height: 190px;
   margin-bottom: var(--space-sm);
 }
 
@@ -300,13 +323,17 @@ p.onboarding__complete-text {
   height: auto;
 }
 
+/* width:100%;height:auto 였을 때는 이미지 원본 비율(1026:660)대로 342px 폭에서
+ * 자연스럽게 220px 높이가 나와, 컨테이너를 180px로 줄여도 이미지 자체는 여전히
+ * 220px로 렌더링되어 위아래로 20px씩 넘쳐 보였다(요구사항: 잘려 보이는 문제).
+ * 반대로 height 기준으로 맞추면 컨테이너 높이에 정확히 맞는 폭으로 축소된다. */
 .onboarding__mascot--complete {
-  width: 100%;
-  height: auto;
+  width: auto;
+  height: 100%;
 }
 
 .onboarding__mascot--guide {
-  width: 108px;
+  width: 88px;
   height: auto;
   flex: none;
 }
@@ -364,18 +391,20 @@ p.onboarding__complete-text {
 
 /* ================= 선택 카드 (interests / stage) ================= */
 
-/* 안내문 아래 간격(Figma 실측 40px = md+xl) — 선택 카드 그룹 하나로 합쳐서 쓴다 */
+/* 안내문 아래 간격 — Figma 실측은 40px(md+xl)이지만, 카드 목록이 있는 2/3단계는
+ * 콘텐츠가 버튼 바로 위까지 차올라 버튼이 하단에 붙어 보이는 문제가 있어(요구사항)
+ * 24px(xl)로 줄여 그만큼 하단 여백을 확보한다. */
 .onboarding__choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-sm);
-  margin-top: calc(var(--space-md) + var(--space-xl));
+  margin-top: var(--space-xl);
 }
 
 .onboarding__stages {
   display: grid;
   gap: var(--space-sm);
-  margin-top: calc(var(--space-md) + var(--space-xl));
+  margin-top: var(--space-xl);
 }
 
 .onboarding__choices button,
@@ -395,13 +424,13 @@ p.onboarding__complete-text {
 
 .onboarding__choices button {
   flex-direction: column;
-  min-height: 92px;
+  min-height: 80px;
   padding: var(--space-sm);
 }
 
 .onboarding__stages button {
   align-items: center;
-  min-height: 72px;
+  min-height: 64px;
   padding: var(--card-padding-m);
 }
 
@@ -423,13 +452,13 @@ p.onboarding__complete-text {
 
 .onboarding__choice-icon {
   flex: none;
-  width: 40px;
+  width: 32px;
   height: auto;
   object-fit: contain;
 }
 
 .onboarding__choice-icon--stage {
-  width: 48px;
+  width: 40px;
 }
 
 .onboarding__choice-icon--summary {
@@ -506,13 +535,15 @@ p.onboarding__complete-text {
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
-  margin-top: var(--space-xl);
+  margin-top: var(--space-md);
   text-align: left;
 }
 
 /* ================= 요약 (complete) ================= */
 
-/* 완료 화면은 카드까지 한 화면에 들어와야 해서 Figma 실측(36px = md+lg)보다 좁힌다 */
+/* 완료 화면은 카드까지 한 화면에 들어와야 해서 Figma 실측(36px = md+lg)보다 좁혔었지만,
+ * 이제 body 가 공통 min-height 를 갖고 있어 이 단계만 여유가 남는다 — space-lg(20px)로
+ * 다시 늘려 그 여백을 콘텐츠 쪽으로 되돌린다. */
 .onboarding__summary {
   margin-top: var(--space-lg);
   padding: var(--space-sm);
@@ -551,7 +582,7 @@ p.onboarding__complete-text {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 .onboarding__summary-row + .onboarding__summary-row {
@@ -568,15 +599,20 @@ p.onboarding__complete-text {
 
 /* ================= 하단 CTA ================= */
 
+/* 4단계(welcome/interests/stage/complete) 전부 이 푸터 하나를 공유한다 — 버튼 위치·
+ * 여백이 스텝마다 다르게 보이지 않고 항상 통일되게 유지된다. safe-area-inset-bottom이
+ * 없는 환경(이 데모 브라우저 등)에서도 버튼이 화면 하단에 바짝 붙어 보이지 않도록
+ * space-xl(24px) 대신 space-2xl(32px)을 기본 여백으로 둔다(요구사항 아님, 발견된
+ * 가독성 문제 수정). */
 .onboarding__footer {
   flex: none;
   padding: var(--space-md) var(--screen-margin)
-    calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
+    calc(var(--space-2xl) + env(safe-area-inset-bottom, 0px));
   text-align: center;
 }
 
 .onboarding__footer p {
-  margin: 0 0 var(--space-sm);
+  margin: 0 0 var(--space-md);
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-secondary);

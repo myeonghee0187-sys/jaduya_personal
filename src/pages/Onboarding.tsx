@@ -139,7 +139,7 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
           <>
             <small>나에게 필요한 정보</small>
             <h1>어떤 정보가<br />가장 필요하세요?</h1>
-            <p>관심 있는 항목을 선택해주세요.<br />여러 개 골라도 좋아요.</p>
+            <p>관심 있는 항목을 선택해주세요.<br />선택한 관심사에 맞는 위젯을 홈에 자동으로 추가해드려요.</p>
             <div className="onboarding__choices" role="group" aria-label="관심 있는 정보">
               {interestOptions.map(({ label, desc, icon: iconName }) => {
                 const selected = selectedInterests.includes(label);
@@ -247,6 +247,9 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
           <img src={icon('chevron-right-white.svg')} alt="" />
         </button>
       </footer>
+      {/* 남는 세로 공간을 흡수해 화면 맨 아래로 밀어낸다 — 버튼이 콘텐츠 바로 아래에
+       * 붙고, 화면이 다 안 찼을 때 생기는 여백은 버튼 아래(물리적 화면 하단)에만 남는다. */}
+      <div className="onboarding__footer-spacer" aria-hidden="true" />
     </main>
   );
 }
