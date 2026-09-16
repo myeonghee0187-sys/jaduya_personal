@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent, ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
@@ -24,6 +25,14 @@ const PROMPTS = [
   '내 조건에 맞는 지원금 뭐 있어?',
 ] as const;
 
+/* 매칭되지 않은 자유입력은 생성형 답변 대신 지원하는 시나리오를 다시 고르게 한다. */
+const FALLBACK_SCENARIO_PROMPTS = [
+  '보일러가 안 켜져요',
+  '싱크대에서 물이 새요',
+  '변기 물이 차올라요',
+  '집 전체 전기가 나갔어요',
+] as const;
+
 type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
@@ -35,6 +44,21 @@ type ChatMessage = {
   pestDiagnosis?: boolean;
   pestSolution?: PestSolution;
 };
+type SavedConversation = { id: string; title: string; createdAt: string; updatedAt: string; messages: ChatMessage[]; conversation: AIConversationContext; diagnosis: Diagnosis };
+const HISTORY_KEY = 'jaduya-ai-conversations';
+
+function loadConversationHistory(): SavedConversation[] {
+  try { const value = localStorage.getItem(HISTORY_KEY); return value ? JSON.parse(value) : []; } catch { return []; }
+}
+
+function saveConversationHistory(history: SavedConversation[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* storage is optional */ }
+}
+
+function formatConversationDate(value: string): string {
+  const date = new Date(value);
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
 
 type ImageAttachment = {
   type: 'image';
@@ -47,6 +71,7 @@ type ImageAttachment = {
 type FileAttachment = { type: 'file'; id: string; name: string; size: number };
 type ContactAttachment = { type: 'contact'; id: string; name?: string; tel: string };
 type ChatAttachment = ImageAttachment | FileAttachment | ContactAttachment;
+type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>>; getProperties?: () => Promise<string[]> };
 
 type ChatCta = {
   label: string;
@@ -110,11 +135,23 @@ const EMPTY_CONVERSATION: AIConversationContext = {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
-const PHOTO_CHOICES = ['thumb/thumb-bathroom.png', 'thumb/thumb-fridge.png', 'thumb/thumb-recycle.webp', 'thumb/thumb-electricity.webp'] as const;
 
 function formatFileSize(size: number): string {
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))}KB`;
   return `${(size / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')}MB`;
+}
+
+function getCallablePhoneNumber(tel: string): string | null {
+  const normalized = tel.trim().replace(/[^\d+]/g, '');
+  const isValid = /^\+?\d{7,15}$/.test(normalized) && (normalized.match(/\+/g)?.length ?? 0) <= 1;
+  return isValid ? normalized : null;
+}
+
+function getVisibleAppShell(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  return Array.from(document.querySelectorAll<HTMLElement>('.app')).find(
+    (app) => !app.classList.contains('ai-chat-page') && app.getClientRects().length > 0,
+  ) ?? null;
 }
 
 type ScenarioReply = { content: string; conversation: AIConversationContext };
@@ -179,6 +216,31 @@ function getScenarioReply(message: string, conversation: AIConversationContext, 
   const scenario = conversation.flowId ? AI_SCENARIOS[conversation.flowId] : null;
   if (!scenario || !conversation.stage) {
     return { content: '어느 쪽에 가까운가요?', conversation };
+  }
+
+  /* 보일러도 다른 시나리오와 동일하게 conversation.flowId/stage를 source of truth로 쓴다.
+   * 기존에 작성된 진단 문구와 단계 전환을 재사용할 뿐, 자유입력으로 새 문장을 만들지 않는다. */
+  if (conversation.flowId === 'boiler') {
+    const currentDiagnosis: Diagnosis = {
+      topic: 'boiler',
+      stage: conversation.stage as BoilerStage,
+      ...(conversation.answers.power ? { power: conversation.answers.power as PowerAnswer } : {}),
+      ...(conversation.answers.symptom ? { symptom: conversation.answers.symptom as 'heating' | 'hot-water' | 'both' } : {}),
+    };
+    const reply = getDiagnosticReply(message, currentDiagnosis, user.location);
+    const nextDiagnosis = reply.diagnosis;
+    return {
+      content: reply.content,
+      conversation: {
+        ...conversation,
+        stage: nextDiagnosis?.stage ?? 'result',
+        answers: {
+          ...conversation.answers,
+          ...(nextDiagnosis?.power ? { power: nextDiagnosis.power } : {}),
+          ...(nextDiagnosis?.symptom ? { symptom: nextDiagnosis.symptom } : {}),
+        },
+      },
+    };
   }
 
   if (conversation.flowId === 'pest-photo') {
@@ -377,7 +439,7 @@ function smalltalkReply(kind: 'greeting' | 'thanks' | 'complaint' | 'about-ai' |
   if (kind === 'thanks') return '도움이 됐다니 다행이에요! 다른 것도 궁금하면 말씀해주세요.';
   if (kind === 'complaint') return '제가 잘못 이해했나 봐요 😅 어떤 부분이 이상했는지 말씀해주시면 다시 도와드릴게요.';
   if (kind === 'about-ai') return '저는 자취 중 생긴 생활 문제를 원인부터 확인하고, 직접 할 수 있는 조치와 집주인·관리실에 요청할 일을 정리해드려요.';
-  return '도와드릴게요. 자취 중 어떤 상황인지 편하게 말씀해주세요. 예: “싱크대 밑에서 물이 새요”';
+  return '제가 도와드릴 수 있는 문제를 골라주세요.';
 }
 
 function getPowerAnswer(message: string): PowerAnswer | 'unknown' | null {
@@ -565,7 +627,9 @@ export function AIChatPage() {
   const { user } = useAuth();
   const navigation = useAppNavigation();
   const [draft, setDraft] = useState('');
+  const [isComposerMultiline, setIsComposerMultiline] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [history, setHistory] = useState<SavedConversation[]>(loadConversationHistory);
   const [isTyping, setIsTyping] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis>(null);
   const [conversation, setConversation] = useState<AIConversationContext>(EMPTY_CONVERSATION);
@@ -574,13 +638,14 @@ export function AIChatPage() {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const [isImageLocationQuestion, setIsImageLocationQuestion] = useState(false);
   const [attachmentFollowup, setAttachmentFollowup] = useState<'file' | 'contact' | null>(null);
-  const [attachmentPanel, setAttachmentPanel] = useState<'camera' | 'photo' | 'file' | 'contact' | null>(null);
-  const [selectedDemoPhoto, setSelectedDemoPhoto] = useState(0);
+  const [attachmentPanel, setAttachmentPanel] = useState<'camera' | 'file' | 'contact' | null>(null);
   const [contactName, setContactName] = useState('');
   const [contactTel, setContactTel] = useState('');
   const [attachmentNotice, setAttachmentNotice] = useState('');
-  const [freeInputMisses, setFreeInputMisses] = useState(0);
+  const [showFallbackSuggestions, setShowFallbackSuggestions] = useState(false);
   const [aiView, setAiView] = useState<'home' | 'chat' | 'settings'>('home');
+  const contactPicker = typeof navigator !== 'undefined' ? (navigator as Navigator & { contacts?: ContactPicker }).contacts : undefined;
+  const supportsContactPicker = Boolean(contactPicker && typeof contactPicker.select === 'function');
   const storedAISettings = loadAIChatSettings(user?.email ?? 'guest');
   const [contractType, setContractType] = useState(storedAISettings.contractType);
   const [aiLocation, setAiLocation] = useState<AILocation | null>(storedAISettings.location);
@@ -594,8 +659,13 @@ export function AIChatPage() {
   const [housingDraft, setHousingDraft] = useState('원룸');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
   const pageRef = useRef<HTMLDivElement>(null);
+  const draftInputRef = useRef<HTMLTextAreaElement>(null);
   const messageIdRef = useRef(0);
+  const conversationIdRef = useRef<string | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  /* 첨부 미리보기로 대화 영역 높이가 바뀔 때, 사용자가 이미 맨 아래를 보고 있던
+   * 경우에만 마지막 메시지를 계속 보이게 한다. */
+  const chatPinnedToBottomRef = useRef(true);
   const responseTimerRef = useRef<number | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -675,6 +745,17 @@ export function AIChatPage() {
     }
   };
 
+  const openAISettings = () => {
+    setHousingDraft(livingProfile.housing ?? '원룸');
+    setContractTypeDraft(contractType);
+    setLocationDraft(aiLocation);
+    setLocationSearchOpen(false);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+    setAiView('settings');
+  };
+
   const handleCta = (cta: ChatCta, source: string) => {
     switch (cta.label) {
       case '집주인에게 연락하기': {
@@ -716,8 +797,7 @@ export function AIChatPage() {
         appendAssistantMessage(`${effectiveLocation} 보일러 수리 검색을 새 탭에서 열었어요. 업체의 후기와 영업시간을 확인한 뒤 연락해보세요.`);
         return;
       case '지역 설정하기':
-        navigation?.closeAIChat();
-        navigation?.navigate('living-profile', { returnTo: navigation.page });
+        openAISettings();
         return;
       case '맞춤 혜택 전체 보기':
         navigation?.closeAIChat();
@@ -924,24 +1004,27 @@ export function AIChatPage() {
     setAttachmentPanel(null);
   };
 
-  const openContactPicker = async () => {
+  const openContactPicker = () => {
     setIsAttachMenuOpen(false);
-    const contacts = (navigator as Navigator & { contacts?: { select: (properties: string[], options: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>> } }).contacts;
-    if (!contacts?.select) {
-      setAttachmentPanel('contact');
-      return;
-    }
+    setAttachmentPanel('contact');
+  };
+
+  const selectDeviceContact = async () => {
+    if (!contactPicker?.select) return;
     try {
-      const [contact] = await contacts.select(['name', 'tel'], { multiple: false });
-      if (contact?.tel?.[0]) addContactAttachment(contact.name?.[0] ?? '', contact.tel[0]);
+      const [contact] = await contactPicker.select(['name', 'tel'], { multiple: false });
+      if (!contact) return;
+      setContactName(contact.name?.[0] ?? '');
+      setContactTel(contact.tel?.[0] ?? '');
     } catch {
-      /* 사용자가 시스템 선택기를 닫았을 때는 별도 오류를 노출하지 않는다. */
+      /* 사용자가 선택기를 취소하거나 권한 호출이 실패해도 직접 입력 상태를 유지한다. */
     }
   };
 
   const sendMessage = (content: string, expectedStage?: string, pendingAttachments: ChatAttachment[] = []) => {
     const question = content.trim();
     if ((!question && pendingAttachments.length === 0) || isTyping) return;
+    setAiView('chat');
     const activeStage = isImageLocationQuestion ? 'image-location' : (attachmentFollowup ? `attachment-${attachmentFollowup}` : (diagnosis?.stage ?? conversation.stage));
     if (expectedStage && activeStage !== expectedStage) return;
     /* 보일러 진단은 기존 diagnosis state가 단계 문맥을 소유하므로 그대로 넘긴다. */
@@ -963,25 +1046,19 @@ export function AIChatPage() {
     const startsPestPhoto = hasImage && /벌레|바퀴|해충/.test(question) && !diagnosis && !conversation.flowId;
     const answersImageLocationQuestion = isImageLocationQuestion;
     const naturalIntent = !diagnosis && inputResolution.type === 'scenario' ? inputResolution.intent : null;
-    const startsGuide = !diagnosis && !conversation.flowId && /전입.?신고/.test(question);
-    const startsRecommendation = !diagnosis && !conversation.flowId && /지원금|지원.?사업|혜택/.test(question);
     const scenarioReply = inputResolution.type === 'answer' && conversation.flowId && (
       conversation.flowType !== 'diagnosis'
-      || ['pest-photo', 'plumbing-leak', 'toilet-clog', 'power-outage'].includes(conversation.flowId)
+      || ['boiler', 'pest-photo', 'plumbing-leak', 'toilet-clog', 'power-outage'].includes(conversation.flowId)
     )
       ? getScenarioReply(question, conversation, profileContext)
       : null;
     const startedConversation = naturalIntent
-      ? { flowId: naturalIntent.scenarioId, flowType: 'diagnosis' as const, stage: naturalIntent.stage, persona: user?.persona ?? null, answers: {} }
-      : startsGuide
-      ? { flowId: 'moveIn', flowType: 'guide' as const, stage: 'move-stage', persona: user?.persona ?? null, answers: {} }
-      : startsRecommendation
-        ? { flowId: 'support', flowType: 'recommendation' as const, stage: 'category', persona: user?.persona ?? null, answers: {} }
-        : null;
+      ? { flowId: naturalIntent.scenarioId, flowType: AI_SCENARIOS[naturalIntent.scenarioId].type, stage: naturalIntent.stage, persona: user?.persona ?? null, answers: {} }
+      : null;
     const startsFileQuestion = hasFile && !question && !diagnosis && !conversation.flowId;
     const startsContactQuestion = hasContact && /보일러|집주인/.test(question) && !diagnosis && !conversation.flowId;
     const answersAttachmentFollowup = attachmentFollowup;
-    const reply = scenarioReply || startsPestPhoto || answersImageLocationQuestion || naturalIntent || startsFileQuestion || startsContactQuestion || answersAttachmentFollowup || inputResolution.type === 'smalltalk' || inputResolution.type === 'cancel' || inputResolution.type === 'correction'
+    const reply = scenarioReply || startsPestPhoto || answersImageLocationQuestion || naturalIntent || startsFileQuestion || startsContactQuestion || answersAttachmentFollowup || inputResolution.type === 'smalltalk' || inputResolution.type === 'cancel' || inputResolution.type === 'correction' || inputResolution.type === 'unknown'
       ? null
       : getDiagnosticReply(question, diagnosis, effectiveLocation);
     const isSupportResult = scenarioReply?.conversation.flowId === 'support'
@@ -993,9 +1070,7 @@ export function AIChatPage() {
       const correctionReply = conversation.flowId === 'plumbing-leak' && conversation.stage === 'sink-check'
         ? '알겠어요. 싱크대는 아니군요. 화장실이나 세탁기 중 어디에 가까운지 알려주세요.'
         : '제가 상황을 잘못 짚었나 봐요. 지금 어떤 도움이 필요한지 편하게 말씀해주세요.';
-      const unknownReply = freeInputMisses === 0
-        ? '조금 더 자세히 말씀해주실래요?'
-        : '자취 중 생긴 문제라면 상황을 그대로 말씀해주셔도 돼요. 예: “싱크대 밑에서 물이 새요”';
+      const unknownReply = '제가 도와드릴 수 있는 문제를 골라주세요.';
       const assistantContent = startsPestPhoto
         ? '사진 속 벌레를 확인하고 있어요'
         : answersImageLocationQuestion
@@ -1044,7 +1119,6 @@ export function AIChatPage() {
       } else if (inputResolution.type === 'cancel') {
         setConversation(EMPTY_CONVERSATION);
         setDiagnosis(null);
-        setFreeInputMisses(0);
       } else if (inputResolution.type === 'correction') {
         if (conversation.flowId === 'plumbing-leak' && conversation.stage === 'sink-check') {
           setConversation({ ...conversation, stage: 'location' });
@@ -1052,11 +1126,8 @@ export function AIChatPage() {
           setConversation(EMPTY_CONVERSATION);
         }
         setDiagnosis(null);
-        setFreeInputMisses(0);
-      } else if (inputResolution.type === 'smalltalk') {
-        setFreeInputMisses(0);
       } else if (inputResolution.type === 'unknown') {
-        setFreeInputMisses((count) => Math.min(count + 1, 1));
+        setShowFallbackSuggestions(true);
       } else if (scenarioReply) setConversation(
         isSupportResult
           ? { ...scenarioReply.conversation, stage: 'analyzing' }
@@ -1064,7 +1135,7 @@ export function AIChatPage() {
       );
       else if (startedConversation) {
         setConversation(startedConversation);
-        setFreeInputMisses(0);
+        setShowFallbackSuggestions(false);
       }
       else setDiagnosis(reply!.diagnosis);
       if (isSupportResult) {
@@ -1132,7 +1203,7 @@ export function AIChatPage() {
     setIsTyping(false);
     setDiagnosis(null);
     setConversation(EMPTY_CONVERSATION);
-    setFreeInputMisses(0);
+    setShowFallbackSuggestions(false);
     setIsTerminalResult(false);
     setIsImageLocationQuestion(false);
     setAttachmentFollowup(null);
@@ -1148,11 +1219,68 @@ export function AIChatPage() {
     /* 화면에서 대화 기록을 제거한 뒤에는 전송 완료 이미지의 URL도 더 이상 필요 없다. */
     revokeAllAttachmentUrls();
     messageIdRef.current = 0;
+    conversationIdRef.current = null;
+  };
+
+  const openSavedConversation = (saved: SavedConversation) => {
+    conversationIdRef.current = saved.id;
+    messageIdRef.current = Math.max(0, ...saved.messages.map((message) => message.id));
+    setMessages(saved.messages);
+    setConversation(saved.conversation);
+    setDiagnosis(saved.diagnosis);
+    setIsTyping(false);
+    setAiView('chat');
+  };
+
+  const startNewConversation = () => {
+    resetConversation();
+    setAiView('home');
+  };
+
+  const updateChatPinnedState = () => {
+    const chat = chatRef.current;
+    if (!chat) return;
+    chatPinnedToBottomRef.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 4;
   };
 
   useEffect(() => {
-    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+    const chat = chatRef.current;
+    if (!chat) return;
+    chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+    chatPinnedToBottomRef.current = true;
   }, [messages, isTyping, diagnosis]);
+
+  useEffect(() => {
+    if (messages.length === 0 || isTyping) return;
+    const firstQuestion = messages.find((message) => message.role === 'user')?.content.trim();
+    if (!firstQuestion) return;
+    const now = new Date().toISOString();
+    const id = conversationIdRef.current ?? `conversation-${Date.now()}`;
+    conversationIdRef.current = id;
+    setHistory((current) => {
+      const createdAt = current.find((item) => item.id === id)?.createdAt ?? now;
+      const next = [{ id, title: firstQuestion, createdAt, updatedAt: now, messages, conversation, diagnosis }, ...current.filter((item) => item.id !== id)]
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      saveConversationHistory(next);
+      return next;
+    });
+  }, [messages, conversation, diagnosis, isTyping]);
+
+  /* preview는 composer의 일반 flex 자식이다. 높이가 추가/제거되면 conversation의
+   * flex 공간만 줄어든다. 이 레이아웃 직후에만 하단 고정 사용자를 보정한다. */
+  useLayoutEffect(() => {
+    const chat = chatRef.current;
+    if (!chat || !chatPinnedToBottomRef.current) return;
+    chat.scrollTop = chat.scrollHeight;
+  }, [attachments]);
+
+  useLayoutEffect(() => {
+    const input = draftInputRef.current;
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 84)}px`;
+    setIsComposerMultiline(input.scrollHeight > 28);
+  }, [draft]);
 
   useEffect(
     () => () => {
@@ -1162,7 +1290,8 @@ export function AIChatPage() {
     [],
   );
 
-  const conversationStarted = messages.length > 0;
+  const conversationStarted = messages.length > 0 && aiView === 'chat';
+  const hasConversationHistory = history.length > 0;
   const imageQuickReplies: QuickReply[] = isImageLocationQuestion
     ? ['주방', '화장실', '방', '현관'].map((label) => ({ id: `image-location-${label}`, label, stage: 'image-location' }))
     : [];
@@ -1171,8 +1300,14 @@ export function AIChatPage() {
     : attachmentFollowup === 'contact'
       ? ['문구 만들어줘', '괜찮아요'].map((label) => ({ id: `contact-${label}`, label, stage: 'attachment-contact' }))
       : [];
+  const fallbackQuickReplies: QuickReply[] = FALLBACK_SCENARIO_PROMPTS.map((label) => ({
+    id: `fallback-${label}`,
+    label,
+    stage: 'fallback',
+  }));
+  const scenarioReplies = scenarioQuickReplies(conversation);
   const quickReplies = !isTyping
-    ? (isImageLocationQuestion ? imageQuickReplies : attachmentFollowup ? attachmentQuickReplies : diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioQuickReplies(conversation))
+    ? (isImageLocationQuestion ? imageQuickReplies : attachmentFollowup ? attachmentQuickReplies : diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioReplies.length > 0 ? scenarioReplies : showFallbackSuggestions ? fallbackQuickReplies : [])
     : [];
 
   const closeChat = () => {
@@ -1238,6 +1373,12 @@ export function AIChatPage() {
       .finally(() => setIsLocationLoading(false));
   };
 
+  /* AI는 별도 drawer가 아니라, 현재 보이는 앱 shell 안에 렌더링하는 전체 화면이다. */
+  const renderInAppShell = (content: ReactNode) => {
+    const appShell = getVisibleAppShell();
+    return appShell ? createPortal(content, appShell) : content;
+  };
+
   if (aiView === 'settings') {
     const saveSettings = () => {
       saveLivingProfile(user?.email ?? 'guest', { ...livingProfile, housing: housingDraft as typeof HOUSING_TYPES[number] });
@@ -1246,7 +1387,7 @@ export function AIChatPage() {
       setAiView('home');
     };
     const referenceChips = [housingValue, contractType, locationSummaryName].filter((value): value is string => Boolean(value));
-    return <div ref={pageRef} className={`ai-chat-page app ai-chat-page--settings${closeState === 'open' ? '' : ` is-${closeState}`}`} onAnimationEnd={finishClose}><StatusBar />
+    return renderInAppShell(<div ref={pageRef} className={`ai-chat-page app ai-chat-page--settings${closeState === 'open' ? '' : ` is-${closeState}`}`} onAnimationEnd={finishClose}><StatusBar />
       <header className="ai-chat-page__settings-header"><button type="button" className="ai-chat-page__settings-back" aria-label="자두AI 홈으로 돌아가기" onClick={() => setAiView('home')}><img src={icon('gnb-back.svg')} alt="" aria-hidden="true" /></button><div className="ai-chat-page__profile"><img src={icon('ai-avatar.svg')} alt="" /><span className="ai-chat-page__profile-copy"><strong>자두AI</strong><span>맞춤 설정을 편집해요</span></span></div><button type="button" className="ai-chat-page__close" aria-label="자두AI 닫기" onClick={closeChat} disabled={closeState !== 'open'}><img src={icon('gnb-close.svg')} alt="" /></button></header>
       <section className="ai-chat-page__settings-summary" aria-labelledby="ai-reference-title"><h2 id="ai-reference-title">자두AI가 참고하는 정보</h2><p>답변할 때 아래 정보를 활용해요.</p><div>{referenceChips.map((value) => <span key={value}>{value}</span>)}</div></section>
       <main className="ai-chat-page__settings-body">
@@ -1263,10 +1404,10 @@ export function AIChatPage() {
         </section>
       </main><button className="ai-chat-page__settings-save" onClick={saveSettings}>저장하기</button>
       {locationSearchOpen && <div className="ai-chat-page__location-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationSearchOpen(false); }}><section className="ai-chat-page__location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-search-title"><div className="ai-chat-page__location-sheet-handle" /><header><h2 id="location-search-title">지역 검색</h2><button type="button" aria-label="지역 검색 닫기" onClick={() => setLocationSearchOpen(false)}><img src={icon('sheet-close.svg')} alt="" /></button></header><form onSubmit={submitLocationSearch}><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="동, 구, 주소를 검색해보세요" aria-label="지역 검색어" autoFocus /><button type="submit" aria-label="지역 검색 실행" disabled={!locationQuery.trim() || isLocationLoading}><img src={icon('community-search.svg')} alt="" /></button></form>{locationResults.length > 0 && <ul>{locationResults.map((result) => <li key={`${result.latitude}-${result.longitude}`}><button type="button" onClick={() => { setLocationDraft(result); setLocationSearchOpen(false); setLocationResults([]); setLocationNotice(`${result.displayName}(으)로 선택했어요. 저장하기를 눌러 적용해주세요.`); }}>{result.displayName}</button></li>)}</ul>}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></section></div>}
-    </div>;
+    </div>);
   }
 
-  return (
+  return renderInAppShell(
     <div
       ref={pageRef}
       className={`ai-chat-page app${closeState === 'open' ? '' : ` is-${closeState}`}`}
@@ -1274,6 +1415,19 @@ export function AIChatPage() {
     >
       <StatusBar />
       <header className="ai-chat-page__header">
+        {/* 화면 navigation 전용 — 자두AI를 나가 원래 앱 화면으로 돌아간다(닫기와 같은
+          * 동작이지만, 좌상단 '이전 화면' 자리는 항상 노출해 화면 진입 상태와 무관하게
+          * 표준 뒤로가기 위치를 지킨다). 대화 화면 안에서 자두AI '홈'으로만 돌아가는
+          * 것은 아래 conversation 제어 영역의 '처음으로'가 맡는다 — 서로 다른 동작이다. */}
+        <button
+          type="button"
+          className="ai-chat-page__header-back"
+          aria-label="이전 화면으로 이동"
+          onClick={closeChat}
+          disabled={closeState !== 'open'}
+        >
+          <img src={icon('gnb-back.svg')} alt="" />
+        </button>
         <div className="ai-chat-page__profile">
           <img src={icon('ai-avatar.svg')} alt="" />
           <span className="ai-chat-page__profile-copy">
@@ -1300,14 +1454,29 @@ export function AIChatPage() {
             </span>
           ))}
         </span>
-        <button type="button" className="ai-chat-page__chip ai-chat-page__chip--edit" onClick={() => { setHousingDraft(livingProfile.housing ?? '원룸'); setContractTypeDraft(contractType); setLocationDraft(aiLocation); setLocationSearchOpen(false); setLocationQuery(''); setLocationResults([]); setLocationNotice(''); setAiView('settings'); }}>
+        <button type="button" className="ai-chat-page__chip ai-chat-page__chip--edit" onClick={openAISettings}>
           편집
         </button>
       </div>
 
+      {/* conversation 제어 영역 — 개인 설정과 분리된 별도 줄. '처음으로'는 현재 대화를
+        * 지우지 않고 화면만 자두AI 홈으로 되돌리고(이후 '이어서 물어보기'로 복귀 가능),
+        * '새 대화'는 history 는 남긴 채 지금 상담 상태(messages/flow/draft/attachment)만
+        * 새 세션 기준으로 초기화한다 — 서로 다른 동작이므로 버튼도 분리해 둔다. */}
+      {conversationStarted && (
+        <div className="ai-chat-page__conversation-controls">
+          <button type="button" className="ai-chat-page__go-home" onClick={() => setAiView('home')}>
+            처음으로
+          </button>
+          <button type="button" className="ai-chat-page__new-conversation" onClick={startNewConversation}>
+            새 대화
+          </button>
+        </div>
+      )}
+
       {conversationStarted ? (
         <div className="ai-chat-page__conversation-wrap">
-          <div ref={chatRef} className="ai-chat-page__conversation" role="log" aria-live="polite">
+          <div ref={chatRef} className="ai-chat-page__conversation" role="log" aria-live="polite" onScroll={updateChatPinnedState}>
             {messages.map((message) => (
             <div
               key={message.id}
@@ -1328,12 +1497,15 @@ export function AIChatPage() {
                       <div key={attachment.id} className="ai-chat-page__attachment-card">
                         <span aria-hidden="true">▤</span><span><strong>{attachment.name}</strong><small>{formatFileSize(attachment.size)}</small></span>
                       </div>
-                    ) : (
-                      <div key={attachment.id} className="ai-chat-page__attachment-card ai-chat-page__attachment-card--contact">
-                        <span aria-hidden="true">♙</span><span><strong>{attachment.name ?? '연락처'}</strong><small>{attachment.tel}</small></span>
-                        <span className="ai-chat-page__contact-actions"><a href={`tel:${attachment.tel}`} aria-label={`${attachment.name ?? '연락처'} 전화하기`}>전화</a><a href={`sms:${attachment.tel}`} aria-label={`${attachment.name ?? '연락처'} 문자 보내기`}>문자</a></span>
-                      </div>
-                    ))}
+                    ) : (() => {
+                      const phoneNumber = getCallablePhoneNumber(attachment.tel);
+                      return (
+                        <div key={attachment.id} className="ai-chat-page__attachment-card ai-chat-page__attachment-card--contact">
+                          <img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/person.svg" alt="" aria-hidden="true" /><span><strong>{attachment.name ?? '연락처'}</strong><small>{attachment.tel}</small></span>
+                          {phoneNumber && <span className="ai-chat-page__contact-actions"><a href={`tel:${phoneNumber}`} aria-label={`${attachment.name ?? '연락처'} 전화하기`}>전화하기</a><a href={`sms:${phoneNumber}`} aria-label={`${attachment.name ?? '연락처'} 문자 보내기`}>문자 보내기</a></span>}
+                        </div>
+                      );
+                    })())}
                   </div>
                 )}
                 {message.content && <p className="ai-chat-page__bubble">{message.content}</p>}
@@ -1419,7 +1591,7 @@ export function AIChatPage() {
                     key={reply.id}
                     type="button"
                     className="ai-chat-page__quick-reply"
-                    onClick={() => sendMessage(reply.label, reply.stage)}
+                    onClick={() => sendMessage(reply.label, reply.stage === 'fallback' ? undefined : reply.stage)}
                   >
                     {reply.label}
                   </button>
@@ -1447,6 +1619,11 @@ export function AIChatPage() {
               </div>
             )}
           </div>
+        </div>
+      ) : hasConversationHistory ? (
+        <div className="ai-chat-page__returning">
+          <div className="ai-chat-page__returning-intro"><img className="ai-chat-page__mole" src={img('ai/ai-mole.svg')} alt="" /><p>다시 만나서 반가워요!<br />오늘은 뭐가 궁금하세요?</p></div>
+          <section className="ai-chat-page__recent" aria-labelledby="recent-conversations-title"><h2 id="recent-conversations-title">이어서 물어보기</h2><div className="ai-chat-page__recent-list">{history.map((saved) => <button key={saved.id} type="button" onClick={() => openSavedConversation(saved)}><span>{saved.title}</span><time dateTime={saved.updatedAt}>{formatConversationDate(saved.updatedAt)}</time></button>)}</div></section>
         </div>
       ) : (
         <div className="ai-chat-page__body">
@@ -1484,7 +1661,6 @@ export function AIChatPage() {
           className="ai-chat-page__photo-input"
           type="file"
           accept="image/*"
-          multiple
           onChange={(event) => handleImageSelection(event, 'photo')}
         />
         <input ref={cameraInputRef} className="ai-chat-page__photo-input" type="file" accept="image/*" capture="environment" onChange={(event) => handleImageSelection(event, 'camera')} />
@@ -1493,16 +1669,41 @@ export function AIChatPage() {
         {attachments.length > 0 && (
           <div className="ai-chat-page__attachment-preview" aria-label="첨부 미리보기">
             {attachments.map((attachment) => (
-              <div key={attachment.id} className="ai-chat-page__attachment-preview-item">
-                {attachment.type === 'image' ? <img src={attachment.previewUrl} alt={`${attachment.name} 미리보기`} /> : (
-                  <div className="ai-chat-page__attachment-preview-card"><span aria-hidden="true">{attachment.type === 'file' ? '▤' : '♙'}</span><strong>{attachment.type === 'file' ? attachment.name : attachment.name ?? '연락처'}</strong><small>{attachment.type === 'file' ? formatFileSize(attachment.size) : attachment.tel}</small></div>
+              <div
+                key={attachment.id}
+                className={`ai-chat-page__attachment-preview-item${
+                  attachment.type === 'image'
+                    ? ' ai-chat-page__attachment-preview-item--image'
+                    : attachment.type === 'contact'
+                      ? ' ai-chat-page__attachment-preview-item--contact'
+                      : ''
+                }`}
+              >
+                {attachment.type === 'image' ? (
+                  <img src={attachment.previewUrl} alt={`${attachment.name} 미리보기`} />
+                ) : attachment.type === 'contact' ? (
+                  /* 연락처만 아이콘을 왼쪽에 두고 이름 1줄 + 전화번호 1줄을 오른쪽에 쌓는
+                   * compact information card 레이아웃을 쓴다(파일 미리보기는 그대로 둔다). */
+                  <div className="ai-chat-page__attachment-preview-card ai-chat-page__attachment-preview-card--contact">
+                    <img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/person.svg" alt="" aria-hidden="true" />
+                    <span>
+                      <strong>{attachment.name ?? '연락처'}</strong>
+                      <small>{attachment.tel}</small>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="ai-chat-page__attachment-preview-card">
+                    <span aria-hidden="true">▤</span>
+                    <strong>{attachment.name}</strong>
+                    <small>{formatFileSize(attachment.size)}</small>
+                  </div>
                 )}
                 <button type="button" aria-label="첨부 삭제" onClick={() => removePendingAttachment(attachment.id)}>×</button>
               </div>
             ))}
           </div>
         )}
-        <div className="ai-chat-page__input-bar">
+        <div className={`ai-chat-page__input-bar${isComposerMultiline ? ' is-multiline' : ''}`}>
           <button
             type="button"
             className="ai-chat-page__input-icon"
@@ -1512,8 +1713,9 @@ export function AIChatPage() {
           >
             <img src={icon('ai-plus.svg')} alt="" />
           </button>
-          <input
-            type="text"
+          <textarea
+            ref={draftInputRef}
+            rows={1}
             placeholder="자취 고민을 입력해보세요."
             aria-label="자취 고민 입력"
             value={draft}
@@ -1539,18 +1741,17 @@ export function AIChatPage() {
           {isAttachMenuOpen && (
             <div className="ai-chat-page__attach-menu" role="menu" aria-label="첨부 메뉴">
               <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('camera'); }}><img src="/assets/icon/chatbot/camera.svg" alt="" />카메라</button>
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('photo'); }}><img src="/assets/icon/chatbot/img.svg" alt="" />사진</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); if (photoInputRef.current) { photoInputRef.current.value = ''; photoInputRef.current.click(); } }}><img src="/assets/icon/chatbot/img.svg" alt="" />사진</button>
               <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('file'); }}><img src="/assets/icon/chatbot/clip.svg" alt="" />파일</button>
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { void openContactPicker(); }}><img src="/assets/icon/chatbot/person.svg" alt="" />연락처</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={openContactPicker}><img src="/assets/icon/chatbot/person.svg" alt="" />연락처</button>
             </div>
           )}
           {attachmentPanel && (
             <section className="ai-chat-page__attachment-sheet" role="dialog" aria-modal="true" aria-label={`${attachmentPanel} 첨부`}>
-              <header><strong>{attachmentPanel === 'photo' ? '사진 선택' : attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={() => setAttachmentPanel(null)}>×</button></header>
-              {attachmentPanel === 'photo' && <><div className="ai-chat-page__photo-grid">{PHOTO_CHOICES.map((choice, index) => <button key={choice} type="button" className={selectedDemoPhoto === index ? 'is-selected' : ''} onClick={() => setSelectedDemoPhoto(index)}><img src={img(choice)} alt="사진 선택 예시" /></button>)}</div><p>{selectedDemoPhoto + 1}개 선택됨</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => photoInputRef.current?.click()}>선택한 사진 불러오기</button></>}
+              <header><strong>{attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={() => setAttachmentPanel(null)}>×</button></header>
               {attachmentPanel === 'camera' && <><p>촬영한 사진은 입력창 위 미리보기로 추가돼요.</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => cameraInputRef.current?.click()}>사진 촬영하기</button></>}
               {attachmentPanel === 'file' && <><ul className="ai-chat-page__file-list"><li><span>▤</span><span><strong>문서 파일</strong><small>PDF, TXT, DOC, DOCX 등 · 최대 10MB</small></span></li></ul><button type="button" className="ai-chat-page__sheet-action" onClick={() => fileInputRef.current?.click()}>기기에서 파일 선택</button></>}
-              {attachmentPanel === 'contact' && <><p>이 환경에서는 연락처를 직접 입력해주세요.</p><input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름 (선택)" aria-label="연락처 이름" /><input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호" inputMode="tel" aria-label="연락처 전화번호" /><button type="button" className="ai-chat-page__sheet-action" disabled={!contactTel.trim()} onClick={() => addContactAttachment(contactName, contactTel)}>연락처 추가</button></>}
+              {attachmentPanel === 'contact' && <>{supportsContactPicker ? <button type="button" className="ai-chat-page__sheet-action" onClick={() => { void selectDeviceContact(); }}>연락처에서 선택</button> : <p>현재 브라우저에서는 연락처 불러오기를 지원하지 않아요. 이름과 전화번호를 직접 입력해주세요.</p>}<input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름 (선택)" aria-label="연락처 이름" /><input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호" inputMode="tel" aria-label="연락처 전화번호" /><button type="button" className="ai-chat-page__sheet-action" disabled={!contactTel.trim()} onClick={() => addContactAttachment(contactName, contactTel)}>연락처 추가</button></>}
             </section>
           )}
         </div>
