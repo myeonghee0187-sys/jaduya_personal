@@ -149,19 +149,23 @@
 .community-tabs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-top: 26px;
   border-bottom: 1px solid var(--border-warm);
 }
 
+/* 네 탭이 라벨 글자 수만큼 제각각 폭을 가지면(flex: none) 활성 탭 밑줄(::after, 탭 자기
+ * 폭만큼 그려짐) 길이도 탭마다 달라지고, 좁은 화면에서는 네 탭 폭 합이 컨테이너보다
+ * 넓어져 오른쪽으로 넘친다 — flex: 1 로 항상 4등분해 폭·밑줄 길이를 모두 맞춘다. */
 .community-tabs__tab {
   position: relative;
-  flex: none;
+  flex: 1;
+  min-width: 0;
   border: 0;
-  padding: 12px 24px 14px;
+  padding: 12px 6px 14px;
   background: none;
   color: #737373;
   font: 400 14px/16px var(--font-suit);
+  text-align: center;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -201,7 +205,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 4px;
-  padding: 10px 0;
+  padding: 0;
 }
 
 .community-filter {
@@ -274,11 +278,44 @@
   font-weight: 700;
 }
 
+/* ================= 게시판 게시글종류 필터 (정보/질문/후기/잡담) =================
+ * 정렬 드롭다운(.community-filter__button, 테두리+화살표)과 구분되도록 완전한 알약형
+ * 버튼을 별도 줄에 늘어놓는다 — 선택된 종류만 브랜드색으로 채운다.
+ * 네 버튼을 flex:1 균등 폭으로 둬서, 양 끝 버튼의 좌우 바깥쪽이 게시글 카드(.post-card)와
+ * 같은 폭에 맞춰지고 사이 간격도 항상 균일하게 유지된다(community-tabs 와 같은 방식). */
+.board-type-filter {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 20px;
+}
+
+.board-type-filter__btn {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--cm-filter-border);
+  border-radius: var(--radius-pill);
+  padding: 8px 4px;
+  background: var(--surface-base);
+  color: var(--cm-oat);
+  font: 500 12px/1.3 var(--font-suit);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.board-type-filter__btn.is-active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--surface-widget-card);
+  font-weight: 700;
+}
+
 /* ================= 자취 꿀팁 전용 서브탭 (Figma tip 2257:13827 TipTiles) ================= */
 /* '자취 꿀팁' 탭에서만 쓰는 카테고리 선택 UI라 이 탭의 화면(community-tip.css 역할)에서만 참조한다. */
 
 .tip-categories {
   display: flex;
+  justify-content: center;
   gap: 5px;
   padding: 10px 0;
 }
@@ -1174,6 +1211,23 @@
   content: '';
 }
 
+/* persona 별 고민 예시로 폼을 한 번에 채우는 버튼 — 다른 칩 버튼들과 톤이 다른 상태를
+ * 보이도록 tip-category hover 등에서 이미 쓰는 브랜드 tint 를 재사용한다. */
+.write-panel__sample-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px;
+  border: 1px dashed var(--brand-primary);
+  border-radius: var(--radius-m);
+  padding: 12px;
+  background: rgba(180, 57, 54, 0.06);
+  color: var(--brand-primary);
+  font: 600 13px/1.3 var(--font-suit);
+  cursor: pointer;
+}
+
 .write-panel__label {
   margin: 0;
   color: #232323;
@@ -1368,7 +1422,7 @@
   border: 0;
   border-radius: 50%;
   padding: 0;
-  background: rgba(35, 35, 35, 0.72);
+  background: rgba(59, 51, 46, 0.72);
   cursor: pointer;
 }
 
@@ -1493,6 +1547,220 @@
   color: #fffdfb;
   font: 700 14px/1.3 var(--font-suit);
   cursor: pointer;
+}
+
+/* ================= 임시저장 목록 (write-panel "임시목록" 버튼으로 연다) =================
+ * write-panel과 같은 오른쪽 슬라이드인 구조를 그대로 쓴다 — 다만 글쓰기 패널이 이미 열린
+ * 위에 한 겹 더 뜨는 거라 z-index만 write-panel(60)보다 높게 둔다. */
+
+.draft-list-panel {
+  z-index: 65;
+  background: var(--surface-subtle);
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+}
+
+.draft-list-panel[hidden] {
+  display: flex;
+  opacity: 0;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 220ms cubic-bezier(0.4, 0, 1, 1),
+    transform 220ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0s linear 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draft-list-panel,
+  .draft-list-panel[hidden] {
+    transition: none;
+  }
+}
+
+.draft-list-panel__header {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  background: rgba(252, 250, 247, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.draft-list-panel__title-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.draft-list-panel__back {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.draft-list-panel__back img {
+  width: var(--header-back-w);
+  height: var(--header-back-h);
+}
+
+.draft-list-panel__title {
+  font-family: var(--font-a2z);
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--brand-primary);
+}
+
+.draft-list-panel__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.draft-list-panel__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.draft-list-panel__content {
+  padding: 26px var(--screen-margin) 32px;
+}
+
+.draft-list-panel__empty {
+  margin: 60px 0 0;
+  color: var(--cm-oat);
+  font: 400 14px/1.5 var(--font-suit);
+  text-align: center;
+}
+
+.draft-list-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.draft-list-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e9e4df;
+  border-radius: var(--radius-m);
+  padding: 14px;
+  background: var(--surface-base);
+}
+
+.draft-list-panel__item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.draft-list-panel__item-title {
+  margin: 0;
+  color: var(--text-nav);
+  font: 700 14px/1.3 var(--font-suit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-list-panel__item-preview {
+  margin: 0;
+  color: var(--cm-preview);
+  font: 400 12.5px/1.4 var(--font-suit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 게시글 종류 + 해시태그 — 게시글 카드 칩(.post-card__chip/--tag/--category)과
+ * 모양·색 전부 동일하게 맞춘다. */
+.draft-list-panel__item-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.draft-list-panel__item-tag {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  padding: 4px 8px;
+  background: var(--cm-tag-bg);
+  color: var(--cm-tag-text);
+  font: 400 11px/1.5 var(--font-suit);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.draft-list-panel__item-tag--category {
+  background: var(--cm-category-bg);
+  color: var(--cm-category-text);
+}
+
+.draft-list-panel__item-time {
+  color: var(--cm-oat);
+  font: 400 11px/1.4 var(--font-suit);
+}
+
+.draft-list-panel__item-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draft-list-panel__edit {
+  flex: none;
+  border: 1px solid var(--brand-primary);
+  border-radius: 999px;
+  padding: 7px 14px;
+  background: none;
+  color: var(--brand-primary);
+  font: 600 12px/1.3 var(--font-suit);
+  cursor: pointer;
+}
+
+.draft-list-panel__delete {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: #f5f5f4;
+  cursor: pointer;
+}
+
+.draft-list-panel__delete img {
+  width: 10px;
+  height: 10px;
 }
 
 /* ================= 게시글 상세보기 — write-panel과 같은 슬라이드인 오버레이 구조 ================= */

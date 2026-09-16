@@ -10,7 +10,7 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityPostDetailPanel } from '../components/CommunityPostDetailPanel';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB, mergeOwnPosts } from '../data/communityPosts';
+import { COMMUNITY_BOARD_TAB, COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB, mergeOwnPosts } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -150,7 +150,7 @@ export function CommunityPage() {
               className={`community-tabs__tab${name === tab ? ' is-active' : ''}`}
               aria-current={name === tab ? 'page' : undefined}
               onClick={() => {
-                if (name === '질문') navigation?.navigate('community-question');
+                if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
                 else if (name === '지역 후기') navigation?.navigate('community-region');
                 else setTab(name);
