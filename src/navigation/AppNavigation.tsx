@@ -15,6 +15,7 @@ export type AppPage =
   | 'home'
   | 'my'
   | 'settings'
+  | 'account'
   | 'support'
   | 'mission'
   | 'living-profile'

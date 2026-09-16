@@ -5,13 +5,16 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { AI_SCENARIOS, scenarioStage } from '../data/aiScenarios';
+import { resolveConversationInput } from '../data/resolveConversationInput';
 import type { AIConversationContext, ScenarioUserContext } from '../data/aiScenarios';
-import { loadLivingProfile } from '../data/livingProfile';
+import { HOUSING_TYPES, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
+import { loadAIChatSettings, saveAIChatSettings } from '../data/aiChatSettings';
+import type { AILocation } from '../data/aiChatSettings';
+import { reverseGeocodeKoreanLocation, searchKoreanLocations } from '../data/locationSearch';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon, img } from '../lib/asset';
 
 /* 사용자 조건 칩 — Figma chip_row (2271:33681) */
-const BASE_USER_CHIPS = ['월세', '원룸'] as const;
 
 /* 추천 질문 — Figma prompt_list (3151:20224) */
 /* 따옴표는 말풍선 표기라 본문에서 붙인다 — 입력창에는 문장만 들어간다 */
@@ -225,6 +228,76 @@ function getScenarioReply(message: string, conversation: AIConversationContext, 
     }
   }
 
+  if (conversation.flowId === 'plumbing-leak') {
+    if (conversation.stage === 'location') {
+      if (/싱크대|주방|부엌|수전|배수관/.test(answer)) {
+        const next = nextScenarioContext(conversation, 'sink-check', 'leakLocation', 'sink');
+        return { content: stageMessage('plumbing-leak', 'sink-check', user), conversation: next };
+      }
+      if (/화장실|욕실/.test(answer)) {
+        return {
+          content: '화장실 누수는 바닥이나 아래층 피해로 이어질 수 있어요. 물 사용을 줄이고 젖은 곳을 사진으로 남긴 뒤 관리실이나 집주인에게 바로 알려주세요.\n\n책임 주체: 관리실 또는 집주인\n\n• 집주인에게 연락하기\n• 관리실에 문의하기',
+          conversation: nextScenarioContext(conversation, 'result', 'leakLocation', 'bathroom'),
+        };
+      }
+      if (/세탁기/.test(answer)) {
+        return {
+          content: '세탁기 급수 호스와 배수 호스 연결부를 먼저 확인해주세요. 계속 새면 사용을 멈추고 사진을 남겨 집주인이나 수리기사에게 알려주세요.\n\n• 집주인에게 연락하기\n• 근처 수리기사 찾기',
+          conversation: nextScenarioContext(conversation, 'result', 'leakLocation', 'washer'),
+        };
+      }
+      return { content: '싱크대, 화장실, 세탁기 중 어디에 가까운지 알려주세요.', conversation };
+    }
+
+    if (conversation.stage === 'sink-check') {
+      if (/젖|새|샌|뚝뚝|물.*나/.test(answer)) {
+        return {
+          content: '연결부나 배수관 누수 가능성이 있어요. 싱크대 아래 밸브를 잠글 수 있으면 잠그고, 양동이나 수건으로 물을 받아주세요. 직접 분해하지 말고 젖은 곳을 사진으로 남겨 집주인에게 수리 요청하는 게 좋아요.\n\n책임 주체: 임대 설비라면 집주인 또는 관리실\n\n• 집주인에게 연락하기\n• 근처 수리기사 찾기',
+          conversation: nextScenarioContext(conversation, 'result', 'sinkLeak', 'yes'),
+        };
+      }
+      if (/안젖|안새|정상|모르겠/.test(answer)) {
+        return {
+          content: '눈에 보이는 누수가 없더라도 물을 사용할 때만 새는지 한 번 확인해보세요. 계속 떨어지거나 아래쪽이 젖으면 사용을 줄이고 집주인에게 알려주세요.',
+          conversation: nextScenarioContext(conversation, 'result', 'sinkLeak', 'unclear'),
+        };
+      }
+      return { content: '싱크대 아래 연결부나 배수관 주변이 젖어 있는지 알려주세요.', conversation };
+    }
+  }
+
+  if (conversation.flowId === 'toilet-clog' && conversation.stage === 'water-level') {
+    if (/높|차올|넘칠|많/.test(answer)) {
+      return {
+        content: '물이 넘칠 수 있으니 더 이상 물을 내리지 말아주세요. 변기 뒤 또는 옆의 급수 밸브를 시계 방향으로 잠글 수 있으면 잠그고, 관리실이나 집주인에게 바로 알려주세요.\n\n책임 주체: 관리실 또는 집주인\n\n• 집주인에게 연락하기\n• 관리실에 문의하기',
+        conversation: nextScenarioContext(conversation, 'result', 'toiletWaterLevel', 'high'),
+      };
+    }
+    if (/낮|평소|안높|괜찮/.test(answer)) {
+      return {
+        content: '물이 차오르지 않는다면 한 번만 뚫어뻥을 사용해볼 수 있어요. 해결되지 않거나 반복해서 막히면 이물질·배관 문제일 수 있으니 집주인이나 관리실에 점검을 요청해주세요.\n\n• 해결 방법 보기\n• 집주인에게 연락하기',
+        conversation: nextScenarioContext(conversation, 'result', 'toiletWaterLevel', 'normal'),
+      };
+    }
+    return { content: '평소보다 물이 높아졌는지, 차오르는지 알려주세요.', conversation };
+  }
+
+  if (conversation.flowId === 'power-outage' && conversation.stage === 'scope') {
+    if (/전체|다|전부|집전체/.test(answer)) {
+      return {
+        content: '집 전체가 꺼졌다면 건물 정전 가능성도 있어요. 창밖이나 공용 복도 조명도 함께 확인하고, 분전함을 반복해서 올리지 말고 관리실에 먼저 문의해주세요.\n\n책임 주체: 관리실\n\n• 관리실에 문의하기\n• 정전 정보 확인하기',
+        conversation: nextScenarioContext(conversation, 'result', 'powerScope', 'whole-home'),
+      };
+    }
+    if (/방|콘센트|일부|특정/.test(answer)) {
+      return {
+        content: '특정 공간만 안 되면 해당 차단기가 내려갔는지 한 번만 확인해주세요. 다시 내려가거나 타는 냄새가 나면 올리지 말고 집주인이나 전문기사에게 알려주세요.\n\n책임 주체: 임대 설비라면 집주인 또는 전문기사\n\n• 집주인에게 연락하기\n• 근처 수리기사 찾기',
+        conversation: nextScenarioContext(conversation, 'result', 'powerScope', 'partial'),
+      };
+    }
+    return { content: '집 전체인지, 특정 방이나 콘센트만 안 되는지 알려주세요.', conversation };
+  }
+
   if (conversation.flowId === 'moveIn') {
     if (conversation.stage === 'move-stage') {
       if (/아직|이사전/.test(answer)) {
@@ -297,6 +370,14 @@ function normalizeAnswer(message: string): string {
 
 function isUnknownAnswer(message: string): boolean {
   return /모르겠|확인못|잘몰라|모름/.test(normalizeAnswer(message));
+}
+
+function smalltalkReply(kind: 'greeting' | 'thanks' | 'complaint' | 'about-ai' | 'help'): string {
+  if (kind === 'greeting') return '안녕하세요! 자두AI예요. 자취하면서 생긴 문제를 편하게 말씀해주세요.';
+  if (kind === 'thanks') return '도움이 됐다니 다행이에요! 다른 것도 궁금하면 말씀해주세요.';
+  if (kind === 'complaint') return '제가 잘못 이해했나 봐요 😅 어떤 부분이 이상했는지 말씀해주시면 다시 도와드릴게요.';
+  if (kind === 'about-ai') return '저는 자취 중 생긴 생활 문제를 원인부터 확인하고, 직접 할 수 있는 조치와 집주인·관리실에 요청할 일을 정리해드려요.';
+  return '도와드릴게요. 자취 중 어떤 상황인지 편하게 말씀해주세요. 예: “싱크대 밑에서 물이 새요”';
 }
 
 function getPowerAnswer(message: string): PowerAnswer | 'unknown' | null {
@@ -498,6 +579,19 @@ export function AIChatPage() {
   const [contactName, setContactName] = useState('');
   const [contactTel, setContactTel] = useState('');
   const [attachmentNotice, setAttachmentNotice] = useState('');
+  const [freeInputMisses, setFreeInputMisses] = useState(0);
+  const [aiView, setAiView] = useState<'home' | 'chat' | 'settings'>('home');
+  const storedAISettings = loadAIChatSettings(user?.email ?? 'guest');
+  const [contractType, setContractType] = useState(storedAISettings.contractType);
+  const [aiLocation, setAiLocation] = useState<AILocation | null>(storedAISettings.location);
+  const [contractTypeDraft, setContractTypeDraft] = useState(storedAISettings.contractType);
+  const [locationDraft, setLocationDraft] = useState<AILocation | null>(storedAISettings.location);
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationResults, setLocationResults] = useState<AILocation[]>([]);
+  const [locationNotice, setLocationNotice] = useState('');
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [housingDraft, setHousingDraft] = useState('원룸');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
   const pageRef = useRef<HTMLDivElement>(null);
   const messageIdRef = useRef(0);
@@ -515,19 +609,20 @@ export function AIChatPage() {
   } | null>(null);
   const suppressBenefitCardClickRef = useRef(false);
   const [isBenefitRailDragging, setIsBenefitRailDragging] = useState(false);
-  const location = user?.preferences?.answers.location?.[0];
-  const userChips = [location, ...BASE_USER_CHIPS].filter((chip): chip is string => Boolean(chip));
+  const profileLocation = user?.preferences?.answers.location?.[0];
   const personaProfile = PERSONA_PROFILE[user?.persona ?? 'beginner'];
   const livingProfile = loadLivingProfile(user?.email ?? 'guest', personaProfile);
+  const housingValue = livingProfile.housing ?? housingDraft;
+  const effectiveLocation = aiLocation?.displayName ?? profileLocation;
+  const locationSummaryName = aiLocation ? ([aiLocation.sigungu, aiLocation.dong].filter(Boolean).join(' ') || aiLocation.displayName) : undefined;
+  const userChips = [contractType, housingValue, locationSummaryName].filter((chip): chip is string => Boolean(chip));
   const profileContext: ScenarioUserContext = {
     name: user?.name,
     persona: user?.persona,
-    location,
+    location: effectiveLocation,
     experience: livingProfile.experience,
     housing: livingProfile.housing,
-    contract: user?.preferences?.answers.contract?.[0]
-      ?? user?.preferences?.answers.contractType?.[0]
-      ?? user?.preferences?.answers.leaseType?.[0],
+    contract: contractType,
   };
 
   const appendAssistantMessage = (
@@ -607,18 +702,18 @@ export function AIChatPage() {
         ]);
         return;
       case '근처 수리기사 찾기':
-        if (!location) {
+        if (!effectiveLocation) {
           appendAssistantMessage('주변 수리업체를 찾으려면 지역 설정이 필요해요.', [
             { label: '지역 설정하기' },
           ]);
           return;
         }
         window.open(
-          `https://map.naver.com/p/search/${encodeURIComponent(`${location} 보일러 수리`)}`,
+          `https://map.naver.com/p/search/${encodeURIComponent(`${effectiveLocation} 보일러 수리`)}`,
           '_blank',
           'noopener,noreferrer',
         );
-        appendAssistantMessage(`${location} 보일러 수리 검색을 새 탭에서 열었어요. 업체의 후기와 영업시간을 확인한 뒤 연락해보세요.`);
+        appendAssistantMessage(`${effectiveLocation} 보일러 수리 검색을 새 탭에서 열었어요. 업체의 후기와 영업시간을 확인한 뒤 연락해보세요.`);
         return;
       case '지역 설정하기':
         navigation?.closeAIChat();
@@ -849,6 +944,8 @@ export function AIChatPage() {
     if ((!question && pendingAttachments.length === 0) || isTyping) return;
     const activeStage = isImageLocationQuestion ? 'image-location' : (attachmentFollowup ? `attachment-${attachmentFollowup}` : (diagnosis?.stage ?? conversation.stage));
     if (expectedStage && activeStage !== expectedStage) return;
+    /* 보일러 진단은 기존 diagnosis state가 단계 문맥을 소유하므로 그대로 넘긴다. */
+    const inputResolution = diagnosis ? { type: 'answer' as const } : resolveConversationInput(question, conversation);
 
     /* 최종 결과 뒤에 직접 새 질문을 입력하면 exit action은 새 응답이 올 때까지 숨긴다. */
     setIsTerminalResult(false);
@@ -865,12 +962,18 @@ export function AIChatPage() {
     const hasContact = pendingAttachments.some((attachment) => attachment.type === 'contact');
     const startsPestPhoto = hasImage && /벌레|바퀴|해충/.test(question) && !diagnosis && !conversation.flowId;
     const answersImageLocationQuestion = isImageLocationQuestion;
+    const naturalIntent = !diagnosis && inputResolution.type === 'scenario' ? inputResolution.intent : null;
     const startsGuide = !diagnosis && !conversation.flowId && /전입.?신고/.test(question);
     const startsRecommendation = !diagnosis && !conversation.flowId && /지원금|지원.?사업|혜택/.test(question);
-    const scenarioReply = conversation.flowId && (conversation.flowType !== 'diagnosis' || conversation.flowId === 'pest-photo')
+    const scenarioReply = inputResolution.type === 'answer' && conversation.flowId && (
+      conversation.flowType !== 'diagnosis'
+      || ['pest-photo', 'plumbing-leak', 'toilet-clog', 'power-outage'].includes(conversation.flowId)
+    )
       ? getScenarioReply(question, conversation, profileContext)
       : null;
-    const startedConversation = startsGuide
+    const startedConversation = naturalIntent
+      ? { flowId: naturalIntent.scenarioId, flowType: 'diagnosis' as const, stage: naturalIntent.stage, persona: user?.persona ?? null, answers: {} }
+      : startsGuide
       ? { flowId: 'moveIn', flowType: 'guide' as const, stage: 'move-stage', persona: user?.persona ?? null, answers: {} }
       : startsRecommendation
         ? { flowId: 'support', flowType: 'recommendation' as const, stage: 'category', persona: user?.persona ?? null, answers: {} }
@@ -878,15 +981,21 @@ export function AIChatPage() {
     const startsFileQuestion = hasFile && !question && !diagnosis && !conversation.flowId;
     const startsContactQuestion = hasContact && /보일러|집주인/.test(question) && !diagnosis && !conversation.flowId;
     const answersAttachmentFollowup = attachmentFollowup;
-    const reply = scenarioReply || startsPestPhoto || answersImageLocationQuestion || startsFileQuestion || startsContactQuestion || answersAttachmentFollowup
+    const reply = scenarioReply || startsPestPhoto || answersImageLocationQuestion || naturalIntent || startsFileQuestion || startsContactQuestion || answersAttachmentFollowup || inputResolution.type === 'smalltalk' || inputResolution.type === 'cancel' || inputResolution.type === 'correction'
       ? null
-      : getDiagnosticReply(question, diagnosis, location);
+      : getDiagnosticReply(question, diagnosis, effectiveLocation);
     const isSupportResult = scenarioReply?.conversation.flowId === 'support'
       && scenarioReply.conversation.stage === 'result';
     const isPestResult = scenarioReply?.conversation.flowId === 'pest-photo'
       && scenarioReply.conversation.stage === 'result';
 
     responseTimerRef.current = window.setTimeout(() => {
+      const correctionReply = conversation.flowId === 'plumbing-leak' && conversation.stage === 'sink-check'
+        ? '알겠어요. 싱크대는 아니군요. 화장실이나 세탁기 중 어디에 가까운지 알려주세요.'
+        : '제가 상황을 잘못 짚었나 봐요. 지금 어떤 도움이 필요한지 편하게 말씀해주세요.';
+      const unknownReply = freeInputMisses === 0
+        ? '조금 더 자세히 말씀해주실래요?'
+        : '자취 중 생긴 문제라면 상황을 그대로 말씀해주셔도 돼요. 예: “싱크대 밑에서 물이 새요”';
       const assistantContent = startsPestPhoto
         ? '사진 속 벌레를 확인하고 있어요'
         : answersImageLocationQuestion
@@ -899,6 +1008,14 @@ export function AIChatPage() {
                 ? (question.includes('문구') ? '보일러 문제와 확인한 내용을 알려주시면 집주인에게 전달할 문구를 만들어드릴게요.' : '필요한 상황이 생기면 언제든 전달 문구를 함께 정리해드릴게요.')
                 : answersAttachmentFollowup === 'file'
                   ? '파일 내용은 직접 읽지 않아요. 선택한 항목과 관련된 상황을 알려주시면 필요한 확인 순서를 안내해드릴게요.'
+          : inputResolution.type === 'cancel'
+            ? '알겠어요. 현재 진단은 여기서 마칠게요. 다른 도움이 필요하면 편하게 말씀해주세요.'
+            : inputResolution.type === 'correction'
+              ? correctionReply
+              : inputResolution.type === 'smalltalk'
+                ? smalltalkReply(inputResolution.kind)
+                : inputResolution.type === 'unknown'
+                  ? unknownReply
           : isSupportResult
             ? '내 조건에 맞는 혜택을 확인하고 있어요'
           : scenarioReply?.content
@@ -924,12 +1041,31 @@ export function AIChatPage() {
         setAttachmentFollowup('contact');
       } else if (answersAttachmentFollowup) {
         setAttachmentFollowup(null);
+      } else if (inputResolution.type === 'cancel') {
+        setConversation(EMPTY_CONVERSATION);
+        setDiagnosis(null);
+        setFreeInputMisses(0);
+      } else if (inputResolution.type === 'correction') {
+        if (conversation.flowId === 'plumbing-leak' && conversation.stage === 'sink-check') {
+          setConversation({ ...conversation, stage: 'location' });
+        } else {
+          setConversation(EMPTY_CONVERSATION);
+        }
+        setDiagnosis(null);
+        setFreeInputMisses(0);
+      } else if (inputResolution.type === 'smalltalk') {
+        setFreeInputMisses(0);
+      } else if (inputResolution.type === 'unknown') {
+        setFreeInputMisses((count) => Math.min(count + 1, 1));
       } else if (scenarioReply) setConversation(
         isSupportResult
           ? { ...scenarioReply.conversation, stage: 'analyzing' }
           : scenarioReply.conversation,
       );
-      else if (startedConversation) setConversation(startedConversation);
+      else if (startedConversation) {
+        setConversation(startedConversation);
+        setFreeInputMisses(0);
+      }
       else setDiagnosis(reply!.diagnosis);
       if (isSupportResult) {
         /* 한 번의 response timer를 순차 재사용해 분석 문구와 결과가 중복되지 않게 한다. */
@@ -996,6 +1132,7 @@ export function AIChatPage() {
     setIsTyping(false);
     setDiagnosis(null);
     setConversation(EMPTY_CONVERSATION);
+    setFreeInputMisses(0);
     setIsTerminalResult(false);
     setIsImageLocationQuestion(false);
     setAttachmentFollowup(null);
@@ -1059,6 +1196,76 @@ export function AIChatPage() {
     }
   };
 
+  const setFromCurrentLocation = () => {
+    setLocationNotice('');
+    setLocationSearchOpen(false);
+    setLocationResults([]);
+    if (!navigator.geolocation) {
+      setLocationNotice('현재 위치를 확인할 수 없어요. 지역을 직접 검색해주세요.');
+      return;
+    }
+    setIsLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        void reverseGeocodeKoreanLocation(coords.latitude, coords.longitude)
+          .then((nextLocation) => {
+            setLocationDraft(nextLocation);
+            setLocationNotice(`${nextLocation.displayName}(으)로 설정했어요. 저장하기를 눌러 적용해주세요.`);
+          })
+          .catch(() => setLocationNotice('현재 지역을 확인하지 못했어요. 지역을 직접 검색해주세요.'))
+          .finally(() => setIsLocationLoading(false));
+      },
+      () => {
+        setIsLocationLoading(false);
+        setLocationNotice('위치 권한을 허용하거나 지역을 직접 검색해주세요.');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
+  };
+
+  const submitLocationSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!locationQuery.trim() || isLocationLoading) return;
+    setIsLocationLoading(true);
+    setLocationNotice('');
+    setLocationResults([]);
+    void searchKoreanLocations(locationQuery)
+      .then((results) => {
+        setLocationResults(results);
+        if (results.length === 0) setLocationNotice('검색 결과가 없어요. 동, 구 또는 주소를 다시 입력해주세요.');
+      })
+      .catch(() => setLocationNotice('지역을 검색하지 못했어요. 잠시 후 다시 시도해주세요.'))
+      .finally(() => setIsLocationLoading(false));
+  };
+
+  if (aiView === 'settings') {
+    const saveSettings = () => {
+      saveLivingProfile(user?.email ?? 'guest', { ...livingProfile, housing: housingDraft as typeof HOUSING_TYPES[number] });
+      saveAIChatSettings(user?.email ?? 'guest', { contractType: contractTypeDraft, location: locationDraft });
+      setContractType(contractTypeDraft); setAiLocation(locationDraft);
+      setAiView('home');
+    };
+    const referenceChips = [housingValue, contractType, locationSummaryName].filter((value): value is string => Boolean(value));
+    return <div ref={pageRef} className={`ai-chat-page app ai-chat-page--settings${closeState === 'open' ? '' : ` is-${closeState}`}`} onAnimationEnd={finishClose}><StatusBar />
+      <header className="ai-chat-page__settings-header"><button type="button" className="ai-chat-page__settings-back" aria-label="자두AI 홈으로 돌아가기" onClick={() => setAiView('home')}><img src={icon('gnb-back.svg')} alt="" aria-hidden="true" /></button><div className="ai-chat-page__profile"><img src={icon('ai-avatar.svg')} alt="" /><span className="ai-chat-page__profile-copy"><strong>자두AI</strong><span>맞춤 설정을 편집해요</span></span></div><button type="button" className="ai-chat-page__close" aria-label="자두AI 닫기" onClick={closeChat} disabled={closeState !== 'open'}><img src={icon('gnb-close.svg')} alt="" /></button></header>
+      <section className="ai-chat-page__settings-summary" aria-labelledby="ai-reference-title"><h2 id="ai-reference-title">자두AI가 참고하는 정보</h2><p>답변할 때 아래 정보를 활용해요.</p><div>{referenceChips.map((value) => <span key={value}>{value}</span>)}</div></section>
+      <main className="ai-chat-page__settings-body">
+        <section className="ai-chat-page__settings-section" aria-labelledby="ai-housing-title">
+          <header className="ai-chat-page__settings-section-head"><h2 id="ai-housing-title"><span>1</span>내 주거 정보</h2><p>자두AI가 상황에 맞는 답변을 드릴 때 참고해요.</p></header>
+          <div className="ai-chat-page__settings-field"><h3>주거 형태</h3><p>현재 거주 중인 주거 형태를 선택해주세요.</p><div className="ai-chat-page__settings-grid">{HOUSING_TYPES.map((value) => <button key={value} type="button" className="ai-chat-page__settings-choice" aria-pressed={housingDraft === value} onClick={() => setHousingDraft(value)}>{value}</button>)}</div></div>
+          <div className="ai-chat-page__settings-field"><h3>계약 형태</h3><p>현재 계약 형태를 선택해주세요.</p><div className="ai-chat-page__settings-grid">{(['월세', '전세', '자가', '기타'] as const).map((value) => <button key={value} type="button" className="ai-chat-page__settings-choice" aria-pressed={contractTypeDraft === value} onClick={() => setContractTypeDraft(value)}>{value}</button>)}</div></div>
+        </section>
+        <section className="ai-chat-page__settings-section" aria-labelledby="ai-location-title">
+          <header className="ai-chat-page__settings-section-head"><h2 id="ai-location-title"><span>2</span>내 위치</h2><p>자두AI가 주변 시설, 수리 서비스, 지역 정보를 찾을 때 참고해요.</p></header>
+          <div className="ai-chat-page__location-current">{locationDraft ? <><h3>현재 설정된 지역</h3><strong>{locationDraft.displayName}</strong></> : <p>아직 설정된 지역이 없어요.</p>}</div>
+          <div className="ai-chat-page__location-actions"><button type="button" onClick={setFromCurrentLocation} disabled={isLocationLoading}>{isLocationLoading && !locationSearchOpen ? '위치 확인 중...' : locationDraft ? '현재 위치로 변경' : '현재 위치로 설정'}</button><button type="button" onClick={() => { setLocationSearchOpen(true); setLocationNotice(''); }} disabled={isLocationLoading}>{locationDraft ? '지역 변경' : '지역 검색'}</button></div>
+          {locationNotice && <p className="ai-chat-page__location-notice" role="status">{locationNotice}</p>}
+        </section>
+      </main><button className="ai-chat-page__settings-save" onClick={saveSettings}>저장하기</button>
+      {locationSearchOpen && <div className="ai-chat-page__location-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationSearchOpen(false); }}><section className="ai-chat-page__location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-search-title"><div className="ai-chat-page__location-sheet-handle" /><header><h2 id="location-search-title">지역 검색</h2><button type="button" aria-label="지역 검색 닫기" onClick={() => setLocationSearchOpen(false)}><img src={icon('sheet-close.svg')} alt="" /></button></header><form onSubmit={submitLocationSearch}><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="동, 구, 주소를 검색해보세요" aria-label="지역 검색어" autoFocus /><button type="submit" aria-label="지역 검색 실행" disabled={!locationQuery.trim() || isLocationLoading}><img src={icon('community-search.svg')} alt="" /></button></form>{locationResults.length > 0 && <ul>{locationResults.map((result) => <li key={`${result.latitude}-${result.longitude}`}><button type="button" onClick={() => { setLocationDraft(result); setLocationSearchOpen(false); setLocationResults([]); setLocationNotice(`${result.displayName}(으)로 선택했어요. 저장하기를 눌러 적용해주세요.`); }}>{result.displayName}</button></li>)}</ul>}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></section></div>}
+    </div>;
+  }
+
   return (
     <div
       ref={pageRef}
@@ -1093,7 +1300,7 @@ export function AIChatPage() {
             </span>
           ))}
         </span>
-        <button type="button" className="ai-chat-page__chip ai-chat-page__chip--edit">
+        <button type="button" className="ai-chat-page__chip ai-chat-page__chip--edit" onClick={() => { setHousingDraft(livingProfile.housing ?? '원룸'); setContractTypeDraft(contractType); setLocationDraft(aiLocation); setLocationSearchOpen(false); setLocationQuery(''); setLocationResults([]); setLocationNotice(''); setAiView('settings'); }}>
           편집
         </button>
       </div>
@@ -1313,7 +1520,7 @@ export function AIChatPage() {
             onChange={(event) => setDraft(event.target.value)}
           />
           <button type="button" className="ai-chat-page__input-icon" aria-label="음성 입력">
-            <img src={icon('ai-mic.svg')} alt="" />
+            <img src="/assets/icon/chatbot/mic.svg" alt="" />
           </button>
           <button
             type="submit"
@@ -1321,7 +1528,7 @@ export function AIChatPage() {
             aria-label="메시지 전송"
             disabled={isTyping || (!draft.trim() && attachments.length === 0)}
           >
-            ↑
+            <img src="/assets/icon/chatbot/send.svg" alt="" />
           </button>
         </div>
       </form>
@@ -1331,10 +1538,10 @@ export function AIChatPage() {
           <button type="button" className="ai-chat-page__attach-backdrop" aria-label="첨부 화면 닫기" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel(null); }} />
           {isAttachMenuOpen && (
             <div className="ai-chat-page__attach-menu" role="menu" aria-label="첨부 메뉴">
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('camera'); }}><span aria-hidden="true">◉</span> 카메라</button>
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('photo'); }}><span aria-hidden="true">▣</span> 사진</button>
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('file'); }}><span aria-hidden="true">▤</span> 파일</button>
-              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { void openContactPicker(); }}><span aria-hidden="true">♙</span> 연락처</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('camera'); }}><img src="/assets/icon/chatbot/camera.svg" alt="" />카메라</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('photo'); }}><img src="/assets/icon/chatbot/img.svg" alt="" />사진</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('file'); }}><img src="/assets/icon/chatbot/clip.svg" alt="" />파일</button>
+              <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { void openContactPicker(); }}><img src="/assets/icon/chatbot/person.svg" alt="" />연락처</button>
             </div>
           )}
           {attachmentPanel && (

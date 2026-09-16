@@ -32,6 +32,14 @@ export type FlowScenario = {
   stages: Record<string, FlowStage>;
 };
 
+/** 자유 입력을 기존 시나리오의 첫 단계로 연결하기 위한 해석 결과다. */
+export type ScenarioIntent =
+  | { scenarioId: 'plumbing-leak'; stage: 'location' }
+  | { scenarioId: 'plumbing-leak'; stage: 'sink-check' }
+  | { scenarioId: 'toilet-clog'; stage: 'water-level' }
+  | { scenarioId: 'power-outage'; stage: 'scope' }
+  | null;
+
 export const AI_SCENARIOS: Record<string, FlowScenario> = {
   boiler: {
     id: 'boiler', type: 'diagnosis',
@@ -99,8 +107,42 @@ export const AI_SCENARIOS: Record<string, FlowScenario> = {
       ] },
     },
   },
+  'plumbing-leak': {
+    id: 'plumbing-leak', type: 'diagnosis',
+    stages: {
+      location: { message: '어디에서 물이 새고 있나요?\n싱크대, 화장실, 세탁기 중 어디에 가까운지 알려주세요.', inputMode: 'hybrid' },
+      'sink-check': { message: '싱크대 누수로 보이네요. 물을 잠그고, 수전 아래 연결부나 배수관 주변이 젖어 있는지 확인할 수 있나요?', inputMode: 'hybrid' },
+    },
+  },
+  'toilet-clog': {
+    id: 'toilet-clog', type: 'diagnosis',
+    stages: {
+      'water-level': { message: '변기 물이 차오르거나 넘칠 것 같다면 먼저 물을 내리지 말아주세요. 물 높이가 평소보다 높나요?', inputMode: 'hybrid' },
+    },
+  },
+  'power-outage': {
+    id: 'power-outage', type: 'diagnosis',
+    stages: {
+      scope: { message: '집 전체 전기가 나간 건가요, 아니면 특정 방이나 콘센트만 안 되나요?', inputMode: 'hybrid' },
+    },
+  },
 };
 
 export function scenarioStage(scenarioId: string, stage: string): FlowStage | null {
   return AI_SCENARIOS[scenarioId]?.stages[stage] ?? null;
+}
+
+/** 문장 전체 일치가 아닌 증상·장소 키워드를 함께 보며 문제 시나리오를 고른다. */
+export function resolveScenarioIntent(message: string): ScenarioIntent {
+  const text = message.replace(/\s/g, '').toLowerCase();
+  const hasLeak = /누수|물이.*(새|샌|떨어|뚝뚝)|새는.*물|물.*계속/.test(text);
+  const hasSink = /싱크대|주방|부엌|수전|배수관/.test(text);
+  const hasToilet = /변기|물이.*안.*내려|물.*차올|배변/.test(text);
+  const hasPower = /정전|전기.*(나가|나갔)|불.*(꺼|나가|나갔)|집.*어두|차단기/.test(text);
+
+  if (hasToilet) return { scenarioId: 'toilet-clog', stage: 'water-level' };
+  if (hasPower) return { scenarioId: 'power-outage', stage: 'scope' };
+  if (hasLeak && hasSink) return { scenarioId: 'plumbing-leak', stage: 'sink-check' };
+  if (hasLeak) return { scenarioId: 'plumbing-leak', stage: 'location' };
+  return null;
 }

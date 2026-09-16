@@ -18,6 +18,8 @@ export interface AuthUser {
   name: string;
   email: string;
   persona: Persona;
+  /** 사용자가 바꾼 사진은 data URL, 기본 사진은 assets/img 내 파일명으로 저장한다. */
+  profileImage?: string;
   /** 첫 맞춤 설정을 마쳤는지. false 면 Home 대신 맞춤 설정으로 보낸다. */
   onboarded: boolean;
   /** 맞춤 설정 결과 — Home 개인화에서 참조한다. 아직 없으면 null */

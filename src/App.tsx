@@ -28,6 +28,7 @@ import { BenefitDetailPage } from './pages/BenefitDetailPage';
 import { WidgetPage } from './pages/WidgetPage';
 import { NotificationPage } from './pages/NotificationPage';
 import { AppSettingsPage } from './pages/AppSettingsPage';
+import { AccountManagementPage } from './pages/AccountManagementPage';
 import { CustomerCenterPage } from './pages/CustomerCenterPage';
 import { AIChatbot } from './components/ai/AIChatbot';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
@@ -66,6 +67,10 @@ function MainPages() {
               navigation?.navigate('settings');
               return true;
             }
+            if (to === 'account') {
+              navigation?.navigate('account');
+              return true;
+            }
             if (to === 'support') {
               navigation?.navigate('support');
               return true;
@@ -94,6 +99,7 @@ function MainPages() {
       {page === 'benefit-detail' && <BenefitDetailPage />}
       {page === 'notifications' && <NotificationPage />}
       {page === 'settings' && <AppSettingsPage />}
+      {page === 'account' && <AccountManagementPage />}
       {page === 'support' && <CustomerCenterPage />}
 
       {/* 챗봇은 화면 전용 기능이 아니라 어디서나 같은 버튼이다 — 여기서 한 번만 그린다.

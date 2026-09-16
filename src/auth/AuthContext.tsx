@@ -24,6 +24,8 @@ interface AuthValue {
   signup(input: SignupInput): boolean;
   /** 첫 맞춤 설정 완료 — onboarded 를 true 로 올리고 결과를 저장한다 */
   completeOnboarding(preferences: UserPreferences): void;
+  /** 계정 관리 화면에서 바꾼 사용자명·프로필 사진을 현재 세션과 저장소에 반영한다. */
+  updateProfile(profile: Pick<AuthUser, 'name' | 'profileImage'>): void;
   logout(): void;
   /** 데모 신규 사용자(이서준)가 회원가입을 마쳤는지 — 시트 표시/동작 분기용 */
   demoSignedUp: boolean;
@@ -49,6 +51,7 @@ function loadStoredUser(): AuthUser | null {
       name: parsed.name ?? '',
       email: parsed.email,
       persona: parsed.persona ?? 'beginner',
+      profileImage: parsed.profileImage,
       onboarded: parsed.onboarded ?? true,
       preferences: parsed.preferences ?? null,
     };
@@ -76,6 +79,7 @@ function toAuthenticatedUser(account: MockAccount, key: string): AuthUser {
     persona: account.persona,
     onboarded: account.onboarded && !isOnboardingPending(key),
     preferences: account.preferences,
+    profileImage: undefined,
   };
 }
 
@@ -162,6 +166,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSignedUpUsers((prev) =>
           prev[nextUser.email]
             ? { ...prev, [nextUser.email]: { ...prev[nextUser.email], onboarded: true, preferences } }
+            : prev,
+        );
+      },
+      updateProfile(profile) {
+        if (!user) return;
+        const nextUser: AuthUser = { ...user, ...profile };
+        setUser(nextUser);
+        saveStoredUser(nextUser);
+        setSignedUpUsers((prev) =>
+          prev[nextUser.email]
+            ? { ...prev, [nextUser.email]: { ...prev[nextUser.email], ...profile } }
             : prev,
         );
       },

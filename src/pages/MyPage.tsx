@@ -23,7 +23,6 @@ export type MyPageDestination =
   | 'level'
   | 'activity'
   | 'settings'
-  /* 상세 화면은 아직 없다 — 눌러도 '준비 중' 안내만 뜬다 */
   | 'account'
   | 'support';
 
@@ -88,7 +87,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
       <main className="mypage__scroll">
         {/* ① 프로필 — 지금 어떤 상태인지 한 줄로 */}
         <section className="mypage__profile" aria-labelledby="profile-title">
-          <img className="mypage__avatar" src={img(profile.profileImage)} alt="" />
+          <img className="mypage__avatar" src={user?.profileImage ?? img(profile.profileImage)} alt="" />
           {/* 자취 정보 수정은 아래 '자취 프로필' 메뉴에서만 한다 — 여기서는 보여주기만 */}
           <div className="mypage__profile-copy">
             <div className="mypage__profile-name-row">
@@ -131,7 +130,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
               className="mypage__level-more"
               onClick={() => go('level', '자취 레벨')}
             >
-              전체보기
+              미션보기
               <img src={icon('chevron-right-sm.svg')} alt="" />
             </button>
           </div>
@@ -168,7 +167,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
             {/* 최고 레벨에는 다음 레벨이 없으므로 '0XP 더 모으면' 대신 달성 문구를 띄운다 */}
             <p className="mypage__xp">
               {level.isMaxLevel ? (
-                <b>자취 고수 레벨을 달성했어요!</b>
+                <b className="mypage__xp-max">자취 고수 레벨을 달성했어요!</b>
               ) : (
                 <>
                   <b>{level.remainingXp}XP</b> 더 모으면 레벨업 할 수있어요!
@@ -202,7 +201,6 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
             </span>
             <img src={icon('chevron-right-sm.svg')} alt="" />
           </button>
-          {/* 계정 관리는 앱 설정에서 떼어낸 1depth 메뉴다 — 상세 화면은 다음 작업에서 만든다 */}
           <button type="button" onClick={() => go('account', '계정 관리')}>
             <span className="mypage__link-copy">
               <b>계정 관리</b>

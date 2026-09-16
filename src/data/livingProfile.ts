@@ -9,6 +9,14 @@
 
 const STORAGE_PREFIX = 'jaduya.livingProfile.';
 
+/** ownerKey(대부분 이메일)를 한 형태로 통일한다 — 호출하는 화면마다 trim/lowercase 를
+ * 따로 하거나 안 해서(Home/MyPage/AIChat 는 원본 그대로, DiscoverySection 만
+ * trim+lowercase) 같은 계정인데 다른 localStorage 키로 갈리는 문제가 있었다. 이제는
+ * 어디서 어떤 형태로 넘기든 이 파일 안에서만 정규화한다 — 호출부는 신경 쓰지 않아도 된다. */
+function normalizeOwnerKey(ownerKey: string): string {
+  return ownerKey.trim().toLowerCase();
+}
+
 /** 자취 경험 — 단일 선택 */
 export const LIVING_EXPERIENCES = [
   '자취 준비중',
@@ -57,14 +65,18 @@ export function interestTopicHint(category: InterestCategory): string {
   return `${category}에서 어떤 정보가 궁금하세요?`;
 }
 
+/** 관심 분야로 고를 수 있는 최대 개수 — 이 이상은 '+ 관심 분야 추가'가 사라진다 */
+export const MAX_INTEREST_CATEGORIES = 2;
+
 export interface LivingProfilePreferences {
   experience: LivingExperience | null;
   housing: HousingType | null;
-  /** 관심 분야 — 자취 경험·주거 형태와 같은 단일 선택. 아직 고르지 않았으면 null.
-   * '보고 있는 분야' 와 '선택한 분야' 를 따로 두지 않는다 — 둘이 어긋나면
-   * 선택이 풀린 버튼에 선택 표시만 남는다. */
-  category: InterestCategory | null;
-  /** 분야별 관심 주제 — 분야를 바꿔도 각자 유지된다(복수 선택) */
+  /** 관심 분야 — 최대 MAX_INTEREST_CATEGORIES(2)개, 고른 순서 그대로 담는다
+   * (배열의 첫 항목이 처음 고른 분야다 — 탭 순서·홈 추천의 기준 분야로 쓴다).
+   * 아직 하나도 안 골랐으면 빈 배열. */
+  categories: InterestCategory[];
+  /** 분야별 관심 주제 — 분야를 바꿔도(혹은 두 번째 분야를 추가해도) 각자 독립적으로
+   * 유지된다(분야마다 복수 선택) */
   topics: Record<InterestCategory, string[]>;
 }
 
@@ -81,7 +93,7 @@ export function createDefaultLivingProfile(
   return {
     experience: base.experience ?? null,
     housing: base.housing ?? null,
-    category: null,
+    categories: [],
     topics: emptyTopics(),
   };
 }
@@ -98,10 +110,29 @@ export function loadLivingProfile(
 ): LivingProfilePreferences {
   const fallback = createDefaultLivingProfile(base);
   try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + ownerKey);
+    const normalizedKey = normalizeOwnerKey(ownerKey);
+    let raw = localStorage.getItem(STORAGE_PREFIX + normalizedKey);
+    /* 정규화 전에 저장된 값이 있을 수 있다(예: 대문자가 섞인 이메일로 저장된 적이 있는
+     * 계정) — 정규화된 키에 아직 없으면 원래 형태 그대로의 키도 한 번 더 찾아보고,
+     * 찾으면 정규화된 키로 옮겨 써서 다음부터는 항상 같은 키를 쓰게 한다(값을 잃지
+     * 않는 마이그레이션, 원래 키는 지우지 않는다). */
+    if (!raw && normalizedKey !== ownerKey) {
+      const legacyRaw = localStorage.getItem(STORAGE_PREFIX + ownerKey);
+      if (legacyRaw) {
+        raw = legacyRaw;
+        try {
+          localStorage.setItem(STORAGE_PREFIX + normalizedKey, legacyRaw);
+        } catch {
+          /* 옮겨 쓰기 실패는 무시 — 이번 읽기는 legacyRaw 로 정상 진행된다 */
+        }
+      }
+    }
     if (!raw) return fallback;
     const stored = JSON.parse(raw) as Partial<LivingProfilePreferences> & {
-      /* 관심 분야가 복수 선택이던 시절의 키 — 이미 저장된 값을 버리지 않고 첫 항목만 받는다 */
+      /* 관심 분야가 단일 선택(문자열 하나)이던 시절의 키 — 이미 저장된 값을 버리지 않고
+       * 배열의 첫 항목으로 이어받는다 */
+      category?: unknown;
+      /* 그보다도 더 예전, 복수 선택이던 시절의 키 — 유효한 값만 앞에서부터 받는다 */
       activeCategory?: unknown;
       selectedCategories?: unknown;
     };
@@ -112,15 +143,25 @@ export function loadLivingProfile(
       if (!Array.isArray(list)) continue;
       topics[category] = INTEREST_TOPICS[category].filter((topic) => list.includes(topic));
     }
+    /* categories(신규) → category(단일 선택 시절) → selectedCategories(그 이전) 순으로
+     * 첫 번째로 유효하게 읽히는 형태를 쓴다. 중복은 제거하고 최대 개수로 자른다. */
+    const categoriesSource: unknown = Array.isArray(stored.categories)
+      ? stored.categories
+      : stored.category !== undefined
+        ? [stored.category]
+        : (stored.selectedCategories ?? []);
+    const categories: InterestCategory[] = [];
+    if (Array.isArray(categoriesSource)) {
+      for (const value of categoriesSource) {
+        const category = pick(value, INTEREST_CATEGORIES);
+        if (category && !categories.includes(category)) categories.push(category);
+        if (categories.length >= MAX_INTEREST_CATEGORIES) break;
+      }
+    }
     return {
       experience: pick(stored.experience, LIVING_EXPERIENCES),
       housing: pick(stored.housing, HOUSING_TYPES),
-      category:
-        pick(stored.category, INTEREST_CATEGORIES) ??
-        pick(
-          Array.isArray(stored.selectedCategories) ? stored.selectedCategories[0] : undefined,
-          INTEREST_CATEGORIES,
-        ),
+      categories,
       topics,
     };
   } catch {
@@ -128,9 +169,46 @@ export function loadLivingProfile(
   }
 }
 
+/** 아직 없는 분야면 골라진 순서 뒤에 추가한다 — 이미 있거나 이미 최대치(2개)면
+ * 그대로 둔다(불변). 홈 시트·마이페이지 두 곳이 관심 분야를 고르는 로직을 각자
+ * 복붙하지 않고 여기 하나만 쓴다. */
+export function addInterestCategory(
+  categories: InterestCategory[],
+  category: InterestCategory,
+): InterestCategory[] {
+  if (categories.includes(category) || categories.length >= MAX_INTEREST_CATEGORIES) return categories;
+  return [...categories, category];
+}
+
+/** 두 번째로 추가한 분야를 뺀다(불변) — 관심 분야는 항상 최소 1개를 유지해야 하므로
+ * 1개만 남았을 때는 그대로 둔다(첫 분야는 이 함수로 빼지 않는다 — 호출부인
+ * InterestPicker 도 첫 분야에는 제거 버튼을 두지 않는다). 주제 선택값(topics)은
+ * 건드리지 않는다 — 같은 분야를 나중에 다시 추가하면 이전에 고른 주제가 그대로
+ * 돌아온다. */
+export function removeInterestCategory(
+  categories: InterestCategory[],
+  category: InterestCategory,
+): InterestCategory[] {
+  if (categories.length <= 1) return categories;
+  return categories.filter((item) => item !== category);
+}
+
+/** 특정 분야의 관심 주제 하나를 켜고 끈다(불변) — 다른 분야의 선택에는 영향이 없다. */
+export function toggleInterestTopic(
+  topics: Record<InterestCategory, string[]>,
+  category: InterestCategory,
+  topic: string,
+): Record<InterestCategory, string[]> {
+  const current = topics[category] ?? [];
+  return {
+    ...topics,
+    [category]: current.includes(topic) ? current.filter((item) => item !== topic) : [...current, topic],
+  };
+}
+
 export function saveLivingProfile(ownerKey: string, preferences: LivingProfilePreferences): boolean {
   try {
-    localStorage.setItem(STORAGE_PREFIX + ownerKey, JSON.stringify(preferences));
+    localStorage.setItem(STORAGE_PREFIX + normalizeOwnerKey(ownerKey), JSON.stringify(preferences));
     return true;
   } catch {
     return false;
@@ -138,17 +216,21 @@ export function saveLivingProfile(ownerKey: string, preferences: LivingProfilePr
 }
 
 /** 이 계정이 저장한 자취 프로필 설정을 지운다 (데모 '처음부터 시작하기' 전용).
- * persona 기본값(personaProfile.ts)은 코드 상수라 지워지지 않고, 다음 진입 때 그 값으로 다시 시작한다. */
+ * persona 기본값(personaProfile.ts)은 코드 상수라 지워지지 않고, 다음 진입 때 그 값으로 다시 시작한다.
+ * 정규화 전 키에 남아있을 수 있는 값도 함께 지운다(마이그레이션 이전 계정 대비). */
 export function clearLivingProfile(ownerKey: string): void {
   try {
+    localStorage.removeItem(STORAGE_PREFIX + normalizeOwnerKey(ownerKey));
     localStorage.removeItem(STORAGE_PREFIX + ownerKey);
   } catch {
     /* 삭제 실패는 무시 */
   }
 }
 
-/** 홈 개인화용 — 선택한 관심 분야의 관심 주제 목록. 분야를 아직 안 골랐으면 빈 배열 */
+/** 홈 개인화용 — 처음 고른(기준) 관심 분야의 관심 주제 목록. 분야를 아직 안 골랐으면 빈 배열.
+ * 두 번째 분야를 추가해도 이 함수가 다루는 홈 개인화 기준은 바뀌지 않는다(첫 분야 그대로). */
 export function getSelectedInterestTopics(ownerKey: string): string[] {
-  const { category, topics } = loadLivingProfile(ownerKey);
+  const { categories, topics } = loadLivingProfile(ownerKey);
+  const category = categories[0];
   return category ? topics[category] : [];
 }

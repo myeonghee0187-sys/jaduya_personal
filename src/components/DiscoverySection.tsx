@@ -1,12 +1,19 @@
+import type { CSSProperties } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { INTEREST_TOPICS, loadLivingProfile } from '../data/livingProfile';
+import type { InterestCategory } from '../data/livingProfile';
 import { RECOMMENDATION_TIPS } from '../data/recommendationTips';
 import type { RecommendationTip } from '../data/recommendationTips';
 import { getRecommendationImagePath } from '../data/recommendationImages';
 import { useSeoulDays } from '../hooks/useSeoulToday';
 import type { SeoulDay } from '../hooks/useSeoulToday';
 import { useCardCarousel } from '../hooks/useCardCarousel';
-import { img } from '../lib/asset';
+import { icon, img } from '../lib/asset';
+
+/* 페이지(3카드 세트) 단위 wrapper 사이 간격 — CSS(.discovery-page__track 의
+ * --discovery-page-gap)와 아래 translateX 계산이 이 값 하나만 같이 쓴다(중복 하드코딩
+ * 금지). 카드 내부 레이아웃이나 카드 사이 간격과는 무관하다. */
+const DISCOVERY_PAGE_GAP_PX = 4;
 
 interface DiscoverySectionProps {
   /* 맞춤 추천 카드의 '설정하기' · 헤더의 '추천 설정' 공통 진입점 —
@@ -46,7 +53,10 @@ function DiscoveryPage({ day, tip, onOpenRecommendSetup }: DiscoveryPageProps) {
           <div className="today-card__track" role="group" aria-label={day.date}>
             <div className="today-card__day">
               <p className="today-card__date">{day.date}</p>
-              <p className="today-card__note">{day.tip}</p>
+              <p className="today-card__note">
+                <img className="today-card__note-icon" src={icon('lightbulb-tip.svg')} alt="" />
+                <span>{day.tip}</span>
+              </p>
             </div>
           </div>
         </article>
@@ -128,31 +138,35 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
   /* 맞춤 추천 설정 여부는 별도 플래그가 아니라 실제 저장값으로 판단한다 —
    * 관심 분야(category)를 한 번이라도 고르면 설정을 마친 것으로 본다.
    * 어떤 분야를 골랐는지(생활/돈 관리/…)는 여기서 따지지 않는다. */
-  const ownerKey = user?.email.trim().toLowerCase() ?? 'guest';
+  /* trim/lowercase 는 이제 livingProfile.ts 안에서 항상 해준다 — 호출부는 원본
+   * 이메일을 그대로 넘기면 된다(Home/MyPage 와 같은 방식으로 통일). */
+  const ownerKey = user?.email ?? 'guest';
   const livingProfile = loadLivingProfile(ownerKey);
-  const category = livingProfile.category;
-
-  /* 이 분야에서 보여줄 관심 주제들 — INTEREST_TOPICS 순서대로 나열한다(저장된 배열
-   * 순서가 아니라 항상 같은 순서로 나오게 한다). 하나도 안 골랐으면 그 분야의 첫 주제
-   * 하나만 fallback 으로 쓴다(마이페이지 '주제 0개도 저장 가능' 규칙과 맞춘다). */
-  const selectedTopics = category
-    ? (() => {
-        const orderedTopics = INTEREST_TOPICS[category];
-        const chosenTopics = livingProfile.topics[category] ?? [];
-        const matchedTopics = orderedTopics.filter((topic) => chosenTopics.includes(topic));
-        return matchedTopics.length > 0 ? matchedTopics : orderedTopics.slice(0, 1);
-      })()
-    : [];
+  /* 분야를 2개 골랐으면 두 분야의 관심 주제를 모두 후보 풀에 합친다 — 문자열만으로는
+   * 어느 분야 주제인지 알 수 없어(같은 이름의 주제가 없더라도) 분야를 같이 들고 있는다.
+   * 각 분야 안에서는 INTEREST_TOPICS 순서를 그대로 쓰고(저장된 배열 순서가 아니라 항상
+   * 같은 순서), 분야는 고른 순서(categories[0]이 먼저) 그대로 이어붙인다. 분야 하나에서
+   * 하나도 안 골랐으면 그 분야의 첫 주제만 fallback 으로 넣는다(마이페이지 '주제 0개도
+   * 저장 가능' 규칙과 맞춘다). */
+  const candidateTopics: { category: InterestCategory; topic: string }[] = livingProfile.categories.flatMap(
+    (category) => {
+      const orderedTopics = INTEREST_TOPICS[category];
+      const chosenTopics = livingProfile.topics[category] ?? [];
+      const matchedTopics = orderedTopics.filter((topic) => chosenTopics.includes(topic));
+      const topicsForCategory = matchedTopics.length > 0 ? matchedTopics : orderedTopics.slice(0, 1);
+      return topicsForCategory.map((topic) => ({ category, topic }));
+    },
+  );
 
   /* 페이지(=3카드 세트) 목록 — 날짜 4개에 1:1로 대응해 항상 4장이다. 각 페이지의 맞춤
-   * 팁은 관심 주제를 페이지 인덱스로 순환시켜 고른다(topics[index % topics.length]) —
-   * 예를 들어 주제 3개를 골랐다면 09.15→첫 주제, 09.16→둘째, 09.17→셋째,
-   * 09.18→다시 첫 주제 순으로 돌아간다. 아직 추천 설정 전이면(category 없음) 모든
+   * 팁은 후보 풀을 페이지 인덱스로 순환시켜 고른다(candidateTopics[index % length]) —
+   * 예를 들어 두 분야 합쳐 3개를 골랐다면 09.15→첫 후보, 09.16→둘째, 09.17→셋째,
+   * 09.18→다시 첫 후보 순으로 돌아간다. 아직 추천 설정 전이면(분야 0개) 모든
    * 페이지가 설정 CTA(tip: null)를 보여준다. 정상 데이터라면 항상 찾지만, 혹시 못 찾는
    * topic 이 있어도(mismatch) null 로 걸러내 화면이 깨지지 않게 한다. */
   const pages = days.map((day, index) => {
-    const topic = selectedTopics.length > 0 ? selectedTopics[index % selectedTopics.length] : null;
-    const tip = category && topic ? (RECOMMENDATION_TIPS[category][topic] ?? null) : null;
+    const candidate = candidateTopics.length > 0 ? candidateTopics[index % candidateTopics.length] : null;
+    const tip = candidate ? (RECOMMENDATION_TIPS[candidate.category][candidate.topic] ?? null) : null;
     return { key: day.date, day, tip };
   });
 
@@ -225,9 +239,12 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
           <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
             <div
               className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}`}
-              style={{
-                transform: `translateX(calc(${-pageCarousel.index * 100}% + ${pageCarousel.dragOffset}px))`,
-              }}
+              style={
+                {
+                  '--discovery-page-gap': `${DISCOVERY_PAGE_GAP_PX}px`,
+                  transform: `translateX(calc(${-pageCarousel.index * 100}% - ${pageCarousel.index * DISCOVERY_PAGE_GAP_PX}px + ${pageCarousel.dragOffset}px))`,
+                } as CSSProperties
+              }
             >
               {pages.map(({ key, day, tip }) => (
                 <div className="discovery-page__slide" key={key}>

@@ -1,19 +1,18 @@
 import { useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
-import { SettingsNavigationRow, SettingsToggleRow } from '../components/SettingsRow';
+import { SettingsToggleRow } from '../components/SettingsRow';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 type NotificationSetting = 'schedule' | 'mission' | 'budget' | 'fixedCost' | 'community';
-type SettingsAction = 'guide' | 'account' | 'password' | 'connections' | 'withdraw';
+type AppSettingsAction = 'guide';
 
 interface AppSettingsPageProps {
-  onAction?: (action: SettingsAction) => void;
+  onAction?: (action: AppSettingsAction) => void;
 }
 
 const INITIAL_NOTIFICATIONS: Record<NotificationSetting, boolean> = {
@@ -26,7 +25,6 @@ const INITIAL_NOTIFICATIONS: Record<NotificationSetting, boolean> = {
 
 export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
   const navigation = useAppNavigation();
-  const { user, logout } = useAuth();
   const myMenu = useMyMenu();
   const [gnbOpen, setGnbOpen] = useState(false);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
@@ -99,44 +97,6 @@ export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
               <img src={icon('info.svg')} alt="" />
               알림을 꺼도 앱 안에서는 계속 확인할 수 있어요.
             </p>
-          </div>
-        </section>
-
-        <section className="settings-section" aria-labelledby="account-title">
-          <h2 id="account-title">계정</h2>
-          <div className="settings-list">
-            <SettingsNavigationRow
-              title="계정 정보"
-              value={user?.email ?? ''}
-              onClick={() => onAction?.('account')}
-            />
-            <SettingsNavigationRow title="비밀번호 변경" onClick={() => onAction?.('password')} />
-            <SettingsNavigationRow
-              title="연결 계정 관리"
-              className="settings-row--connections"
-              value={
-                <span className="settings-connections">
-                  <span className="settings-connections__icons" aria-hidden="true">
-                    <span className="settings-connections__icon settings-connections__icon--kakao">
-                      <img src={icon('auth-kakao.svg')} alt="" />
-                    </span>
-                    <span className="settings-connections__icon settings-connections__icon--google">
-                      <img src={icon('auth-google.svg')} alt="" />
-                    </span>
-                  </span>
-                  연동됨
-                </span>
-              }
-              onClick={() => onAction?.('connections')}
-            />
-          </div>
-        </section>
-
-        <section className="settings-section" aria-labelledby="account-management-title">
-          <h2 id="account-management-title">계정관리</h2>
-          <div className="settings-list">
-            <SettingsNavigationRow title="로그아웃" onClick={logout} />
-            <SettingsNavigationRow title="회원탈퇴" muted onClick={() => onAction?.('withdraw')} />
           </div>
         </section>
       </main>

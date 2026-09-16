@@ -136,21 +136,22 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #232323;
-  font: 600 16px/1 var(--font-a2z);
+  color: var(--text-primary);
+  font: 16px/1.3 var(--font-a2z);
 }
 
-/* 카드 안에서 이 아이콘만 레벨 안내를 연다 — 크기는 그대로 20px */
+/* 카드 안에서 이 아이콘만 레벨 안내를 연다 — 제목보다 눈에 띄지 않도록 살짝 줄인다 */
 .mypage__info {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
 }
 
 .mypage__info img {
   width: 100%;
   height: 100%;
+  opacity: 0.5;
 }
 
 .mypage__level-more {
@@ -189,15 +190,12 @@
 .mypage__level-title b {
   font-family: var(--font-a2z);
   font-size: 18px;
-}
-
-.mypage__level-title b {
-  font-size: 16px;
+  font-weight: 700;
 }
 
 .mypage__percent {
   color: var(--brand-primary);
-  font: 600 18px/1 var(--font-a2z);
+  font: 600 17px/1 var(--font-a2z);
 }
 
 .mypage__percent small {
@@ -219,19 +217,30 @@
   background: var(--brand-primary);
 }
 
-/* 남은 XP 는 숫자만 키워 강조한다 (Figma 3131:16525) */
+/* 남은 XP 는 숫자만 키워 강조한다 (Figma 3131:16525) — "더 모으면 레벨업 할 수
+ * 있어요!" 처럼 <b> 밖에 있는 나머지 텍스트가 이 기본값을 그대로 받는다. 이전에는
+ * MAX 달성 문구(.mypage__xp-max)만 새로 손대고 이 기본값은 12px/#5e5e5e 그대로
+ * 남겨둬서, 레벨업 안내문 쪽은 변경이 반영되지 않은 것처럼 보였다. */
 .mypage__xp {
   margin: 8px 0 0;
   display: flex;
   align-items: baseline;
   gap: 3px;
-  color: #5e5e5e;
-  font-size: 12px;
+  color: #77706c;
+  font: 400 14px/1.4 var(--font-suit);
 }
 
 .mypage__xp b {
   color: #2f2f2f;
-  font: 600 16px/1 var(--font-a2z);
+  font: 600 14px/1 var(--font-a2z);
+}
+
+/* 최고 레벨 달성 문구 — 레벨명(Lv.5 …)과 경쟁하지 않도록 XP 강조체보다 한 단계 가볍게.
+ * `.mypage__xp b` 보다 명시도를 확실히 높여야 해서(.mypage__xp + b 는 클래스 1개라
+ * 이 규칙이 뒤에 와도 밀린다) 부모 클래스를 겹쳐 specificity 를 올린다. */
+.mypage__xp .mypage__xp-max {
+  color: #5f5854;
+  font: 500 15px/1.4 var(--font-a2z);
 }
 
 /* ================= ④ 설정 · 고객 관리 ================= */

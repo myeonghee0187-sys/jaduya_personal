@@ -85,7 +85,7 @@ export function Home() {
    * 이전에 이 화면에서 저장하지 않고 나간 값이 남아있지 않도록 한다. */
   const openRecommendSetup = () => {
     const saved = loadLivingProfile(ownerKey, personaProfile);
-    setRecommendDraft({ category: saved.category, topics: saved.topics });
+    setRecommendDraft({ categories: saved.categories, topics: saved.topics });
     showSheetView('recommend');
   };
 
@@ -98,7 +98,7 @@ export function Home() {
    * 자취 경험·주거 형태 등 이 화면이 다루지 않는 값은 그대로 둔다. */
   const saveRecommendSetup = (draft: RecommendDraft) => {
     const saved = loadLivingProfile(ownerKey, personaProfile);
-    saveLivingProfile(ownerKey, { ...saved, category: draft.category, topics: draft.topics });
+    saveLivingProfile(ownerKey, { ...saved, categories: draft.categories, topics: draft.topics });
     setRecommendDraft(draft);
     closeRecommendSetup();
   };

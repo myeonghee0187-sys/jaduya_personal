@@ -8,14 +8,16 @@ import { useMyMenu } from '../menu/MyMenuContext';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon } from '../lib/asset';
+import { InterestPicker } from '../components/InterestPicker';
+import { RecommendInfoAccordion } from '../components/RecommendInfoAccordion';
 import {
   HOUSING_TYPES,
-  INTEREST_CATEGORIES,
-  INTEREST_TOPICS,
   LIVING_EXPERIENCES,
-  interestTopicHint,
+  addInterestCategory,
   loadLivingProfile,
+  removeInterestCategory,
   saveLivingProfile,
+  toggleInterestTopic,
 } from '../data/livingProfile';
 import type { HousingType, InterestCategory, LivingExperience } from '../data/livingProfile';
 
@@ -77,36 +79,24 @@ export function ProfileSettingsPage() {
     [],
   );
 
-  const active = profile.category;
-  const activeTopics = active ? (profile.topics[active] ?? []) : [];
-
-  /* 자취 경험 · 주거 형태 · 관심 분야는 모두 같은 단일 선택 규칙을 쓴다 —
-   * 새로 고르면 이전 선택이 바로 풀리고, 같은 값을 다시 눌러도 해제되지 않는다. */
+  /* 자취 경험 · 주거 형태는 단일 선택 규칙을 쓴다 — 새로 고르면 이전 선택이 바로 풀리고,
+   * 같은 값을 다시 눌러도 해제되지 않는다. */
   const pickExperience = (value: LivingExperience) =>
     setProfile((prev) => (prev.experience === value ? prev : { ...prev, experience: value }));
   const pickHousing = (value: HousingType) =>
     setProfile((prev) => (prev.housing === value ? prev : { ...prev, housing: value }));
 
-  /* 관심 분야는 자취 경험·주거 형태와 같은 단일 선택이다 — 새로 고르면 이전 선택이 바로 풀린다.
-   * 다만 같은 값을 다시 눌러도 해제하지 않는다: 한 번 고른 뒤에는 항상 하나가 선택된 상태를 유지하고,
-   * 아래 관심 주제가 사라졌다 나타나지 않게 한다. */
+  /* 관심 분야·주제를 고르는 로직은 InterestPicker(선택 UI) 와 짝을 이루는
+   * data/livingProfile.ts 의 공용 헬퍼를 그대로 쓴다 — 홈 시트(HomeRecommendSettings)와
+   * 같은 함수라 복붙된 로직이 따로 없다. */
   const selectCategory = (category: InterestCategory) =>
-    setProfile((prev) => (prev.category === category ? prev : { ...prev, category }));
+    setProfile((prev) => ({ ...prev, categories: addInterestCategory(prev.categories, category) }));
 
-  /* 주제는 분야별로 따로 담기므로 분야를 오갔다 와도 선택이 남는다(분야와 달리 복수 선택) */
+  const removeCategory = (category: InterestCategory) =>
+    setProfile((prev) => ({ ...prev, categories: removeInterestCategory(prev.categories, category) }));
+
   const toggleTopic = (category: InterestCategory, topic: string) =>
-    setProfile((prev) => {
-      const current = prev.topics[category] ?? [];
-      return {
-        ...prev,
-        topics: {
-          ...prev.topics,
-          [category]: current.includes(topic)
-            ? current.filter((item) => item !== topic)
-            : [...current, topic],
-        },
-      };
-    });
+    setProfile((prev) => ({ ...prev, topics: toggleInterestTopic(prev.topics, category, topic) }));
 
   /* 홈에서 들어온 경우에만 저장 후 자동으로 홈으로 돌려보낸다.
    * 저장(동기)이 끝난 뒤에 이동하므로 홈은 항상 방금 저장한 값을 읽는다.
@@ -206,61 +196,16 @@ export function ProfileSettingsPage() {
             <p>선택한 관심사에 맞춰 홈에서 정보를 추천해드려요.</p>
           </header>
 
-          <div className="profile-settings__field">
-            {/* 단일 선택 영역이라는 걸 제목 옆 보조 텍스트로 알린다 */}
-            <h3>
-              관심 분야
-              <em className="profile-settings__pick-hint">1개 선택</em>
-            </h3>
-            <p>홈에서 보고 싶은 분야를 하나 선택해주세요</p>
-            <div className="profile-settings__grid profile-settings__grid--3">
-              {INTEREST_CATEGORIES.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  className="profile-settings__choice profile-settings__choice--category"
-                  aria-pressed={category === active}
-                  onClick={() => selectCategory(category)}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 분야를 골라야 관심 주제가 나온다. 분야를 바꾸면 영역은 그대로 두고 내용만 갈아끼운다 */}
-          {active && (
-            <div className="profile-settings__field">
-              <h3>관심 주제</h3>
-              <p>{interestTopicHint(active)}</p>
-              <div className="profile-settings__grid profile-settings__grid--2">
-                {INTEREST_TOPICS[active].map((topic) => {
-                  const selected = activeTopics.includes(topic);
-                  return (
-                    <button
-                      key={topic}
-                      type="button"
-                      className="profile-settings__topic"
-                      aria-pressed={selected}
-                      onClick={() => toggleTopic(active, topic)}
-                    >
-                      <span>{topic}</span>
-                      <img src={icon(selected ? 'tag-remove.svg' : 'tag-add.svg')} alt="" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <InterestPicker
+            categories={profile.categories}
+            topics={profile.topics}
+            onSelectCategory={selectCategory}
+            onRemoveCategory={removeCategory}
+            onToggleTopic={toggleTopic}
+          />
         </section>
 
-        <div className="profile-settings__note">
-          <img src={icon('info-warn.svg')} alt="" />
-          <div>
-            <strong>선택한 분야는 더 자주 추천되며, 다른 콘텐츠도 계속 볼 수 있어요.</strong>
-            <p>설정은 마이페이지에서 언제든지 수정할 수 있습니다.</p>
-          </div>
-        </div>
+        <RecommendInfoAccordion />
       </main>
 
       <p className="profile-settings__toast" role="status" aria-live="polite" hidden={!toast}>

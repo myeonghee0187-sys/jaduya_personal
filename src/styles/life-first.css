@@ -79,8 +79,6 @@
   max-width: var(--content-width);
   margin: 0;
   padding: 8px 14px;
-  border: 1px solid var(--first-line);
-  border-radius: var(--radius-xl);
   background: var(--first-panel);
 }
 

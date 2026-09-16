@@ -244,6 +244,79 @@ button.settings-row {
   height: 19.2px;
 }
 
+/* 계정 관리 상단 프로필 — 기존 설정 행과 divider를 유지해 별도 카드처럼 보이지 않게 한다. */
+.account-profile {
+  gap: var(--space-sm);
+}
+
+.account-profile__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 72px;
+}
+
+.account-profile__image {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border: 1px solid var(--border-warm);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-profile__summary strong {
+  color: var(--text-primary);
+  font: 600 18px/1.35 var(--font-a2z);
+}
+
+.account-profile__photo {
+  position: relative;
+  cursor: pointer;
+}
+
+.account-profile__photo input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.account-profile__name input {
+  width: 144px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 14px/20px "Pretendard", var(--font-suit);
+  text-align: right;
+  outline: none;
+}
+
+.account-profile__name input:focus-visible {
+  border-bottom: 1px solid var(--brand-primary);
+}
+
+.account-profile__save {
+  align-self: flex-end;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--brand-primary);
+  color: var(--surface-base);
+  font: 600 13px/20px "Pretendard", var(--font-suit);
+  cursor: pointer;
+}
+
+.account-profile__notice {
+  min-height: 17px;
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 12px/17px "Pretendard", var(--font-suit);
+}
+
 .support-page__scroll {
   gap: var(--space-2xl);
   padding-top: 20px;
