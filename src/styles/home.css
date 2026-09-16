@@ -113,7 +113,7 @@ a { text-decoration: none; color: inherit; }
 
 .hero__tree      { left: 40px;   top: -106px; width: 206.474px; height: 258px; }
 .hero__ground    { left: -62px;  top: 43px;   width: 294px;     height: 220px; }
-.hero__character { left: -35px;  top: -13px;  width: 171px;     height: 195px; }
+.hero__character { left: -35px;  top: -13px;      height: 222px; }
 .hero__accent    { left: 134px;  top: 85px;   width: 51px;      height: 51px; }
 .hero__cup       { left: 93px;   top: 110px;  width: 71px;      height: 72px; }
 
