@@ -11,6 +11,7 @@ import { img } from '../../lib/asset';
 const SIZE = 72; // 버튼 지름
 const EDGE = 16; // 좌우 안전 여백
 const GAP = 8; // 헤더 / 바텀네비와의 최소 간격
+const INITIAL_GNB_GAP_RATIO = 0.05; // 최초 위치: GNB 위 화면 높이의 5%
 /* 이 값 이하로 움직이면 클릭으로 본다. 마우스는 누르고 떼는 사이 몇 px 씩 흔들려서
  * 터치 기준(5px)으로는 단순 클릭이 드래그로 오판된다 — 8px 로 둔다. */
 const MOVE_THRESHOLD = 8;
@@ -20,6 +21,7 @@ type Side = 'left' | 'right';
 interface Bounds {
   width: number;
   height: number;
+  tabBarH: number;
   minTop: number;
   maxTop: number;
 }
@@ -32,7 +34,7 @@ function readBounds(host: HTMLElement | null): Bounds | null {
   const tabBarH = app.querySelector<HTMLElement>('.tab-bar')?.offsetHeight ?? 91;
   const minTop = headerH + GAP;
   const maxTop = Math.max(minTop, app.clientHeight - tabBarH - GAP - SIZE);
-  return { width: app.clientWidth, height: app.clientHeight, minTop, maxTop };
+  return { width: app.clientWidth, height: app.clientHeight, tabBarH, minTop, maxTop };
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -141,6 +143,9 @@ export function AIChatbotButton({
   /* settle 이 side 와 top 을 한 번에 보정해야 해서 지금 값을 그대로 비춰 둔다(읽기 전용) */
   const sideRef = useRef(side);
   const topRef = useRef(top);
+  /* 최초 위치만 CSS/JS 모두 우측 5vw를 사용한다. 실제 사용자가 옮긴 뒤에는
+   * 기존 EDGE 스냅 규칙을 그대로 유지한다. */
+  const hasUserPosition = useRef(false);
   sideRef.current = side;
   topRef.current = top;
 
@@ -159,7 +164,10 @@ export function AIChatbotButton({
   const settle = useCallback(() => {
     const bounds = readBounds(ref.current);
     if (!bounds) return;
-    const defaultTop = bounds.maxTop - initialLift;
+    /* CSS의 초기 bottom(--tab-bar-h + 5vh)과 같은 기준을 쓴다. --tab-bar-h 는
+     * 모바일 safe-area를 이미 포함하므로 여기서 inset을 중복하지 않는다. */
+    const defaultTop =
+      bounds.height - bounds.tabBarH - bounds.height * INITIAL_GNB_GAP_RATIO - SIZE - initialLift;
     const safeTop = clamp(topRef.current ?? defaultTop, bounds.minTop, bounds.maxTop);
     /* 저장해 둔 자리가 글쓰기 버튼과 겹치면(커뮤니티 재진입·화면 회전 등) 여기서 바로 비켜 준다 */
     const fixed = avoidReserved(sideRef.current, safeTop, bounds, readReservedZone(ref.current));
@@ -240,6 +248,7 @@ export function AIChatbotButton({
     drag.current = null;
     const bounds = readBounds(ref.current);
     if (bounds && info.moved) {
+      hasUserPosition.current = true;
       /* 가까운 사이드로 스냅하고, 세로 위치는 그대로 유지한다 */
       const center = info.left + SIZE / 2;
       const snapped = center < bounds.width / 2 ? 'left' : 'right';
@@ -266,9 +275,13 @@ export function AIChatbotButton({
   const style = dragging
     ? { left: `${freePos.left}px`, top: `${freePos.top}px`, right: 'auto' }
     : appWidth === null
-      ? { right: `${EDGE}px`, left: 'auto', top: restTop }
+      /* layout effect 전에도 CSS 기본 위치를 그대로 써 (0, 0)이나 화면 밖 좌표를
+       * 그리지 않는다. viewport 측정 뒤에는 위 defaultTop과 같은 기준으로 확정된다. */
+      ? { right: '5vw', bottom: 'calc(var(--tab-bar-h) + 5vh)', left: 'auto', top: restTop }
       : {
-          left: `${side === 'left' ? EDGE : appWidth - EDGE - SIZE}px`,
+          left: `${side === 'left'
+            ? EDGE
+            : appWidth - (hasUserPosition.current ? EDGE : appWidth * INITIAL_GNB_GAP_RATIO) - SIZE}px`,
           right: 'auto',
           top: restTop,
         };

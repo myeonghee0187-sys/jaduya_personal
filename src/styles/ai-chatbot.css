@@ -16,10 +16,20 @@
   border-radius: var(--radius-pill);
   background: transparent;
   touch-action: none; /* 드래그 중 스크롤 제스처와 충돌하지 않게 */
-  /* iOS에서 움직이는 FAB의 filter 합성 레이어가 잔상을 남기지 않도록 일반 그림자를 쓴다.
-   * 그림자는 드래그 중 즉시 제거되므로 transition 대상에 넣지 않는다. */
-  box-shadow: 0 6px 14px rgba(60, 50, 45, 0.24);
+  /* iOS 드래그 중 repaint artifact를 피하기 위해 FAB에는 그림자를 쓰지 않는다. */
+  box-shadow: none;
   transition: left 200ms ease, right 200ms ease, top 200ms ease;
+}
+
+/* 기본·hover·active·dragging·자식·pseudo 어느 상태에서도 FAB 그림자/필터를 만들지 않는다. */
+.ai-fab:hover,
+.ai-fab:active,
+.ai-fab.is-dragging,
+.ai-fab::before,
+.ai-fab::after,
+.ai-fab > * {
+  box-shadow: none;
+  filter: none;
 }
 
 .ai-fab.is-hidden {
@@ -35,7 +45,6 @@
 /* 드래그 중에는 손가락을 즉시 따라와야 하므로 트랜지션을 끈다 */
 .ai-fab.is-dragging {
   transition: none;
-  box-shadow: none;
   cursor: grabbing;
 }
 
