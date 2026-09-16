@@ -14,6 +14,8 @@ export interface CommunityPost {
   body?: string;
   /** 작성자 뱃지 이모지 */
   badge: string;
+  /** 내가 쓴 글 전용 — 로그인 계정의 프로필 사진(img() 절대경로). 있으면 badge(이모지) 대신 이 사진을 쓴다 */
+  badgeImage?: string;
   author: string;
   time: string;
   likes: number;
@@ -22,16 +24,32 @@ export interface CommunityPost {
   thumb?: string;
   /** 실제 사진이 아직 없을 때 썸네일 자리에 대신 넣는 이모티콘 (임시) */
   thumbEmoji?: string;
+  /** 내가 쓴 글 전용 — 글쓰기에서 직접 첨부한 사진(data URL). 있으면 thumb·thumbEmoji 대신 이 사진을 쓴다 */
+  thumbDataUrl?: string;
   /** 자취 꿀팁 서브탭 필터링용 — TipCategory.id. 자취 꿀팁 게시글에만 있다 */
   tipCategory?: string;
   /** 커뮤니티 홈 '레벨' 필터링용 — 초보 / 중수 / 고수. 카드에는 표시하지 않는다 */
   level?: '초보' | '중수' | '고수';
 }
 
+/* 내가 쓴 글(CommunityPostsContext)을 화면별 정적 목록 앞에 붙인다 — 정적 배열이
+ * 이미 최신순으로 정렬돼 있어서, 앞에 붙이기만 해도 '최신순' 탭에서 맨 위에 보인다.
+ * '인기순'·'댓글순' 정렬은 화면이 이 결과에 자기 정렬을 다시 적용하면 되고, 갓 쓴
+ * 글은 좋아요·댓글이 0이라 특별한 처리 없이도 자연스럽게 아래로 내려간다.
+ * matches 를 넘기면 그 화면에 해당하는 내 글만(예: 질문 탭은 category === '질문') 고른다. */
+export function mergeOwnPosts(
+  staticPosts: CommunityPost[],
+  ownPosts: CommunityPost[],
+  matches?: (post: CommunityPost) => boolean,
+): CommunityPost[] {
+  const relevant = matches ? ownPosts.filter(matches) : ownPosts;
+  return [...relevant, ...staticPosts];
+}
+
 export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'fee-1',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '정보',
     title: '이번 달 관리비 3만원 아꼈어요',
     preview: '가스비 절약 습관 5가지 공유합니다! 작지만 꾸준히 하니까 확실히 차이가 나요',
@@ -45,7 +63,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: 'grocery',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '질문',
     title: '마트 장보기는 일주일에 몇 번 하세요?',
     preview: '한 번에 많이 사면 남아서 버리게 되고, 자주 사러 나가면 그때마다 자잘하게 돈이 새나가요',
@@ -59,7 +77,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: 'desk',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '후기',
     title: '다이소 바구니만으로 책상 정리 끝냈어요',
     preview:
@@ -96,7 +114,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: 'parcel',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '정보',
     title: '택배 분실됐을 때 대처법 정리',
     preview: '택배기사님 연락부터 신고 절차까지 알려드립니다',
@@ -124,7 +142,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: 'level-basic-mailbox',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '질문',
     title: '우편함 열쇠 처음 받았는데 번호 안 맞아요',
     preview: '전 세입자가 바꾼 것 같은데 관리실에 문의하니 금방 해결됐어요',
@@ -166,7 +184,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   },
   {
     id: 'level-pro-tax',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '정보',
     title: '자취생 연말정산, 월세 세액공제 놓치지 마세요',
     preview: '계약서·이체 내역만 있으면 홈택스에서 5분이면 신청 끝나요',
@@ -224,19 +242,25 @@ export interface TipCategory {
 }
 
 export const TIP_CATEGORIES: TipCategory[] = [
-  { id: 'fee', label: '고정비·관리비', icon: 'tip-category-fee.svg' },
-  { id: 'cooking', label: '자취 요리·식비', icon: 'tip-category-cooking.svg' },
-  { id: 'interior', label: '인테리어·수납', icon: 'tip-category-interior.svg' },
+  { id: 'fee', label: '고정·관리', icon: 'tip-category-fee.svg' },
+  { id: 'cooking', label: '자취·식비', icon: 'tip-category-cooking.svg' },
+  { id: 'interior', label: '인테리어', icon: 'tip-category-interior.svg' },
   { id: 'clean', label: '청소·정리', icon: 'tip-category-clean.svg' },
-  { id: 'repair', label: '생활 문제 해결', icon: 'tip-category-repair.svg' },
+  { id: 'repair', label: '생활문제', icon: 'tip-category-repair.svg' },
 ];
+
+/** 글쓰기 패널의 해시태그 카테고리 라벨 → 자취 꿀팁 서브탭 id.
+ * '기타'처럼 대응하는 서브탭이 없는 라벨은 undefined — 자취 꿀팁 탭에는 안 보인다. */
+export function tipCategoryIdForLabel(label: string): string | undefined {
+  return TIP_CATEGORIES.find((category) => category.label === label)?.id;
+}
 
 /* 자취 꿀팁 게시글 — Figma tip (2257:13827) 의 내용 그대로, 카드는 community_home·question 과
  * 같은 CommunityPostCard 를 쓴다 (hashtag·category 칩 행만 없음, showChips={false}). */
 export const TIP_POSTS: CommunityPost[] = [
   {
     id: 'tip-subscription',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '정보',
     title: '구독료 겹치는 거 발견하고 정리했어요',
     preview: 'OTT 3개 겹쳐서 나가던 돈 월 1.5만원 아꼈어요',
@@ -250,7 +274,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-electricity',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '후기',
     title: '전기요금 2만원 넘게 줄인 후기',
     preview: '대기전력 차단하고 누진구간 피했어요',
@@ -264,7 +288,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-mobile',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '후기',
     title: '통신비 반값 만든 알뜰폰 후기',
     preview: '약정 끝나자마자 바로 갈아탔더니 확실히 싸요',
@@ -278,7 +302,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-fee',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '정보',
     title: '관리비 고지서 뜯어보니 공용전기료가 제일 크더라고요',
     preview: '매달 확인하는 습관 들이니 새는 돈이 보이더라고요',
@@ -292,7 +316,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-cook-mealprep',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '정보',
     title: '일요일 2시간이면 평일 도시락 다 해결돼요',
     preview: '기본 반찬 3가지만 미리 만들어두면 평일 저녁 고민이 사라져요',
@@ -306,7 +330,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-cook-egg',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '정보',
     title: '계란 하나로 만드는 자취 반찬 5가지',
     preview: '재료 부담 없이 냉장고에 계란만 있으면 끼니 해결돼요',
@@ -320,7 +344,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-cook-market',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '정보',
     title: '마트 마감할인 시간대 알아두면 식비 확 줄어요',
     preview: '저녁 8시 이후 채소·정육 코너 할인 스티커 붙는 시간 노려보세요',
@@ -334,7 +358,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-cook-delivery',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '잡담',
     title: '배달비 아까워서 시작한 자취 라면 업그레이드',
     preview: '계란·대파·치즈만 추가해도 분식집 부럽지 않아요',
@@ -348,7 +372,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-interior-basket',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '후기',
     title: '다이소 바구니로 서랍 속 칸막이 만들었어요',
     preview: '뒤죽박죽이던 서랍이 칸별로 정리되니까 찾는 시간이 줄었어요',
@@ -362,7 +386,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-interior-cable',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '정보',
     title: '책상 밑 전선 뭉치, 케이블 클립 하나로 해결',
     preview: '바닥에 늘어져 있던 충전선들을 책상 아래로 싹 숨겼어요',
@@ -376,7 +400,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-interior-wall',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '정보',
     title: '못 없이 벽 꾸미는 방법 정리했어요',
     preview: '못자국 걱정 없는 벽걸이형 후크로 포스터·거울 달았어요',
@@ -390,7 +414,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-interior-storage',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '후기',
     title: '침대 밑 공간, 수납박스로 완전히 채웠어요',
     preview: '계절 옷·이불을 눕혀서 넣으니 옷장 하나가 새로 생긴 느낌이에요',
@@ -460,7 +484,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-repair-lock',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '정보',
     title: '이사 오자마자 현관 비밀번호부터 바꿨어요',
     preview: '전 세입자가 알고 있을 수 있어서 제일 먼저 확인했어요',
@@ -474,7 +498,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-repair-water',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '질문',
     title: '싱크대 아래 물이 새는 것 같을 때 확인할 것들',
     preview: '관리실 부르기 전에 셀프로 체크할 수 있는 부분부터 봤어요',
@@ -488,7 +512,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-repair-noise',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '잡담',
     title: '윗집 소음, 관리실에 이렇게 말했더니 해결됐어요',
     preview: '감정적으로 항의하기보다 시간대 기록해서 전달하니 효과 있었어요',
@@ -502,7 +526,7 @@ export const TIP_POSTS: CommunityPost[] = [
   },
   {
     id: 'tip-repair-bug',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '정보',
     title: '방충망 틈으로 들어오는 벌레 완전 차단법',
     preview: '문틈 방충 테이프 붙이고부터 벌레가 확실히 줄었어요',
@@ -521,7 +545,7 @@ export const TIP_POSTS: CommunityPost[] = [
 export const QUESTION_POSTS: CommunityPost[] = [
   {
     id: 'question-fee',
-    hashtag: '#자취 요리·식비',
+    hashtag: '#자취·식비',
     category: '질문',
     title: '이번 달 관리비 3만원 아꼈어요',
     preview: '가스비 절약 습관 5가지 공유합니다~',
@@ -534,7 +558,7 @@ export const QUESTION_POSTS: CommunityPost[] = [
   },
   {
     id: 'question-closet',
-    hashtag: '#인테리어·수납',
+    hashtag: '#인테리어',
     category: '질문',
     title: '옷장 없는 원룸인데 행거 어떤 거 쓰세요?',
     preview: '튼튼한 거 찾고 있는데 다이소 제품은 어떨지 궁금해요',
@@ -547,7 +571,7 @@ export const QUESTION_POSTS: CommunityPost[] = [
   },
   {
     id: 'question-mailbox',
-    hashtag: '#생활 문제 해결',
+    hashtag: '#생활문제',
     category: '질문',
     title: '우편함 자물쇠 비번 모르는데 어디에 물어봐야 하나요',
     preview: '이사 온 지 얼마 안 돼서 전 세입자 정보도 없어요',
@@ -560,7 +584,7 @@ export const QUESTION_POSTS: CommunityPost[] = [
   },
   {
     id: 'question-tax',
-    hashtag: '#고정비·관리비',
+    hashtag: '#고정·관리',
     category: '질문',
     title: '누진세 구간 어떻게 확인하나요? 이번 달 유독 많이 나왔어요',
     preview: '작년이랑 비교하고 싶은데 고지서 보는 법을 모르겠어요',

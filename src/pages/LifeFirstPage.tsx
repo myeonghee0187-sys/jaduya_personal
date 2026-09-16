@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { useAuth } from '../auth/AuthContext';
+import type { Persona } from '../auth/mockUsers';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -16,6 +18,34 @@ const HOUSE_POINTS = [
   { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.png' },
   { key: 'nearby', name: '생활 편의', desc: '편의시설이 가까운지', file: 'life/life_convenience.png' },
 ] as const;
+
+/* 레이더 그래프 모양 — persona 마다 다른 집 조건을 보여준다(0~100, 축마다 독립).
+ * 이서준(beginner)은 아직 입주 전이라 실제 집이 없어서, 원래 화면이 쓰던 예시 모양을 그대로 둔다. */
+interface HouseRadarScore {
+  light: number;
+  water: number;
+  storage: number;
+  nearby: number;
+}
+
+const HOUSE_RADAR_DEFAULT: HouseRadarScore = { light: 83, water: 64, storage: 86, nearby: 29 };
+
+const HOUSE_RADAR_SCORES: Record<Persona, HouseRadarScore> = {
+  /* 이서준 · 아직 입주 전 — 원래 화면의 예시 모양 */
+  beginner: HOUSE_RADAR_DEFAULT,
+  /* 김하린 · 원룸 3년차 — 채광·수압은 괜찮지만 원룸이라 수납이 아쉽고, 대신 생활 편의는 매우 좋다 */
+  worker: { light: 75, water: 80, storage: 45, nearby: 90 },
+  /* 조아영 · 빌라·투룸 2년차 — 창이 많아 채광이 좋고 투룸이라 수납도 넉넉하지만, 주택가라 생활 편의는 아쉽다 */
+  pet: { light: 85, water: 60, storage: 80, nearby: 55 },
+};
+
+/* 점수(0~100)를 96px 다이아몬드 기준 CSS 퍼센트 좌표로 바꾼다.
+ * 중심(50%)이 0점, 각 축의 바깥 꼭짓점(0%/100%)이 100점이다. */
+function radarAxisPercent(score: number, direction: 'inward' | 'outward') {
+  const clamped = Math.min(100, Math.max(0, score));
+  const distance = (clamped / 100) * 50;
+  return `${direction === 'inward' ? 50 - distance : 50 + distance}%`;
+}
 
 /* 체크리스트를 보는 시점 */
 const CONTRACT_STAGES = ['계약 전', '계약 시', '입주 전', '입주 후'] as const;
@@ -127,6 +157,14 @@ function RegretCard({ category, regret, solution, tone, icon }: RegretCardProps)
  * 첫 섹션은 정보, 두 번째는 체크, 세 번째는 넘겨보는 콘텐츠로 역할을 나눈다. */
 export function LifeFirstPage() {
   const navigation = useAppNavigation();
+  const { user } = useAuth();
+  const radarScore = HOUSE_RADAR_SCORES[user?.persona ?? 'beginner'];
+  const radarPosition = {
+    top: radarAxisPercent(radarScore.light, 'inward'),
+    right: radarAxisPercent(radarScore.water, 'outward'),
+    bottom: radarAxisPercent(radarScore.storage, 'outward'),
+    left: radarAxisPercent(radarScore.nearby, 'inward'),
+  };
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
   const [checkedByStage, setCheckedByStage] =
@@ -220,11 +258,33 @@ export function LifeFirstPage() {
                 <span className="house-check__radar-outline house-check__radar-outline--inner" />
                 <span className="house-check__radar-cross house-check__radar-cross--h" />
                 <span className="house-check__radar-cross house-check__radar-cross--v" />
-                <span className="house-check__radar-fill" />
-                <span className="house-check__radar-dot house-check__radar-dot--top" />
-                <span className="house-check__radar-dot house-check__radar-dot--right" />
-                <span className="house-check__radar-dot house-check__radar-dot--bottom" />
-                <span className="house-check__radar-dot house-check__radar-dot--left" />
+                {/* 계정(persona)마다 다른 집 조건 데이터 — clip-path·dot 위치를 점수로 계산해
+                  * 인라인 스타일로 넘긴다. 이 그룹만 house-check__radar-data 로 감싸서 화면에
+                  * 들어올 때 중심에서 바깥으로 펴지는 모션을 준다. */}
+                <span className="house-check__radar-data">
+                  <span
+                    className="house-check__radar-fill"
+                    style={{
+                      clipPath: `polygon(50% ${radarPosition.top}, ${radarPosition.right} 50%, 50% ${radarPosition.bottom}, ${radarPosition.left} 50%)`,
+                    }}
+                  />
+                  <span
+                    className="house-check__radar-dot house-check__radar-dot--top"
+                    style={{ top: radarPosition.top }}
+                  />
+                  <span
+                    className="house-check__radar-dot house-check__radar-dot--right"
+                    style={{ left: radarPosition.right }}
+                  />
+                  <span
+                    className="house-check__radar-dot house-check__radar-dot--bottom"
+                    style={{ top: radarPosition.bottom }}
+                  />
+                  <span
+                    className="house-check__radar-dot house-check__radar-dot--left"
+                    style={{ left: radarPosition.left }}
+                  />
+                </span>
                 <span className="house-check__radar-dot house-check__radar-dot--center" />
               </div>
               {HOUSE_POINTS.map((point) => (

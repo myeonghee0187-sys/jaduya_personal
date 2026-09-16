@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
+import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -8,7 +9,7 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, QUESTION_POSTS } from '../data/communityPosts';
+import { COMMUNITY_TABS, COMMUNITY_TIP_TAB, QUESTION_POSTS, mergeOwnPosts } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
@@ -30,6 +31,12 @@ export function CommunityQuestionPage() {
   const [keyword, setKeyword] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState('');
+  /* 내가 쓴 글 중 '질문'으로 등록한 것만 — 정적 목록 맨 앞에 붙인다 */
+  const { ownPosts } = useCommunityPosts();
+  const allQuestionPosts = useMemo(
+    () => mergeOwnPosts(QUESTION_POSTS, ownPosts, (post) => post.category === '질문'),
+    [ownPosts],
+  );
 
   useEffect(() => {
     if (!notice) return;
@@ -53,10 +60,10 @@ export function CommunityQuestionPage() {
   /* '최신순' 은 실제 날짜 대신 상대 시간(예: '2시간 전') 텍스트라 정렬 기준으로 쓸 수 없다 —
    * QUESTION_POSTS 가 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
   const sortedPosts = useMemo(() => {
-    if (sort === '인기순') return [...QUESTION_POSTS].sort((a, b) => b.likes - a.likes);
-    if (sort === '댓글순') return [...QUESTION_POSTS].sort((a, b) => b.comments - a.comments);
-    return QUESTION_POSTS;
-  }, [sort]);
+    if (sort === '인기순') return [...allQuestionPosts].sort((a, b) => b.likes - a.likes);
+    if (sort === '댓글순') return [...allQuestionPosts].sort((a, b) => b.comments - a.comments);
+    return allQuestionPosts;
+  }, [allQuestionPosts, sort]);
 
   return (
     <div className="community app">
