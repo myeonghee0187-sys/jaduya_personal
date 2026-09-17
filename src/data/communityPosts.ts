@@ -51,6 +51,18 @@ export function mergeOwnPosts(
   return [...relevant, ...staticPosts];
 }
 
+/** 검색창 공통 매칭 — 제목·본문 미리보기·해시태그·분류에 검색어가 포함되면 통과.
+ * 빈 검색어는 항상 통과(필터를 안 건 것과 같음). 대소문자·앞뒤 공백은 무시한다. */
+export function postMatchesKeyword(post: CommunityPost, keyword: string): boolean {
+  const trimmed = keyword.trim().toLowerCase();
+  if (!trimmed) return true;
+  const haystack = [post.title, post.preview, post.hashtag, post.category]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(trimmed);
+}
+
 export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'fee-1',

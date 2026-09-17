@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
@@ -16,6 +16,7 @@ import {
   TIP_CATEGORIES,
   TIP_POSTS,
   mergeOwnPosts,
+  postMatchesKeyword,
 } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
@@ -76,6 +77,10 @@ export function CommunityTipPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState('');
   const { ownPosts } = useCommunityPosts();
+  /* 검색어가 서브탭 카테고리 이름(예: "인테리어")과 정확히 일치하면 그 서브탭으로
+   * 자동 전환한다 — 이때 원래 보고 있던 카테고리를 기억해뒀다가, 검색어를 지우면
+   * 그 탭으로 되돌아간다. 검색으로 전환된 상태가 아니면(수동으로 탭을 눌렀으면) null. */
+  const previousCategoryRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!notice) return;
@@ -83,16 +88,41 @@ export function CommunityTipPage() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      if (previousCategoryRef.current !== null) {
+        setCategory(previousCategoryRef.current);
+        previousCategoryRef.current = null;
+      }
+      return;
+    }
+    /* '·'·공백을 지우고 비교해서, "고정"만 쳐도 "고정·관리"처럼 앞부분만 일치하면 전환된다 */
+    const normalize = (value: string) => value.replace(/[·\s]/g, '').toLowerCase();
+    const normalizedKeyword = normalize(trimmed);
+    const matched = TIP_CATEGORIES.find((item) => normalize(item.label).startsWith(normalizedKeyword));
+    if (matched && matched.id !== category) {
+      if (previousCategoryRef.current === null) previousCategoryRef.current = category;
+      setCategory(matched.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword]);
+
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
   /* 내가 쓴 글 중 같은 서브탭 카테고리 + 게시글종류가 "정보"인 것만 정적 목록 맨 앞에 붙인다.
    * "질문"·"후기"·"잡담"으로 쓴 글은 자취 꿀팁 취지(가르쳐주는 글)에 안 맞아 전체/질문 탭에만
-   * 보이게 두고 여기서는 제외한다. */
-  const visiblePosts = mergeOwnPosts(
-    TIP_POSTS.filter((post) => post.tipCategory === category),
-    ownPosts,
-    (post) => post.tipCategory === category && post.category === '정보',
+   * 보이게 두고 여기서는 제외한다. 검색어는 이 서브탭 안에서 제목·미리보기·해시태그로
+   * 한 번 더 좁힌다(카테고리 이름 자체를 검색하면 위 useEffect 가 이미 그 탭으로 옮겨준다). */
+  const visiblePosts = useMemo(
+    () =>
+      mergeOwnPosts(
+        TIP_POSTS.filter((post) => post.tipCategory === category),
+        ownPosts,
+        (post) => post.tipCategory === category && post.category === '정보',
+      ).filter((post) => postMatchesKeyword(post, keyword)),
+    [category, ownPosts, keyword],
   );
 
   return (
@@ -180,7 +210,12 @@ export function CommunityTipPage() {
                 role="tab"
                 aria-selected={active}
                 className={`tip-category${active ? ' is-active' : ''}`}
-                onClick={() => setCategory(item.id)}
+                onClick={() => {
+                  /* 검색으로 자동 전환된 상태에서 직접 탭을 고르면, 검색어를 지웠을 때
+                   * 예전 탭으로 되돌아가지 않고 지금 고른 탭을 그대로 유지한다 */
+                  previousCategoryRef.current = null;
+                  setCategory(item.id);
+                }}
               >
                 <span className="tip-category__circle">
                   <span

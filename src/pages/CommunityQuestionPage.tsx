@@ -17,15 +17,21 @@ import {
   COMMUNITY_TIP_TAB,
   QUESTION_POSTS,
   mergeOwnPosts,
+  postMatchesKeyword,
 } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
-/* '전체' 탭과 같은 레벨 필터 — 라벨·순서 그대로 재사용한다 */
-const LEVEL_FILTERS = ['레벨 전체', '초보', '중수', '고수'] as const;
 const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
-/* 게시글종류 필터 — '전체' 없이 넷 중 하나를 항상 고른 상태로 둔다(기본값 '정보') */
-const POST_TYPE_FILTERS = ['정보', '질문', '후기', '잡담'] as const;
+/* 게시글종류 필터 — '전체' 없이 넷 중 하나를 항상 고른 상태로 둔다(기본값 '정보').
+ * 자취 꿀팁의 TIP_CATEGORIES 와 같은 형태(라벨 + 아이콘)로 둬서 tip-category 와
+ * 같은 원형 아이콘 배지 레이아웃을 그대로 쓴다. */
+const POST_TYPE_FILTERS = [
+  { id: '정보', label: '정보', icon: 'folder.svg' },
+  { id: '질문', label: '질문', icon: 'megaphone.svg' },
+  { id: '후기', label: '후기', icon: 'tag.svg' },
+  { id: '잡담', label: '잡담', icon: 'chat.svg' },
+] as const;
 
 /* 커뮤니티 '게시판'(예전 '질문' 전용 화면, route 는 그대로 community-question) — Figma question (2012:7334).
  * community_home 과 헤더·탭바·글쓰기 버튼은 같지만, 게시글종류 버튼(정보/질문/후기/잡담)이 위에 있고
@@ -37,10 +43,9 @@ export function CommunityQuestionPage() {
   const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [level, setLevel] = useState<string>(LEVEL_FILTERS[0]);
   const [sort, setSort] = useState<string>(SORT_FILTERS[0]);
   const [postTypeFilter, setPostTypeFilter] = useState<string>('정보');
-  const [openFilter, setOpenFilter] = useState<'level' | 'sort' | null>(null);
+  const [sortOpen, setSortOpen] = useState(false);
   const bookmarks = useBookmarks();
   const [liked, setLiked] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -72,13 +77,13 @@ export function CommunityQuestionPage() {
 
   /* 바깥을 누르면 필터를 닫는다 (터치·마우스 공통) */
   useEffect(() => {
-    if (!openFilter) return;
+    if (!sortOpen) return;
     const onOutside = (event: PointerEvent) => {
-      if (!filterRef.current?.contains(event.target as Node)) setOpenFilter(null);
+      if (!filterRef.current?.contains(event.target as Node)) setSortOpen(false);
     };
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
-  }, [openFilter]);
+  }, [sortOpen]);
 
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
@@ -86,12 +91,11 @@ export function CommunityQuestionPage() {
   /* '최신순' 은 실제 날짜 대신 상대 시간(예: '2시간 전') 텍스트라 정렬 기준으로 쓸 수 없다 —
    * 정적 목록이 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
   const sortedPosts = useMemo(() => {
-    const filtered =
-      level === '레벨 전체' ? typeFilteredPosts : typeFilteredPosts.filter((post) => post.level === level);
+    const filtered = typeFilteredPosts.filter((post) => postMatchesKeyword(post, keyword));
     if (sort === '인기순') return [...filtered].sort((a, b) => b.likes - a.likes);
     if (sort === '댓글순') return [...filtered].sort((a, b) => b.comments - a.comments);
     return filtered;
-  }, [typeFilteredPosts, level, sort]);
+  }, [typeFilteredPosts, sort, keyword]);
 
   return (
     <div className="community app">
@@ -167,65 +171,44 @@ export function CommunityQuestionPage() {
           ))}
         </nav>
 
-        {/* ============ 게시글종류 필터 — 정렬 드롭다운과 다르게 알약형 버튼을 늘어놓는다 ============ */}
-        <div className="board-type-filter" role="tablist" aria-label="게시글종류">
-          {POST_TYPE_FILTERS.map((type) => (
-            <button
-              key={type}
-              type="button"
-              role="tab"
-              aria-selected={type === postTypeFilter}
-              className={`board-type-filter__btn${type === postTypeFilter ? ' is-active' : ''}`}
-              onClick={() => setPostTypeFilter(type)}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
+        {/* ============ 게시글종류 필터 — 자취 꿀팁 tip-categories 와 같은 원형 아이콘 배지 레이아웃.
+         * 정렬(인기순)도 같은 줄 오른쪽 끝에 다섯 번째 항목으로 같이 둔다 ============ */}
+        <div className="board-type-filter" role="tablist" aria-label="게시글종류" ref={filterRef}>
+          {POST_TYPE_FILTERS.map((type) => {
+            const active = type.id === postTypeFilter;
+            return (
+              <button
+                key={type.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`board-type-filter__btn${active ? ' is-active' : ''}`}
+                onClick={() => setPostTypeFilter(type.id)}
+              >
+                <span className="board-type-filter__circle">
+                  <span
+                    className="board-type-filter__glyph"
+                    style={{ maskImage: `url(${icon(type.icon)})`, WebkitMaskImage: `url(${icon(type.icon)})` }}
+                    aria-hidden="true"
+                  />
+                </span>
+                <span className="board-type-filter__label">{type.label}</span>
+              </button>
+            );
+          })}
 
-        {/* ============ 필터 — '전체' 탭과 같은 레벨 + 정렬 드롭다운 ============ */}
-        <div className="community-filters" ref={filterRef}>
-          <div className="community-filter">
+          <div className="community-filter board-type-filter__sort">
             <button
               type="button"
               className="community-filter__button"
-              aria-expanded={openFilter === 'level'}
+              aria-expanded={sortOpen}
               aria-haspopup="listbox"
-              onClick={() => setOpenFilter((open) => (open === 'level' ? null : 'level'))}
-            >
-              {level}
-              <img src={icon('community-filter-arrow.svg')} alt="" />
-            </button>
-            <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'level'}>
-              {LEVEL_FILTERS.map((option) => (
-                <li key={option} role="option" aria-selected={option === level}>
-                  <button
-                    type="button"
-                    className={option === level ? 'is-selected' : undefined}
-                    onClick={() => {
-                      setLevel(option);
-                      setOpenFilter(null);
-                    }}
-                  >
-                    {option}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="community-filter">
-            <button
-              type="button"
-              className="community-filter__button"
-              aria-expanded={openFilter === 'sort'}
-              aria-haspopup="listbox"
-              onClick={() => setOpenFilter((open) => (open === 'sort' ? null : 'sort'))}
+              onClick={() => setSortOpen((open) => !open)}
             >
               {sort}
               <img src={icon('community-filter-arrow.svg')} alt="" />
             </button>
-            <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'sort'}>
+            <ul className="community-filter__list" role="listbox" hidden={!sortOpen}>
               {SORT_FILTERS.map((option) => (
                 <li key={option} role="option" aria-selected={option === sort}>
                   <button
@@ -233,7 +216,7 @@ export function CommunityQuestionPage() {
                     className={option === sort ? 'is-selected' : undefined}
                     onClick={() => {
                       setSort(option);
-                      setOpenFilter(null);
+                      setSortOpen(false);
                     }}
                   >
                     {option}

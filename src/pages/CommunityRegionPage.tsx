@@ -9,7 +9,13 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import { RegionFilterPanel } from '../components/RegionFilterPanel';
-import { COMMUNITY_BOARD_TAB, COMMUNITY_TABS, COMMUNITY_TIP_TAB, REGION_POSTS } from '../data/communityPosts';
+import {
+  COMMUNITY_BOARD_TAB,
+  COMMUNITY_TABS,
+  COMMUNITY_TIP_TAB,
+  REGION_POSTS,
+  postMatchesKeyword,
+} from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 
 /* 커뮤니티 '지역 후기' — Figma local_reviews_v4 (3092:20677).
@@ -56,12 +62,15 @@ export function CommunityRegionPage() {
   const toggleInList = (list: string[], value: string) =>
     list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 
-  /* 주거별·주변 칩만 실제 필터링에 쓴다. 선택이 없으면 그 기준은 걸지 않는다 */
+  /* 주거별·주변 칩만 실제 필터링에 쓴다. 선택이 없으면 그 기준은 걸지 않는다.
+   * 검색어는 지역후기 데이터의 핵심 필드(제목·주거형태 해시태그·주변시설 카테고리)에
+   * 매칭시킨다 — postMatchesKeyword 가 이미 title·hashtag·category 를 본다. */
   const visiblePosts = REGION_POSTS.filter((post) => {
     const dwellingTag = post.hashtag.replace('#', '');
     const matchesDwelling = dwelling.length === 0 || dwelling.includes(dwellingTag);
     const matchesNearby = nearby.length === 0 || nearby.includes(post.category);
-    return matchesDwelling && matchesNearby;
+    const matchesKeyword = postMatchesKeyword(post, keyword);
+    return matchesDwelling && matchesNearby && matchesKeyword;
   });
 
   return (
@@ -139,7 +148,7 @@ export function CommunityRegionPage() {
         </nav>
 
         {/* ============ 필터 — 인기순 등 다른 필터처럼 누르면 패널이 펼쳐진다 ============ */}
-        <div className="community-filters" ref={filterRef}>
+        <div className="community-filters community-filters--padded" ref={filterRef}>
           <button
             type="button"
             className="community-filter__button"
