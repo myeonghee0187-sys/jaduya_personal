@@ -6,9 +6,11 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
 import { LeafletRepairMap } from '../components/ai/LeafletRepairMap';
 import { aiFabRef } from '../components/ai/aiFabRef';
-import { AI_SCENARIOS, scenarioStage } from '../data/aiScenarios';
+import { AI_SCENARIOS, MOLD_CARE_RESULTS, repairSearchLocationStep, resolveMoldLocation, resolveScenarioRepairKind, scenarioStage } from '../data/aiScenarios';
 import { resolveConversationInput } from '../data/resolveConversationInput';
-import type { AIConversationContext, ScenarioUserContext } from '../data/aiScenarios';
+import type { AIConversationContext, ScenarioCta, ScenarioUserContext } from '../data/aiScenarios';
+import { AI_PROMPTS_BY_PERSONA } from '../data/aiPersonaPrompts';
+import type { AIPersonaPrompt } from '../data/aiPersonaPrompts';
 import { HOUSING_TYPES, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { loadAIChatSettings, saveAIChatSettings } from '../data/aiChatSettings';
 import type { AILocation } from '../data/aiChatSettings';
@@ -20,14 +22,6 @@ import type { RepairKind, RepairSearchLocation, RepairShop } from '../services/r
 import { deliverRepairShopVCard } from '../utils/vcard';
 
 /* 사용자 조건 칩 — Figma chip_row (2271:33681) */
-
-/* 추천 질문 — Figma prompt_list (3151:20224) */
-/* 따옴표는 말풍선 표기라 본문에서 붙인다 — 입력창에는 문장만 들어간다 */
-const PROMPTS = [
-  '보일러가 안 켜지는데 어떻게 해야해?',
-  '전입신고 처음인데 순서대로 알려줘.',
-  '내 조건에 맞는 지원금 뭐 있어?',
-] as const;
 
 /* 매칭되지 않은 자유입력은 생성형 답변 대신 지원하는 시나리오를 다시 고르게 한다. */
 const FALLBACK_SCENARIO_PROMPTS = [
@@ -108,6 +102,8 @@ function AttachmentDetails({ attachment }: { attachment: FileAttachment | Contac
 type ChatCta = {
   label: string;
   copyText?: string;
+  action?: string;
+  recommended?: boolean;
 };
 
 type PestSolution = {
@@ -182,7 +178,11 @@ type DiagnosticReply = {
   diagnosis: Diagnosis;
 };
 
-function repairKindFor(diagnosis: Diagnosis, flowId: string | null): RepairKind {
+function repairKindFor(diagnosis: Diagnosis, flowId: string | null, answers: Record<string, string>): RepairKind {
+  const selectedKind = answers.repairKind;
+  if (selectedKind === 'boiler' || selectedKind === 'plumbing' || selectedKind === 'electric' || selectedKind === 'aircon' || selectedKind === 'general') {
+    return selectedKind;
+  }
   if (diagnosis?.topic === 'boiler' || flowId === 'boiler') return 'boiler';
   if (flowId === 'plumbing-leak' || flowId === 'toilet-clog') return 'plumbing';
   if (flowId === 'power-outage') return 'electric';
@@ -220,7 +220,7 @@ function getVisibleAppShell(): HTMLElement | null {
   ) ?? null;
 }
 
-type ScenarioReply = { content: string; conversation: AIConversationContext };
+type ScenarioReply = { content: string; conversation: AIConversationContext; ctas?: readonly ScenarioCta[] };
 
 /* 결과 문구 끝의 CTA 목록은 말풍선 본문과 분리해 실제 액션 버튼으로 렌더링한다.
  * 시나리오/진단의 응답 문자열과 stage 전환은 그대로 유지한다. */
@@ -354,6 +354,28 @@ function getScenarioReply(message: string, conversation: AIConversationContext, 
         conversation: nextScenarioContext(conversation, 'result', 'foodWaste', foodAnswer),
       };
     }
+  }
+
+  if (conversation.flowId === 'mold-care' && conversation.stage === 'location') {
+    const moldLocation = resolveMoldLocation(answer);
+    if (!moldLocation) return { content: '벽, 창문 주변, 욕실, 기타 중 가까운 위치를 골라주세요.', conversation };
+    const result = MOLD_CARE_RESULTS[moldLocation];
+    return {
+      content: result.message,
+      ctas: result.ctas,
+      conversation: nextScenarioContext(conversation, 'result', 'moldLocation', moldLocation),
+    };
+  }
+
+  if (conversation.flowId === 'repair-search' && conversation.stage === 'category') {
+    const repairKind = resolveScenarioRepairKind(answer);
+    if (!repairKind) return { content: '보일러, 수도·배관, 전기, 에어컨, 기타 중 가까운 분야를 골라주세요.', conversation };
+    const locationStep = repairSearchLocationStep(user.location);
+    return {
+      content: locationStep.message,
+      ctas: locationStep.ctas,
+      conversation: nextScenarioContext(conversation, 'location-confirm', 'repairKind', repairKind),
+    };
   }
 
   if (conversation.flowId === 'plumbing-leak') {
@@ -781,6 +803,7 @@ export function AIChatPage() {
     housing: livingProfile.housing,
     contract: contractType,
   };
+  const personaPrompts = AI_PROMPTS_BY_PERSONA[user?.persona ?? 'beginner'];
 
   const appendAssistantMessage = (
     content: string,
@@ -844,6 +867,9 @@ export function AIChatPage() {
   };
 
   const startRepairSearch = (location: string, source: 'saved' | 'new') => {
+    if (conversation.flowId === 'repair-search') {
+      setConversation((current) => ({ ...current, stage: 'search' }));
+    }
     appendAssistantMessage(
       source === 'saved'
         ? `설정된 '${location}' 기준으로 찾아볼게요.`
@@ -856,6 +882,9 @@ export function AIChatPage() {
         `${location} 주변 수리업체를 찾았어요.\n지도에서 가까운 업체를 확인해보세요.`,
         [{ label: '지도에서 확인하기' }],
       );
+      setConversation((current) => current.flowId === 'repair-search'
+        ? { ...current, stage: 'result' }
+        : current);
       setIsRepairSearchLoading(false);
       repairSearchTimerRef.current = null;
     }, 1200);
@@ -952,7 +981,25 @@ export function AIChatPage() {
   };
 
   const handleCta = (cta: ChatCta, source: string) => {
-    switch (cta.label) {
+    switch (cta.action ?? cta.label) {
+      case 'open-move-in-checklist':
+        navigation?.closeAIChat();
+        navigation?.navigate('life-first');
+        return;
+      case 'open-life-homecare':
+        navigation?.closeAIChat();
+        navigation?.navigate('life-homecare');
+        return;
+      case 'search-repair-current-location':
+        if (!effectiveLocation) {
+          openRepairLocationModal();
+          return;
+        }
+        startRepairSearch(effectiveLocation, 'saved');
+        return;
+      case 'change-repair-search-location':
+        openRepairLocationModal();
+        return;
       case '집주인에게 연락하기': {
         const message = makeBoilerTransferMessage('집주인', source);
         appendAssistantMessage(`집주인에게 이렇게 전달해보세요.\n\n${message}`, [
@@ -1241,14 +1288,23 @@ export function AIChatPage() {
     }
   };
 
-  const sendMessage = (content: string, expectedStage?: string, pendingAttachments: ChatAttachment[] = []) => {
+  const sendMessage = (
+    content: string,
+    expectedStage?: string,
+    pendingAttachments: ChatAttachment[] = [],
+    forcedScenario?: AIPersonaPrompt['scenario'],
+  ) => {
     const question = content.trim();
     if ((!question && pendingAttachments.length === 0) || isTyping) return;
     setAiView('chat');
     const activeStage = isImageLocationQuestion ? 'image-location' : (attachmentFollowup ? `attachment-${attachmentFollowup}` : (diagnosis?.stage ?? conversation.stage));
     if (expectedStage && activeStage !== expectedStage) return;
     /* 보일러 진단은 기존 diagnosis state가 단계 문맥을 소유하므로 그대로 넘긴다. */
-    const inputResolution = diagnosis ? { type: 'answer' as const } : resolveConversationInput(question, conversation);
+    const inputResolution = forcedScenario
+      ? { type: 'scenario' as const, intent: forcedScenario }
+      : diagnosis
+        ? { type: 'answer' as const }
+        : resolveConversationInput(question, conversation);
 
     /* 최종 결과 뒤에 직접 새 질문을 입력하면 exit action은 새 응답이 올 때까지 숨긴다. */
     setIsTerminalResult(false);
@@ -1268,7 +1324,7 @@ export function AIChatPage() {
     const naturalIntent = !diagnosis && inputResolution.type === 'scenario' ? inputResolution.intent : null;
     const scenarioReply = inputResolution.type === 'answer' && conversation.flowId && (
       conversation.flowType !== 'diagnosis'
-      || ['boiler', 'pest-photo', 'plumbing-leak', 'toilet-clog', 'power-outage'].includes(conversation.flowId)
+      || ['boiler', 'pest-photo', 'mold-care', 'plumbing-leak', 'toilet-clog', 'power-outage'].includes(conversation.flowId)
     )
       ? getScenarioReply(question, conversation, profileContext)
       : null;
@@ -1316,12 +1372,19 @@ export function AIChatPage() {
           : scenarioReply?.content
             ?? (startedConversation ? stageMessage(startedConversation.flowId, startedConversation.stage, profileContext) : reply!.content);
       if (!isPestResult) {
+        const startingStage = startedConversation
+          ? scenarioStage(startedConversation.flowId, startedConversation.stage)
+          : null;
         setMessages((current) => [
           ...current,
           {
             id: ++messageIdRef.current,
             role: 'assistant',
-            ...splitMessageCtas(assistantContent),
+            ...(scenarioReply?.ctas
+              ? { content: assistantContent, ctas: scenarioReply.ctas.map((cta) => ({ ...cta })) }
+              : startingStage?.ctas
+                ? { content: assistantContent, ctas: startingStage.ctas.map((cta) => ({ ...cta })) }
+              : splitMessageCtas(assistantContent)),
           },
         ]);
       }
@@ -1355,6 +1418,7 @@ export function AIChatPage() {
       );
       else if (startedConversation) {
         setConversation(startedConversation);
+        setDiagnosis(null);
         setShowFallbackSuggestions(false);
       }
       else setDiagnosis(reply!.diagnosis);
@@ -1398,6 +1462,7 @@ export function AIChatPage() {
       }
       setIsTerminalResult(
         scenarioReply?.conversation.stage === 'result'
+        || startedConversation?.stage === 'result'
         || reply?.diagnosis?.stage === 'result'
         || answersImageLocationQuestion
         || Boolean(answersAttachmentFollowup)
@@ -1597,7 +1662,7 @@ export function AIChatPage() {
     } : null).then(async (location) => {
       if (controller.signal.aborted) return;
       setRepairSearchLocation(location);
-      const shops = await getDemoRepairShops(location, repairKindFor(diagnosis, conversation.flowId), controller.signal);
+      const shops = await getDemoRepairShops(location, repairKindFor(diagnosis, conversation.flowId, conversation.answers), controller.signal);
       if (controller.signal.aborted) return;
       setRepairShops(shops);
       setRepairRequestState(shops.length > 0 ? 'success' : 'empty');
@@ -1932,15 +1997,20 @@ export function AIChatPage() {
                   <div className={`ai-chat-page__ctas${message.benefitCtaText ? ' ai-chat-page__ctas--benefit' : ''}`} aria-label="다음 행동">
                     {message.benefitCtaText && <p className="ai-chat-page__benefit-cta-copy">{message.benefitCtaText}</p>}
                     {message.ctas.map((cta, index) => (
-                      <button
+                      <div
                         key={`${cta.label}-${index}`}
-                        type="button"
-                        className="ai-chat-page__cta"
-                        onClick={() => handleCta(cta, message.content)}
+                        className={`ai-chat-page__cta-item${cta.recommended ? ' is-recommended' : ''}`}
                       >
-                        <span>{cta.label}</span>
-                        <span className="ai-chat-page__cta-arrow" aria-hidden="true">→</span>
-                      </button>
+                        {cta.recommended && <span className="ai-chat-page__cta-recommend-label">자두 추천</span>}
+                        <button
+                          type="button"
+                          className={`ai-chat-page__cta${cta.recommended ? ' ai-chat-page__cta--recommended' : ''}`}
+                          onClick={() => handleCta(cta, message.content)}
+                        >
+                          <span>{cta.label}</span>
+                          <span className="ai-chat-page__cta-arrow" aria-hidden="true">→</span>
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -2015,14 +2085,14 @@ export function AIChatPage() {
           <div className="ai-chat-page__prompt-block">
             <p className="ai-chat-page__prompt-caption">시작이 어렵다면 선택해보세요!</p>
             <ul className="ai-chat-page__prompts">
-              {PROMPTS.map((prompt) => (
-                <li key={prompt}>
+              {personaPrompts.map((prompt) => (
+                <li key={prompt.label}>
                   <button
                     type="button"
                     className="ai-chat-page__prompt"
-                    onClick={() => sendMessage(prompt)}
+                    onClick={() => sendMessage(prompt.label, undefined, [], prompt.scenario)}
                   >
-                    {`“${prompt}”`}
+                    {`“${prompt.label}”`}
                   </button>
                 </li>
               ))}
