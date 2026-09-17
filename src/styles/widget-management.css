@@ -72,23 +72,7 @@
   background: var(--brand-primary);
 }
 
-/* "가이드" / "편집" — 브랜드 포인트 컬러 톤(다른 보조 버튼들과 같은
- * rgba(180,57,54,0.08) 틴트 + brand-primary 글자색, .wpg-modal__secondary-btn 등과
- * 동일한 톤을 재사용한다 — 새 색을 만들지 않는다). */
-.wpg-edit-btn {
-  flex: none;
-  height: 28px;
-  padding: 0 var(--space-sm);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: rgba(180, 57, 54, 0.08);
-  color: var(--brand-primary);
-  font-family: var(--font-suit);
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-xs);
-}
-
-/* "가이드" 버튼 — "내 위젯" 헤드 줄의 "편집" 버튼 바로 왼쪽. 누르면
+/* "가이드" 버튼 — "내 위젯" 헤드 줄, 제목 오른쪽. 누르면
  * PlacementGuideSheet(위젯 배치 방법 모달)가 뜬다. */
 .wpg-guide-btn {
   flex: none;
@@ -232,13 +216,23 @@
  * "가이드" 버튼의 PlacementGuideSheet(모달)에서 본다. 브랜드 포인트 컬러(자두색,
  * brand-primary) 톤으로 다른 보조 칩(.wpg-guide-btn 등)과 톤을 맞춘다. */
 
-.wpg-guide {
+/* "편집" 버튼과 같은 줄에 나란히 놓이는 바깥 줄 — 배너 자체(.wpg-guide)와는 별개 요소로
+ * 분리해서 둔다(감싸지 않는다). */
+.wpg-guide-row {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   width: 100%;
-  min-height: 36px;
   margin-bottom: var(--space-md);
+}
+
+.wpg-guide {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 36px;
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-m);
   background: rgba(180, 57, 54, 0.08);
@@ -268,6 +262,23 @@
   font-size: var(--font-size-xs);
   line-height: 1.4;
   color: var(--text-primary);
+}
+
+/* "편집" 버튼 — 예전엔 위 헤드 줄의 "가이드" 버튼 옆에 있었는데, 이 안내 문구 줄로
+ * 옮겨왔다. 안내 배너(.wpg-guide) *안에* 같이 감싸지 않고 옆에 별개 요소로 떨어뜨려 둔다
+ * — 그래서 배너와 같은 브랜드 틴트를 그대로 써도(다른 보조 버튼 .wpg-guide-btn 등과
+ * 같은 톤) 배경끼리 안 붙어 있어 구분된다. */
+.wpg-guide-row__edit-btn {
+  flex: none;
+  height: 36px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(180, 57, 54, 0.08);
+  color: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
 }
 
 /* ================= 추천 위젯 / 전체 위젯 — 제목 + 한 줄 설명 ================= */

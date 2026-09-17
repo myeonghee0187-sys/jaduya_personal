@@ -27,6 +27,12 @@
   --card-padding-s: 12px;
   --card-padding-m: 16px;
   --card-padding-l: 20px;
+  /* S/M/L 위젯 카드(홈 .widget/.module-card, 위젯 페이지 .wcard--*) 전용 padding —
+   * 모서리를 border-radius: var(--radius-xl)(20px)로 통일하고, 그 안쪽 padding을
+   * radius의 50%(20px × 0.5 = 10px)로 맞춘다. 다른 카드들의 --card-padding-s/m/l 과는
+   * 별개 값이다(그 토큰들은 이 앱 전역에서 훨씬 폭넓게 쓰여서 값을 직접 바꾸면 영향
+   * 범위가 위젯 카드 밖으로 번진다). */
+  --widget-card-padding: 10px;
 
   /* ---------- Radius ---------- */
   --radius-s: 8px;

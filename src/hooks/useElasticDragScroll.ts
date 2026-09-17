@@ -4,11 +4,15 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 const RESISTANCE = 0.35;
 const MAX_STRETCH = 36; // px
 const RELEASE_MS = 220;
+/* 이 정도 안 움직이면 드래그가 아니라 그냥 탭(클릭)으로 본다 */
+const DRAG_THRESHOLD = 4; // px
 
 interface DragInfo {
   id: number;
   startX: number;
   startScrollLeft: number;
+  /** 실제로 threshold 를 넘어서 드래그로 판단해 포인터를 캡처했는지 */
+  captured: boolean;
 }
 
 /* 가로 스크롤 줄(카드 리스트 등)을 마우스로도 클릭+드래그해서 넘길 수 있게 하고,
@@ -33,9 +37,11 @@ export function useElasticDragScroll<T extends HTMLElement>() {
     const el = ref.current;
     if (!el) return;
     el.style.transition = '';
-    dragRef.current = { id: event.pointerId, startX: event.clientX, startScrollLeft: el.scrollLeft };
-    el.setPointerCapture(event.pointerId);
-    el.classList.add('is-dragging');
+    /* 여기서 바로 setPointerCapture 를 걸면 안의 칩/버튼을 그냥 탭(클릭)했을 때도 이후
+     * pointerup 이 버튼이 아니라 이 컨테이너로 캡처돼버려서 버튼의 click 이 아예 안 울렸다
+     * ("카테고리 탭이 작동 안 한다"의 원인) — threshold 를 넘어서 실제로 움직인 게 확인될
+     * 때(onPointerMove)만 캡처한다. */
+    dragRef.current = { id: event.pointerId, startX: event.clientX, startScrollLeft: el.scrollLeft, captured: false };
   }, []);
 
   const onPointerMove = useCallback((event: ReactPointerEvent<T>) => {
@@ -44,6 +50,14 @@ export function useElasticDragScroll<T extends HTMLElement>() {
     if (!drag || !el || drag.id !== event.pointerId) return;
 
     const delta = drag.startX - event.clientX;
+
+    if (!drag.captured) {
+      if (Math.abs(delta) < DRAG_THRESHOLD) return;
+      drag.captured = true;
+      el.setPointerCapture(event.pointerId);
+      el.classList.add('is-dragging');
+    }
+
     const maxScroll = el.scrollWidth - el.clientWidth;
     const rawTarget = drag.startScrollLeft + delta;
 
@@ -63,6 +77,7 @@ export function useElasticDragScroll<T extends HTMLElement>() {
       const el = ref.current;
       if (!drag || !el || drag.id !== event.pointerId) return;
       dragRef.current = null;
+      if (!drag.captured) return;
       el.classList.remove('is-dragging');
       if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
       settle();
