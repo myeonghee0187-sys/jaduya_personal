@@ -235,16 +235,16 @@ export function MoneyBudgetPage() {
             </div>
           )}
         </section>
-
-        <button
-          type="button"
-          className={`budget-setup__submit${justSaved ? ' is-done' : ''}`}
-          onClick={handleSubmit}
-          disabled={justSaved}
-        >
-          {justSaved ? '설정 완료!' : '예산 설정하기'}
-        </button>
       </main>
+
+      <button
+        type="button"
+        className={`budget-setup__submit${justSaved ? ' is-done' : ''}`}
+        onClick={handleSubmit}
+        disabled={justSaved}
+      >
+        {justSaved ? '설정 완료!' : '예산 설정하기'}
+      </button>
 
       <BottomNavigation activeTab="money" />
       <GnbOverlay

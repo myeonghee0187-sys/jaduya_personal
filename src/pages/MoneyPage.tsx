@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { TransitionEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -289,31 +288,22 @@ export function MoneyPage() {
    * (전에는 "전체 보기"로 별도 페이지에 들어가야 했는데, 미리보기와 내용이 그대로 겹치는
    * 화면이라 걷어내고 하나로 합쳤다). */
   const [activeFixedCategory, setActiveFixedCategory] = useState<(typeof FIXED_CATEGORY_FILTERS)[number]>('전체');
-  /* 카테고리를 바꾸면 목록 항목 수가 바뀌면서 아래 CTA 버튼까지 순간적으로 튀어
-   * 올라오는 "끊김"이 있었다 — 클릭 시점의 높이를 얼려두고, 새 목록이 그려진 다음 프레임에
-   * 실제 높이로 풀어주는 방식(FLIP)으로 컨테이너 height 만 부드럽게 애니메이션한다.
+  /* (v3) 카테고리를 바꾸면 아래 목록 높이가 즉시 바뀐다 — 애니메이션을 걷어내고 위젯 페이지의
+   * "전체 위젯" 목록(WidgetPage.tsx)처럼 즉시 리플로우하게 했는데도, 항목 수 차이가 큰
+   * 카테고리(예: 전체 7건 → 보험 1건)로 바꾸면 한 번에 훅 줄어드는 게 여전히 "꿀렁"거려
+   * 보였다 — 스크롤이 내려가 있었다면 그 순간 스크롤 가능 범위 자체가 줄어서 화면까지
+   * 같이 밀렸기 때문이다(애니메이션 유무와 무관하게, 컨테이너 실제 높이가 바뀌는 한 피할
+   * 수 없다).
    *
-   * (이전 버전의 버그) 클릭 이벤트 한 번에 "이전 높이 고정" + "카테고리 변경"을 같이
-   * 커밋해버리면, 아래 useLayoutEffect 가 scrollHeight 를 잴 때 이미 그 이전 높이가
-   * style 로 박혀 있어서 — 새 목록이 그보다 짧아지는 경우(예: 주거비 2건) scrollHeight 가
-   * 실제 콘텐츠 높이가 아니라 "이미 걸려 있는 그 높이" 자체를 그대로 돌려준다(스펙상
-   * scrollHeight 는 clientHeight 보다 작을 수 없다). 그래서 줄어드는 방향으로는 전혀
-   * 줄어들지 않고 그대로 얼어붙어 있었다 — 카테고리를 눌러도 리스트 아래 빈 공간만 남고
-   * 화면이 안 정리되던 게 "끊긴다"의 정체다.
-   *
-   * 고쳐서: 클릭 시점엔 "이전 높이"를 ref 에만 적어 두고 state 는 안 건드린다 → 새 콘텐츠가
-   * 자유 높이(auto)로 먼저 그려진다 → useLayoutEffect 가 그 자연 높이를 정확히 잰 다음,
-   * 이전 높이로 순간 고정했다가 다음 프레임에 새 높이로 풀어준다(진짜 FLIP). */
+   * (v4) 아예 안 바뀌게 한다: '전체'는 정의상 모든 카테고리의 합집합이라 항상 다른 어떤
+   * 카테고리보다 항목이 많거나 같다 — 그래서 '전체'일 때 한 번 잰 높이를 min-height 로
+   * 고정해 두면, 이후 어떤 카테고리를 눌러도(전체보다 짧을 수밖에 없으니) 컨테이너 자체가
+   * 절대 더 줄어들지 않는다. 탭·CTA·스크롤 위치 전부 클릭 전과 똑같이 "그 자리에 고정"된다
+   * — 항목이 적은 카테고리에서는 그만큼 빈 여백이 남지만, 화면이 흔들리는 것보다 낫다. */
   const fixedListRef = useRef<HTMLDivElement>(null);
-  const [fixedListHeight, setFixedListHeight] = useState<number | 'auto'>('auto');
-  const fixedListPrevHeightRef = useRef<number | null>(null);
+  const [fixedListMinHeight, setFixedListMinHeight] = useState(0);
   const selectFixedCategory = (category: (typeof FIXED_CATEGORY_FILTERS)[number]) => {
-    const node = fixedListRef.current;
-    if (node) fixedListPrevHeightRef.current = node.getBoundingClientRect().height;
     setActiveFixedCategory(category);
-  };
-  const handleFixedListTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
-    if (event.propertyName === 'height') setFixedListHeight('auto');
   };
   /* "결제일 순" 버튼 — 누르면 아래 드롭다운 메뉴가 열리고, 항목을 고르면 그 기준으로 정렬한다. */
   const FIXED_SORT_OPTIONS = ['결제일순', '금액순'] as const;
@@ -330,22 +320,17 @@ export function MoneyPage() {
     activeFixedCategory === '전체'
       ? sortedFixedItems
       : sortedFixedItems.filter((item) => item.category === activeFixedCategory);
-  useLayoutEffect(() => {
+  /* '전체'를 보고 있을 때만 다시 잰다 — '전체'는 항상 다른 모든 카테고리의 합집합이라
+   * 이 값이 곧 전체 카테고리 중 최댓값이다(한 번 자리 잡으면 다시 줄어들 일이 없다).
+   * tab 을 의존성에 넣어야 한다 — 처음 마운트될 때는 '고정비' 탭이 아직 안 그려져서
+   * fixedListRef 가 null 이고(그래서 아무 것도 못 잰다), activeFixedCategory 는 이미
+   * 기본값 '전체'라 이후 '고정비' 탭으로 처음 전환해도 이 값 자체는 안 바뀌어 effect 가
+   * 다시 안 돈다 — tab 이 '고정비'로 바뀌는 순간을 직접 걸어줘야 그때 실제로 잰다. */
+  useEffect(() => {
+    if (tab !== '고정비' || activeFixedCategory !== '전체') return;
     const node = fixedListRef.current;
-    const prevHeight = fixedListPrevHeightRef.current;
-    if (!node || prevHeight == null) return;
-    fixedListPrevHeightRef.current = null;
-    /* 이 렌더는 새 목록이 이미 자유 높이(auto)로 그려진 상태다 — 여기서 재는 게 진짜
-     * 콘텐츠 높이. (혹시 이전 애니메이션이 안 끝나 height 가 아직 숫자로 박혀 있으면
-     * 잠깐 풀어서 재고 원래대로 되돌린다 — 페인트 전이라 화면엔 안 보인다.) */
-    const lockedInlineHeight = node.style.height;
-    node.style.height = 'auto';
-    const target = node.scrollHeight;
-    node.style.height = lockedInlineHeight;
-    setFixedListHeight(prevHeight);
-    const raf = requestAnimationFrame(() => setFixedListHeight(target));
-    return () => cancelAnimationFrame(raf);
-  }, [activeFixedCategory, filteredFixedItems.length]);
+    if (node) setFixedListMinHeight(node.scrollHeight);
+  }, [tab, activeFixedCategory, filteredFixedItems.length]);
   /* "다음 결제일" — 오늘(9월 20일)이 이미 지난 날짜면 다음 달로, 아니면 이번 달로 계산한다
    * (하드코딩 아님). */
   const nextFixedPaymentLabel = (day: number) => {
@@ -544,7 +529,6 @@ export function MoneyPage() {
               </div>
               <div className="money-flow-cards">
                 <div className="money-flow-card">
-                  <img className="money-flow-card__icon-img" src={img('budget_management.png')} alt="" />
                   <span className="money-flow-card__title">이번 달 수입</span>
                   <span
                     key={String(amountsHidden)}
@@ -554,11 +538,6 @@ export function MoneyPage() {
                   </span>
                 </div>
                 <div className="money-flow-card">
-                  <img
-                    className="money-flow-card__icon-img"
-                    src={img('jaduya_custom_recommendation_36/money_management/spending_management.png')}
-                    alt=""
-                  />
                   <span className="money-flow-card__title">이번 달 지출</span>
                   <span
                     key={String(amountsHidden)}
@@ -683,7 +662,7 @@ export function MoneyPage() {
                 <button type="button" className="money-mini-card money-tappable" onClick={() => setTab('고정비')}>
                   <span className="money-mini-card__head">
                     <span className="money-mini-card__title">고정비</span>
-                    <img className="money-mini-card__icon-img" src={img('fixed_expenses.png')} alt="" />
+                    <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
                   </span>
                   <span className="money-mini-card__label">이번 달 예정 금액</span>
                   <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
@@ -703,7 +682,7 @@ export function MoneyPage() {
                 >
                   <span className="money-mini-card__head">
                     <span className="money-mini-card__title">내 계좌</span>
-                    <img className="money-mini-card__icon-img" src={img('budget_management.png')} alt="" />
+                    <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
                   </span>
                   <span className="money-mini-card__label">총 잔액</span>
                   <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
@@ -747,7 +726,6 @@ export function MoneyPage() {
                     이번 달 고정비 {FIXED_MONTHLY_TOTAL.toLocaleString()}원
                   </p>
                 </div>
-                <img className="money-fixed-summary__icon" src={img('fixed_expenses.png')} alt="" />
               </div>
               <div className="money-fixed-status__track">
                 <AnimatedProgressFill percent={FIXED_PAID_PERCENT} className="money-fixed-status__fill" />
@@ -855,8 +833,7 @@ export function MoneyPage() {
               <div
                 className="money-fixed-list__items"
                 ref={fixedListRef}
-                style={fixedListHeight === 'auto' ? undefined : { height: fixedListHeight }}
-                onTransitionEnd={handleFixedListTransitionEnd}
+                style={fixedListMinHeight ? { minHeight: fixedListMinHeight } : undefined}
               >
                 {filteredFixedItems.length === 0 && (
                   <p className="money-fixed-list__empty">이 카테고리에 등록된 고정비가 없어요.</p>
