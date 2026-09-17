@@ -101,6 +101,52 @@ export function repairSearchLocationStep(location?: string): { message: string; 
   };
 }
 
+/** pre-move-check 의 "전입신고 준비하기" — 이미 등록된 주소(AIChatSettings.location, 지역
+ * 검색 모달로 설정한 값)가 있으면 그대로 보여주고 확인만 받고, 없으면 등록부터 안내한다.
+ * 주소를 새로 지어내지 않고, 현재 저장된 값이 있을 때만 그 값을 보여준다. */
+export function moveInAddressCheckStep(location?: string): { message: string; ctas: readonly ScenarioCta[] } {
+  if (!location) {
+    return {
+      message: '아직 새 집 주소가 등록되어 있지 않아요.\n전입신고 준비를 위해 먼저 주소를 등록해볼게요.',
+      ctas: [{ label: '주소 입력하기', action: 'open-move-in-address-search' }],
+    };
+  }
+  return {
+    message: `좋아요!\n먼저 전입할 새 집 주소부터 확인할게요.\n\n새 집 주소\n${location}`,
+    ctas: [
+      { label: '이 주소가 맞아요', action: 'confirm-move-in-address', recommended: true },
+      { label: '주소 변경하기', action: 'open-move-in-address-search' },
+    ],
+  };
+}
+
+/** 주소 검색 모달에서 새 주소를 골랐을 때 보여주는 확인 단계. */
+export function moveInAddressConfirmStep(location: string): { message: string; ctas: readonly ScenarioCta[] } {
+  return {
+    message: `새 주소를 이렇게 변경했어요.\n\n${location}\n\n이 주소로 전입 예정이 맞나요?`,
+    ctas: [
+      { label: '네, 맞아요', action: 'confirm-move-in-address', recommended: true },
+      { label: '다시 변경할게요', action: 'open-move-in-address-search' },
+    ],
+  };
+}
+
+/** 주소를 확정한 뒤 전입신고 준비 정보를 정리하는 마지막 단계 — 실제로 저장된 값(계약
+ * 형태)만 반영하고, 입주 예정일처럼 이 프로젝트에 저장돼 있지 않은 값은 지어내지 않는다. */
+export function moveInRegistrationReadyStep(user: ScenarioUserContext, location: string): string {
+  const lines = [
+    '주소 확인 완료했어요!\n전입신고할 때 필요한 내용도 같이 정리해볼게요.',
+    '',
+    `- 새 거주지 주소: ${location}`,
+    ...(user.contract ? [`- 계약 형태: ${user.contract}`] : []),
+    '- 본인 확인 필요',
+    '- 세대 구성 관련 확인',
+    '',
+    '준비는 여기까지 해두면 돼요.\n실제 입주 후에는 전입신고 신청까지 이어서 진행할 수 있어요.',
+  ];
+  return lines.join('\n');
+}
+
 /** 자유 입력을 기존 시나리오의 첫 단계로 연결하기 위한 해석 결과다. */
 export type ScenarioIntent =
   | { scenarioId: 'boiler'; stage: 'power' }
@@ -110,7 +156,7 @@ export type ScenarioIntent =
   | { scenarioId: 'power-outage'; stage: 'scope' }
   | { scenarioId: 'mold-care'; stage: 'location' }
   | { scenarioId: 'repair-search'; stage: 'category' }
-  | { scenarioId: 'pre-move-check'; stage: 'result' }
+  | { scenarioId: 'pre-move-check'; stage: 'overview' }
   | { scenarioId: 'moveIn'; stage: 'move-stage' }
   | { scenarioId: 'support'; stage: 'category' }
   | null;
@@ -159,19 +205,25 @@ export const AI_SCENARIOS: Record<string, FlowScenario> = {
       ] },
     },
   },
+  /* 정보 카드 하나로 끝나지 않고, 전입신고 준비(주소 확인 → 확정 → 신청 연결)까지 이어지는
+   * 실행형 플로우다. overview 이후 단계(address-check/address-confirm/registration-ready)는
+   * "주소가 이미 있는지"에 따라 메시지·ctas 가 달라져야 해서(FlowStage.ctas 는 정적 배열이라
+   * 동적으로 못 바꾼다) 정적 stages 테이블에 넣지 않고, repairSearchLocationStep 과 같은
+   * 방식으로 AIChatPage.tsx 의 handleCta 에서 아래 moveIn* 헬퍼를 직접 호출해 만든다. */
   'pre-move-check': {
     id: 'pre-move-check', type: 'guide', persona: 'beginner',
     stages: {
-      result: {
+      overview: {
         message: (user) => {
           const trimmedName = user.name?.trim() ?? '';
           const displayName = trimmedName.length === 3 ? trimmedName.slice(1) : trimmedName;
           const greeting = displayName ? `${displayName}님은` : '지금은';
           const contract = user.contract ? `${user.contract}로 ` : '';
-          return `${greeting} ${contract}곧 첫 입주를 앞두고 있네요!\n입주 전에 놓치기 쉬운 것부터 같이 확인해볼게요.\n\n1. 계약서와 특약 다시 확인\n2. 집 내부 하자 사진 남기기\n3. 수도 · 전기 · 가스 상태 확인\n4. 관리비 항목 확인\n5. 필요한 생활용품 준비`;
+          return `${greeting} ${contract}곧 첫 입주를 앞두고 있네요!\n입주 전에 놓치기 쉬운 것부터 같이 확인해볼게요.\n\n1. 계약서와 특약 다시 확인\n2. 집 내부 하자 사진 남기기\n3. 수도 · 전기 · 가스 상태 확인\n4. 관리비 항목 확인\n5. 필요한 생활용품 준비\n\n입주 준비에서 가장 중요한 건 새 집 주소와 입주 후 행정 절차를 미리 확인해두는 거예요.\n\n전입신고 준비도 지금 같이 해볼까요?`;
         },
         ctas: [
-          { label: '입주 체크리스트 보기', action: 'open-move-in-checklist', recommended: true },
+          { label: '전입신고 준비하기', action: 'start-registration-prep', recommended: true },
+          { label: '입주 체크리스트 전체보기', action: 'open-move-in-checklist-prompt' },
         ],
       },
     },

@@ -38,6 +38,8 @@ import { CommunityPostsProvider } from './community/CommunityPostsContext';
 import { MyMenuProvider } from './menu/MyMenuContext';
 import { WidgetPlacementProvider } from './widgets/WidgetPlacementContext';
 import { NotificationProvider } from './notifications/NotificationContext';
+import { initializeLivingProfileFromOnboarding } from './data/livingProfile';
+import { PERSONA_PROFILE } from './data/personaProfile';
 
 function MainPages() {
   const navigation = useAppNavigation();
@@ -135,6 +137,9 @@ export default function App() {
   /* 온보딩 결과를 AuthContext 의 UserPreferences 형태로 옮겨 저장한다.
    * 저장이 끝나면 onboarded 가 true 가 되어 아래 분기가 Home 으로 넘어간다. */
   const finishOnboarding = (selection: OnboardingSelection) => {
+    if (user) {
+      initializeLivingProfileFromOnboarding(user.email, PERSONA_PROFILE[user.persona], selection);
+    }
     completeOnboarding({
       completedAt: new Date().toISOString(),
       answers: {

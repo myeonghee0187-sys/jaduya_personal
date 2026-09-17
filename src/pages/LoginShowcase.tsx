@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
-import { IntroSplash } from '../components/IntroSplash';
+import { SplashScreen } from '../components/SplashScreen';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
 import { Login } from './Login';
@@ -126,7 +126,7 @@ export function LoginShowcase() {
   if (!isDesktop) {
     return (
       <>
-        <IntroSplash />
+        <SplashScreen />
         <App />
       </>
     );
@@ -185,8 +185,8 @@ export function LoginShowcase() {
         </div>
 
         <IPhoneFrame>
-          {/* 인트로는 목업 화면 안에서 재생된다 (.iphone-frame__screen 기준) */}
-          <IntroSplash />
+          {/* 스플래시는 목업 화면 안에서 재생된다 (.iphone-frame__screen 기준) */}
+          <SplashScreen />
           {user ? (
             /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다(진행 상태는 localStorage
              * 유지) — remount 자체는 순간적이라, 오른쪽 프로필 카드 전환과 같은 톤(fade +

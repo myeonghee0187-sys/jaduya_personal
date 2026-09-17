@@ -80,6 +80,11 @@ export interface LivingProfilePreferences {
   topics: Record<InterestCategory, string[]>;
 }
 
+export interface OnboardingRecommendationInput {
+  interests: string[];
+  stage: string;
+}
+
 function emptyTopics(): Record<InterestCategory, string[]> {
   return { 생활: [], '돈 관리': [], 장보기: [], '이사·주거': [], 인테리어: [], 자취: [] };
 }
@@ -213,6 +218,73 @@ export function saveLivingProfile(ownerKey: string, preferences: LivingProfilePr
   } catch {
     return false;
   }
+}
+
+/** 온보딩의 넓은 관심 분야를 기존 추천 설정의 최대 2개 분야로 연결한다.
+ * 선택하지 않은 분야는 추가하지 않고, 같은 추천 분야로 겹치면 한 번만 사용한다. */
+const ONBOARDING_INTEREST_CATEGORY: Readonly<Record<string, InterestCategory>> = {
+  '자취 준비': '이사·주거',
+  '음식 · 장보기': '장보기',
+  '생활 꿀팁': '생활',
+  '돈 관리': '돈 관리',
+  인테리어: '인테리어',
+  '동네 · 커뮤니티': '자취',
+};
+
+const ONBOARDING_STAGE_TOPICS: Readonly<Record<string, Record<InterestCategory, readonly string[]>>> = {
+  '자취 준비 중': {
+    생활: ['1인 가구 살림템', '생활용품 관리'],
+    '돈 관리': ['예산 관리', '월세·관리비'],
+    장보기: ['소용량 식재료', '식비 절약'],
+    '이사·주거': ['계약 체크', '이사 준비'],
+    인테리어: ['가구 배치', '원룸 공간 활용'],
+    자취: ['초보 자취 가이드', '자취 실수 방지'],
+  },
+  '자취를 막 시작했어요': {
+    생활: ['분리수거 요령', '생활용품 관리'],
+    '돈 관리': ['공과금 절약', '월세·관리비'],
+    장보기: ['장보기 할인', '간편 요리'],
+    '이사·주거': ['전입신고', '전기·가스 신청'],
+    인테리어: ['수납 아이디어', '원룸 공간 활용'],
+    자취: ['초보 자취 가이드', '자취 꿀팁'],
+  },
+  '자취에 조금 익숙해졌어요': {
+    생활: ['욕실·주방 청소', '세탁 관리'],
+    '돈 관리': ['생활비 절약', '월별 지출 체크'],
+    장보기: ['식재료 보관법', '냉장고 관리'],
+    '이사·주거': ['집 관리', '폐기물 배출'],
+    인테리어: ['원룸 공간 활용', '셀프 인테리어'],
+    자취: ['혼자 사는 루틴', '자취 꿀팁'],
+  },
+};
+
+/** 저장된 추천 설정이 없을 때만 온보딩 선택으로 최소 초기값을 만든다.
+ * categories가 하나라도 있으면 사용자가 이미 저장한 값으로 보고 절대 덮어쓰지 않는다. */
+export function initializeLivingProfileFromOnboarding(
+  ownerKey: string,
+  base: Partial<Pick<LivingProfilePreferences, 'experience' | 'housing'>>,
+  onboarding: OnboardingRecommendationInput | null | undefined,
+): LivingProfilePreferences {
+  const current = loadLivingProfile(ownerKey, base);
+  if (current.categories.length > 0 || !onboarding) return current;
+
+  const categories: InterestCategory[] = [];
+  for (const interest of onboarding.interests) {
+    const category = ONBOARDING_INTEREST_CATEGORY[interest];
+    if (category && !categories.includes(category)) categories.push(category);
+    if (categories.length >= MAX_INTEREST_CATEGORIES) break;
+  }
+  if (categories.length === 0) return current;
+
+  const stageTopics = ONBOARDING_STAGE_TOPICS[onboarding.stage];
+  const topics = { ...current.topics };
+  for (const category of categories) {
+    topics[category] = [...(stageTopics?.[category] ?? INTEREST_TOPICS[category].slice(0, 1))];
+  }
+
+  const initialized = { ...current, categories, topics };
+  saveLivingProfile(ownerKey, initialized);
+  return initialized;
 }
 
 /** 이 계정이 저장한 자취 프로필 설정을 지운다 (데모 '처음부터 시작하기' 전용).

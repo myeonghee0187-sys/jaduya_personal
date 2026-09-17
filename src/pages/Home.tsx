@@ -12,12 +12,13 @@ import { Hero } from '../components/Hero';
 import { HomeRecommendSettings, emptyRecommendDraft } from '../components/HomeRecommendSettings';
 import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
+import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { MyLifeSection } from '../components/MyLifeSection';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
-import { loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
+import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
-import { PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
+import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
 import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
 import { useLayerStack } from '../hooks/useLayerStack';
@@ -55,6 +56,12 @@ export function Home() {
   /* 맞춤 추천 설정의 저장값은 마이페이지 자취 프로필과 같은 계정별 키를 쓴다
    * (data/livingProfile.ts) — 계정을 바꾸면 다른 계정 값과 섞이지 않는다 */
   const ownerKey = user?.email ?? 'guest';
+  /* 온보딩 선택은 추천 설정이 비어 있는 최초 1회에만 초기값으로 옮긴다.
+   * 사용자가 추천 설정에서 저장한 뒤에는 categories가 존재하므로 다시 덮어쓰지 않는다. */
+  useState(() => initializeLivingProfileFromOnboarding(ownerKey, personaProfile, user?.preferences ? {
+    interests: user.preferences.answers.interests ?? [],
+    stage: user.preferences.answers.stage?.[0] ?? '',
+  } : null));
 
   const navigation = useAppNavigation();
   const layers = useLayerStack();
@@ -66,6 +73,7 @@ export function Home() {
 
   /* 시트 안에서 지금 보여줄 View. 페이지 이동이 아니라 이 state 하나로만 갈린다. */
   const [sheetView, setSheetView] = useState<HomeSheetView>('home');
+  const [levelInfo, setLevelInfo] = useState<{ top: number; left: number } | null>(null);
   /* 맞춤 추천 설정 View 에서 편집 중인 draft — 저장 전까지는 여기서만 바뀐다.
    * 실제 저장값(source of truth)은 마이페이지와 같은 livingProfile 이다(data/livingProfile.ts) —
    * 이 state 는 그 값을 복제해 영구 보관하는 곳이 아니라, 시트가 열려 있는 동안의
@@ -74,6 +82,16 @@ export function Home() {
   /* 한 번이라도 설정 View 를 다녀왔는지 — 돌아올 때만 전환 효과를 준다.
    * (첫 진입에서 시트 콘텐츠가 괜히 움직여 보이지 않게) */
   const cameBackRef = useRef(false);
+
+  const openLevelInfo = (anchorElement: HTMLElement) => {
+    const anchor = levelInfoAnchor(anchorElement);
+    if (anchor) setLevelInfo(anchor);
+  };
+
+  const viewMissions = () => {
+    setLevelInfo(null);
+    navigation?.navigate('mission');
+  };
 
   /* View 를 바꾸면 시트 스크롤은 항상 맨 위에서 시작한다 — 시트 자체(peek/expanded)와
    * 스크롤 구조는 그대로 두고 scrollTop 만 되돌린다. */
@@ -211,6 +229,9 @@ export function Home() {
               placement={placement.state}
               heartsLabel={level.heartsLabel}
               levelLabel={level.levelLabel}
+              levelIcon={level.levelIcon}
+              levelStageName={level.stageName}
+              onOpenLevelInfo={openLevelInfo}
               onAddWidget={() => navigation?.navigate('widget-gallery')}
               statusRef={statusRef}
               addSlotRef={addSlotRef}
@@ -241,6 +262,18 @@ export function Home() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
+
+      {levelInfo && (
+        <LevelInfoPopover
+          stages={LEVEL_STAGE_LIST}
+          stage={level.stage}
+          remainingXp={level.remainingXp}
+          anchorTop={levelInfo.top}
+          anchorLeft={levelInfo.left}
+          onViewMissions={viewMissions}
+          onClose={() => setLevelInfo(null)}
+        />
+      )}
 
       {coachmarkOpen && (
         <Coachmark

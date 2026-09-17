@@ -228,8 +228,13 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
         <LevelInfoPopover
           stages={LEVEL_STAGE_LIST}
           stage={level.stage}
+          remainingXp={level.remainingXp}
           anchorTop={levelInfo.top}
           anchorLeft={levelInfo.left}
+          onViewMissions={() => {
+            setLevelInfo(null);
+            go('level', '자취 레벨');
+          }}
           onClose={() => setLevelInfo(null)}
         />
       )}
