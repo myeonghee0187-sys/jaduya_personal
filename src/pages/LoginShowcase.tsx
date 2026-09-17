@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
 import { IntroSplash } from '../components/IntroSplash';
-import { SplashScreen } from '../components/SplashScreen';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
 import { Login } from './Login';
@@ -127,7 +126,6 @@ export function LoginShowcase() {
   if (!isDesktop) {
     return (
       <>
-        <SplashScreen />
         <IntroSplash />
         <App />
       </>
