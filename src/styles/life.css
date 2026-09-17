@@ -123,15 +123,13 @@
 .life-quiz {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   border-left: 2px solid var(--life-divider);
   padding: 12px;
 }
 
 .life-quiz__head {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: block;
 }
 
 /* 제목 아래 보조 문구 — 질문이 아니라 부담을 덜어주는 한 줄이라 톤을 낮춘다 */
@@ -157,7 +155,7 @@
 
 /* 실제로 답해야 하는 문장 — 이 섹션에서 제목 다음으로 강하다 */
 .life-quiz__question {
-  margin: 6px 0 10px; /* result 의 gap 4px 와 합쳐 버튼과 14px */
+  margin: 0 0 8px;
   color: var(--text-black);
   font: 700 16px/1.4 var(--font-suit);
   letter-spacing: -0.4px;
@@ -166,7 +164,7 @@
 .life-quiz__result {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
 /* 안내문 + 계란을 함께 접는 영역 — 답을 고른 뒤 높이가 0 으로 천천히 줄어든다.
@@ -414,7 +412,7 @@
 .life-quiz__reveal {
   display: flex;
   flex-direction: column;
-  margin-top: 10px;
+  margin-top: 8px;
   animation: life-quiz-reveal 240ms ease 120ms both;
 }
 
@@ -450,7 +448,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 11px;
+  margin-top: 8px;
 }
 
 /* 다시 풀기 — 배경 없는 작은 글자 버튼. 질문·결과보다 약하게 보여야 한다 */
