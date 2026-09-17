@@ -62,7 +62,7 @@
   font-family: var(--font-suit);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .wpg-my__count i {
@@ -170,7 +170,7 @@
   border: 1px dashed var(--border-widget);
   border-radius: var(--radius-xl);
   background: var(--surface-widget);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   font-family: var(--font-suit);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-caption);
@@ -306,7 +306,7 @@
   margin: 2px 0 0;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .wpg-all__head {
@@ -402,7 +402,7 @@
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
   line-height: 1.4;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .wpg-recommend-card__tag {
@@ -599,12 +599,12 @@
 
 .wpg-guide-modal__swatch--m {
   background: rgba(74, 111, 165, 0.12);
-  color: #4a6fa5;
+  color: var(--text-primary);
 }
 
 .wpg-guide-modal__swatch--s {
   background: rgba(162, 177, 35, 0.16);
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 .wpg-guide-modal__text {
@@ -698,7 +698,7 @@
   margin: 2px 0 0;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .wpg-action-sheet__row {
@@ -737,7 +737,7 @@
   font-family: var(--font-suit);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-body);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 /* ================= 배치 공간 만들기 시트 ================= */
@@ -812,7 +812,7 @@
 .wpg-conflict-sheet__item-value {
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -831,7 +831,7 @@
   font-family: var(--font-suit);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-body);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 /* ================= 토스트 ================= */
@@ -954,7 +954,7 @@
   margin-top: 2px;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -964,7 +964,6 @@
   flex: none;
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
-  opacity: 0.35;
   transform: rotate(-90deg);
 }
 
@@ -1211,7 +1210,7 @@
   text-align: center;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 지원하지 않는 크기를 골랐을 때의 설명 — 위 힌트와 톤을 구분해 눈에 띄게 한다 */
@@ -1352,7 +1351,7 @@
 .wpg-modal__space-desc {
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1379,6 +1378,6 @@
   text-align: center;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 

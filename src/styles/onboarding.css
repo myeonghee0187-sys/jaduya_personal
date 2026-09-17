@@ -162,6 +162,11 @@
    * 화면만 아래 --visual 수정자로 48px(xl×2)로 늘어난다(Figma 실측). */
   padding: calc(var(--space-md) + var(--space-xl)) var(--screen-margin) var(--space-xl);
   text-align: center;
+  scrollbar-width: none;
+}
+
+.onboarding__body::-webkit-scrollbar {
+  display: none;
 }
 
 /* 남는 세로 공간을 흡수해 화면 맨 아래로 밀어내는 투명 스페이서 — 이게 있어야
@@ -435,7 +440,9 @@ p.onboarding__complete-text {
 }
 
 .onboarding__choices button:disabled {
-  opacity: 0.45;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
 }
 
 .onboarding__choices button:active:not(:disabled),

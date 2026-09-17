@@ -170,7 +170,7 @@
   min-width: 50px;
   border-radius: var(--radius-pill);
   background: var(--brand-green);
-  color: #fffdfb;
+  color: var(--text-primary);
   font: 700 13px/1.35 var(--font-suit);
   letter-spacing: -0.325px;
   text-align: center;
@@ -366,7 +366,8 @@
 
 .le-ingredient-form .lh-sheet__input::placeholder,
 .le-date-form .lh-sheet__input::placeholder {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .le-ingredient-form__hint {

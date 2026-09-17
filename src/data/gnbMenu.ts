@@ -1,6 +1,7 @@
 /* GNB 전체메뉴 구조.
  *
- * 화면(GnbOverlay)은 이 데이터만 보고 렌더한다.
+ * 화면(GnbOverlay)은 이 데이터만 보고 렌더한다 — 좌측 대메뉴 목록(GNB_CATEGORIES)과
+ * 우측에 뿌릴 하위 메뉴(category.items)를 이 한 곳에서만 관리한다.
  * 아직 페이지가 없는 메뉴는 route 를 null 로 두고 클릭 영역만 준비해 둔다.
  * 페이지가 생기면 route 값만 채우면 되고 화면 코드는 바꾸지 않는다.
  */
@@ -21,10 +22,8 @@ export interface GnbCategory {
   name: string;
   /** assets/icon/ 아래 파일명 */
   iconFile: string;
-  /** 하위 메뉴가 없으면 아코디언이 아니라 바로 이동하는 항목이 된다 */
+  /** 좌측에서 이 대메뉴를 선택했을 때 우측에 뿌릴 하위 메뉴 — 2열 구조라 항상 최소 1개는 있다 */
   items: GnbSubMenu[];
-  /** 하위 메뉴가 없는 카테고리의 이동 대상 (없으면 null) */
-  route: AppPage | null;
 }
 
 export const GNB_CATEGORIES: GnbCategory[] = [
@@ -32,9 +31,7 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     id: 'living',
     name: '생활',
     iconFile: 'gnb-nav-living.svg',
-    route: null,
     items: [
-      /* 상위 '생활' 은 펼치기/접기만 하므로 생활 메인은 이 항목으로 들어간다 */
       { id: 'living-home', name: '생활 홈', route: 'life', home: true },
       { id: 'living-start', name: '첫 자취', route: 'life-first' },
       { id: 'living-homecare', name: '홈케어', route: 'life-homecare' },
@@ -46,7 +43,6 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     id: 'money',
     name: '돈 관리',
     iconFile: 'gnb-nav-money.svg',
-    route: null,
     items: [
       /* '이번달' 이 MoneyPage 의 기본 탭이라 그대로 연결한다.
        * 고정비 / 소비 / 비상금은 같은 화면의 탭 상태라 별도 화면이 없다 — route 를 비워 둔다. */
@@ -60,7 +56,6 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     id: 'community',
     name: '커뮤니티',
     iconFile: 'gnb-nav-community.svg',
-    route: null,
     items: [
       { id: 'community-qna', name: '게시판', route: 'community-question' },
       { id: 'community-tip', name: '자취꿀팁', route: 'community-tip' },
@@ -71,11 +66,11 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     id: 'benefit',
     name: '혜택',
     iconFile: 'gnb-nav-benefit.svg',
-    /* 하위 메뉴 없음 — 화살표를 표시하지 않고 혜택·복지 메인으로 바로 이동한다. */
-    route: 'benefits',
-    items: [],
+    /* 아직 혜택·복지 안에 별도 하위 화면이 없어 대표 화면 하나만 둔다 —
+     * 2열 구조에서는 대메뉴도 항상 우측에 최소 1개의 하위 메뉴로 나타나야 한다. */
+    items: [{ id: 'benefit-main', name: '혜택·복지', route: 'benefits' }],
   },
 ];
 
-/** Figma 기준 처음 펼쳐져 있는 카테고리 */
-export const GNB_DEFAULT_OPEN = 'living';
+/** 현재 페이지가 어느 대메뉴에도 속하지 않을 때(예: 홈) 좌측에서 기본으로 선택해 둘 대메뉴 */
+export const GNB_DEFAULT_CATEGORY_ID = 'living';

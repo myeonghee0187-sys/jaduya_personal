@@ -260,8 +260,8 @@
 }
 
 .ai-chat__input::placeholder {
-  color: var(--text-primary);
-  opacity: 0.6;
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .ai-chat__send {
@@ -279,7 +279,8 @@
 }
 
 .ai-chat__send:disabled {
-  background: var(--border-warm);
-  color: var(--surface-cream);
+  border: 1px solid var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
