@@ -727,6 +727,7 @@ export function LifePage() {
                     onDragStart={(event) => event.preventDefault()}
                   />
                   <span className="life-tip__veil" />
+                  <p className="life-tip__meta">{tip.meta}</p>
                   <div className="life-tip__body">
                     <p className="life-tip__situation">{tip.situation}</p>
                     <p className="life-tip__title">
@@ -734,7 +735,6 @@ export function LifePage() {
                       <br />
                       {tip.title[1]}
                     </p>
-                    <p className="life-tip__meta">{tip.meta}</p>
                   </div>
                 </article>
               ))}
