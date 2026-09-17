@@ -2237,50 +2237,54 @@ export function AIChatPage() {
                 </p>
               </div>
             ) : repairMapState === 'result' && repairSearchLocation ? (
-              <div className="ai-chat-page__repair-map-result">
-                <LeafletRepairMap
-                  location={repairSearchLocation}
-                  shops={repairShops}
-                  selectedShopId={selectedRepairShopId}
-                  onSelectShop={setSelectedRepairShopId}
-                />
-                <div className="ai-chat-page__repair-shop-list" aria-label="주변 수리업체 목록">
-                  {repairShops.map((shop) => (
-                    <article key={shop.id} className={selectedRepairShopId === shop.id ? 'is-selected' : ''}>
-                      <div className="ai-chat-page__repair-shop-info">
-                        <strong>{shop.name}</strong>
-                        <span>{shop.roadAddress || shop.address}</span>
-                        <small>{shop.category}</small>
-                        <small>{shop.phone}</small>
-                      </div>
-                      <div className="ai-chat-page__repair-shop-actions">
-                        <button type="button" onClick={() => setSelectedRepairShopId(shop.id)}>지도에서 보기</button>
-                        <button
-                          type="button"
-                          className="is-primary"
-                          disabled={!shop.name.trim() || !shop.phone.trim()}
-                          onClick={() => { void saveRepairShopContact(shop); }}
-                        >
-                          연락처 저장
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-                {repairContactNotice && (
-                  <div className="ai-chat-page__repair-contact-notice" role="status">
-                    <strong>연락처 파일을 준비했어요.</strong>
-                    <span>{repairContactNotice} 연락처를 기기의 연락처 앱에서 저장해주세요.</span>
+              <div className="ai-chat-page__repair-map-content">
+                <div className="ai-chat-page__repair-map-result">
+                  <LeafletRepairMap
+                    location={repairSearchLocation}
+                    shops={repairShops}
+                    selectedShopId={selectedRepairShopId}
+                    onSelectShop={setSelectedRepairShopId}
+                  />
+                  <div className="ai-chat-page__repair-shop-list" aria-label="주변 수리업체 목록">
+                    {repairShops.map((shop) => (
+                      <article key={shop.id} className={selectedRepairShopId === shop.id ? 'is-selected' : ''}>
+                        <div className="ai-chat-page__repair-shop-info">
+                          <strong>{shop.name}</strong>
+                          <span>{shop.roadAddress || shop.address}</span>
+                          <small>{shop.category}</small>
+                          <small>{shop.phone}</small>
+                        </div>
+                        <div className="ai-chat-page__repair-shop-actions">
+                          <button type="button" onClick={() => setSelectedRepairShopId(shop.id)}>지도에서 보기</button>
+                          <button
+                            type="button"
+                            className="is-primary"
+                            disabled={!shop.name.trim() || !shop.phone.trim()}
+                            onClick={() => { void saveRepairShopContact(shop); }}
+                          >
+                            연락처 저장
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                   </div>
-                )}
-                <p className="ai-chat-page__repair-map-disclaimer">업체 정보는 프로토타입용 예시예요.</p>
-                <button
-                  type="button"
-                  className="ai-chat-page__repair-connect-button"
-                  onClick={() => setIsRepairConnectionNoticeOpen(true)}
-                >
-                  수리기사 연결하기
-                </button>
+                  {repairContactNotice && (
+                    <div className="ai-chat-page__repair-contact-notice" role="status">
+                      <strong>연락처 파일을 준비했어요.</strong>
+                      <span>{repairContactNotice} 연락처를 기기의 연락처 앱에서 저장해주세요.</span>
+                    </div>
+                  )}
+                  <p className="ai-chat-page__repair-map-disclaimer">업체 정보는 프로토타입용 예시예요.</p>
+                </div>
+                <footer className="ai-chat-page__repair-map-footer">
+                  <button
+                    type="button"
+                    className="ai-chat-page__repair-connect-button"
+                    onClick={() => setIsRepairConnectionNoticeOpen(true)}
+                  >
+                    수리기사 연결하기
+                  </button>
+                </footer>
               </div>
             ) : (
               <div className="ai-chat-page__repair-map-empty" role="status">
