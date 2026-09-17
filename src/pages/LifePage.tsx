@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -130,6 +131,14 @@ export function LifePage() {
   const solved = restoredSaved !== null;
   const [quizAnswer, setQuizAnswer] = useState<string | null>(restoredSaved?.answer ?? null);
   const [quizRevealed, setQuizRevealed] = useState(solved);
+  const [quizDragging, setQuizDragging] = useState(false);
+  const [quizOver, setQuizOver] = useState<string | null>(null);
+  const [quizEggGone, setQuizEggGone] = useState(solved);
+  const [quizEggCracked, setQuizEggCracked] = useState(solved);
+  const eggRef = useRef<HTMLDivElement>(null);
+  const eggStart = useRef({ x: 0, y: 0 });
+  const eggHeld = useRef(false);
+  const zoneRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const previousQuizIdRef = useRef(quiz.id);
   /* 해결팁 pagination — 복제를 뺀 실제 카드 번호 */
   const [tipPage, setTipPage] = useState(0);
@@ -140,6 +149,11 @@ export function LifePage() {
     previousQuizIdRef.current = quiz.id;
     setQuizAnswer(null);
     setQuizRevealed(false);
+    setQuizDragging(false);
+    setQuizOver(null);
+    setQuizEggGone(false);
+    setQuizEggCracked(false);
+    eggHeld.current = false;
     try {
       localStorage.removeItem(QUIZ_STORE_KEY);
     } catch {
@@ -413,6 +427,7 @@ export function LifePage() {
   const answerQuiz = (option: LivingQuizOption) => {
     if (quizAnswer) return;
     setQuizAnswer(option.id);
+    setQuizOver(null);
     try {
       const saved: QuizSaved = {
         quizId: quiz.id,
@@ -435,17 +450,66 @@ export function LifePage() {
     }
     setQuizAnswer(null);
     setQuizRevealed(false);
+    setQuizEggGone(false);
+    setQuizEggCracked(false);
+    setQuizDragging(false);
+    setQuizOver(null);
+    moveEgg(0, 0);
   };
 
   /* 고른 자리를 먼저 보여주고 잠깐 뒤에 결과를 연다 */
   useEffect(() => {
     if (!quizAnswer || quizRevealed) return;
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const clearEgg = window.setTimeout(() => setQuizEggGone(true), reduceMotion ? 0 : 200);
     const reveal = window.setTimeout(() => setQuizRevealed(true), reduceMotion ? 0 : 220);
     return () => {
+      window.clearTimeout(clearEgg);
       window.clearTimeout(reveal);
     };
   }, [quizAnswer]);
+
+  const zoneAt = (x: number, y: number): LivingQuizOption | null =>
+    quiz.options.find((option) => {
+      const box = zoneRefs.current[option.id]?.getBoundingClientRect();
+      return !!box && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+    }) ?? null;
+
+  const moveEgg = (x: number, y: number) => {
+    const egg = eggRef.current;
+    if (!egg) return;
+    egg.style.setProperty('--egg-x', `${x}px`);
+    egg.style.setProperty('--egg-y', `${y}px`);
+  };
+
+  const onEggDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (quizAnswer) return;
+    eggStart.current = { x: event.clientX, y: event.clientY };
+    eggHeld.current = true;
+    setQuizEggCracked(true);
+    setQuizDragging(true);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* 포인터 캡처를 지원하지 않아도 드래그 자체는 유지한다 */
+    }
+  };
+
+  const onEggMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!eggHeld.current) return;
+    moveEgg(event.clientX - eggStart.current.x, event.clientY - eggStart.current.y);
+    setQuizOver(zoneAt(event.clientX, event.clientY)?.id ?? null);
+  };
+
+  const onEggUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!eggHeld.current) return;
+    eggHeld.current = false;
+    setQuizDragging(false);
+    const dropped = zoneAt(event.clientX, event.clientY);
+    moveEgg(0, 0);
+    if (dropped) answerQuiz(dropped);
+    else setQuizOver(null);
+  };
 
   /* 결과 문구가 여러 곳에서 같은 판정을 봐야 해서 한 번만 계산한다 */
   const quizCorrect = quiz.options.find((option) => option.id === quizAnswer)?.isCorrect ?? false;
@@ -510,12 +574,65 @@ export function LifePage() {
           <div className="life-quiz__result">
             <p className="life-quiz__question">{quiz.question}</p>
 
+            {quiz.visualKey === 'egg' && (
+              <div
+                className={`life-quiz__intro${quizEggGone ? ' is-gone' : ''}`}
+                aria-hidden={quizEggGone || undefined}
+              >
+                <div className="life-quiz__intro-inner">
+                  <div className="life-quiz__egg-row">
+                    <div
+                      ref={eggRef}
+                      className={`life-quiz__egg${quizDragging ? ' is-dragging' : ''}${
+                        quizEggCracked ? ' is-cracked' : ''
+                      }${quizAnswer ? ' is-done' : ''}`}
+                      style={
+                        quizAnswer
+                          ? ({
+                              '--egg-drop': quizAnswer === quiz.options[0]?.id ? '-56px' : '56px',
+                            } as CSSProperties)
+                          : undefined
+                      }
+                      onPointerDown={onEggDown}
+                      onPointerMove={onEggMove}
+                      onPointerUp={onEggUp}
+                      onPointerCancel={onEggUp}
+                    >
+                      <span className="life-quiz__egg-stack">
+                        <img
+                          className="life-quiz__egg-img life-quiz__egg-img--whole"
+                          src={img('life/life-quiz_egg.png')}
+                          alt="계란"
+                          draggable={false}
+                        />
+                        <img
+                          className="life-quiz__egg-img life-quiz__egg-img--cracked"
+                          src={img('life/life-quiz-eggshell.png')}
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                        />
+                      </span>
+                    </div>
+                  </div>
+                  <p className={`life-quiz__guide${quizAnswer ? ' is-gone' : ''}`}>
+                    계란을 끌어서 알맞은 곳에 넣어보세요
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="life-quiz__labels">
               {quiz.options.map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  className={`life-quiz__choice${quizAnswer === option.id ? ' is-picked' : ''}`}
+                  ref={(node) => {
+                    zoneRefs.current[option.id] = node;
+                  }}
+                  className={`life-quiz__choice${quizAnswer === option.id ? ' is-picked' : ''}${
+                    quizOver === option.id ? ' is-over' : ''
+                  }`}
                   aria-pressed={quizAnswer === option.id}
                   disabled={quizAnswer !== null}
                   onClick={() => answerQuiz(option)}

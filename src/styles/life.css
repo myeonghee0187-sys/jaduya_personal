@@ -321,6 +321,7 @@
   width: 100%;
   color: var(--text-black);
   font: 700 11px/1.5 var(--font-suit);
+  margin-top: 12px;
 }
 
 /* 답변 라벨은 '고를 수 있는 선택지' 로 보여야 한다 — CTA 만큼 강하지 않은 가벼운 세그먼트 형태 */
