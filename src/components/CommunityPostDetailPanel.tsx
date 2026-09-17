@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { icon, img } from '../lib/asset';
 import { authorBadgeColor } from '../lib/authorBadgeColor';
 import { BellButton } from './BellButton';
@@ -96,6 +96,33 @@ export function CommunityPostDetailPanel({
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   /** 방금 등록한 댓글 id — 렌더 후 그 댓글로 스크롤하고 나면 비운다 */
   const [scrollToCommentId, setScrollToCommentId] = useState<string | null>(null);
+  /** 페이지 번호 줄(post-detail__comment-pages) — 번호·화살표를 눌렀을 때 이 줄의 화면상
+   * 위치를 그대로 유지하기 위한 기준점으로 쓴다. */
+  const commentPagesRef = useRef<HTMLDivElement>(null);
+  /** 번호·화살표 클릭 직전, 페이지 번호 줄의 화면상 y좌표 — 페이지가 바뀌어 댓글 목록
+   * 높이가 달라져도 이 줄만은 같은 자리에 있는 것처럼 보이도록 다음 layout effect에서
+   * 스크롤을 보정하는 데 쓴다. null 이면(등록 후 이동 등 다른 경로) 보정하지 않는다. */
+  const pageScrollAnchorRef = useRef<number | null>(null);
+
+  const goToPage = (updater: number | ((current: number) => number)) => {
+    pageScrollAnchorRef.current = commentPagesRef.current?.getBoundingClientRect().top ?? null;
+    setPage(updater);
+  };
+
+  /* 페이지 번호 줄의 화면상 위치를 고정된 것처럼 보이게 하는 보정 — 브라우저가 그리기
+   * 전에(useLayoutEffect) 새 위치와 클릭 직전 위치의 차이만큼 스크롤을 옮겨서, 번호 줄은
+   * 제자리에 있고 그 위 댓글 목록만 바뀐 것처럼 보이게 한다. position:sticky 처럼 항상
+   * 고정된 게 아니라 페이지 전환 순간에만 동작 — 평소 스크롤은 그대로 자연스럽게 움직인다. */
+  useLayoutEffect(() => {
+    const anchorTop = pageScrollAnchorRef.current;
+    pageScrollAnchorRef.current = null;
+    if (anchorTop === null) return;
+    const pagesEl = commentPagesRef.current;
+    const scrollEl = pagesEl?.closest('.post-detail__scroll');
+    if (!pagesEl || !scrollEl) return;
+    const delta = pagesEl.getBoundingClientRect().top - anchorTop;
+    if (delta !== 0) scrollEl.scrollTop += delta;
+  }, [page]);
 
   /* 다른 글을 열면 입력창·페이지·정렬 상태는 그 글의 새 상태로 시작한다 (내가 쓴 댓글은 글별로 남는다) */
   useEffect(() => {
@@ -108,7 +135,9 @@ export function CommunityPostDetailPanel({
   /* 방금 등록한 댓글 페이지로 넘어간 뒤, 그 댓글 엘리먼트가 그려지면 화면에 보이도록 스크롤한다.
    * 그 댓글이 목록의 맨 마지막 줄(인기 탭에서 좋아요 0개로 밀린 경우)이면, 댓글만 하단에 맞추면
    * 그 아래 페이지 번호(1 2 3 4) 버튼이 화면 밖으로 밀려나 답답해 보인다 — 페이지 번호 영역까지
-   * 포함해서 하단에 맞춘다. 맨 마지막 줄이 아니면(최신 탭처럼 맨 위에 오는 경우) 댓글 자체로 맞춘다. */
+   * 포함해서 하단에 맞춘다. 맨 마지막 줄이 아니면(최신 탭처럼 맨 위에 오는 경우) 댓글 자체로 맞춘다.
+   * 번호·화살표로 직접 페이지를 옮기는 건 이 조건(scrollToCommentId)에 안 걸려서 스크롤을
+   * 건드리지 않는다 — 누를 때마다 화면이 움직이면 오히려 거슬린다. */
   useEffect(() => {
     if (!scrollToCommentId) return;
     const el = document.querySelector(`[data-comment-id="${scrollToCommentId}"]`);
@@ -358,18 +387,40 @@ export function CommunityPostDetailPanel({
               </ul>
 
               {pageCount > 1 && (
-                <div className="post-detail__comment-pages" role="navigation" aria-label="댓글 페이지">
+                <div className="post-detail__comment-pages" role="navigation" aria-label="댓글 페이지" ref={commentPagesRef}>
+                  <button
+                    type="button"
+                    className="post-detail__comment-page-arrow"
+                    aria-label="이전 댓글 페이지"
+                    disabled={page === 1}
+                    onClick={() => goToPage((current) => Math.max(1, current - 1))}
+                  >
+                    <img
+                      src={icon('chevron-right-thin.svg')}
+                      alt=""
+                      className="post-detail__comment-page-arrow-icon post-detail__comment-page-arrow-icon--prev"
+                    />
+                  </button>
                   {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
                     <button
                       key={number}
                       type="button"
                       className={`post-detail__comment-page${number === page ? ' is-active' : ''}`}
                       aria-current={number === page ? 'page' : undefined}
-                      onClick={() => setPage(number)}
+                      onClick={() => goToPage(number)}
                     >
                       {number}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    className="post-detail__comment-page-arrow"
+                    aria-label="다음 댓글 페이지"
+                    disabled={page === pageCount}
+                    onClick={() => goToPage((current) => Math.min(pageCount, current + 1))}
+                  >
+                    <img src={icon('chevron-right-thin.svg')} alt="" className="post-detail__comment-page-arrow-icon" />
+                  </button>
                 </div>
               )}
             </div>

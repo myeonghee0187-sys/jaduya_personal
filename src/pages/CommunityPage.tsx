@@ -11,7 +11,14 @@ import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityPostDetailPanel } from '../components/CommunityPostDetailPanel';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
-import { COMMUNITY_BOARD_TAB, COMMUNITY_POSTS, COMMUNITY_TABS, COMMUNITY_TIP_TAB, mergeOwnPosts } from '../data/communityPosts';
+import {
+  COMMUNITY_BOARD_TAB,
+  COMMUNITY_POSTS,
+  COMMUNITY_TABS,
+  COMMUNITY_TIP_TAB,
+  mergeOwnPosts,
+  postMatchesKeyword,
+} from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -85,11 +92,12 @@ export function CommunityPage() {
   /* '최신순' 은 실제 날짜 대신 상대 시간 텍스트라 정렬 기준으로 쓸 수 없다 —
    * COMMUNITY_POSTS 가 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
   const visiblePosts = useMemo(() => {
-    const filtered = level === '레벨 전체' ? allPosts : allPosts.filter((post) => post.level === level);
+    const byLevel = level === '레벨 전체' ? allPosts : allPosts.filter((post) => post.level === level);
+    const filtered = byLevel.filter((post) => postMatchesKeyword(post, keyword));
     if (sort === '인기순') return [...filtered].sort((a, b) => b.likes - a.likes);
     if (sort === '댓글순') return [...filtered].sort((a, b) => b.comments - a.comments);
     return filtered;
-  }, [allPosts, level, sort]);
+  }, [allPosts, level, sort, keyword]);
 
   return (
     <div className="community app">
@@ -174,7 +182,7 @@ export function CommunityPage() {
         </nav>
 
         {/* ============ 필터 ============ */}
-        <div className="community-filters" ref={filterRef}>
+        <div className="community-filters community-filters--padded" ref={filterRef}>
           <div className="community-filter">
             <button
               type="button"

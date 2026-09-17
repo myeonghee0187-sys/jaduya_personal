@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useAuth } from '../auth/AuthContext';
 import type { Persona } from '../auth/mockUsers';
+import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -29,6 +30,10 @@ interface HouseRadarScore {
 }
 
 const HOUSE_RADAR_DEFAULT: HouseRadarScore = { light: 83, water: 64, storage: 86, nearby: 29 };
+
+/* 회원가입 폼 자동입력용 "일반 테스트 계정"(signupTestProfiles.ts 의 generic) — persona 가
+ * 항상 'beginner' 로 가입되어 이서준과 겹치므로, 이메일로 구분해 네 축 모두 중간값을 보여준다. */
+const HOUSE_RADAR_GENERIC_TEST: HouseRadarScore = { light: 50, water: 50, storage: 50, nearby: 50 };
 
 const HOUSE_RADAR_SCORES: Record<Persona, HouseRadarScore> = {
   /* 이서준 · 아직 입주 전 — 원래 화면의 예시 모양 */
@@ -158,7 +163,10 @@ function RegretCard({ category, regret, solution, tone, icon }: RegretCardProps)
 export function LifeFirstPage() {
   const navigation = useAppNavigation();
   const { user } = useAuth();
-  const radarScore = HOUSE_RADAR_SCORES[user?.persona ?? 'beginner'];
+  const radarScore =
+    user?.email === SIGNUP_TEST_PROFILES.generic.email
+      ? HOUSE_RADAR_GENERIC_TEST
+      : HOUSE_RADAR_SCORES[user?.persona ?? 'beginner'];
   const radarPosition = {
     top: radarAxisPercent(radarScore.light, 'inward'),
     right: radarAxisPercent(radarScore.water, 'outward'),
