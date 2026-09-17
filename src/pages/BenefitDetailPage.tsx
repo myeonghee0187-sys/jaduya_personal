@@ -23,7 +23,7 @@ export function BenefitDetailPage() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const goBack = () => navigation?.navigate(returnTo);
+  const goBack = () => navigation?.goBack(returnTo);
 
   if (!benefit) {
     return (

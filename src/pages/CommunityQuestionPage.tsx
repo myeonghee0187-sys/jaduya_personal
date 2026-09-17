@@ -102,7 +102,7 @@ export function CommunityQuestionPage() {
       <SubPageHeader
         title="커뮤니티"
         backLabel="커뮤니티 홈으로"
-        onBack={() => navigation?.navigate('community')}
+        onBack={() => navigation?.goBack('community')}
         onMenu={() => setGnbOpen(true)}
       />
 

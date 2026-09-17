@@ -131,7 +131,7 @@ export function LifeHousePage() {
   /* 살림 팁은 이 화면에서 상세를 펼치지 않고 커뮤니티의 '자취 꿀팁' 으로 넘긴다 —
    * 카드와 '더보기' 의 목적지는 같다. */
   const openCommunityTips = useCallback(() => {
-    navigation?.navigate('community-tip');
+    navigation?.navigate('community-tip', { returnTo: 'life-house' });
   }, [navigation]);
 
   /* 스크롤 등장은 살림 팁에만 쓴다 — 검색·루틴은 사용자 action 에 반응하는 쪽이 중심이다 */
@@ -161,7 +161,7 @@ export function LifeHousePage() {
       <SubPageHeader
         title="생활"
         backLabel="생활로"
-        onBack={() => navigation?.navigate('life')}
+        onBack={() => navigation?.goBack('life')}
         onMenu={() => setGnbOpen(true)}
       />
 

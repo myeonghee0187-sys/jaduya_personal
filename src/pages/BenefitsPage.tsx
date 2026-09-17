@@ -55,7 +55,7 @@ export function BenefitsPage() {
       <SubPageHeader
         title="혜택·복지"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
         onMenu={() => setGnbOpen(true)}
       />
 
@@ -71,7 +71,10 @@ export function BenefitsPage() {
           <button
             type="button"
             className="benefits-ai__button"
-            onClick={() => navigation?.navigate('benefits-recommend')}
+            onClick={() => navigation?.navigate('benefits-recommend', {
+              returnTo: 'benefits',
+              returnOptions: navigation.options,
+            })}
           >
             <img
               className="benefits-ai__sparkle"

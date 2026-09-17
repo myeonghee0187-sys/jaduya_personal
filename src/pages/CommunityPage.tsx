@@ -49,6 +49,13 @@ export function CommunityPage() {
   const [level, setLevel] = useState<string>(LEVEL_FILTERS[0]);
   const [sort, setSort] = useState<string>(SORT_FILTERS[0]);
   const [openFilter, setOpenFilter] = useState<'level' | 'sort' | null>(null);
+  const closeDetail = () => {
+    if (navigation?.options.returnTo) {
+      navigation.goBack('community');
+      return;
+    }
+    setDetailPostId(null);
+  };
   /* 저장은 마이페이지와 공유하는 전역 상태, 좋아요는 이 화면 안에서만 쓴다 */
   const bookmarks = useBookmarks();
   /* 내가 쓴 글 — 정적 목록 맨 앞에 붙여서 등록하자마자 보이게 한다 */
@@ -104,7 +111,7 @@ export function CommunityPage() {
       <SubPageHeader
         title="커뮤니티"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
         onMenu={() => setGnbOpen(true)}
       />
 
@@ -292,7 +299,7 @@ export function CommunityPage() {
       <CommunityPostDetailPanel
         post={allPosts.find((item) => item.id === detailPostId) ?? null}
         open={detailPostId !== null}
-        onClose={() => setDetailPostId(null)}
+        onClose={closeDetail}
         liked={detailPostId !== null && liked.includes(detailPostId)}
         onToggleLike={() => detailPostId && toggleLike(detailPostId)}
         saved={detailPostId !== null && bookmarks.isSaved(detailPostId)}

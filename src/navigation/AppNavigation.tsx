@@ -55,14 +55,22 @@ export interface NavigateOptions {
   /** 뒤로가기로 돌아갈 화면. 없으면 도착 화면의 기본 상위 화면으로 간다.
    * history 스택을 만들지 않고 "어디서 들어왔는지" 한 단계만 기억한다. */
   returnTo?: AppPage;
+  /** 돌아갈 화면에서 복원할 탭. 재사용 상세 화면의 진입 문맥을 한 단계만 전달한다. */
+  returnTab?: string;
+  /** 중간 상세를 한 번 더 거쳐도 원래 화면의 옵션을 잃지 않게 넘기는 값. */
+  returnOptions?: NavigateOptions;
+  /** 자두AI에서 외부 화면으로 이동한 뒤 돌아올 때 기존 대화를 다시 연다. */
+  reopenAIChat?: boolean;
 }
 
 interface AppNavigationValue {
   page: AppPage;
   options: NavigateOptions;
   navigate: (page: AppPage, options?: NavigateOptions) => void;
+  goBack: (fallbackPage: AppPage) => void;
   /** 자두AI는 현재 화면 위에만 얹는다. 닫을 때 기반 화면의 상태를 보존한다. */
   isAIChatOpen: boolean;
+  hasAIChatOpened: boolean;
   closeAIChat: () => void;
 }
 
@@ -75,6 +83,7 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
     options: {},
   });
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [hasAIChatOpened, setHasAIChatOpened] = useState(false);
   /* navigate(page) 형태의 기존 호출은 그대로 동작한다 — options 는 선택값이다 */
   const value = useMemo(
     () => ({
@@ -84,6 +93,7 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
         /* AI는 독립 route로 화면을 교체하지 않는다. 현재 .app을 남겨 둔 상태에서
          * fullscreen overlay만 올려야 닫는 동안 실제 이전 화면이 그대로 드러난다. */
         if (page === 'ai-chat') {
+          setHasAIChatOpened(true);
           setIsAIChatOpen(true);
           return;
         }
@@ -105,7 +115,24 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
         document.getElementById('sheetScroll')?.scrollTo(0, 0);
         setRoute({ page, options });
       },
+      goBack: (fallbackPage: AppPage) => {
+        const { returnTo, returnTab, returnOptions, reopenAIChat } = route.options;
+        const nextOptions = returnOptions ?? (returnTab ? { tab: returnTab } : {});
+        window.scrollTo(0, 0);
+        document.querySelectorAll<HTMLElement>('.app').forEach((el) => {
+          el.scrollLeft = 0;
+          el.scrollTop = 0;
+        });
+        setRoute({ page: returnTo ?? fallbackPage, options: nextOptions });
+        if (reopenAIChat) {
+          setHasAIChatOpened(true);
+          /* AIChatPage 는 현재 보이는 .app 안으로 portal 된다. route 와 동시에 열면
+           * 이전 화면 DOM을 portal 대상으로 잡을 수 있어, 새 화면이 커밋된 다음 프레임에 연다. */
+          window.requestAnimationFrame(() => setIsAIChatOpen(true));
+        }
+      },
       isAIChatOpen,
+      hasAIChatOpened,
       closeAIChat: () => setIsAIChatOpen(false),
     }),
     [isAIChatOpen, route],

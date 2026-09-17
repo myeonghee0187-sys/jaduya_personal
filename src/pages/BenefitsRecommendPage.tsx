@@ -35,7 +35,7 @@ export function BenefitsRecommendPage() {
       <SubPageHeader
         title="혜택·복지"
         backLabel="혜택·복지 메인으로"
-        onBack={() => navigation?.navigate('benefits')}
+        onBack={() => navigation?.goBack('benefits')}
         onMenu={() => setGnbOpen(true)}
       />
 
@@ -117,6 +117,7 @@ export function BenefitsRecommendPage() {
                       navigation?.navigate('benefit-detail', {
                         benefitId: benefit.id,
                         returnTo: 'benefits-recommend',
+                        returnOptions: navigation.options,
                       })
                     }
                   >

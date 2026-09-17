@@ -1,4 +1,4 @@
-import { icon, img } from '../lib/asset';
+import { icon } from '../lib/asset';
 import { SAVED_CHIP_COLOR } from '../data/savedItems';
 import type { SavedItem } from '../data/savedItems';
 
@@ -17,7 +17,7 @@ export function SavedCard({ item, bookmarked, onToggleBookmark, onOpen }: SavedC
     <article className="saved-card">
       <button type="button" className="saved-card__open" onClick={() => onOpen(item)}>
         {item.thumbnail ? (
-          <img className="saved-card__thumb" src={img(`thumb/${item.thumbnail}`)} alt="" />
+          <img className="saved-card__thumb" src={item.thumbnail} alt="" />
         ) : (
           /* 썸네일이 없는 항목은 카테고리 아이콘을 같은 80×80 자리에 둔다 */
           <span

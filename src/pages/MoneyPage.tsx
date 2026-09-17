@@ -420,7 +420,7 @@ export function MoneyPage() {
       <SubPageHeader
         title="돈 관리"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
         onMenu={() => setGnbOpen(true)}
       />
 
@@ -659,7 +659,7 @@ export function MoneyPage() {
               <button
                 type="button"
                 className="money-insight-banner money-tappable"
-                onClick={() => navigation?.navigate('benefits')}
+                onClick={() => navigation?.navigate('benefits', { returnTo: 'money' })}
               >
                 <span className="money-insight-banner__text">
                   <span className="money-insight-banner__title">

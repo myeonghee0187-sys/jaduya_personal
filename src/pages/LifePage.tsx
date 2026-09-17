@@ -525,7 +525,7 @@ export function LifePage() {
       <SubPageHeader
         title="생활"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
         onMenu={() => setGnbOpen(true)}
       />
 
