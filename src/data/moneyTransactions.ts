@@ -286,3 +286,131 @@ export function transactionsGroupedByDay(predicate?: (t: ExpenseTransaction) => 
     .sort((a, b) => b[0] - a[0])
     .map(([day, items]) => ({ day, label: relativeDayLabel(day), items }));
 }
+
+/* ---------- 돈관리 > 수입·지출 탭 전용 파생 데이터 ----------
+ * 지출은 위 EXPENSE_TRANSACTIONS(단일 원본)를 그대로 재사용한다 — 새 지출 목록을 따로
+ * 만들지 않는다. 수입·이체만 이 아래에 원본으로 추가하고, "이번 달" 탭이 써 온
+ * INCOME_THIS_MONTH 하드코딩 상수도 이 원본(TOTAL_INCOME)으로 바꿔서 두 탭이 항상 같은
+ * 숫자를 보게 한다(CLAUDE.md 13. 동일 데이터 정합). */
+
+export type FlowType = 'income' | 'expense' | 'transfer';
+
+export interface IncomeTransaction {
+  id: string;
+  day: number;
+  source: string;
+  amount: number;
+}
+
+/** "이번 달" 탭 돈 흐름 카드의 수입(2,500,000원)과 같은 값 — 월급 하나뿐이다. */
+export const INCOME_TRANSACTIONS: readonly IncomeTransaction[] = [
+  { id: 'income-1', day: 8, source: '월급', amount: 2_500_000 },
+] as const;
+
+export const TOTAL_INCOME = INCOME_TRANSACTIONS.reduce((sum, t) => sum + t.amount, 0);
+
+export interface TransferTransaction {
+  id: string;
+  day: number;
+  label: string;
+  amount: number;
+}
+
+/* 이체(내 계좌 간 이동)는 수입도 지출도 아니라 수입/지출 합계 어디에도 더하지 않는다 —
+ * 필터에서 "이체"를 골랐을 때만 보여준다. */
+export const TRANSFER_TRANSACTIONS: readonly TransferTransaction[] = [
+  { id: 'transfer-1', day: 10, label: '비상금 적립', amount: 100_000 },
+  { id: 'transfer-2', day: 25, label: '비상금 적립', amount: 50_000 },
+] as const;
+
+export interface MoneyFlowItem {
+  id: string;
+  type: FlowType;
+  day: number;
+  category: CategoryKey | null;
+  /** 지출은 카테고리 아이콘을 그대로 쓰고, 수입·이체는 고정 아이콘 하나씩 쓴다. */
+  icon: string;
+  name: string;
+  /** 항상 양수 — 부호(+/-)는 type 을 보고 렌더링에서 붙인다. */
+  amount: number;
+}
+
+function categoryIcon(category: CategoryKey): string {
+  return CATEGORY_META.find((c) => c.key === category)?.icon ?? 'money-cat-culture.svg';
+}
+
+/** 수입·지출·이체를 한 종류로 합친 목록 — 캘린더 일별 합계, 목록 필터·검색이 전부
+ * 이 하나에서 파생된다. */
+export const MONEY_FLOW_ITEMS: readonly MoneyFlowItem[] = [
+  ...EXPENSE_TRANSACTIONS.map((t) => ({
+    id: t.id,
+    type: 'expense' as const,
+    day: t.day,
+    category: t.category,
+    icon: categoryIcon(t.category),
+    name: t.merchant,
+    amount: t.amount,
+  })),
+  ...INCOME_TRANSACTIONS.map((t) => ({
+    id: t.id,
+    type: 'income' as const,
+    day: t.day,
+    category: null,
+    icon: 'money-income.svg',
+    name: t.source,
+    amount: t.amount,
+  })),
+  ...TRANSFER_TRANSACTIONS.map((t) => ({
+    id: t.id,
+    type: 'transfer' as const,
+    day: t.day,
+    category: null,
+    icon: 'money-balance.svg',
+    name: t.label,
+    amount: t.amount,
+  })),
+];
+
+/** 하루치 수입/지출 합계 — 캘린더 칸에 찍을 값. 이체는 둘 중 어디에도 안 더한다. */
+export function dayFlowTotals(day: number): { income: number; expense: number } {
+  return MONEY_FLOW_ITEMS.filter((t) => t.day === day).reduce(
+    (acc, t) => {
+      if (t.type === 'income') acc.income += t.amount;
+      else if (t.type === 'expense') acc.expense += t.amount;
+      return acc;
+    },
+    { income: 0, expense: 0 },
+  );
+}
+
+export interface MoneyFlowDayGroup {
+  day: number;
+  label: string;
+  items: MoneyFlowItem[];
+  income: number;
+  expense: number;
+}
+
+/** 필터(수입/지출/이체/카테고리)·검색이 적용된 항목을 날짜별로 묶는다 — 최근 날짜부터. */
+export function flowItemsGroupedByDay(predicate?: (t: MoneyFlowItem) => boolean): MoneyFlowDayGroup[] {
+  const list = [...MONEY_FLOW_ITEMS]
+    .filter((t) => !predicate || predicate(t))
+    .sort((a, b) => b.day - a.day || a.id.localeCompare(b.id));
+  const byDay = new Map<number, MoneyFlowItem[]>();
+  for (const t of list) {
+    const bucket = byDay.get(t.day);
+    if (bucket) bucket.push(t);
+    else byDay.set(t.day, [t]);
+  }
+  return Array.from(byDay.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([day, items]) => {
+      const totals = dayFlowTotals(day);
+      return { day, label: relativeDayLabel(day), items, income: totals.income, expense: totals.expense };
+    });
+}
+
+/** id 로 수입·지출·이체 항목 하나를 찾는다 — 상세 화면 진입용. */
+export function findFlowItem(id: string): MoneyFlowItem | undefined {
+  return MONEY_FLOW_ITEMS.find((t) => t.id === id);
+}

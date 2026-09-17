@@ -33,17 +33,20 @@
 .dc-tabs {
   display: flex;
   flex: none;
-  width: 100%;
+  justify-content: space-between;
+  margin: 0 var(--screen-margin);
+  padding-top: var(--space-lg);
+  border-bottom: 1px solid var(--border-warm);
 }
 
 .dc-tabs__tab {
-  flex: 1;
-  padding: 12px 14px 13px;
+  position: relative;
+  flex: none;
+  padding: 12px 24px 14px;
   border: 0;
-  border-bottom: 1px solid #737373;
   background: none;
-  color: #737373;
-  font: 700 14px/16px var(--font-suit);
+  color: var(--text-secondary);
+  font: 400 14px/16px var(--font-suit);
   text-align: center;
   cursor: pointer;
 }
@@ -53,10 +56,32 @@ span.dc-tabs__tab {
 }
 
 .dc-tabs__tab.is-active {
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--brand-primary);
   color: var(--brand-primary);
+  font-weight: 700;
   cursor: default;
+}
+
+.dc-tabs__tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-primary);
+  animation: dc-tab-indicator 200ms ease;
+}
+
+@keyframes dc-tab-indicator {
+  from {
+    transform: scaleX(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
 /* 헤더·탭·탭바는 고정이고 이 영역만 스크롤한다 */

@@ -217,7 +217,9 @@ export function ScratchReveal({
             onPointerLeave={handlePointerUp}
           />
           <div className="fund-scratch__label">
-            <img src={icon('lock.svg')} alt="" className="fund-scratch__lock" aria-hidden="true" />
+            <span className="fund-scratch__lock-badge" aria-hidden="true">
+              <img src={icon('lock.svg')} alt="" className="fund-scratch__lock" />
+            </span>
             <p className="fund-scratch__title">{title}</p>
             <span className="fund-scratch__cue">{cue}</span>
             <button

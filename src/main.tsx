@@ -42,7 +42,6 @@ import './styles/life-eat.css';
 import './styles/community.css';
 import './styles/ai-chat-page.css';
 import './styles/money.css';
-import './styles/money-receipt.css';
 import './styles/benefits.css';
 import './styles/notifications.css';
 import './styles/settings-pages.css';
