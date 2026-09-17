@@ -116,7 +116,7 @@ export function MoneyBudgetPage() {
         </div>
 
         <div className="budget-setup__hero">
-          <img src={img('money-budget-character.png')} alt="" />
+          <img src={img('02money-budget-character.png')} alt="" />
         </div>
 
         <div

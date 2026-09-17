@@ -25,21 +25,6 @@
   display: none;
 }
 
-/* ---------- 비상금 탭 전용 — 스크롤 없이 한 화면(100dvh - 헤더 - 탭바)에 맞춘다.
- * 다른 3개 탭은 기존처럼 세로로 스크롤되지만, 비상금 탭에 있는 동안만 이 컨테이너 자체를
- * flex column 으로 바꿔 위(탭 줄)는 고정하고 아래(EmergencyFundCard 의 .fund-hero)가
- * 남는 높이를 정확히 채우도록 한다. */
-.money__scroll--fund {
-  overflow: hidden;
-  padding-bottom: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.money__scroll--fund .money__tabs-row {
-  flex: none;
-}
-
 /* 돈관리 4개 탭 전체에서 쓰는 공통 눌림 피드백 — 지금까지 일부 행/카드에만 :active 가 있고
  * 나머지는 눌러도 아무 반응이 없어서 탭 가능 여부가 일관되지 않았다. 색은 안 바꾸고
  * 살짝 눌리는 정도(scale+opacity)만 줘서 모든 탭에서 같은 느낌으로 통일한다. */
@@ -87,18 +72,24 @@
 
 .money__tabs {
   display: flex;
-  justify-content: space-between;
   width: 100%;
 }
 
+/* 커뮤니티 탭(.community-tabs__tab)과 같은 방식 — flex: 1 로 4등분해서 글자 길이가
+ * 제각각이어도 항상 컨테이너 폭 안에 맞춘다. 이전엔 탭마다 고정 24px 패딩을 써서
+ * 402px 기준에선 맞았지만 360px 처럼 좁은 화면에서는 폭이 모자라 마지막 "비상금"이
+ * 잘렸다 — 스크롤 대신 커뮤니티처럼 탭 자체를 줄여서 넷 다 항상 한 줄에 보이게 한다. */
 .money__tab {
-  padding: 12px 24px 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 6px 14px;
   border: none;
   background: none;
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 14px;
   color: var(--text-secondary);
+  text-align: center;
   white-space: nowrap;
   cursor: pointer;
   transition: color 150ms ease, opacity 120ms ease;
@@ -141,6 +132,26 @@
     transform: scaleX(1);
     opacity: 1;
   }
+}
+
+/* ---------- 월 선택 ---------- */
+.money__month {
+  padding: 18px var(--screen-margin) 0;
+}
+
+.money__month-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-warm);
+  background: var(--surface-cream);
+  font-family: var(--font-asta);
+  font-weight: 500;
+  font-size: 16px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 /* ---------- 이번 달 쓸 수 있는 돈 카드 ----------
@@ -235,6 +246,9 @@
   height: 100%;
   border-radius: inherit;
   background: var(--brand-primary);
+  /* JS(useAnimatedPercent)가 매 프레임 width 를 바꾸는데, rAF 프레임 사이를 CSS 로 한 번
+   * 더 부드럽게 이어준다 — 비상금 진행률 바(.fund-card__progress-fill)와 같은 값 */
+  transition: width 120ms linear;
 }
 
 .money-budget__setting-btn {
@@ -263,6 +277,13 @@
 /* ---------- 섹션 공통 ---------- */
 .money-section {
   padding: var(--space-2xl) var(--screen-margin) 0;
+}
+
+/* "이번 달" 탭의 소비 분석 배너 → 고정비/내 계좌 → 비상금이 각자 기본 간격(32px)으로
+ * 떨어져 있으면 서로 상관없는 섹션처럼 보인다 — 이 셋은 "이번 달 한눈에 보기" 카드
+ * 묶음으로 붙여서 통일감 있게 보여준다. */
+.money-section--tight {
+  padding-top: var(--space-sm);
 }
 
 .money-section__head {
@@ -311,75 +332,53 @@
   margin-top: 14px;
 }
 
+/* 아이콘이 맨 위, 그 아래 제목, 그 아래 금액 순서로 쌓는다. */
 .money-flow-card {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  width: 100%;
   padding: 14px;
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
   background: var(--surface-base);
-  font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
-.money-flow-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.money-flow-card__icon img {
-  width: 32px;
-  height: 32px;
-}
-
-.money-flow-card__icon img.is-flipped {
-  transform: rotate(180deg);
-}
-
-.money-flow-card__icon--income {
-  background: #2f6fd6;
-}
-
-.money-flow-card__icon--expense {
-  background: var(--brand-primary);
-}
-
-.money-flow-card__label {
+.money-flow-card__title {
+  margin-top: 8px;
   font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.money-flow-card__icon-img {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
 .money-flow-card__value {
+  margin-top: 10px;
   font-family: var(--font-asta);
   font-weight: 700;
   font-size: 18px;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.money-flow-card__trend {
-  font-family: var(--font-suit);
-  font-size: 11.5px;
-  color: var(--text-tertiary);
+.money-flow-card__value--income {
+  color: #2f6fd6;
 }
 
-.money-flow-card__trend.is-up {
+.money-flow-card__value--expense {
   color: var(--brand-primary);
 }
 
-.money-flow-card__trend.is-down {
-  color: var(--brand-green);
-}
 
 /* ---------- 이번 달 돈 흐름 — 이번 주 요일 스트립(레퍼런스). 실거래 데이터가 있는 한 주(9/15~9/21)만
  * 보여준다. 날짜 셀 디자인은 flow-calendar(수입·지출 탭 캘린더)와 같은 값을 그대로 쓴다. ---------- */
@@ -399,6 +398,11 @@
   flex: none;
   border: 0;
   background: none;
+}
+
+.money-week-strip__arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .money-week-strip__arrow img {
@@ -517,6 +521,7 @@
   display: block;
   height: 100%;
   border-radius: var(--radius-pill);
+  transition: width 120ms linear;
 }
 
 .money-spend-bar-row__amount {
@@ -583,14 +588,16 @@
 
 /* ---------- 소비 인사이트 배너 — "이번 달은 OO 지출이 가장 많아요" ---------- */
 /* 레퍼런스: 크림 배경 카드 + 오른쪽 아래에서 카드 밖으로 살짝 걸치는 캐릭터
- * (money-insight-badge.png — 자두의 한마디에 쓰던 것과 같은 에셋). */
+ * (02money-insight-badge.png). */
 .money-insight-banner {
   position: relative;
   display: block;
   width: 100%;
   min-height: 76px;
   margin-top: var(--space-lg);
-  padding: var(--space-md) 84px var(--space-md) var(--space-md);
+  /* 360px(최소 지원 폭)에서 제목이 한 줄에 다 안 들어가 두 줄로 꺾이던 문제 —
+   * 오른쪽에 남겨두던 여백(아이콘 자리)을 아이콘 실제 크기에 맞게 줄여 글자 공간을 늘린다. */
+  padding: var(--space-md) 60px var(--space-md) var(--space-md);
   border: none;
   border-radius: var(--radius-xl);
   background: #fef6de;
@@ -609,7 +616,7 @@
 .money-insight-banner__title {
   font-family: var(--font-suit);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
@@ -622,9 +629,10 @@
 
 .money-insight-banner__icon {
   position: absolute;
-  right: 6px;
-  bottom: -8px;
-  width: 60px;
+  top: 50%;
+  right: 4px;
+  width: 44px;
+  transform: translateY(-50%);
 }
 
 .money-insight-banner__icon img {
@@ -642,6 +650,7 @@
 }
 
 .money-mini-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -668,20 +677,17 @@
   color: var(--text-primary);
 }
 
-.money-mini-card__icon {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--surface-widget);
-}
-
-.money-mini-card__icon img {
-  width: 14px;
-  height: 14px;
+/* 고정비/내 계좌 카드는 원형 배경 아이콘 대신 fixed_expenses.png · budget_management.png
+ * 일러스트를 배경 없이 그대로 쓴다. 제목과 같은 줄(flex)에 두면 커질수록 자리를 차지해
+ * 제목을 밀어내서, absolute 로 빼서 카드 맨 오른쪽 위 모서리에 붙인다 — 안쪽으로 14px
+ * 띄우면 금액 텍스트와 겹쳐서 코너에 바짝 둔다. */
+.money-mini-card__icon-img {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 
 .money-mini-card__label {
@@ -712,34 +718,34 @@
 }
 
 /* ---------- 비상금 배너 ---------- */
+/* 텍스트가 짧아 오른쪽에 넓게 비던 자리를 캐릭터가 자연스럽게 채운다 — 소비 인사이트
+ * 배너(money-insight-banner)와 같은 방식: 오른쪽 아래로 살짝 걸치게 크게 배치하고,
+ * 그만큼 padding-right 로 본문 자리를 비워둔다. */
 .money-fund-banner {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
   padding: var(--space-md);
+  padding-left: 80px;
   border: none;
   border-radius: var(--radius-xl);
   background: rgba(199, 117, 59, 0.12);
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
 }
 
-.money-fund-banner__icon {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--surface-cream);
-}
-
-.money-fund-banner__icon img {
-  width: 18px;
-  height: 18px;
+.money-fund-banner__icon-img {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .money-fund-banner__text {
@@ -758,34 +764,20 @@
 }
 
 .money-fund-banner__sub {
+  overflow: hidden;
   font-family: var(--font-suit);
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.money-fund-banner__cta {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  /* money-insight-banner__cta 와 같은 이유로 flex-basis 100% 대신 내용만큼만 차지하고
-   * 오른쪽 끝에 붙인다 — 크림 배경 알약이 카드 너비만큼 빈 채로 늘어나 보이던 문제. */
-  margin-left: auto;
-  margin-top: 6px;
-  padding: 8px 12px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-cream);
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--brand-orange);
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.money-fund-banner__cta img {
-  width: 12px;
-  height: 12px;
+/* 카드 전체가 이미 버튼이라 "복권 긁어보기" 같은 문구 CTA 없이 화살표 하나로만 클릭
+ * 가능함을 알려준다(고정비/내 계좌 미니카드와 같은 절제된 방식). */
+.money-fund-banner__chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
 }
 
 /* ==========================================================================
@@ -801,6 +793,28 @@
   justify-content: flex-end;
 }
 
+.money-month-dropdown {
+  position: relative;
+}
+
+.money__month-label--btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-warm);
+  cursor: pointer;
+}
+
+.money__month-label--btn img {
+  width: 10px;
+  height: 10px;
+  transition: transform 0.15s ease;
+}
+
+.money__month-label--btn img.is-open {
+  transform: rotate(180deg);
+}
+
 .money-month-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -812,6 +826,15 @@
   border-radius: var(--radius-m);
   background: var(--surface-cream);
   box-shadow: 0 8px 20px rgba(59, 51, 46, 0.12);
+  /* 비상금 적립 내역 패널(fund-deposit-panel-in)과 같은 진입 애니메이션 — 하드컷 없이
+   * 살짝 아래에서 올라오며 나타난다 */
+  animation: fund-deposit-panel-in 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-month-menu {
+    animation: none;
+  }
 }
 
 .money-month-menu__item {
@@ -1553,8 +1576,47 @@
  * 내용이 그대로 겹치는 화면이라 굳이 한 번 더 들어갈 이유가 없어서 걷어냈다.
  * ========================================================================== */
 
+/* ---------- 자동결제 토글 안내 — "고정비 내역" 목록 위, budget-setup__today-guide 와
+ * 같은 작은 "i" 배지 + 한 줄 안내 문구 스타일을 재사용한다. ---------- */
+.money-fixed-toggle-guide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-lg) var(--screen-margin) 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
+}
+
+.money-fixed-toggle-guide__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-green);
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 10px;
+  color: #fff;
+}
+
+.money-fixed-toggle-guide__text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 /* ---------- 이번 달 예정 고정비 요약 카드 (레퍼런스) ---------- */
 .money-fixed-summary {
+  position: relative;
+  overflow: hidden;
   margin: 14px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
@@ -1570,14 +1632,20 @@
 .money-fixed-summary__stat {
   flex: 1 1 auto;
   min-width: 0;
+  /* 아이콘이 더 이상 자기 자리를 차지하지 않고(오른쪽 위에 배경처럼 걸침) 텍스트
+   * 위로 겹치지 않도록 오른쪽에 자리를 비워둔다 */
+  padding-right: 64px;
 }
 
+/* 카드 배경이 연한 핑크(#fdeceb)라 --text-secondary/--text-tertiary 를 그대로 쓰면
+ * 명도 대비가 너무 낮아(각각 약 4.2:1, 2.3:1) 잘 안 읽힌다(Design System 20. Accessibility
+ * "contrast 확보"). 흰 배경 기준 토큰 대신, 이 카드 안에서만 더 짙은 회색으로 맞춘다. */
 .money-fixed-summary__label {
   margin: 0;
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-gray);
 }
 
 .money-fixed-summary__amount {
@@ -1592,28 +1660,20 @@
   margin: 4px 0 0;
   font-family: var(--font-suit);
   font-size: 12.5px;
-  color: var(--text-tertiary);
+  color: var(--text-meta);
 }
 
-.money-fixed-summary__percent {
-  flex: none;
-  margin-left: auto;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.money-fixed-summary__percent.is-down {
-  background: rgba(34, 139, 34, 0.12);
-  color: var(--brand-green);
-}
-
-.money-fixed-summary__percent.is-up {
-  background: rgba(180, 57, 54, 0.1);
-  color: var(--brand-primary);
+/* 지난달 대비 증감 배지 대신 fixed_expenses.png 일러스트를 크게 키워 카드 오른쪽
+ * 위 모서리에 배경처럼 살짝 걸치게 둔다(money-fund-banner 와 같은 방식) — 더 이상
+ * head 줄의 flex 아이템이 아니라 카드 기준 absolute 로 뺀다. */
+.money-fixed-summary__icon {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 /* ---------- 이번 달 고정비 지출 현황 — 오늘까지 결제된 금액 vs 이번 달 전체 예정 금액 ---------- */
@@ -1632,6 +1692,7 @@
   height: 100%;
   border-radius: var(--radius-pill);
   background: var(--brand-primary);
+  transition: width 120ms linear;
 }
 
 .money-fixed-status__labels {
@@ -1642,7 +1703,8 @@
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 12.5px;
-  color: var(--text-secondary);
+  /* 같은 카드(#fdeceb) 안이라 위 라벨과 같은 이유로 --text-secondary 대신 더 짙은 톤을 쓴다 */
+  color: var(--text-gray);
 }
 
 /* ---------- 다음 결제 — 단일 행(토글 없음) ---------- */
@@ -1677,6 +1739,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* FIXED_ITEM_IMAGE 일러스트는 원형 배지 안에 억지로 욱여넣지 않고 배경/클리핑 없이
+ * 그대로 보여준다 — 배지 자리 크기(40px)는 유지해 옆 텍스트와의 정렬은 그대로다. */
+.money-fixed-next__icon--plain {
+  background: none;
+  overflow: visible;
 }
 
 .money-fixed-next__info {
@@ -1768,6 +1837,7 @@
   color: var(--text-secondary);
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .money-fixed-category-tab.is-active {
@@ -1829,6 +1899,13 @@
   border-radius: var(--radius-m);
   background: var(--surface-base);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: fund-deposit-panel-in 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-fixed-sort__menu {
+    animation: none;
+  }
 }
 
 .money-fixed-sort__option {
@@ -1942,6 +2019,11 @@
   max-width: none;
 }
 
+.money-fixed-row__icon--plain {
+  background: none;
+  overflow: visible;
+}
+
 .money-fixed-row__info {
   flex: 1 1 auto;
   min-width: 0;
@@ -2033,6 +2115,11 @@
 .money-fixed-detail__icon img {
   position: absolute;
   max-width: none;
+}
+
+.money-fixed-detail__icon--plain {
+  background: none;
+  overflow: visible;
 }
 
 .money-fixed-detail__info {
@@ -2303,15 +2390,23 @@
  * 톤(둥근 radius-xl, 낮은 그림자, warm 팔레트)만 맞추고 마크업은 새로 짠다.
  * ========================================================================== */
 
-/* .fund-hero 는 EmergencyFundCard.tsx 가 그리는 비상금 화면 전체다 — 이 탭은 스크롤 없이
- * 100dvh(헤더 + 상단 4탭 바를 뺀 나머지)에 전부 들어와야 해서(.money__scroll--fund 참고),
- * 헤더 아래 남는 공간을 flex 로 그대로 채우고 카드 하나만 늘었다 줄었다 하도록 짠다. */
+/* .fund-hero 는 EmergencyFundCard.tsx 가 그리는 비상금 화면 전체다. 상단 큰 이미지 +
+ * 적립 내역 아코디언이 펼쳐지면 다른 탭들처럼 세로로 스크롤된다(money__scroll 공통 동작). */
 .fund-hero {
-  flex: 1 1 auto;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 10px var(--screen-margin) calc(var(--tab-bar-h) + 8px);
+}
+
+.fund-hero__image {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) 0 var(--space-lg);
+}
+
+.fund-hero__image img {
+  width: 168px;
+  height: auto;
 }
 
 /* ---------- 카드 셸 — 긁기 전엔 커버, 다 긁으면 결과 카드로 그대로 전환된다.
@@ -2499,6 +2594,23 @@
   font-weight: 500;
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+/* 긁는 중 격려 문구(레퍼런스) — 처음 안내(잠금 배지/제목/버튼) 대신 잠깐 보여준다 */
+/* 아래 실제 금액(fund-card__peek-amount)이 카드 폭 대부분을 차지해서, 알약을 좁게
+ * 두면 긁힌 자리 사이로 금액 앞뒤 글자가 삐져나와 보인다 — 폭을 넉넉히 잡아 확실히 가린다. */
+.fund-scratch__encourage {
+  min-width: 76%;
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-base);
+  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.12);
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  text-align: center;
 }
 
 .fund-scratch__reveal-btn {
@@ -2825,14 +2937,31 @@ button.fund-card__remaining--tap {
   text-align: center;
 }
 
-.fund-deposit-panel__list {
-  max-height: 112px;
-  overflow-y: auto;
-  scrollbar-width: none;
+/* 적립 내역 기본 2건 미리보기 → "더보기"로 나머지 펼치기(아코디언 depositsExpanded 와는
+ * 별개의 한 단계 더 깊은 펼치기) */
+.fund-deposit-panel__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border-warm);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.fund-deposit-panel__list::-webkit-scrollbar {
-  display: none;
+.fund-deposit-panel__more img {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+}
+
+.fund-deposit-panel__more img.is-open {
+  transform: rotate(180deg);
 }
 
 .fund-deposit-row {
@@ -2877,26 +3006,6 @@ button.fund-card__remaining--tap {
   font-weight: 600;
   font-size: 13px;
   color: var(--brand-green);
-}
-
-.fund-deposit-panel__more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 100%;
-  margin-top: 4px;
-  padding: 8px 0 4px;
-  border-top: 1px solid var(--border-warm);
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.fund-deposit-panel__more img {
-  width: 12px;
-  height: 12px;
 }
 
 /* ---------- 비상금 채우기 — 스크래치 상태와 무관하게 항상 보이는, 화면 맨 아래 CTA ---------- */
@@ -3163,9 +3272,6 @@ button.fund-card__remaining--tap {
 .budget-setup__hero img {
   width: 180px;
   height: auto;
-  /* 캐릭터 몸통(시각적 무게중심)이 오른쪽 반짝이 효과 때문에 이미지 캔버스
-   * 중앙보다 왼쪽에 치우쳐 있어, 살짝 오른쪽으로 밀어 눈에 보이는 중앙에 맞춘다 */
-  transform: translateX(7px);
 }
 
 /* ---------- 예산 스테퍼 ---------- */
@@ -4413,6 +4519,13 @@ button.fund-card__remaining--tap {
   background: var(--surface-base);
   box-shadow: 0 6px 16px rgba(60, 50, 45, 0.1);
   list-style: none;
+  animation: fund-deposit-panel-in 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-sort__list {
+    animation: none;
+  }
 }
 
 .flow-sort__list button {
@@ -4451,6 +4564,7 @@ button.fund-card__remaining--tap {
   font-weight: 500;
   font-size: 12.5px;
   color: var(--text-secondary);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .flow-filter__pill.is-active {
@@ -4494,6 +4608,7 @@ button.fund-card__remaining--tap {
   color: var(--text-secondary);
   white-space: nowrap;
   scroll-snap-align: start;
+  transition: border-color 150ms ease, color 150ms ease;
 }
 
 .flow-category-chip img {
@@ -4827,12 +4942,23 @@ button.fund-card__remaining--tap {
   padding: 0 var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl));
 }
 
+/* 계좌/카드/이체 3개는 돈관리 메인의 4개 탭(space-between, 화면 폭에 맞춰 분산)과 같은
+ * 클래스를 재사용하지만, 탭 수가 적어 그대로 두면 가운데로 쏠려 보인다 — 이 페이지에서만
+ * 왼쪽부터 쌓이게 덮어써서 다른 카테고리 탭들과 정렬 방식을 통일한다. */
+.money-accounts__scroll .money__tabs {
+  justify-content: flex-start;
+}
+
 /* ---------- "내 계좌 N개" + 계좌 연결하기 ---------- */
 .money-accounts__section-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  width: 100%;
   margin-top: var(--space-lg);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
 }
 
 .money-accounts__section-title {
@@ -4841,25 +4967,6 @@ button.fund-card__remaining--tap {
   font-weight: 700;
   font-size: 16px;
   color: var(--text-primary);
-}
-
-.money-accounts__connect-pill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  padding: 8px 14px;
-  background: color-mix(in srgb, var(--brand-primary) 10%, white);
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 12.5px;
-  color: var(--brand-primary);
-}
-
-.money-accounts__connect-pill img {
-  width: 12px;
-  height: 12px;
 }
 
 /* ---------- 계좌 목록 — money-mini-card 와 같은 카드 톤 ---------- */
@@ -4885,19 +4992,18 @@ button.fund-card__remaining--tap {
   flex: none;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--border-warm), 0 1px 3px rgba(59, 51, 46, 0.08);
-  font-family: var(--font-asta);
-  font-weight: 800;
-  font-size: 16px;
 }
 
-/* 카카오뱅크처럼 배지 배경 자체가 브랜드 색인 경우 — 이미 색이 뚜렷해 테두리 링이
- * 필요 없다(레퍼런스도 이 배지엔 테두리가 없다). */
-.money-accounts__row-badge.is-solid {
-  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.1);
+.money-accounts__row-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .money-accounts__row-info {
@@ -5014,17 +5120,18 @@ button.fund-card__remaining--tap {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   width: 48px;
   height: 48px;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--border-warm), 0 1px 3px rgba(59, 51, 46, 0.08);
-  font-family: var(--font-asta);
-  font-weight: 800;
-  font-size: 17px;
 }
 
-.money-accounts__bank-badge.is-solid {
-  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.1);
+.money-accounts__bank-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .money-accounts__bank-badge--more {

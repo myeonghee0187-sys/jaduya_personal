@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { icon } from '../lib/asset';
+import { icon, img } from '../lib/asset';
 import { ACCOUNTS } from '../data/moneyAccounts';
 
 /* 돈관리 > 금융 관리 — "이번 달" 탭의 "내 계좌" 미리보기 카드로 들어오는 하위 화면이다(레퍼런스
@@ -22,33 +21,24 @@ import { ACCOUNTS } from '../data/moneyAccounts';
  * 실제 계좌 연동은 아직 없어(다른 금융기관 계좌 연결도 준비 중) 연결 버튼·연결 가능한
  * 금융기관 목록은 모두 눌러도 "준비 중" 안내만 뜬다 — 다른 하위 화면들과 같은 방식.
  *
- * 은행 로고 이미지 파일은 쓰지 않는다(실제 브랜드 로고 아트워크를 그대로 가져오지 않는다) —
- * 대신 계좌 목록과 같은 원형 배지에 은행 이니셜을 넣는다. 카카오뱅크만 배지 배경 자체가
- * 브랜드 색(노랑)인 실제 UI 관례를 따르고, 나머지는 흰 배경 + 색 이니셜로 구분한다. */
+ * 은행 로고는 실제 로고 이미지 파일(jaduya_custom_recommendation_36/money_management/
+ * bank*.png)을 그대로 쓴다 — 계좌 목록(moneyAccounts.ts)과 같은 방식. */
 
 interface ConnectableBank {
   id: string;
   label: string;
-  initial: string;
-  color: string;
-  /** 카카오뱅크처럼 배지 배경 자체가 브랜드 색인 은행만 'solid' */
-  fill?: 'solid';
+  logo: string;
 }
 
 const CONNECTABLE_BANKS: ConnectableBank[] = [
-  { id: 'kakao', label: '카카오뱅크', initial: 'B', color: 'var(--brand-secondary)', fill: 'solid' },
-  { id: 'kb', label: 'KB국민', initial: 'K', color: 'var(--brand-green)' },
-  { id: 'shinhan', label: '신한은행', initial: 'S', color: '#4a6fa5' },
-  { id: 'woori', label: '우리은행', initial: 'W', color: '#2f6fd6' },
-  { id: 'hana', label: '하나은행', initial: 'H', color: 'var(--brand-orange)' },
-  { id: 'nh', label: 'NH농협', initial: 'N', color: 'var(--brand-rose)' },
-  { id: 'toss', label: '토스뱅크', initial: 'T', color: 'var(--brand-primary)' },
+  { id: 'kakao', label: '카카오뱅크', logo: 'jaduya_custom_recommendation_36/money_management/bank1.png' },
+  { id: 'kb', label: 'KB국민', logo: 'jaduya_custom_recommendation_36/money_management/bank2.png' },
+  { id: 'shinhan', label: '신한은행', logo: 'jaduya_custom_recommendation_36/money_management/bank3.png' },
+  { id: 'woori', label: '우리은행', logo: 'jaduya_custom_recommendation_36/money_management/bank4.png' },
+  { id: 'hana', label: '하나은행', logo: 'jaduya_custom_recommendation_36/money_management/bank5.png' },
+  { id: 'nh', label: 'NH농협', logo: 'jaduya_custom_recommendation_36/money_management/bank6.png' },
+  { id: 'toss', label: '토스뱅크', logo: 'jaduya_custom_recommendation_36/money_management/bank7.png' },
 ];
-
-/** 은행 배지 색 — 'solid'(카카오뱅크)는 배경 자체가 브랜드 색, 나머지는 흰 배경 + 색 이니셜. */
-function badgeStyle(color: string, fill?: 'solid'): CSSProperties {
-  return fill === 'solid' ? { background: color, color: '#3a1d1d' } : { background: '#fff', color };
-}
 
 export function MoneyAccountsPage() {
   const navigation = useAppNavigation();
@@ -98,27 +88,19 @@ export function MoneyAccountsPage() {
           </div>
         </div>
 
-        <div className="money-accounts__section-head">
+        <button
+          type="button"
+          className="money-accounts__section-head money-tappable"
+          onClick={() => setNotice('내 계좌 전체보기는 준비 중이에요.')}
+        >
           <h2 className="money-accounts__section-title">내 계좌 {ACCOUNTS.length}개</h2>
-          <button
-            type="button"
-            className="money-accounts__connect-pill"
-            onClick={() => setNotice('계좌 연결 기능은 준비 중이에요.')}
-          >
-            <img src={icon('plus-small.svg')} alt="" />
-            계좌 연결하기
-          </button>
-        </div>
+        </button>
 
         <div className="money-accounts__list">
           {ACCOUNTS.map((account) => (
             <div key={account.id} className="money-accounts__row">
-              <span
-                className={`money-accounts__row-badge${account.fill === 'solid' ? ' is-solid' : ''}`}
-                style={badgeStyle(account.color, account.fill)}
-                aria-hidden="true"
-              >
-                {account.initial}
+              <span className="money-accounts__row-badge" aria-hidden="true">
+                <img src={img(account.logo)} alt="" />
               </span>
               <span className="money-accounts__row-info">
                 <span className="money-accounts__row-bank">{account.bank}</span>
@@ -154,12 +136,8 @@ export function MoneyAccountsPage() {
                 className="money-accounts__bank money-tappable"
                 onClick={() => setNotice('계좌 연결 기능은 준비 중이에요.')}
               >
-                <span
-                  className={`money-accounts__bank-badge${bank.fill === 'solid' ? ' is-solid' : ''}`}
-                  style={badgeStyle(bank.color, bank.fill)}
-                  aria-hidden="true"
-                >
-                  {bank.initial}
+                <span className="money-accounts__bank-badge" aria-hidden="true">
+                  <img src={img(bank.logo)} alt="" />
                 </span>
                 <span className="money-accounts__bank-label">{bank.label}</span>
               </button>

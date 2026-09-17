@@ -56,10 +56,13 @@ function dayGroupLabel(year: number, month: number, day: number): string {
 
 interface IncomeExpenseSectionProps {
   onNotice: (message: string) => void;
+  /** "이번 달" 탭의 "소비 분석 전체 보기"처럼, 이 탭에 들어오자마자 목록 보기로 열고
+   * 싶을 때만 넘긴다 — 기본은 캘린더 보기(레퍼런스 기본값)를 그대로 쓴다. */
+  initialView?: ViewMode;
 }
 
-export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
-  const [view, setView] = useState<ViewMode>('calendar');
+export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: IncomeExpenseSectionProps) {
+  const [view, setView] = useState<ViewMode>(initialView);
   const [calendarDate, setCalendarDate] = useState(() => new Date(2026, 8, 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(TODAY_DAY);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -184,7 +187,7 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
               aria-label="이전 달"
               onClick={() => goCalendarMonth(-1)}
             >
-              <img src={icon('chevron-right-sm.svg')} alt="" className="is-prev" />
+              <img src={icon('chevron-right-gray.svg')} alt="" className="is-prev" />
             </button>
             <span className="flow-month-nav__label">
               {year}년 {month + 1}월
@@ -195,7 +198,7 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
               aria-label="다음 달"
               onClick={() => goCalendarMonth(1)}
             >
-              <img src={icon('chevron-right-sm.svg')} alt="" />
+              <img src={icon('chevron-right-gray.svg')} alt="" />
             </button>
           </div>
 
@@ -306,7 +309,7 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
                 aria-label="이전 달"
                 onClick={() => goCalendarMonth(-1)}
               >
-                <img src={icon('chevron-right-sm.svg')} alt="" className="is-prev" />
+                <img src={icon('chevron-right-gray.svg')} alt="" className="is-prev" />
               </button>
               <button
                 type="button"
@@ -322,7 +325,7 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
                 aria-label="다음 달"
                 onClick={() => goCalendarMonth(1)}
               >
-                <img src={icon('chevron-right-sm.svg')} alt="" />
+                <img src={icon('chevron-right-gray.svg')} alt="" />
               </button>
             </div>
             <div className="flow-list-toolbar__actions">

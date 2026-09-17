@@ -52,6 +52,10 @@ export function ScratchReveal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const [phase, setPhase] = useState<Phase>('covered');
+  /* 조금이라도 긁기 시작하면(레퍼런스) 안내 문구를 "조금만 더!"로 바꿔 격려한다 —
+   * CLEAR_THRESHOLD(0.6)에 닿으면 어차피 자동으로 전부 걷어내며 phase 가 바뀐다. */
+  const [clearedProgress, setClearedProgress] = useState(0);
+  const ENCOURAGE_THRESHOLD = 0.05;
 
   const paintCover = useCallback(() => {
     const canvas = canvasRef.current;
@@ -173,19 +177,24 @@ export function ScratchReveal({
     drawingRef.current = true;
     const p = toLocalPoint(e);
     scratchAt(p.x, p.y);
+    setClearedProgress(clearedRatio());
   };
 
   const handlePointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
     if (!drawingRef.current) return;
     const p = toLocalPoint(e);
     scratchAt(p.x, p.y);
-    if (clearedRatio() >= CLEAR_THRESHOLD) startReveal();
+    const ratio = clearedRatio();
+    setClearedProgress(ratio);
+    if (ratio >= CLEAR_THRESHOLD) startReveal();
   };
 
   const handlePointerUp = () => {
     if (!drawingRef.current) return;
     drawingRef.current = false;
-    if (clearedRatio() >= CLEAR_THRESHOLD) startReveal();
+    const ratio = clearedRatio();
+    setClearedProgress(ratio);
+    if (ratio >= CLEAR_THRESHOLD) startReveal();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -217,18 +226,24 @@ export function ScratchReveal({
             onPointerLeave={handlePointerUp}
           />
           <div className="fund-scratch__label">
-            <span className="fund-scratch__lock-badge" aria-hidden="true">
-              <img src={icon('lock.svg')} alt="" className="fund-scratch__lock" />
-            </span>
-            <p className="fund-scratch__title">{title}</p>
-            <span className="fund-scratch__cue">{cue}</span>
-            <button
-              type="button"
-              className="fund-scratch__reveal-btn"
-              onClick={startReveal}
-            >
-              비상금 금액 보기
-            </button>
+            {clearedProgress > ENCOURAGE_THRESHOLD ? (
+              <p className="fund-scratch__encourage">조금만 더!</p>
+            ) : (
+              <>
+                <span className="fund-scratch__lock-badge" aria-hidden="true">
+                  <img src={icon('lock.svg')} alt="" className="fund-scratch__lock" />
+                </span>
+                <p className="fund-scratch__title">{title}</p>
+                <span className="fund-scratch__cue">{cue}</span>
+                <button
+                  type="button"
+                  className="fund-scratch__reveal-btn"
+                  onClick={startReveal}
+                >
+                  비상금 금액 보기
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

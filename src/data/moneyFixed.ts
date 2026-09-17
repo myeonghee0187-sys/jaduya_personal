@@ -41,12 +41,32 @@ export const FIXED_CATEGORY_EMOJI: Partial<Record<(typeof FIXED_CATEGORY_OPTIONS
   '기타': '🏋️',
 };
 
+/* 항목 하나만 따로 골라 실제 이미지 아이콘을 쓸 때 여기에 추가한다 — item.key 로 찾고,
+ * 있으면 카테고리 스프라이트/이모지보다 우선한다(월세만 바꾸고 같은 카테고리인 관리비는
+ * 그대로 스프라이트를 쓰는 식). 경로는 assets/img/ 기준(lib/asset.ts 의 img()). */
+export const FIXED_ITEM_IMAGE: Partial<Record<string, string>> = {
+  rent: 'jaduya_custom_recommendation_36/money_management/fixed_expenses1.png',
+  maintenance: 'jaduya_custom_recommendation_36/money_management/utility_bills.png',
+  phone: 'jaduya_custom_recommendation_36/money_management/fixed_expenses2.png',
+  music: 'jaduya_custom_recommendation_36/money_management/fixed_expenses3.png',
+  ott: 'jaduya_custom_recommendation_36/money_management/fixed_expenses7.png',
+  insurance: 'jaduya_custom_recommendation_36/money_management/fixed_expenses5.png',
+  gym: 'jaduya_custom_recommendation_36/money_management/fixed_expenses4.png',
+};
+
+/* "고정비 추가하기" 로 새로 만든 항목은 key 가 매번 새로 생겨(added-${Date.now()})
+ * FIXED_ITEM_IMAGE 로 못 찾는다 — 이름으로도 한 번 더 찾아서, 더미 채우기("넷플릭스")로
+ * 추가한 항목도 카테고리 스프라이트 대신 같은 OTT 아이콘을 쓰게 한다. */
+export const FIXED_ITEM_IMAGE_BY_NAME: Partial<Record<string, string>> = {
+  '넷플릭스': 'jaduya_custom_recommendation_36/money_management/fixed_expenses7.png',
+};
+
 export const FIXED_EXPENSES: FixedExpenseItem[] = [
   { key: 'rent', label: '월세', amount: 500_000, day: 1, detail: '우리집', category: '주거비', method: '자두뱅크 자동이체', enabled: true },
   { key: 'maintenance', label: '관리비', amount: 120_000, day: 5, detail: '아파트', category: '주거비', method: '자두뱅크 자동이체', enabled: true },
   { key: 'phone', label: '통신비', amount: 55_000, day: 10, detail: 'SKT', category: '통신 · 구독', method: 'SKT 자동납부', enabled: true },
   { key: 'music', label: '음악 스트리밍', amount: 11_900, day: 15, detail: 'Spotify', category: '통신 · 구독', method: '신한카드 · •• 4821', enabled: true },
-  { key: 'ott', label: 'OTT 구독', amount: 13_900, day: 15, detail: '넷플릭스', category: '통신 · 구독', method: '신한카드 · •• 4821', enabled: true },
+  { key: 'ott', label: 'OTT 구독', amount: 13_900, day: 15, detail: '디즈니플러스', category: '통신 · 구독', method: '신한카드 · •• 4821', enabled: true },
   { key: 'insurance', label: '보험료', amount: 70_000, day: 20, detail: '실손보험', category: '보험', method: '삼성카드 · •• 9012', enabled: true },
   { key: 'gym', label: '헬스장', amount: 66_000, day: 25, detail: '헬스장', category: '기타', method: '삼성카드 · •• 9012', enabled: false },
 ];
