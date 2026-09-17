@@ -73,6 +73,25 @@ type ContactAttachment = { type: 'contact'; id: string; name?: string; tel: stri
 type ChatAttachment = ImageAttachment | FileAttachment | ContactAttachment;
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>>; getProperties?: () => Promise<string[]> };
 
+function AttachmentDetails({ attachment }: { attachment: FileAttachment | ContactAttachment }) {
+  const isContact = attachment.type === 'contact';
+
+  return (
+    <>
+      <img
+        className="ai-chat-page__attachment-type-icon"
+        src={`/assets/icon/chatbot/${isContact ? 'person' : 'file'}.svg`}
+        alt=""
+        aria-hidden="true"
+      />
+      <span className="ai-chat-page__attachment-copy">
+        <strong>{isContact ? attachment.name ?? '연락처' : attachment.name}</strong>
+        <small>{isContact ? attachment.tel : formatFileSize(attachment.size)}</small>
+      </span>
+    </>
+  );
+}
+
 type ChatCta = {
   label: string;
   copyText?: string;
@@ -103,6 +122,19 @@ const BENEFIT_RECOMMENDATIONS: BenefitRecommendation[] = [
   { status: '신청 가능', title: '경기 지역 청년 지원', description: '경기도 거주 청년 대상\n생활 지원' },
   { status: '조건 확인 필요', title: '구직 급여', description: '취업 준비 기간\n생활비 지원' },
 ];
+
+/* 실제 업체 조회 API가 연결되기 전 지도 UX를 확인하기 위한 프로토타입 데이터다. */
+const MOCK_REPAIR_PROVIDERS = [
+  { name: '우리집 보일러 수리', distance: '0.8km', status: '영업 중', position: 'is-first' },
+  { name: '금천 생활수리', distance: '1.3km', status: '영업 중', position: 'is-second' },
+  { name: '바로홈 설비', distance: '1.9km', status: '영업 중', position: 'is-third' },
+] as const;
+
+const REPAIR_MAP_PLAYBACK_RATE = 1.5;
+const REPAIR_MAP_RESULT_DELAY = 250;
+const REPAIR_MAP_FALLBACK_DELAY = 15000;
+const REPAIR_MAP_FALLBACK_BUFFER = 5000;
+const REPAIR_MAP_LOADING_TEXT = '주변 수리업체 찾는중...';
 
 type PowerAnswer = 'power_off' | 'power_on';
 type BoilerStage =
@@ -584,7 +616,7 @@ function getDiagnosticReply(message: string, diagnosis: Diagnosis, location: str
     if (/에러코드|오류코드|보여|[a-z]\d+/.test(answer)) {
       return {
         diagnosis: { ...activeDiagnosis, stage: 'error-code-input' },
-        content: '표시된 오류 코드를 입력해주세요. 예: 03, E1',
+        content: '보일러에 표시된 에러코드를 알려주세요.\n아래에서 선택하거나 직접 입력할 수 있어요.',
       };
     }
     if (/없어|안떠|표시안|없습니다/.test(answer)) {
@@ -630,6 +662,7 @@ export function AIChatPage() {
   const [isComposerMultiline, setIsComposerMultiline] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [history, setHistory] = useState<SavedConversation[]>(loadConversationHistory);
+  const [homeView, setHomeView] = useState<'intro' | 'resume'>(history.length > 0 ? 'resume' : 'intro');
   const [isTyping, setIsTyping] = useState(false);
   const [diagnosis, setDiagnosis] = useState<Diagnosis>(null);
   const [conversation, setConversation] = useState<AIConversationContext>(EMPTY_CONVERSATION);
@@ -656,6 +689,11 @@ export function AIChatPage() {
   const [locationResults, setLocationResults] = useState<AILocation[]>([]);
   const [locationNotice, setLocationNotice] = useState('');
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [isRepairLocationModalOpen, setIsRepairLocationModalOpen] = useState(false);
+  const [isRepairSearchLoading, setIsRepairSearchLoading] = useState(false);
+  const [isRepairMapOpen, setIsRepairMapOpen] = useState(false);
+  const [repairMapState, setRepairMapState] = useState<'loading' | 'result'>('loading');
+  const [isRepairConnectionNoticeOpen, setIsRepairConnectionNoticeOpen] = useState(false);
   const [housingDraft, setHousingDraft] = useState('원룸');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
   const pageRef = useRef<HTMLDivElement>(null);
@@ -667,6 +705,10 @@ export function AIChatPage() {
    * 경우에만 마지막 메시지를 계속 보이게 한다. */
   const chatPinnedToBottomRef = useRef(true);
   const responseTimerRef = useRef<number | null>(null);
+  const repairSearchTimerRef = useRef<number | null>(null);
+  const repairMapFallbackTimerRef = useRef<number | null>(null);
+  const repairMapResultTimerRef = useRef<number | null>(null);
+  const repairMapVideoRef = useRef<HTMLVideoElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -684,6 +726,7 @@ export function AIChatPage() {
   const livingProfile = loadLivingProfile(user?.email ?? 'guest', personaProfile);
   const housingValue = livingProfile.housing ?? housingDraft;
   const effectiveLocation = aiLocation?.displayName ?? profileLocation;
+  const repairMapAreaName = aiLocation?.sigungu || aiLocation?.dong || effectiveLocation || '설정 지역';
   const locationSummaryName = aiLocation ? ([aiLocation.sigungu, aiLocation.dong].filter(Boolean).join(' ') || aiLocation.displayName) : undefined;
   const userChips = [contractType, housingValue, locationSummaryName].filter((chip): chip is string => Boolean(chip));
   const profileContext: ScenarioUserContext = {
@@ -756,6 +799,86 @@ export function AIChatPage() {
     setAiView('settings');
   };
 
+  const startRepairSearch = (location: string, source: 'saved' | 'new') => {
+    appendAssistantMessage(
+      source === 'saved'
+        ? `설정된 '${location}' 기준으로 찾아볼게요.`
+        : `설정해주신 '${location}' 기준으로 찾아볼게요.`,
+    );
+    setIsRepairSearchLoading(true);
+    if (repairSearchTimerRef.current !== null) window.clearTimeout(repairSearchTimerRef.current);
+    repairSearchTimerRef.current = window.setTimeout(() => {
+      appendAssistantMessage(
+        `${location} 주변 수리업체를 찾았어요.\n지도에서 가까운 업체를 확인해보세요.`,
+        [{ label: '지도에서 확인하기' }],
+      );
+      setIsRepairSearchLoading(false);
+      repairSearchTimerRef.current = null;
+    }, 1200);
+  };
+
+  const openRepairLocationModal = () => {
+    setLocationDraft(aiLocation);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+    setIsRepairLocationModalOpen(true);
+  };
+
+  const closeRepairLocationModal = () => {
+    setIsRepairLocationModalOpen(false);
+    setLocationDraft(aiLocation);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+  };
+
+  const saveRepairLocation = () => {
+    if (!locationDraft) return;
+    saveAIChatSettings(user?.email ?? 'guest', { contractType, location: locationDraft });
+    setAiLocation(locationDraft);
+    setIsRepairLocationModalOpen(false);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+    startRepairSearch(locationDraft.displayName, 'new');
+  };
+
+  const openRepairMap = () => {
+    if (repairMapFallbackTimerRef.current !== null) window.clearTimeout(repairMapFallbackTimerRef.current);
+    if (repairMapResultTimerRef.current !== null) window.clearTimeout(repairMapResultTimerRef.current);
+    repairMapFallbackTimerRef.current = null;
+    repairMapResultTimerRef.current = null;
+    setRepairMapState('loading');
+    setIsRepairMapOpen(true);
+  };
+
+  const clearRepairMapTimers = () => {
+    if (repairMapFallbackTimerRef.current !== null) window.clearTimeout(repairMapFallbackTimerRef.current);
+    if (repairMapResultTimerRef.current !== null) window.clearTimeout(repairMapResultTimerRef.current);
+    repairMapFallbackTimerRef.current = null;
+    repairMapResultTimerRef.current = null;
+  };
+
+  const scheduleRepairMapResult = () => {
+    if (!isRepairMapOpen || repairMapState !== 'loading' || repairMapResultTimerRef.current !== null) return;
+    if (repairMapFallbackTimerRef.current !== null) {
+      window.clearTimeout(repairMapFallbackTimerRef.current);
+      repairMapFallbackTimerRef.current = null;
+    }
+    repairMapResultTimerRef.current = window.setTimeout(() => {
+      setRepairMapState('result');
+      repairMapResultTimerRef.current = null;
+    }, REPAIR_MAP_RESULT_DELAY);
+  };
+
+  const closeRepairMap = () => {
+    clearRepairMapTimers();
+    repairMapVideoRef.current?.pause();
+    setIsRepairMapOpen(false);
+    setRepairMapState('loading');
+  };
+
   const handleCta = (cta: ChatCta, source: string) => {
     switch (cta.label) {
       case '집주인에게 연락하기': {
@@ -784,20 +907,16 @@ export function AIChatPage() {
         return;
       case '근처 수리기사 찾기':
         if (!effectiveLocation) {
-          appendAssistantMessage('주변 수리업체를 찾으려면 지역 설정이 필요해요.', [
-            { label: '지역 설정하기' },
-          ]);
+          openRepairLocationModal();
           return;
         }
-        window.open(
-          `https://map.naver.com/p/search/${encodeURIComponent(`${effectiveLocation} 보일러 수리`)}`,
-          '_blank',
-          'noopener,noreferrer',
-        );
-        appendAssistantMessage(`${effectiveLocation} 보일러 수리 검색을 새 탭에서 열었어요. 업체의 후기와 영업시간을 확인한 뒤 연락해보세요.`);
+        startRepairSearch(effectiveLocation, 'saved');
+        return;
+      case '지도에서 확인하기':
+        openRepairMap();
         return;
       case '지역 설정하기':
-        openAISettings();
+        openRepairLocationModal();
         return;
       case '맞춤 혜택 전체 보기':
         navigation?.closeAIChat();
@@ -1193,11 +1312,47 @@ export function AIChatPage() {
     sendMessage(draft, undefined, attachments);
   };
 
+  const persistConversationSnapshot = (
+    snapshotMessages: ChatMessage[],
+    snapshotConversation: AIConversationContext,
+    snapshotDiagnosis: Diagnosis,
+  ): boolean => {
+    const firstUserMessage = snapshotMessages.find((message) => message.role === 'user');
+    if (!firstUserMessage) return false;
+
+    const attachmentTitle = firstUserMessage.attachments?.[0]?.name;
+    const title = firstUserMessage.content.trim() || attachmentTitle || '첨부한 대화';
+    const now = new Date().toISOString();
+    const id = conversationIdRef.current ?? `conversation-${Date.now()}`;
+    conversationIdRef.current = id;
+    setHistory((current) => {
+      const createdAt = current.find((item) => item.id === id)?.createdAt ?? now;
+      const next = [{
+        id,
+        title,
+        createdAt,
+        updatedAt: now,
+        messages: snapshotMessages,
+        conversation: snapshotConversation,
+        diagnosis: snapshotDiagnosis,
+      }, ...current.filter((item) => item.id !== id)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      saveConversationHistory(next);
+      return next;
+    });
+    return true;
+  };
+
   const resetConversation = () => {
     if (responseTimerRef.current !== null) {
       window.clearTimeout(responseTimerRef.current);
       responseTimerRef.current = null;
     }
+    if (repairSearchTimerRef.current !== null) {
+      window.clearTimeout(repairSearchTimerRef.current);
+      repairSearchTimerRef.current = null;
+    }
+    clearRepairMapTimers();
+    repairMapVideoRef.current?.pause();
     setMessages([]);
     setDraft('');
     setIsTyping(false);
@@ -1212,12 +1367,18 @@ export function AIChatPage() {
     setContactName('');
     setContactTel('');
     setAttachmentNotice('');
+    setIsRepairLocationModalOpen(false);
+    setIsRepairSearchLoading(false);
+    setIsRepairMapOpen(false);
+    setRepairMapState('loading');
+    setIsRepairConnectionNoticeOpen(false);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
     if (photoInputRef.current) photoInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (fileInputRef.current) fileInputRef.current.value = '';
     discardPendingAttachments();
-    /* 화면에서 대화 기록을 제거한 뒤에는 전송 완료 이미지의 URL도 더 이상 필요 없다. */
-    revokeAllAttachmentUrls();
     messageIdRef.current = 0;
     conversationIdRef.current = null;
   };
@@ -1233,7 +1394,21 @@ export function AIChatPage() {
   };
 
   const startNewConversation = () => {
+    const preservedCurrentConversation = persistConversationSnapshot(messages, conversation, diagnosis);
     resetConversation();
+    setHomeView(preservedCurrentConversation || history.length > 0 ? 'resume' : 'intro');
+    setAiView('home');
+  };
+
+  const returnToIntro = () => {
+    persistConversationSnapshot(messages, conversation, diagnosis);
+    resetConversation();
+    setHomeView('intro');
+    setAiView('home');
+  };
+
+  const returnToResume = () => {
+    setHomeView('resume');
     setAiView('home');
   };
 
@@ -1252,18 +1427,7 @@ export function AIChatPage() {
 
   useEffect(() => {
     if (messages.length === 0 || isTyping) return;
-    const firstQuestion = messages.find((message) => message.role === 'user')?.content.trim();
-    if (!firstQuestion) return;
-    const now = new Date().toISOString();
-    const id = conversationIdRef.current ?? `conversation-${Date.now()}`;
-    conversationIdRef.current = id;
-    setHistory((current) => {
-      const createdAt = current.find((item) => item.id === id)?.createdAt ?? now;
-      const next = [{ id, title: firstQuestion, createdAt, updatedAt: now, messages, conversation, diagnosis }, ...current.filter((item) => item.id !== id)]
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-      saveConversationHistory(next);
-      return next;
-    });
+    persistConversationSnapshot(messages, conversation, diagnosis);
   }, [messages, conversation, diagnosis, isTyping]);
 
   /* preview는 composer의 일반 flex 자식이다. 높이가 추가/제거되면 conversation의
@@ -1285,13 +1449,42 @@ export function AIChatPage() {
   useEffect(
     () => () => {
       if (responseTimerRef.current !== null) window.clearTimeout(responseTimerRef.current);
+      if (repairSearchTimerRef.current !== null) window.clearTimeout(repairSearchTimerRef.current);
+      if (repairMapFallbackTimerRef.current !== null) window.clearTimeout(repairMapFallbackTimerRef.current);
+      if (repairMapResultTimerRef.current !== null) window.clearTimeout(repairMapResultTimerRef.current);
+      repairMapVideoRef.current?.pause();
       revokeAllAttachmentUrls();
     },
     [],
   );
 
+  useEffect(() => {
+    if (!isRepairMapOpen || repairMapState !== 'loading') return undefined;
+
+    const video = repairMapVideoRef.current;
+    if (video) {
+      video.currentTime = 0;
+      video.playbackRate = REPAIR_MAP_PLAYBACK_RATE;
+      void video.play().catch(() => {
+        /* muted autoplay가 제한된 환경에서는 fallback으로 결과를 보여준다. */
+      });
+    }
+
+    repairMapFallbackTimerRef.current = window.setTimeout(
+      scheduleRepairMapResult,
+      REPAIR_MAP_FALLBACK_DELAY,
+    );
+
+    return () => {
+      clearRepairMapTimers();
+      video?.pause();
+    };
+  }, [isRepairMapOpen, repairMapState]);
+
   const conversationStarted = messages.length > 0 && aiView === 'chat';
   const hasConversationHistory = history.length > 0;
+  const isResumeView = aiView === 'home' && homeView === 'resume' && hasConversationHistory;
+  const canOpenResumeView = aiView === 'home' && homeView === 'intro' && hasConversationHistory;
   const imageQuickReplies: QuickReply[] = isImageLocationQuestion
     ? ['주방', '화장실', '방', '현관'].map((label) => ({ id: `image-location-${label}`, label, stage: 'image-location' }))
     : [];
@@ -1415,25 +1608,30 @@ export function AIChatPage() {
     >
       <StatusBar />
       <header className="ai-chat-page__header">
-        {/* 화면 navigation 전용 — 자두AI를 나가 원래 앱 화면으로 돌아간다(닫기와 같은
-          * 동작이지만, 좌상단 '이전 화면' 자리는 항상 노출해 화면 진입 상태와 무관하게
-          * 표준 뒤로가기 위치를 지킨다). 대화 화면 안에서 자두AI '홈'으로만 돌아가는
-          * 것은 아래 conversation 제어 영역의 '처음으로'가 맡는다 — 서로 다른 동작이다. */}
-        <button
-          type="button"
-          className="ai-chat-page__header-back"
-          aria-label="이전 화면으로 이동"
-          onClick={closeChat}
-          disabled={closeState !== 'open'}
-        >
-          <img src={icon('gnb-back.svg')} alt="" />
-        </button>
-        <div className="ai-chat-page__profile">
-          <img src={icon('ai-avatar.svg')} alt="" />
-          <span className="ai-chat-page__profile-copy">
-            <strong>자두AI</strong>
-            <span>24시간 운영해요</span>
-          </span>
+        <div className="ai-chat-page__header-left">
+          {/* 화면 navigation 전용 — 자두AI를 나가 원래 앱 화면으로 돌아간다(닫기와 같은
+            * 동작이지만, 좌상단 '이전 화면' 자리는 항상 노출해 화면 진입 상태와 무관하게
+            * 표준 뒤로가기 위치를 지킨다). 대화 화면 안에서 자두AI '홈'으로만 돌아가는
+            * 것은 아래 conversation 제어 영역의 '처음으로'가 맡는다 — 서로 다른 동작이다. */}
+          <button
+            type="button"
+            className="ai-chat-page__header-back"
+            aria-label="이전 화면으로 이동"
+            onClick={closeChat}
+            disabled={closeState !== 'open'}
+          >
+            <img src={icon('gnb-back.svg')} alt="" />
+          </button>
+          <div className="ai-chat-page__profile">
+            <img src={icon('ai-avatar.svg')} alt="" />
+            <span className="ai-chat-page__profile-copy">
+              <strong>자두AI</strong>
+              <span className="ai-chat-page__status-row">
+                <span className="ai-chat-page__status-dot" aria-hidden="true" />
+                <span>24시간 운영해요</span>
+              </span>
+            </span>
+          </div>
         </div>
         <button
           type="button"
@@ -1459,17 +1657,30 @@ export function AIChatPage() {
         </button>
       </div>
 
-      {/* conversation 제어 영역 — 개인 설정과 분리된 별도 줄. '처음으로'는 현재 대화를
-        * 지우지 않고 화면만 자두AI 홈으로 되돌리고(이후 '이어서 물어보기'로 복귀 가능),
-        * '새 대화'는 history 는 남긴 채 지금 상담 상태(messages/flow/draft/attachment)만
-        * 새 세션 기준으로 초기화한다 — 서로 다른 동작이므로 버튼도 분리해 둔다. */}
+      {/* '처음으로'는 이어서 물어보기 화면에서만 최초 화면으로 이동할 수 있게 노출한다. */}
+      {isResumeView && (
+        <div className="ai-chat-page__conversation-controls">
+          <button type="button" className="ai-chat-page__go-home" onClick={returnToIntro}>
+            <img src="/assets/icon/chatbot/reset.svg" alt="" aria-hidden="true" />
+            <span>처음으로</span>
+          </button>
+        </div>
+      )}
+
+      {canOpenResumeView && (
+        <div className="ai-chat-page__conversation-controls">
+          <button type="button" className="ai-chat-page__go-home" onClick={returnToResume}>
+            <img src="/assets/icon/chatbot/reset.svg" alt="" aria-hidden="true" />
+            <span>이어서 물어보기</span>
+          </button>
+        </div>
+      )}
+
       {conversationStarted && (
         <div className="ai-chat-page__conversation-controls">
-          <button type="button" className="ai-chat-page__go-home" onClick={() => setAiView('home')}>
-            처음으로
-          </button>
           <button type="button" className="ai-chat-page__new-conversation" onClick={startNewConversation}>
-            새 대화
+            <img src={icon('ai-plus.svg')} alt="" aria-hidden="true" />
+            <span>새 대화</span>
           </button>
         </div>
       )}
@@ -1494,14 +1705,14 @@ export function AIChatPage() {
                     {message.attachments.map((attachment) => attachment.type === 'image' ? (
                       <img key={attachment.id} className="ai-chat-page__message-image" src={attachment.previewUrl} alt="첨부한 이미지" />
                     ) : attachment.type === 'file' ? (
-                      <div key={attachment.id} className="ai-chat-page__attachment-card">
-                        <span aria-hidden="true">▤</span><span><strong>{attachment.name}</strong><small>{formatFileSize(attachment.size)}</small></span>
+                      <div key={attachment.id} className="ai-chat-page__attachment-card ai-chat-page__attachment-card--file">
+                        <AttachmentDetails attachment={attachment} />
                       </div>
                     ) : (() => {
                       const phoneNumber = getCallablePhoneNumber(attachment.tel);
                       return (
                         <div key={attachment.id} className="ai-chat-page__attachment-card ai-chat-page__attachment-card--contact">
-                          <img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/person.svg" alt="" aria-hidden="true" /><span><strong>{attachment.name ?? '연락처'}</strong><small>{attachment.tel}</small></span>
+                          <AttachmentDetails attachment={attachment} />
                           {phoneNumber && <span className="ai-chat-page__contact-actions"><a href={`tel:${phoneNumber}`} aria-label={`${attachment.name ?? '연락처'} 전화하기`}>전화하기</a><a href={`sms:${phoneNumber}`} aria-label={`${attachment.name ?? '연락처'} 문자 보내기`}>문자 보내기</a></span>}
                         </div>
                       );
@@ -1611,6 +1822,19 @@ export function AIChatPage() {
                 </div>
               </div>
             )}
+            {isRepairSearchLoading && (
+              <div className="ai-chat-page__message ai-chat-page__message--assistant">
+                <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
+                <div className="ai-chat-page__message-content">
+                  <span className="ai-chat-page__message-sender">자두AI</span>
+                  <div className="ai-chat-page__repair-search-status" role="status" aria-live="polite">
+                    <strong>{effectiveLocation} 주변을 찾고 있어요</strong>
+                    <span>가까운 수리업체를 확인하고 있어요.</span>
+                    <span className="ai-chat-page__repair-search-dots" aria-hidden="true"><i /><i /><i /></span>
+                  </div>
+                </div>
+              </div>
+            )}
             {isTerminalResult && !isTyping && (
               <div className="ai-chat-page__exit-action">
                 <button type="button" className="ai-chat-page__exit-button" onClick={resetConversation}>
@@ -1620,7 +1844,7 @@ export function AIChatPage() {
             )}
           </div>
         </div>
-      ) : hasConversationHistory ? (
+      ) : isResumeView ? (
         <div className="ai-chat-page__returning">
           <div className="ai-chat-page__returning-intro"><img className="ai-chat-page__mole" src={img('ai/ai-mole.svg')} alt="" /><p>다시 만나서 반가워요!<br />오늘은 뭐가 궁금하세요?</p></div>
           <section className="ai-chat-page__recent" aria-labelledby="recent-conversations-title"><h2 id="recent-conversations-title">이어서 물어보기</h2><div className="ai-chat-page__recent-list">{history.map((saved) => <button key={saved.id} type="button" onClick={() => openSavedConversation(saved)}><span>{saved.title}</span><time dateTime={saved.updatedAt}>{formatConversationDate(saved.updatedAt)}</time></button>)}</div></section>
@@ -1676,26 +1900,18 @@ export function AIChatPage() {
                     ? ' ai-chat-page__attachment-preview-item--image'
                     : attachment.type === 'contact'
                       ? ' ai-chat-page__attachment-preview-item--contact'
-                      : ''
+                      : ' ai-chat-page__attachment-preview-item--file'
                 }`}
               >
                 {attachment.type === 'image' ? (
                   <img src={attachment.previewUrl} alt={`${attachment.name} 미리보기`} />
                 ) : attachment.type === 'contact' ? (
-                  /* 연락처만 아이콘을 왼쪽에 두고 이름 1줄 + 전화번호 1줄을 오른쪽에 쌓는
-                   * compact information card 레이아웃을 쓴다(파일 미리보기는 그대로 둔다). */
                   <div className="ai-chat-page__attachment-preview-card ai-chat-page__attachment-preview-card--contact">
-                    <img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/person.svg" alt="" aria-hidden="true" />
-                    <span>
-                      <strong>{attachment.name ?? '연락처'}</strong>
-                      <small>{attachment.tel}</small>
-                    </span>
+                    <AttachmentDetails attachment={attachment} />
                   </div>
                 ) : (
-                  <div className="ai-chat-page__attachment-preview-card">
-                    <span aria-hidden="true">▤</span>
-                    <strong>{attachment.name}</strong>
-                    <small>{formatFileSize(attachment.size)}</small>
+                  <div className="ai-chat-page__attachment-preview-card ai-chat-page__attachment-preview-card--file">
+                    <AttachmentDetails attachment={attachment} />
                   </div>
                 )}
                 <button type="button" aria-label="첨부 삭제" onClick={() => removePendingAttachment(attachment.id)}>×</button>
@@ -1721,19 +1937,205 @@ export function AIChatPage() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />
-          <button type="button" className="ai-chat-page__input-icon" aria-label="음성 입력">
-            <img src="/assets/icon/chatbot/mic.svg" alt="" />
-          </button>
-          <button
-            type="submit"
-            className="ai-chat-page__send"
-            aria-label="메시지 전송"
-            disabled={isTyping || (!draft.trim() && attachments.length === 0)}
-          >
-            <img src="/assets/icon/chatbot/send.svg" alt="" />
-          </button>
+          <div className="ai-chat-page__input-actions">
+            <button type="button" className="ai-chat-page__input-icon" aria-label="음성 입력">
+              <img src="/assets/icon/chatbot/mic.svg" alt="" />
+            </button>
+            <button
+              type="submit"
+              className="ai-chat-page__send"
+              aria-label="메시지 전송"
+              disabled={isTyping || (!draft.trim() && attachments.length === 0)}
+            >
+              <img src="/assets/icon/chatbot/send.svg" alt="" />
+            </button>
+          </div>
         </div>
       </form>
+
+      {isRepairLocationModalOpen && (
+        <div
+          className="ai-chat-page__repair-location-backdrop"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) closeRepairLocationModal(); }}
+        >
+          <section
+            className="ai-chat-page__repair-location-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="repair-location-title"
+            aria-describedby="repair-location-description"
+          >
+            <header>
+              <h2 id="repair-location-title">지역을 설정해주세요</h2>
+              <p id="repair-location-description">주변 수리업체를 찾으려면 지역 정보가 필요해요.</p>
+            </header>
+            <form className="ai-chat-page__repair-location-search" onSubmit={submitLocationSearch}>
+              <input
+                value={locationQuery}
+                onChange={(event) => { setLocationQuery(event.target.value); setLocationDraft(null); }}
+                placeholder="동, 구, 주소를 검색해보세요"
+                aria-label="지역 검색어"
+                autoFocus
+              />
+              <button type="submit" disabled={!locationQuery.trim() || isLocationLoading}>
+                {isLocationLoading ? '검색 중' : '검색'}
+              </button>
+            </form>
+            {locationNotice && <p className="ai-chat-page__repair-location-notice" role="status">{locationNotice}</p>}
+            {locationResults.length > 0 && (
+              <ul className="ai-chat-page__repair-location-results">
+                {locationResults.map((result) => (
+                  <li key={`${result.latitude}-${result.longitude}`}>
+                    <button
+                      type="button"
+                      aria-pressed={locationDraft?.displayName === result.displayName}
+                      onClick={() => {
+                        setLocationDraft(result);
+                        setLocationQuery(result.displayName);
+                        setLocationNotice(`${result.displayName}(으)로 선택했어요.`);
+                      }}
+                    >
+                      {result.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="ai-chat-page__repair-location-actions">
+              <button type="button" onClick={closeRepairLocationModal}>취소</button>
+              <button type="button" className="is-primary" disabled={!locationDraft} onClick={saveRepairLocation}>설정하기</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isRepairMapOpen && (
+        <div
+          className="ai-chat-page__repair-map-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isRepairConnectionNoticeOpen) closeRepairMap();
+          }}
+        >
+          <section
+            className={`ai-chat-page__repair-map-modal is-${repairMapState}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="repair-map-title"
+            aria-describedby="repair-map-description"
+          >
+            <header>
+              <div>
+                <h2 id="repair-map-title">
+                  {repairMapState === 'loading' ? '주변 수리 업체를 찾고있어요' : `${repairMapAreaName} 주변 수리업체`}
+                </h2>
+                <p id="repair-map-description">
+                  {repairMapState === 'loading'
+                    ? '설정한 지역을 기준으로 가까운 업체를 확인하고 있어요.'
+                    : '설정한 지역을 기준으로 찾았어요.'}
+                </p>
+              </div>
+              <button type="button" aria-label="수리업체 지도 닫기" onClick={closeRepairMap}>
+                <img src={icon('sheet-close.svg')} alt="" />
+              </button>
+            </header>
+            {repairMapState === 'loading' ? (
+              <div className="ai-chat-page__repair-map-loading">
+                <div className="ai-chat-page__repair-map-loading-visual">
+                  <video
+                    ref={repairMapVideoRef}
+                    src="/assets/video/chatbot/walk_jadu.mp4"
+                    autoPlay
+                    muted
+                    playsInline
+                    preload="auto"
+                    onLoadedMetadata={(event) => {
+                      const video = event.currentTarget;
+                      video.playbackRate = REPAIR_MAP_PLAYBACK_RATE;
+                      if (repairMapFallbackTimerRef.current !== null) window.clearTimeout(repairMapFallbackTimerRef.current);
+                      const playbackDuration = Number.isFinite(video.duration)
+                        ? (video.duration / REPAIR_MAP_PLAYBACK_RATE) * 1000
+                        : 0;
+                      repairMapFallbackTimerRef.current = window.setTimeout(
+                        scheduleRepairMapResult,
+                        Math.max(REPAIR_MAP_FALLBACK_DELAY, playbackDuration + REPAIR_MAP_FALLBACK_BUFFER),
+                      );
+                    }}
+                    onEnded={scheduleRepairMapResult}
+                    aria-label="자두가 걸으며 주변 수리업체를 찾는 중"
+                  />
+                </div>
+                <p className="ai-chat-page__repair-map-loading-status" role="status" aria-label="주변 수리업체 찾는 중">
+                  {Array.from(REPAIR_MAP_LOADING_TEXT).map((character, index) => (
+                    <span
+                      key={`${character}-${index}`}
+                      aria-hidden="true"
+                      style={{ animationDelay: `${index * 70}ms, ${1400 + index * 70}ms` }}
+                    >
+                      {character}
+                    </span>
+                  ))}
+                </p>
+              </div>
+            ) : (
+              <div className="ai-chat-page__repair-map-result">
+                <div className="ai-chat-page__repair-map" aria-label={`${repairMapAreaName} 주변 수리업체 예시 지도`}>
+                  <span className="ai-chat-page__map-road is-horizontal" aria-hidden="true" />
+                  <span className="ai-chat-page__map-road is-vertical" aria-hidden="true" />
+                  <span className="ai-chat-page__map-road is-diagonal" aria-hidden="true" />
+                  <span className="ai-chat-page__map-district is-main">{repairMapAreaName}</span>
+                  <span className="ai-chat-page__map-district is-sub">생활수리 거리</span>
+                  {MOCK_REPAIR_PROVIDERS.map((provider) => (
+                    <div
+                      key={provider.name}
+                      className={`ai-chat-page__repair-map-marker ${provider.position}`}
+                      role="img"
+                      aria-label={`${provider.name}, ${provider.distance}, ${provider.status}`}
+                    >
+                      <span className="ai-chat-page__repair-map-pin" aria-hidden="true" />
+                      <span className="ai-chat-page__repair-map-label">
+                        <strong>{provider.name}</strong>
+                        <small>{provider.distance} · {provider.status}</small>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="ai-chat-page__repair-map-disclaimer">업체 정보는 프로토타입용 예시예요.</p>
+                <button
+                  type="button"
+                  className="ai-chat-page__repair-connect-button"
+                  onClick={() => setIsRepairConnectionNoticeOpen(true)}
+                >
+                  수리기사 연결하기
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {isRepairConnectionNoticeOpen && (
+        <div className="ai-chat-page__repair-notice-backdrop">
+          <section
+            className="ai-chat-page__repair-notice-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="repair-notice-title"
+            aria-describedby="repair-notice-description"
+          >
+            <h2 id="repair-notice-title">수리기사 연결 서비스는 준비 중이에요</h2>
+            <p id="repair-notice-description">더 빠르고 간편하게 수리기사를 연결할 수 있도록 준비하고 있어요.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setIsRepairConnectionNoticeOpen(false);
+                closeRepairMap();
+              }}
+            >
+              확인
+            </button>
+          </section>
+        </div>
+      )}
 
       {(isAttachMenuOpen || attachmentPanel) && (
         <div className="ai-chat-page__attachment-layer">
@@ -1750,7 +2152,7 @@ export function AIChatPage() {
             <section className="ai-chat-page__attachment-sheet" role="dialog" aria-modal="true" aria-label={`${attachmentPanel} 첨부`}>
               <header><strong>{attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={() => setAttachmentPanel(null)}>×</button></header>
               {attachmentPanel === 'camera' && <><p>촬영한 사진은 입력창 위 미리보기로 추가돼요.</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => cameraInputRef.current?.click()}>사진 촬영하기</button></>}
-              {attachmentPanel === 'file' && <><ul className="ai-chat-page__file-list"><li><span>▤</span><span><strong>문서 파일</strong><small>PDF, TXT, DOC, DOCX 등 · 최대 10MB</small></span></li></ul><button type="button" className="ai-chat-page__sheet-action" onClick={() => fileInputRef.current?.click()}>기기에서 파일 선택</button></>}
+              {attachmentPanel === 'file' && <><ul className="ai-chat-page__file-list"><li><img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/file.svg" alt="" aria-hidden="true" /><span><strong>문서 파일</strong><small>PDF, TXT, DOC, DOCX 등 · 최대 10MB</small></span></li></ul><button type="button" className="ai-chat-page__sheet-action" onClick={() => fileInputRef.current?.click()}>기기에서 파일 선택</button></>}
               {attachmentPanel === 'contact' && <>{supportsContactPicker ? <button type="button" className="ai-chat-page__sheet-action" onClick={() => { void selectDeviceContact(); }}>연락처에서 선택</button> : <p>현재 브라우저에서는 연락처 불러오기를 지원하지 않아요. 이름과 전화번호를 직접 입력해주세요.</p>}<input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름 (선택)" aria-label="연락처 이름" /><input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호" inputMode="tel" aria-label="연락처 전화번호" /><button type="button" className="ai-chat-page__sheet-action" disabled={!contactTel.trim()} onClick={() => addContactAttachment(contactName, contactTel)}>연락처 추가</button></>}
             </section>
           )}

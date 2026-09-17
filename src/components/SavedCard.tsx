@@ -6,7 +6,7 @@ interface SavedCardProps {
   item: SavedItem;
   /** 북마크 상태 — false 면 저장 해제된 항목이다 */
   bookmarked: boolean;
-  onToggleBookmark: (id: number) => void;
+  onToggleBookmark: (id: string) => void;
   onOpen: (item: SavedItem) => void;
 }
 

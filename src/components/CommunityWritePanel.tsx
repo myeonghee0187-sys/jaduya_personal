@@ -89,7 +89,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
-  const [drafts, setDrafts] = useState<WriteDraft[]>(() => readDrafts());
+  const [drafts, setDrafts] = useState<WriteDraft[]>(() => readDrafts(user?.email));
   const [draftListOpen, setDraftListOpen] = useState(false);
   /** 지금 이 폼이 어떤 임시글을 불러와 수정하는 중인지 — 등록에 성공하면 이 임시글만 지운다 */
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
@@ -251,6 +251,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
       badge: '✍️',
       badgeImage: user?.profileImage ?? img(persona.profileImage),
       author: user?.name ?? '자두메이트',
+      authorId: user?.email,
       time: '방금 전',
       likes: 0,
       comments: 0,
@@ -263,7 +264,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
     /* 임시글을 불러와 수정하던 중이었다면, 실제로 등록됐으니 그 임시글만 목록에서 지운다 */
     if (editingDraftId) {
       const nextDrafts = drafts.filter((draft) => draft.id !== editingDraftId);
-      writeDrafts(nextDrafts);
+      writeDrafts(user?.email, nextDrafts);
       setDrafts(nextDrafts);
     }
     resetForm();
@@ -297,7 +298,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
           },
           ...drafts,
         ];
-    writeDrafts(nextDrafts);
+    writeDrafts(user?.email, nextDrafts);
     setDrafts(nextDrafts);
     setNotice('임시저장했어요.');
     resetForm();
@@ -317,7 +318,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
 
   const handleDeleteDraft = (id: string) => {
     const nextDrafts = drafts.filter((draft) => draft.id !== id);
-    writeDrafts(nextDrafts);
+    writeDrafts(user?.email, nextDrafts);
     setDrafts(nextDrafts);
     if (editingDraftId === id) setEditingDraftId(null);
   };

@@ -50,6 +50,8 @@ import './styles/widget-gallery.css';
 import './styles/widget-management.css';
 /* 인트로는 화면 전체를 덮는 최상위 레이어라 가장 마지막에 읽는다 */
 import './styles/intro.css';
+/* 스플래시는 인트로보다도 위(z-index)에서 시작하는 진입 최상위 레이어 — 항상 마지막 */
+import './styles/splash-screen.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

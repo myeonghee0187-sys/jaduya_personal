@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
+import { useCommunityCommentCount } from '../community/communitySelectors';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -25,8 +26,9 @@ export function CommunityPage() {
   const navigation = useAppNavigation();
   const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
-  /* 게시글 상세보기 — 아직 본문(body) 데이터가 있는 게시글만 열린다 */
-  const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  /* 게시글 상세보기 — 아직 본문(body) 데이터가 있는 게시글만 열린다.
+   * 마이페이지 "나의 활동"에서 postId 를 넘겨 들어오면 진입하자마자 그 글을 바로 연다. */
+  const [detailPostId, setDetailPostId] = useState<string | null>(() => navigation?.options.postId ?? null);
   const myMenu = useMyMenu();
   /* 다른 화면에서 탭을 지정해 들어올 수 있다 (전용 화면이 있는 '질문'·'자취 꿀팁'은 제외).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
@@ -44,7 +46,17 @@ export function CommunityPage() {
   const bookmarks = useBookmarks();
   /* 내가 쓴 글 — 정적 목록 맨 앞에 붙여서 등록하자마자 보이게 한다 */
   const { ownPosts } = useCommunityPosts();
-  const allPosts = useMemo(() => mergeOwnPosts(COMMUNITY_POSTS, ownPosts), [ownPosts]);
+  /* 댓글 수는 정적 comments 숫자를 그대로 믿지 않고, 실제 댓글 데이터가 있는
+   * 게시글이면 그 실제 개수(게시글 상세와 같은 기준)로 바꿔서 카드·댓글순 정렬에 쓴다 */
+  const getCommentCount = useCommunityCommentCount();
+  const allPosts = useMemo(
+    () =>
+      mergeOwnPosts(COMMUNITY_POSTS, ownPosts).map((post) => ({
+        ...post,
+        comments: getCommentCount(post.id, post.comments),
+      })),
+    [ownPosts, getCommentCount],
+  );
   const [liked, setLiked] = useState<string[]>([]);
   const filterRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);

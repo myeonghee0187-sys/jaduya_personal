@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
 import { IntroSplash } from '../components/IntroSplash';
+import { SplashScreen } from '../components/SplashScreen';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
 import { Login } from './Login';
@@ -126,6 +127,7 @@ export function LoginShowcase() {
   if (!isDesktop) {
     return (
       <>
+        <SplashScreen />
         <IntroSplash />
         <App />
       </>
@@ -169,6 +171,19 @@ export function LoginShowcase() {
             <br />
             나에게 맞는 생활 팁까지, 더 쉽고 가볍게.
           </p>
+
+          <div className="login-showcase__qr-cta">
+            <img
+              className="login-showcase__qr-image"
+              src={img('jaduya_deploy_qr.png')}
+              alt="자두야 체험 QR 코드"
+            />
+            <div className="login-showcase__qr-text">
+              <p className="login-showcase__qr-title">지금 바로 자두야를 체험해보세요</p>
+              <p className="login-showcase__qr-desc">QR을 스캔하면 바로 시작할 수 있어요.</p>
+              <p className="login-showcase__qr-url">jaduya.vercel.app</p>
+            </div>
+          </div>
         </div>
 
         <IPhoneFrame>

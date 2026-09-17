@@ -37,6 +37,13 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+/** 이번 렌더에서 인트로 영상이 재생될지 — SplashScreen 이 이 값으로 자신의 노출 여부를
+ * 결정해서, 최초 실행 때 "브랜드 스플래시 → 인트로 영상"이 연달아 두 번 뜨지 않고
+ * 인트로 영상 하나로만 첫인상을 보여주게 한다(둘 다 최초 1회용 화면이라 겹치면 중복). */
+export function willPlayIntroVideo(): boolean {
+  return !prefersReducedMotion() && !introSeen();
+}
+
 export function IntroSplash() {
   const [phase, setPhase] = useState<'playing' | 'leaving' | 'done'>(() =>
     prefersReducedMotion() || introSeen() ? 'done' : 'playing',
