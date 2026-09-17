@@ -109,7 +109,7 @@
 
 .mypage__level {
   width: 100%;
-  border: 1px solid var(--border-warm);
+  border: 1px solid #cfa866;
   border-radius: var(--radius-xl);
   padding: 20px;
   background: var(--surface-cream);
