@@ -8,6 +8,8 @@ import type { ReactNode } from 'react';
 /** 'notifications' 는 헤더 종으로 들어가는 알림 화면이다 (어느 화면에서든 열리므로 returnTo 로 돌아온다) */
 /** 'money' 는 탭바 '돈관리' 의 메인 화면이다 */
 /** 'money-budget' 는 돈관리 아래 예산 설정 화면이다 (탭바는 '돈관리' active 를 유지한다) */
+/** 'money-accounts' 는 돈관리 "이번 달" 탭의 "내 계좌" 카드로 들어오는 계좌 목록 화면이다
+ * (탭바는 '돈관리' active 를 유지한다) */
 /** 'community-question' 은 커뮤니티 '질문' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 /** 'community-tip' 은 커뮤니티 '자취 꿀팁' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
 /** 'community-region' 은 커뮤니티 '지역 후기' 탭 전용 화면이다 (탭바는 '커뮤니티' active 를 유지한다) */
@@ -35,6 +37,7 @@ export type AppPage =
   | 'ai-chat'
   | 'money'
   | 'money-budget'
+  | 'money-accounts'
   | 'widget-gallery'
   | 'notifications';
 

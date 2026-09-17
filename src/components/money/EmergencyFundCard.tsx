@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScratchReveal } from './ScratchReveal';
 import { usePrefersReducedMotion } from '../homecare/usePrefersReducedMotion';
-import { icon } from '../../lib/asset';
+import { icon, img } from '../../lib/asset';
 
 /* JADUYA — "비상금" 탭의 대표 인터랙션. 금액을 바로 숫자로 보여주지 않고
  * 문질러서 확인하게 한다(대화 중 새로 정한 요구사항, Figma 소스 없음).
@@ -18,11 +18,9 @@ import { icon } from '../../lib/asset';
  * 건너뛰고 바로 result 로 시작한다 — "새로운 기록이 있어요"는 새 적립이 생겨
  * 다시 가려졌을 때만(isNewRecord) 보여준다.
  *
- * 화면 전체가 스크롤 없이 한 화면(100dvh - 공용 헤더 - 상단 4탭 바)에 들어와야 해서
- * (MoneyPage.tsx 의 .money__scroll--fund 참고), 예전에 있던 "적립 플랜"/"비상금 가이드"는
- * 없앴다. 적립 상세는 기본으로는 "이번 달 N번 모았어요" 한 줄만 보여주고, 누르면 그
- * 자리에서 아코디언으로 펼쳐진다(depositsExpanded) — 목록 자체는 내부 스크롤이라
- * 항목이 많아도 페이지 전체 스크롤은 여전히 생기지 않는다. */
+ * 상단에는 saving_money.png 를 크게 두고, 적립 상세는 기본으로 "이번 달 N번 모았어요"
+ * 한 줄만 보여주고 누르면 그 자리에서 아코디언으로 펼쳐진다(depositsExpanded) — 목록은
+ * 내부 스크롤 없이 그대로 늘어나고, 넘치면 다른 탭들처럼 화면 전체가 스크롤된다. */
 
 const CELEBRATE_MS = 600;
 
@@ -78,6 +76,10 @@ export function EmergencyFundCard({
    * 이미 공개된 채로 시작하면(initialRevealed) 처음부터 펼쳐 두고, 방금 긁어서 공개한
    * 경우에도(handleRevealed) 바로 펼쳐서 레퍼런스 04번처럼 금액과 내역을 함께 보여준다. */
   const [depositsExpanded, setDepositsExpanded] = useState(!isEmpty && initialRevealed);
+  /* 적립 내역 목록 — 기본은 2건까지만 보여주고 "더보기"를 눌러야 나머지가 펼쳐진다
+   * (아코디언 자체를 접는 depositsExpanded 와는 별개의, 한 단계 더 깊은 펼치기). */
+  const [depositsListExpanded, setDepositsListExpanded] = useState(false);
+  const DEPOSITS_PREVIEW_COUNT = 2;
 
   /* 이미 공개된 상태에서 값이 바뀌면(목표 수정 등) count-up 없이 바로 반영한다 */
   useEffect(() => {
@@ -135,6 +137,10 @@ export function EmergencyFundCard({
 
   return (
     <section className="fund-hero">
+      <div className="fund-hero__image">
+        <img src={img('saving_money.png')} alt="" />
+      </div>
+
       <div className={`fund-card${view === 'result' ? ' is-open' : ''}${view === 'celebrate' ? ' is-celebrating' : ''}`}>
         <div className="fund-card__body">
           <div className="fund-card__stage">
@@ -193,9 +199,8 @@ export function EmergencyFundCard({
         </div>
       </div>
 
-      {/* "이번 달 N번 모았어요" — 레퍼런스처럼 누르면 그 자리에서 아코디언으로 펼쳐진다.
-       * 목록 자체는 내부 스크롤(max-height)로 가둬서, 항목이 많아져도 화면 전체 스크롤은
-       * 여전히 생기지 않는다("+ 비상금 채우기" 버튼이 항상 보여야 한다). */}
+      {/* "이번 달 N번 모았어요" — 누르면 그 자리에서 아코디언으로 펼쳐지고(접기/펴기),
+       * 목록은 내부 스크롤 없이 그대로 늘어난다. */}
       {!isEmpty && !showAchievement && (
         <>
           <button
@@ -218,22 +223,35 @@ export function EmergencyFundCard({
               {deposits.length === 0 ? (
                 <p className="fund-deposit-panel__empty">아직 이번 달 적립 기록이 없어요.</p>
               ) : (
-                <div className="fund-deposit-panel__list">
-                  {deposits.map((deposit) => (
-                    <div key={deposit.id} className="fund-deposit-row">
-                      <span className="fund-deposit-row__badge" aria-hidden="true">
-                        <img src={icon('money-fund-check.svg')} alt="" />
-                      </span>
-                      <span className="fund-deposit-row__date">{deposit.date}</span>
-                      <span className="fund-deposit-row__amount">+{deposit.amount.toLocaleString()}원</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="fund-deposit-panel__list">
+                    {(depositsListExpanded ? deposits : deposits.slice(0, DEPOSITS_PREVIEW_COUNT)).map((deposit) => (
+                      <div key={deposit.id} className="fund-deposit-row">
+                        <span className="fund-deposit-row__badge" aria-hidden="true">
+                          <img src={icon('money-fund-check.svg')} alt="" />
+                        </span>
+                        <span className="fund-deposit-row__date">{deposit.date}</span>
+                        <span className="fund-deposit-row__amount">+{deposit.amount.toLocaleString()}원</span>
+                      </div>
+                    ))}
+                  </div>
+                  {deposits.length > DEPOSITS_PREVIEW_COUNT && (
+                    <button
+                      type="button"
+                      className="fund-deposit-panel__more"
+                      aria-expanded={depositsListExpanded}
+                      onClick={() => setDepositsListExpanded((v) => !v)}
+                    >
+                      {depositsListExpanded ? '접기' : '더보기'}
+                      <img
+                        src={icon('chevron-down-thin.svg')}
+                        alt=""
+                        className={depositsListExpanded ? 'is-open' : ''}
+                      />
+                    </button>
+                  )}
+                </>
               )}
-              <button type="button" className="fund-deposit-panel__more" onClick={onShowAllDeposits}>
-                전체보기
-                <img src={icon('chevron-right-thin.svg')} alt="" />
-              </button>
             </div>
           )}
         </>

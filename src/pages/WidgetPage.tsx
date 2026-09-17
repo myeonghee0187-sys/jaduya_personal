@@ -19,6 +19,7 @@ import { useWidgetPlacement } from '../widgets/WidgetPlacementContext';
 import { listPlaced } from '../utils/placement';
 import type { SlotRef } from '../utils/placement';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { useFlipHeight } from '../hooks/useFlipHeight';
 import type { WidgetSize } from '../types';
 
 /* 위젯 관리 화면 — "내 위젯" 배치 + "추천 위젯" + "전체 위젯"이 한 페이지 안에서
@@ -89,8 +90,12 @@ export function WidgetPage() {
   );
   const visibleFiltered = allExpanded ? filtered : filtered.slice(0, ALL_WIDGETS_PREVIEW_LIMIT);
   const hasMoreFiltered = !allExpanded && filtered.length > ALL_WIDGETS_PREVIEW_LIMIT;
+  /* 카테고리를 바꾸거나 "더보기"를 누르면 목록 개수가 바뀌면서 아래 콘텐츠까지 순간
+   * 튀던 "끊김"을 없앤다 — 고정비 탭 카테고리 필터와 같은 FLIP 높이 애니메이션. */
+  const allListFlip = useFlipHeight([category, visibleFiltered.length]);
 
   const handleCategoryChange = (next: CategoryFilter) => {
+    allListFlip.freeze();
     setCategory(next);
     /* 카테고리를 바꾸면 새 목록은 다시 6개부터 시작한다 — 이전 카테고리에서 펼쳐놨던
      * 상태가 그대로 남아 있으면 위젯 수가 적은 카테고리로 옮겨도 항상 펼쳐진 것처럼
@@ -218,11 +223,25 @@ export function WidgetPage() {
 
           {filtered.length > 0 ? (
             <>
-              {visibleFiltered.map((def) => (
-                <WidgetListCard key={def.id} def={def} onSelect={() => setPreviewId(def.id)} />
-              ))}
+              <div
+                className="wpg-all__list"
+                ref={allListFlip.ref}
+                style={allListFlip.style}
+                onTransitionEnd={allListFlip.onTransitionEnd}
+              >
+                {visibleFiltered.map((def) => (
+                  <WidgetListCard key={def.id} def={def} onSelect={() => setPreviewId(def.id)} />
+                ))}
+              </div>
               {hasMoreFiltered && (
-                <button type="button" className="wpg-all__more" onClick={() => setAllExpanded(true)}>
+                <button
+                  type="button"
+                  className="wpg-all__more"
+                  onClick={() => {
+                    allListFlip.freeze();
+                    setAllExpanded(true);
+                  }}
+                >
                   더보기
                   <span aria-hidden="true">▾</span>
                 </button>

@@ -13,6 +13,7 @@ import { SavedPage } from './pages/SavedPage';
 import { LifePage } from './pages/LifePage';
 import { MoneyPage } from './pages/MoneyPage';
 import { MoneyBudgetPage } from './pages/MoneyBudgetPage';
+import { MoneyAccountsPage } from './pages/MoneyAccountsPage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
 import { LifeHomecarePage } from './pages/LifeHomecarePage';
 import { LifeHousePage } from './pages/LifeHousePage';
@@ -86,6 +87,7 @@ function MainPages() {
       {page === 'life' && <LifePage />}
       {page === 'money' && <MoneyPage />}
       {page === 'money-budget' && <MoneyBudgetPage />}
+      {page === 'money-accounts' && <MoneyAccountsPage />}
       {page === 'widget-gallery' && <WidgetPage />}
       {page === 'life-first' && <LifeFirstPage />}
       {page === 'life-homecare' && <LifeHomecarePage />}
