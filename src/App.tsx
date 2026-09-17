@@ -115,6 +115,7 @@ function MainPages() {
       <AIChatbot
         hidden={page === 'settings' || page === 'support'}
         disabled={isAIChatOpen}
+        showEntryHint={isHome}
         initialLift={page.startsWith('community') ? 68 : 0}
       />
       {/* 기반 화면은 계속 마운트된 채로 두고 자두AI만 최상단 overlay로 올린다. */}

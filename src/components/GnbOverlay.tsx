@@ -77,21 +77,53 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
 
       <div className="gnb__scroll">
         <div className="gnb__content">
+          <div className="gnb-mymenu">
+            <div className="gnb-mymenu__head">
+              <h2 className="gnb-mymenu__title">내 메뉴</h2>
+              <button type="button" className="gnb-mymenu__edit" onClick={onEditMenu}>
+                편집
+              </button>
+            </div>
+            <div className="shortcut-grid">
+              {myMenu.map((id) => {
+                const item = findMenu(id);
+                return item ? (
+                  <ShortcutCard key={id} item={item} onSelect={() => goToShortcut(id)} />
+                ) : null;
+              })}
+            </div>
+          </div>
+
           <div className="gnb-menu2">
-            <div className="gnb-menu2__categories" role="tablist" aria-label="대메뉴">
-              {GNB_CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={category.id === selectedCategoryId}
-                  className={`gnb-menu2__category${category.id === selectedCategoryId ? ' is-selected' : ''}`}
-                  onClick={() => setSelectedCategoryId(category.id)}
-                >
-                  <MenuIcon file={category.iconFile} className="gnb-menu2__category-icon" />
-                  <span className="gnb-menu2__category-name">{category.name}</span>
-                </button>
-              ))}
+            <div className="gnb-menu2__categories">
+              <div className="gnb-menu2__category-list" role="tablist" aria-label="대메뉴">
+                {GNB_CATEGORIES.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={category.id === selectedCategoryId}
+                    className={`gnb-menu2__category${category.id === selectedCategoryId ? ' is-selected' : ''}`}
+                    onClick={() => setSelectedCategoryId(category.id)}
+                  >
+                    <MenuIcon file={category.iconFile} className="gnb-menu2__category-icon" />
+                    <span className="gnb-menu2__category-name">{category.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <nav className="gnb-menu2__utility" aria-label="개인 메뉴">
+                <a className="gnb-menu2__utility-link" href="#" onClick={(event) => {
+                  event.preventDefault();
+                  onClose();
+                  navigation?.navigate('my');
+                }}>
+                  마이페이지
+                </a>
+                <a className="gnb-menu2__utility-link" href="#">
+                  설정
+                </a>
+              </nav>
             </div>
 
             {/* 선택된 대메뉴의 하위 메뉴만 보여준다 — 대메뉴 이름을 다시 반복하지 않는다 */}
@@ -116,39 +148,6 @@ export function GnbOverlay({ open, myMenu, onClose, onEditMenu }: GnbOverlayProp
             </div>
           </div>
 
-          <div className="gnb-mymenu">
-            <div className="gnb-mymenu__head">
-              <h2 className="gnb-mymenu__title">내 메뉴</h2>
-              <button type="button" className="gnb-mymenu__edit" onClick={onEditMenu}>
-                편집
-              </button>
-            </div>
-            <div className="shortcut-grid">
-              {myMenu.map((id) => {
-                const item = findMenu(id);
-                return item ? (
-                  <ShortcutCard key={id} item={item} onSelect={() => goToShortcut(id)} />
-                ) : null;
-              })}
-            </div>
-          </div>
-
-          <div className="gnb__divider" />
-
-          <nav className="gnb-personal" aria-label="개인 메뉴">
-            <a className="gnb-personal__link" href="#" onClick={(event) => {
-              event.preventDefault();
-              onClose();
-              navigation?.navigate('my');
-            }}>
-              마이페이지
-              <img className="gnb-personal__chevron" src={icon('chevron-right-sm.svg')} alt="" />
-            </a>
-            <a className="gnb-personal__link" href="#">
-              설정
-              <img className="gnb-personal__chevron" src={icon('chevron-right-sm.svg')} alt="" />
-            </a>
-          </nav>
         </div>
       </div>
     </section>

@@ -101,19 +101,147 @@ a { text-decoration: none; color: inherit; }
   object-fit: cover;
 }
 
+/* 바람에 실린 연한 나뭇잎 여러 장이 오른쪽 위에서 왼쪽 중단~하단으로 계속 흩날리는
+ * 연출이다("가끔 한 장" 이 아니라 "항상 2~4장 정도"가 목표) — leaf-drift 의 duration
+ * 자체가 한 장이 화면을 가로지르는 시간(8~14s)이고, 그 사이 낙엽처럼 우수수 쏟아지는
+ * 느낌이 나지 않도록 opacity 는 0.22~0.38 로 옅게 유지한다. leaf 마다 delay 를 1.5~3.5초씩
+ * 벌려 시간차로 등장시키고 duration 도 서로 달라서(8~14s), infinite 로 반복되며 각자
+ * 다른 위상으로 계속 어긋나 화면이 비는 순간 없이 여러 장이 자연스럽게 겹친다. */
+.falling-leaves {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: min(100%, var(--frame-width));
+  height: var(--sheet-top);
+  overflow: hidden;
+  pointer-events: none;
+  /* 잎의 가로 이동 거리(translate3d)를 컨테이너 폭의 %로 계산하기 위한 기준값 —
+   * .falling-leaves 자신의 width 공식과 반드시 같아야 한다. 커스텀 프로퍼티는 자식에게
+   * 그대로 상속되므로 leaf-drift 키프레임에서 이 값 하나만 참조하면 된다.
+   * 세로는 이 방식을 쓰지 않는다 — var(--sheet-top) 이 모바일 폭에서는 내부적으로
+   * calc(100% - 299px) 같은 "%" 를 포함하는데, 커스텀 프로퍼티는 텍스트 그대로
+   * 치환되므로 그 "%" 가 transform 안에서는 이 leaf 자신의 높이(11~14px) 기준으로
+   * 재해석돼 완전히 다른 값이 나온다. 그래서 세로 이동량은 FallingLeaves.tsx 에서
+   * vh 단위로 직접 넘긴다(뷰포트 높이 기준 — sheet-top 자체와 완전히 정확히 맞진
+   * 않지만, 실제 계산 오류 없이 안전하게 동작한다). */
+  --leaf-area-w: min(100vw, var(--frame-width));
+}
+
+.falling-leaves__path {
+  position: absolute;
+  left: var(--leaf-start-left);
+  top: var(--leaf-start-top);
+  width: var(--leaf-width);
+  height: var(--leaf-height);
+  will-change: transform, opacity;
+  /* backwards 없이는 양수 delay 동안(잎이 아직 등장 전) 0% 키프레임(opacity:0)이 아니라
+   * 기본값(opacity:1)이 보여서, 시작 위치에 잎이 그대로 떠 있는 것처럼 비쳤다 */
+  animation: leaf-drift var(--leaf-duration) linear var(--leaf-delay) infinite backwards;
+}
+
+.falling-leaves__leaf {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 90% 12% 90% 12%;
+  background: var(--leaf-color);
+  filter: blur(var(--leaf-blur));
+}
+
+.falling-leaves__leaf::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  top: 49%;
+  width: 68%;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.16;
+  transform: rotate(-24deg);
+  transform-origin: left center;
+}
+
+/* 가로(dx)는 --leaf-area-w 에 대한 %(숫자만, 부호 포함), 세로(dy)는 FallingLeaves.tsx 가
+ * 미리 계산해 넘기는 vh 값(위 --leaf-area-w 주석 참고) — 둘 다 시작점(left/top)에서부터
+ * 얼마나 이동했는지를 나타낸다. 회전은 각 지점의 절대 각도라 그대로 보간된다.
+ * 10%(via1)에서 왼쪽 아래로 방향을 잡고, 20%(via2)에서 잠깐 떠오르듯 하강폭이 줄고
+ * 좌우로 한 번 휘며, 32.5%(via3)에서 다시 아래로 — 실제 "가로지르기"는 duration(전체
+ * 주기)의 앞 절반(0~50%)에서 끝나고, 나머지 절반(50~100%)은 opacity 0으로 화면 밖에
+ * 멈춰 쉰다. leaf 6장이 각자 다른 위상으로 무한 반복하는데, 쉬는 구간 없이(=100% 전부
+ * 비행) 두면 delay 를 1.5~3.5초로 촘촘히 벌려도 대부분의 순간에 6장이 한꺼번에 다
+ * 보여 버린다(실측 확인됨) — 절반을 쉬게 해야 평균적으로 2~4장 정도만 겹친다. */
+@keyframes leaf-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--leaf-r0));
+  }
+  4% {
+    opacity: var(--leaf-opacity);
+  }
+  10% {
+    transform: translate3d(
+      calc(var(--leaf-area-w) * var(--leaf-dx1) / 100),
+      var(--leaf-dy1),
+      0
+    ) rotate(var(--leaf-r1));
+  }
+  20% {
+    transform: translate3d(
+      calc(var(--leaf-area-w) * var(--leaf-dx2) / 100),
+      var(--leaf-dy2),
+      0
+    ) rotate(var(--leaf-r2));
+  }
+  32.5% {
+    transform: translate3d(
+      calc(var(--leaf-area-w) * var(--leaf-dx3) / 100),
+      var(--leaf-dy3),
+      0
+    ) rotate(var(--leaf-r3));
+  }
+  42.5% {
+    opacity: var(--leaf-opacity);
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: translate3d(
+      calc(var(--leaf-area-w) * var(--leaf-dx4) / 100),
+      var(--leaf-dy4),
+      0
+    ) rotate(var(--leaf-r4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .falling-leaves { display: none; }
+}
+
 .hero__illustration {
   position: absolute;
+  z-index: 2;
   left: 199px;
   top: 355px;
   width: 245px;
   height: 157px;
 }
 
-.hero__illustration img { position: absolute; }
+.hero__illustration img,
+.hero__illustration video,
+.hero__illustration canvas { position: absolute; }
 
 .hero__tree      { left: 40px;   top: -106px; width: 206.474px; height: 258px; }
 .hero__ground    { left: -62px;  top: 43px;   width: 294px;     height: 220px; }
-.hero__character { left: -35px;  top: -13px;      height: 222px; }
+.hero__character {
+  left: -47.5px;
+  top: -35.2px;
+  height: 266.4px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .hero__accent    { left: 134px;  top: 85px;   width: 51px;      height: 51px; }
 .hero__cup       { left: 93px;   top: 110px;  width: 71px;      height: 72px; }
 
@@ -917,14 +1045,17 @@ a { text-decoration: none; color: inherit; }
   border-radius: var(--radius-s);
 }
 
-/* 헤더 아래, 카드 시작 전에 놓는 얇은 숫자형 페이지네이션 — 현재 페이지 숫자만
- * 진하게 쓰고 옆에 짧은 선을 붙인다(마지막 페이지는 선이 화면 밖으로 나가지
- * 않도록 숫자 앞쪽에 둔다). 3카드 슬라이드·swipe 와 같은 pageCarousel.index 를 그대로 쓴다. */
+/* 헤더 아래, 카드 시작 전에 놓는 얇은 숫자형 페이지네이션 — 각 숫자마다 자기 바로 뒤에
+ * trailing line 을 하나씩 달고 있고(마지막 04 뒤도 예외 없이 포함), 그 숫자가 활성일 때만
+ * width 가 커지며 빨간 선이 보인다. 비활성 숫자의 line 은 width 0 이라 숫자끼리 원래(밑줄
+ * 버전)처럼 붙어 있다 — DOM 은 그대로 두고 width·색만 transition 으로 바꿔서, 다른 span 으로
+ * "옮겨 붙는" 것처럼 순간이동하지 않고 넓어졌다 좁아지는 게 자연스럽게 이어져 보인다.
+ * 3카드 슬라이드·swipe 와 같은 pageCarousel.index 를 그대로 쓴다. */
 .discovery__pagination {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
   margin-bottom: 10px;
 }
@@ -932,7 +1063,6 @@ a { text-decoration: none; color: inherit; }
 .discovery__page-item {
   display: flex;
   align-items: center;
-  gap: 6px;
   padding: 3px 0;
   border: 0;
   appearance: none;
@@ -941,18 +1071,38 @@ a { text-decoration: none; color: inherit; }
   font: 500 12px/1 var(--font-suit);
   letter-spacing: -0.1px;
   color: var(--text-secondary);
+  transition: color 220ms ease;
 }
 
 .discovery__page-item.is-active {
-  color: var(--text-black);
+  color: var(--brand-primary);
   font-weight: 600;
+}
+
+.discovery__page-item:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.discovery__page-item:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
 }
 
 .discovery__page-line {
   display: block;
-  width: 32px;
+  flex-shrink: 0;
+  width: 0;
   height: 1.5px;
   border-radius: 1px;
+  background: transparent;
+  transition:
+    width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 220ms ease;
+}
+
+.discovery__page-line.is-active {
+  width: 28px;
   background: var(--brand-primary);
 }
 
@@ -974,6 +1124,16 @@ a { text-decoration: none; color: inherit; }
 .discovery__page-chevron:disabled {
   color: var(--text-muted);
   cursor: default;
+}
+
+.discovery__page-chevron:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.discovery__page-chevron:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
 }
 
 @media (hover: hover) {
@@ -1056,6 +1216,7 @@ a { text-decoration: none; color: inherit; }
   letter-spacing: -0.14px;
   color: var(--text-body);
   white-space: nowrap;
+  text-indent: 3px;
 }
 
 .today-card__note {
@@ -1067,11 +1228,11 @@ a { text-decoration: none; color: inherit; }
   font-size: 12px;
   font-weight: 400;
   line-height: 1.4;
-  color: var(--text-muted);
+  color: #616A15;
   white-space: nowrap;
 }
 
-/* 다른 아이콘들과 같은 fill 아이콘 방식 — 옆 텍스트 색(--text-muted #6b6b6b)과
+/* 다른 아이콘들과 같은 fill 아이콘 방식 — 옆 텍스트 색(#616a15)과
  * 맞춰서 아이콘 파일 자체에 고정 색상으로 넣었다. */
 .today-card__note-icon {
   flex: none;
@@ -1274,14 +1435,48 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* 드래그로 손가락을 따라가는 동안은 transition 을 꺼서 바로바로 반응하게 한다 —
- * 손을 떼는 순간 위 transition 이 다시 붙어 다음/이전 페이지로 자연스럽게 미끄러진다 */
-.discovery-page__track.is-dragging {
+ * 손을 떼는 순간 위 transition 이 다시 붙어 다음/이전 페이지로 자연스럽게 미끄러진다.
+ * 페이지네이션 클릭(스와이프가 아닌 탭/화살표)일 때도 같은 이유로 잠깐 꺼진다 — 트랙을
+ * 100% 폭만큼 통째로 미끄러뜨리면 "화면 전체가 좌우로 움직이는" 것처럼 보여서, 클릭
+ * 이동은 대신 아래 .discovery-page__slide 의 작은 fade+shift 하나로만 이동을 알린다. */
+.discovery-page__track.is-dragging,
+.discovery-page__track.is-instant {
   transition: none;
 }
 
 .discovery-page__slide {
   flex: 0 0 100%;
   min-width: 0;
+}
+
+/* 페이지네이션 탭/화살표 클릭으로 넘어갈 때만 붙는 진입 애니메이션 — 방금 활성화된
+ * 슬라이드 하나(날짜 카드·광고 카드·맞춤 팁 카드를 담은 discovery__row 전체)가 한
+ * 덩어리로 옅게 밀려 들어온다. 스와이프(드래그) 이동은 이미 트랙 자체가 손가락을 따라
+ * 자연스럽게 넘어가므로 이 애니메이션을 겹치지 않는다(DiscoverySection.tsx 의 clickNav
+ * 상태가 클릭 이동일 때만 이 클래스를 붙인다). */
+@keyframes discovery-slide-enter-next {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes discovery-slide-enter-prev {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.discovery-page__slide.is-entering-next {
+  animation: discovery-slide-enter-next 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.discovery-page__slide.is-entering-prev {
+  animation: discovery-slide-enter-prev 300ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-page__slide.is-entering-next,
+  .discovery-page__slide.is-entering-prev {
+    animation: none;
+  }
 }
 
 /* ---------- 외출 팁: 맞춤 추천 설정 전 ----------

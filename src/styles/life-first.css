@@ -672,26 +672,13 @@
 }
 
 .regret__pager {
+  --carousel-dot-idle: var(--first-line);
+  min-height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   margin-top: -4px;
-}
-
-.regret__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--first-line);
-  transition:
-    width 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 200ms ease;
-}
-
-.regret__dot.is-active {
-  width: 18px;
-  background: var(--brand-primary);
 }
 
 /* 화면에는 보이지 않고 스크린리더만 읽는 현재 위치 */
@@ -710,8 +697,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .contract-check__bar-fill,
-  .regret__dot {
+  .contract-check__bar-fill {
     transition: none;
   }
 }
