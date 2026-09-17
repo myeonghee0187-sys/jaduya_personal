@@ -169,6 +169,19 @@ export function LoginShowcase() {
             <br />
             나에게 맞는 생활 팁까지, 더 쉽고 가볍게.
           </p>
+
+          <div className="login-showcase__qr-cta">
+            <img
+              className="login-showcase__qr-image"
+              src={img('jaduya_deploy_qr.png')}
+              alt="자두야 체험 QR 코드"
+            />
+            <div className="login-showcase__qr-text">
+              <p className="login-showcase__qr-title">지금 바로 자두야를 체험해보세요</p>
+              <p className="login-showcase__qr-desc">QR을 스캔하면 바로 시작할 수 있어요.</p>
+              <p className="login-showcase__qr-url">jaduya.vercel.app</p>
+            </div>
+          </div>
         </div>
 
         <IPhoneFrame>

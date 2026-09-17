@@ -197,6 +197,11 @@
   display: none;
   max-width: 540px;
   text-align: left;
+  /* QR CTA 추가로 늘어난 높이만큼 위로 당겨서, 카피 블록 전체가 아래로 길게
+   * 늘어지는 대신 기존에 정중앙 정렬로 비어 있던 위쪽 공간 안에 자연스럽게 들어가게 한다.
+   * transform 은 레이아웃 흐름(그리드 셀 크기 계산)에 영향을 주지 않으므로 폰/패널
+   * 정렬은 그대로 유지된다. */
+  transform: translateY(-60px);
 }
 
 @media (min-width: 1700px) {
@@ -240,6 +245,65 @@
   line-height: 1.6;
   color: var(--text-secondary);
   margin: 20px 0 0;
+}
+
+/* ---------- QR 체험 CTA ----------
+ * 카드형 배경/그림자 없이 QR 이미지 + 텍스트를 가로로 배치한다. QR 은 crop/변형 없이
+ * public/assets/img/jaduya_deploy_qr.png 원본(흰색 quiet zone 포함)을 그대로 쓴다. */
+.login-showcase__qr-cta {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 1.6vw, 24px);
+  margin-top: clamp(28px, 2.2vw, 36px);
+}
+
+.login-showcase__qr-image {
+  display: block;
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.login-showcase__qr-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-showcase__qr-title {
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.login-showcase__qr-desc {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 7px 0 0;
+}
+
+.login-showcase__qr-url {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin: 6px 0 0;
+}
+
+/* 공간이 부족해지면(그리드 좌측 칸 폭이 540px 로 고정이라 실제로는 거의 발생하지
+ * 않지만, 폭 축소 실험 등 예외 상황에 대비한 안전장치) 세로 배치로 전환한다. */
+@media (max-width: 1780px) {
+  .login-showcase__qr-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* ---------- 폰 목업 크기 (--phone-scale, 실제 스타일은 iphone-frame.css) ----------

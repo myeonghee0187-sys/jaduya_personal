@@ -62,7 +62,17 @@ export const AI_SCENARIOS: Record<string, FlowScenario> = {
       'error-code': { message: '조절기 화면에 숫자나 영문으로 된 오류 코드가 보이나요?', quickReplies: [
         { label: '에러코드가 보여요', value: 'has_code' }, { label: '에러코드는 없어요', value: 'no_code' }, { label: '잘 모르겠어요', value: 'unknown' },
       ] },
-      'error-code-input': { message: '표시된 오류 코드를 입력해주세요. 예: 03, E1', inputMode: 'text' },
+      'error-code-input': {
+        message: '보일러에 표시된 에러코드를 알려주세요.\n아래에서 선택하거나 직접 입력할 수 있어요.',
+        inputMode: 'text',
+        quickReplies: [
+          { label: '03', value: '03' },
+          { label: 'E1', value: 'E1' },
+          { label: 'E2', value: 'E2' },
+          { label: 'E3', value: 'E3' },
+          { label: 'E5', value: 'E5' },
+        ],
+      },
     },
   },
   'pest-photo': {

@@ -49,6 +49,9 @@ export interface NavigateOptions {
   section?: string;
   /** 혜택 상세 화면에서 조회할 혜택의 고유 id */
   benefitId?: string;
+  /** 커뮤니티 홈으로 들어가면서 바로 열 게시글 id — 마이페이지 "나의 활동"에서
+   * 저장한 글/작성한 글/댓글을 눌러 기존 게시글 상세(CommunityPostDetailPanel)로 갈 때 쓴다. */
+  postId?: string;
   /** 뒤로가기로 돌아갈 화면. 없으면 도착 화면의 기본 상위 화면으로 간다.
    * history 스택을 만들지 않고 "어디서 들어왔는지" 한 단계만 기억한다. */
   returnTo?: AppPage;
