@@ -25,7 +25,7 @@
 
 /* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .ai-chat-page.app {
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   /* 현재 보이는 .app 안으로 portal 되므로 fixed viewport가 아니라 앱 프레임을 기준으로 덮는다. */
   position: absolute;
   inset: 0;

@@ -3,7 +3,7 @@
  * .app / #root / html / body / .status-bar 규칙은 여기 두지 않는다 (app-shell.css 소관). */
 
 .auth {
-  background: #fffaf5;
+  background: var(--surface-page);
 }
 
 .auth__body {

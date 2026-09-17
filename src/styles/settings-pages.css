@@ -2,7 +2,7 @@
 .settings-page {
   display: flex;
   flex-direction: column;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   color: var(--text-primary);
   font-family: "Pretendard", var(--font-suit);
 }

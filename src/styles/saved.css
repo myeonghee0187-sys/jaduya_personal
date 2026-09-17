@@ -12,7 +12,7 @@
 
 /* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .saved.app {
-  background: #fffaf5;
+  background: var(--surface-page);
 }
 
 /* ================= 1차 탭 (저장한 정보 / 작성한 글 / 댓글) =================

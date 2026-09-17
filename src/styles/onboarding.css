@@ -23,7 +23,7 @@
  * 캡을 두지 않지만(app-shell.css 참고), 온보딩은 스크롤되는 목록형 화면이
  * 아니라 402×874 목업 그대로의 비율로 보여줘야 하는 삽화 중심 화면이다. */
 .onboarding.app {
-  background: #fffaf5;
+  background: var(--surface-page);
   max-height: var(--frame-height);
 }
 

@@ -25,7 +25,7 @@
   gap: clamp(16px, 3vh, 32px);
   padding: clamp(16px, 3vh, 40px) clamp(24px, 5vw, 64px);
   overflow: hidden;
-  background: var(--surface-warm);
+  background: var(--surface-page);
   box-sizing: border-box;
   /* 한글은 기본 word-break 규칙상 단어 중간(음절 사이)에서도 줄바꿈될 수 있다 —
    * keep-all 로 항상 띄어쓰기에서만 끊기게 한다(자식 전체에 상속). */
