@@ -64,40 +64,12 @@ export function CommunityPostCard({
           </span>
           {post.author} · {post.time}
         </p>
-
-        <div className="post-card__meta">
-          <button
-            type="button"
-            className={`post-card__stat post-card__like${liked ? ' is-liked' : ''}`}
-            aria-pressed={liked}
-            aria-label={`${post.title} 좋아요`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleLike();
-            }}
-          >
-            <img
-              className="post-card__like-icon"
-              src={icon(liked ? 'community-like.svg' : 'community-like-off.svg')}
-              alt=""
-            />
-            <span className="post-card__like-count">{post.likes + (liked ? 1 : 0)}</span>
-          </button>
-          <span className="post-card__stat">
-            <img src={icon('community-comment.svg')} alt="댓글" />
-            {post.comments}
-          </span>
-          <button
-            type="button"
-            className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
-            aria-pressed={saved}
-            aria-label={`${post.title} 저장`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleSave();
-            }}
-          />
-        </div>
+        {showChips && (
+          <div className="post-card__chips">
+            <span className="post-card__chip post-card__chip--tag">{post.hashtag}</span>
+            <span className="post-card__chip post-card__chip--category">{post.category}</span>
+          </div>
+        )}
       </div>
 
       <div className="post-card__body">
@@ -105,12 +77,40 @@ export function CommunityPostCard({
           <h3 className="post-card__title" ref={titleRef}>{post.title}</h3>
           {/* 임시 비활성화 (검토 중) — 되돌리려면 이 주석만 풀면 된다 */}
           {/* <p className="post-card__preview">{post.preview}</p> */}
-          {showChips && (
-            <div className="post-card__chips">
-              <span className="post-card__chip post-card__chip--tag">{post.hashtag}</span>
-              <span className="post-card__chip post-card__chip--category">{post.category}</span>
-            </div>
-          )}
+
+          <div className="post-card__meta">
+            <button
+              type="button"
+              className={`post-card__stat post-card__like${liked ? ' is-liked' : ''}`}
+              aria-pressed={liked}
+              aria-label={`${post.title} 좋아요`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleLike();
+              }}
+            >
+              <img
+                className="post-card__like-icon"
+                src={icon(liked ? 'community-like.svg' : 'community-like-off.svg')}
+                alt=""
+              />
+              <span className="post-card__like-count">{post.likes + (liked ? 1 : 0)}</span>
+            </button>
+            <span className="post-card__stat">
+              <img src={icon('community-comment.svg')} alt="댓글" />
+              {post.comments}
+            </span>
+            <button
+              type="button"
+              className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
+              aria-pressed={saved}
+              aria-label={`${post.title} 저장`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleSave();
+              }}
+            />
+          </div>
         </div>
         {postImage ? (
           <img className="post-card__thumb" src={postImage} alt="" />
