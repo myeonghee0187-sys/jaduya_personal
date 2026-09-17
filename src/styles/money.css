@@ -348,18 +348,10 @@
 }
 
 .money-flow-card__title {
-  margin-top: 8px;
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 14px;
   color: var(--text-primary);
-}
-
-.money-flow-card__icon-img {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
 }
 
 .money-flow-card__value {
@@ -677,17 +669,12 @@
   color: var(--text-primary);
 }
 
-/* 고정비/내 계좌 카드는 원형 배경 아이콘 대신 fixed_expenses.png · budget_management.png
- * 일러스트를 배경 없이 그대로 쓴다. 제목과 같은 줄(flex)에 두면 커질수록 자리를 차지해
- * 제목을 밀어내서, absolute 로 빼서 카드 맨 오른쪽 위 모서리에 붙인다 — 안쪽으로 14px
- * 띄우면 금액 텍스트와 겹쳐서 코너에 바짝 둔다. */
-.money-mini-card__icon-img {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+/* "전체 보기"(.money-section__more)와 같은 화살표 — 이 카드가 눌러서 넘어가는
+ * 버튼이라는 걸 평상시에도 알 수 있게 한다 */
+.money-mini-card__chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
 }
 
 .money-mini-card__label {
@@ -739,10 +726,10 @@
 
 .money-fund-banner__icon-img {
   position: absolute;
-  left: 2px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 56px;
+  width: 44px;
   height: auto;
   object-fit: contain;
   pointer-events: none;
@@ -1615,8 +1602,6 @@
 
 /* ---------- 이번 달 예정 고정비 요약 카드 (레퍼런스) ---------- */
 .money-fixed-summary {
-  position: relative;
-  overflow: hidden;
   margin: 14px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
@@ -1632,9 +1617,6 @@
 .money-fixed-summary__stat {
   flex: 1 1 auto;
   min-width: 0;
-  /* 아이콘이 더 이상 자기 자리를 차지하지 않고(오른쪽 위에 배경처럼 걸침) 텍스트
-   * 위로 겹치지 않도록 오른쪽에 자리를 비워둔다 */
-  padding-right: 64px;
 }
 
 /* 카드 배경이 연한 핑크(#fdeceb)라 --text-secondary/--text-tertiary 를 그대로 쓰면
@@ -1663,18 +1645,6 @@
   color: var(--text-meta);
 }
 
-/* 지난달 대비 증감 배지 대신 fixed_expenses.png 일러스트를 크게 키워 카드 오른쪽
- * 위 모서리에 배경처럼 살짝 걸치게 둔다(money-fund-banner 와 같은 방식) — 더 이상
- * head 줄의 flex 아이템이 아니라 카드 기준 absolute 로 뺀다. */
-.money-fixed-summary__icon {
-  position: absolute;
-  top: -10px;
-  right: 8px;
-  width: 108px;
-  height: 108px;
-  object-fit: contain;
-  pointer-events: none;
-}
 
 /* ---------- 이번 달 고정비 지출 현황 — 오늘까지 결제된 금액 vs 이번 달 전체 예정 금액 ---------- */
 .money-fixed-status__track {
@@ -1937,19 +1907,11 @@
   text-align: center;
 }
 
-/* 카테고리 필터를 바꾸면 항목 수가 달라져 아래 CTA 버튼까지 순간적으로 튀는 "끊김"이
- * 있었다 — MoneyPage.tsx 가 클릭 시점 높이를 얼렸다가 다음 프레임에 실제 높이로
- * 풀어주고(FLIP), 여기서는 그 height 변화만 부드럽게 트랜지션한다. */
-.money-fixed-list__items {
-  overflow: hidden;
-  transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .money-fixed-list__items {
-    transition-duration: 0.01ms;
-  }
-}
+/* 카테고리 필터를 바꾸면 항목 수가 즉시 바뀐다 — 위젯 페이지 "전체 위젯" 목록과 같은
+ * 방식(WidgetPage.tsx, 별도 height 애니메이션 없음)으로, height 를 따로 트랜지션하지
+ * 않는다. 한때 부드럽게 늘였다 줄였다 해봤지만, 스크롤이 깊이 내려가 있을 때 여러 프레임에
+ * 걸쳐 문서 높이가 실시간으로 바뀌면서 브라우저가 매 프레임 scrollTop 을 깎아 탭/헤더까지
+ * 화면에서 슬금슬금 밀리는 게 오히려 더 어색했다 — 즉시 리플로우가 훨씬 자연스럽다. */
 
 /* ---------- 고정비 내역 리스트(미리보기/전체 공용 행) ---------- */
 /* 필터로 새로 들어온 행만 살짝 떠오르며 나타난다 — 이미 떠 있던(key 가 그대로 유지되는)
@@ -2398,20 +2360,172 @@
   padding: 10px var(--screen-margin) calc(var(--tab-bar-h) + 8px);
 }
 
-.fund-hero__image {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-md) 0 var(--space-lg);
+/* 마스코트 — 긁는 중(scratch)에는 아예 렌더링되지 않다가, 다 긁고 결과 카드
+ * (.fund-card__result)로 넘어가는 순간 카드 안쪽 위에 나타난다. */
+.fund-card__mascot {
+  position: relative;
+  margin-bottom: 4px;
 }
 
-.fund-hero__image img {
-  width: 168px;
+.fund-card__mascot img {
+  display: block;
+  width: 110px;
   height: auto;
 }
 
+/* 긁어서 공개하는 순간(celebrate 1박자) — 마스코트가 "짠!" 하고 혼자 튀어 올랐다가
+ * 한동안 그대로 떠 있고, 이 박자가 끝나고 금액 박자로 넘어가 언마운트되기 직전에
+ * 스스로 옅어지며 사라진다. 애니메이션 길이(2000ms)는 EmergencyFundCard.tsx 의
+ * MASCOT_MS 와 맞춘 값이다 — 그 값을 바꾸면 여기도 같이 바꿔야 한다. */
+.fund-card__mascot.is-popping img {
+  animation: fund-pig-pop-out 2000ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes fund-pig-pop-out {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(1.16) rotate(-4deg);
+  }
+  16% {
+    transform: scale(0.96) rotate(2deg);
+  }
+  24% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  88% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85) rotate(0deg);
+  }
+}
+
+/* 색종이 폭죽 — 카드 전체 한가운데(--tx/--ty 는 EmergencyFundCard.tsx 에서 각도·거리로
+ * 계산해 넣는다. .fund-confetti 가 .fund-card__mascot 이 아니라 .fund-card__result
+ * 바로 아래 형제로 있어야 카드 전체 크기 기준으로 퍼진다)에서 부채꼴로 튀어 나갔다가
+ * 천천히 떨어지며 옅어진다. 길이(1300ms)를 마스코트가 떠 있는 2초 안에서 넉넉히
+ * 늘여서 순식간에 끝나지 않게 한다. */
+.fund-confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.fund-confetti__piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+  animation: fund-confetti-burst 1300ms ease-out both;
+}
+
+@keyframes fund-confetti-burst {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 64px)) rotate(260deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* 반짝임 — money-benefit-sparkle.svg 를 카드 곳곳(모서리 포함)에 흩어두고 각자 다른
+ * 타이밍에 나타났다 사라진다(EmergencyFundCard.tsx 의 delay 가 2초 안에 넓게 퍼져
+ * 있어, 재생 시간도 900ms 로 늘려서 마스코트가 떠 있는 내내 계속 반짝이는 것처럼
+ * 보이게 한다) */
+.fund-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fund-sparkles__spot {
+  position: absolute;
+  opacity: 0;
+  animation: fund-sparkle-twinkle 900ms ease-out both;
+}
+
+@keyframes fund-sparkle-twinkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1) rotate(12deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(0.85) rotate(-8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+}
+
+/* 불꽃놀이 — 색종이보다 짧고 굵게, 카드 위쪽 두세 지점에서 서로 다른 타이밍에 팡팡
+ * 터진다(EmergencyFundCard.tsx 의 FIREWORK_BURSTS 가 각 지점의 위치·시차를 정한다).
+ * 흰 글로우(box-shadow)를 둘러서 색종이 조각과 구분되는 "불빛" 느낌을 낸다. */
+.fund-firework {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.fund-firework__spark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px 1.5px rgba(255, 255, 255, 0.75);
+  animation: fund-firework-spark 550ms ease-out both;
+}
+
+@keyframes fund-firework-spark {
+  0% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 1;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fund-card__mascot.is-popping img {
+    animation: none;
+  }
+}
+
 /* ---------- 카드 셸 — 긁기 전엔 커버, 다 긁으면 결과 카드로 그대로 전환된다.
- * 복권 느낌을 피하려고 마스코트/코인/컨페티는 쓰지 않는다. 화면에 남는 공간을 그대로
- * 차지해야 해서(flex:1) 고정 height 대신 부모가 계산해주는 실제 높이를 그대로 받는다. ---------- */
+ * 반짝임·색종이·불꽃놀이는 카드 전체(.fund-card__result 기준)에 걸쳐 화려하게 터지고,
+ * 카드 자체는 여전히 옅은 scale pop 하나로만 "발견하는 순간"을 표현한다. 화면에 남는
+ * 공간을 그대로 차지해야 해서(flex:1) 고정 height 대신 부모가 계산해주는 실제 높이를
+ * 그대로 받는다. ---------- */
 .fund-card {
   /* flex-grow 를 0으로 둔다 — 1로 두면 화면이 넉넉할 때(큰 화면/데스크톱 프리뷰) 카드가
    * 남는 세로 공간을 전부 끌어안아 안의 텍스트가 아래로 늘어지고, 그 아래 "이번 달 N번
@@ -2626,7 +2740,6 @@
   pointer-events: auto;
 }
 
-/* 긁는 중 미리 비치는 금액 (실제 내용물 — 캔버스가 뚫리면 이 값이 그대로 보인다) */
 .fund-card__peek {
   display: flex;
   flex-direction: column;
@@ -2634,12 +2747,21 @@
   gap: 6px;
 }
 
+/* 실제 값(ScratchReveal.tsx 의 children) — 캔버스가 뚫리면 이 자리로 비쳐 보이는데,
+ * 커버가 다 걷히는 순간(revealing → revealed) 잠깐이지만 마스코트 박자보다 먼저
+ * 금액이 스쳐 보이는 문제가 있었다. 그 순간의 시각적 "먼저 보이는 금액"을 없애려고
+ * 화면에서는 숨기고 스크린리더에서만 읽히게 한다(ScratchReveal 의 "처음부터 그대로
+ * 읽힌다"는 접근성 의도는 그대로 유지). */
 .fund-card__peek-amount {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 26px;
-  color: var(--brand-green);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ---------- 결과 카드 ---------- */
@@ -3237,7 +3359,16 @@ button.fund-card__remaining--tap {
 .budget-setup__scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl));
+  /* 저장 버튼이 더 이상 이 스크롤 안에 없고 하단에 떠 있는 고정 버튼이라(아래
+   * .budget-setup__submit), 마지막 섹션이 그 버튼 뒤에 가리지 않도록 버튼 높이(44px)와
+   * 버튼 위아래 여백(원래 버튼의 margin-top이었던 space-2xl, 버튼과 탭바 사이 space-xl)을
+   * 그대로 더해 둔다 — 버튼을 밖으로 빼기 전과 같은 여백으로 보이게 하기 위함. */
+  padding: 0 var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl) + 44px + var(--space-2xl));
+  scrollbar-width: none;
+}
+
+.budget-setup__scroll::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---------- 안내 문구 ---------- */
@@ -3580,10 +3711,17 @@ button.fund-card__remaining--tap {
 }
 
 /* ---------- 예산 설정하기 ---------- */
+/* 스크롤을 따라가지 않고 화면 하단(탭바 위)에 고정된다 — 다른 화면들의 하단 고정
+ * 요소(예: WidgetToast .wpg-toast)와 같은 관례로 position: fixed 대신 absolute를 쓴다
+ * (.budget-setup.app 이 position: relative라, 데스크톱 IPhoneFrame 프리뷰에서도 프레임
+ * 밖으로 삐져나오지 않는다 — widget-management.css 962번째 줄 설명 참고). */
 .budget-setup__submit {
-  width: 100%;
+  position: absolute;
+  left: var(--screen-margin);
+  right: var(--screen-margin);
+  bottom: calc(var(--tab-bar-h) + var(--space-xl));
+  z-index: 30;
   height: 44px;
-  margin-top: var(--space-2xl);
   border: none;
   border-radius: var(--radius-m);
   background: var(--brand-primary);
@@ -3592,6 +3730,7 @@ button.fund-card__remaining--tap {
   font-size: 14px;
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   transition: background-color 150ms ease;
 }
 
@@ -4451,7 +4590,10 @@ button.fund-card__remaining--tap {
 .flow-list-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 캘린더 보기의 월 이동(.flow-month-nav)과 같은 자리에 오도록 가운데 정렬 — 예전엔
+   * 오른쪽에 검색/정렬 아이콘이 같이 있어 space-between 이었지만, 그 액션들이 아래
+   * 구분 필터 줄(.flow-filter-row)로 옮겨가면서 이 줄엔 월 이동만 남았다. */
+  justify-content: center;
   padding: var(--space-md) var(--screen-margin) var(--space-xs);
 }
 
@@ -4461,49 +4603,47 @@ button.fund-card__remaining--tap {
   gap: 2px;
 }
 
-.flow-list-toolbar__month-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 2px;
-  border: 0;
-  background: none;
+.flow-list-toolbar__month-label {
+  padding: 0 var(--space-sm);
   font-family: var(--font-asta);
   font-weight: 600;
   font-size: 16px;
   color: var(--text-primary);
 }
 
-.flow-list-toolbar__month-btn img {
-  width: 9px;
-  height: 9px;
-}
-
-.flow-list-toolbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.flow-list-toolbar__icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  border: 0;
-  background: none;
-}
-
-.flow-list-toolbar__icon-btn img {
-  width: 18px;
-  height: 18px;
-}
-
 /* ---------- 정렬 드롭다운 — 커뮤니티 정렬 필터(.community-filter)와 같은 구조 ---------- */
 .flow-sort {
   position: relative;
+}
+
+/* 아이콘만 있던 정렬 버튼(예전: community-filter.svg 아이콘 하나) 대신, 이번 달 탭의
+ * 월 선택 드롭다운(.money__month-label--btn)과 같은 "글자 + 셰브론" 모양으로 바꾼다 —
+ * 지금 선택된 옵션이 무엇인지 보이지 않으면 정렬이 걸려 있는지 알기 어렵다. */
+.flow-sort__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: var(--surface-cream);
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.flow-sort__trigger img {
+  width: 10px;
+  height: 10px;
+  transition: transform 0.15s ease;
+}
+
+.flow-sort__trigger img.is-open {
+  transform: rotate(180deg);
 }
 
 .flow-sort__list {
@@ -4548,11 +4688,19 @@ button.fund-card__remaining--tap {
   font-weight: 700;
 }
 
-/* ---------- 구분 필터 ---------- */
+/* ---------- 구분 필터 — 정렬 드롭다운(.flow-sort)과 같은 줄에 놓고 양 끝으로 나눈다 ---------- */
+.flow-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: 0 var(--screen-margin);
+}
+
 .flow-filter__pills {
   display: flex;
   gap: 6px;
-  margin: 0 var(--screen-margin);
+  min-width: 0;
 }
 
 .flow-filter__pill {
@@ -4588,10 +4736,18 @@ button.fund-card__remaining--tap {
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* 마우스로 클릭+드래그해서 넘기는 동안(useElasticDragScroll) — 커서로 "잡을 수 있다"는
+   * 것과 "지금 잡고 있다"는 걸 알려준다. 터치/스크롤바가 없는 웹·태블릿(마우스 전용)에서
+   * overflow-x: auto 만으로는 스크롤할 방법이 없었던 문제를 이 드래그로 보완한다. */
+  cursor: grab;
 }
 
 .flow-category-chips::-webkit-scrollbar {
   display: none;
+}
+
+.flow-category-chips.is-dragging {
+  cursor: grabbing;
 }
 
 .flow-category-chip {
