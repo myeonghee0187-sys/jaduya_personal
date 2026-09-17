@@ -155,15 +155,19 @@
 }
 
 /* ---------- 이번 달 쓸 수 있는 돈 카드 ----------
- * 연한 로즈 틴트 배경 — mission.css 의 선택 칩과 같은 #fbeceb 를 재사용한다(새 색 임의 추가 금지).
- * 레퍼런스: 제목+눈 아이콘 → 큰 금액 → "예산 · 사용 · %" → 진행률 바 → "예산 설정" 버튼. */
+ * 진한 브랜드 레드 배경(--brand-primary = --color-primary-5) + 흰 텍스트 — 연한 로즈
+ * 틴트(#fbeceb) + 어두운 텍스트 조합보다 웹표준 색대비(WCAG AA, 흰 글자 대비
+ * --brand-primary ≈ 5.9:1)를 확실히 만족하면서 카드 위계도 한눈에 드러난다.
+ * "흰색"/"검정" 오버레이는 색상 램프의 끝단 토큰(--color-gray-0/--color-gray-10)을
+ * 그대로 쓴다 — 임의의 #fff/#000 대신 토큰에 값을 맡긴다.
+ * 레이아웃: 제목+눈 아이콘 → 큰 금액 → "예산 · 사용 · %" → 진행률 바 → "예산 설정" 버튼. */
 .money-budget {
   position: relative;
   margin: 18px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
-  background: #fbeceb;
-  color: var(--text-primary);
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
 }
 
 .money-budget__title {
@@ -172,10 +176,15 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--text-secondary);
+  color: var(--color-gray-0);
 }
 
-/* 눈 아이콘 토글 — 카드 오른쪽 위. 누르면 이 탭의 모든 금액이 "₩ -----" 로 바뀐다 */
+/* 눈 아이콘 토글 — 카드 오른쪽 위. 누르면 이 탭의 모든 금액이 "₩ -----" 로 바뀐다.
+ * 아이콘(흰 스트로크)만 보면 대비가 7.7:1로 충분하지만, 이전엔 원형 배경을 검정 18%로
+ * 깔아서 카드(레드)와 거의 같은 어두운 톤이 되어 "누를 수 있는 원" 자체가 카드에 묻혔다
+ * (원 vs 카드 대비 1.3:1). 흰색 테두리(60%)로 원의 경계선만 또렷하게 그려 카드와
+ * 최소 3:1(WCAG 1.4.11 비텍스트 대비)을 확보하고, 안쪽 채움은 흰색 20%로 옅게만 남겨
+ * 아이콘을 짓누르지 않는다. */
 .money-budget__eye {
   position: absolute;
   z-index: 2;
@@ -187,10 +196,9 @@
   width: 28px;
   height: 28px;
   flex: none;
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--color-gray-0) 60%, transparent);
   border-radius: 50%;
-  background: var(--brand-primary);
-  box-shadow: 0 4px 10px rgba(180, 57, 54, 0.28);
+  background: color-mix(in srgb, var(--color-gray-0) 20%, transparent);
 }
 
 .money-budget__eye img {
@@ -205,7 +213,7 @@
   font-weight: 700;
   font-size: 36px;
   line-height: 1.2;
-  color: var(--text-primary);
+  color: var(--color-gray-0);
 }
 
 /* "예산 X원 · 사용 Y원" + 사용률 % */
@@ -220,7 +228,7 @@
 .money-budget__meta-text {
   font-family: var(--font-suit);
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--color-gray-0);
 }
 
 .money-budget__meta-percent {
@@ -228,29 +236,38 @@
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 14px;
-  color: var(--brand-primary);
+  color: var(--color-gray-0);
 }
 
+/* 빈 트랙 — 예전엔 흰색을 28%만 섞어서 카드(레드)와 거의 같은 톤(대비 1.7:1)이 되어
+ * "차 있는 부분"만 보이고 게이지의 틀 자체는 안 보였다. 같은 색 계열(레드) 안에서는
+ * 아무리 어둡게 해도 이 카드 톤과 3:1을 못 넘어(순검정도 3.58:1이 이론상 한계),
+ * 검정을 80%까지 진하게 섞어 카드보다 뚜렷이 어두운 홈으로 만든다(카드 대비 3.17:1). */
 .money-budget__progress-track {
   display: block;
   width: 100%;
   height: 8px;
   margin-top: var(--space-xs);
   border-radius: var(--radius-pill);
-  background: rgba(180, 57, 54, 0.14);
+  background: color-mix(in srgb, var(--color-gray-10) 80%, transparent);
   overflow: hidden;
 }
 
+/* 채움 — 제목·금액·메타·%·버튼까지 이 카드 안 텍스트 전부가 흰색이라 채움도 흰색이면
+ * 위계 없이 다 같은 색으로 뭉친다. 보조색(--brand-secondary, 노랑)으로 바꿔 "진행률"이라는
+ * 정보를 텍스트와 색으로 분리한다 — 어두운 트랙 위 대비는 13.9:1 로 넉넉하다. */
 .money-budget__progress-fill {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--brand-primary);
+  background: var(--brand-secondary);
   /* JS(useAnimatedPercent)가 매 프레임 width 를 바꾸는데, rAF 프레임 사이를 CSS 로 한 번
    * 더 부드럽게 이어준다 — 비상금 진행률 바(.fund-card__progress-fill)와 같은 값 */
   transition: width 120ms linear;
 }
 
+/* 흰 배경 전체폭 버튼 — 검정(--color-gray-10) 텍스트 대비 21:1 로 WCAG AA(4.5:1)를
+ * 최대치로 넘는다. 굵기 700 으로 예산 설정이 이 카드의 주요 액션임을 강조한다. */
 .money-budget__setting-btn {
   display: flex;
   align-items: center;
@@ -261,11 +278,11 @@
   margin-top: var(--space-md);
   border: none;
   border-radius: var(--radius-m);
-  background: var(--surface-cream);
+  background: var(--color-gray-0);
   font-family: var(--font-suit);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
-  color: var(--text-primary);
+  color: var(--color-gray-10);
 }
 
 .money-budget__setting-btn img {
@@ -331,7 +348,10 @@
   margin-top: 14px;
 }
 
-/* 아이콘이 맨 위, 그 아래 제목, 그 아래 금액 순서로 쌓는다. */
+/* 제목, 그 아래 금액, 그 아래 전월 대비 문구 순서로 쌓는다. 배경은 옅은 그린/로즈
+ * 틴트로 수입·지출을 색으로도 구분한다 — 텍스트 자체는 아래에서 별도로 대비를 맞춘
+ * 진한 색만 쓰고, 틴트는 장식용(거의 흰색에 가까워 어떤 텍스트를 얹어도 대비가 줄지
+ * 않는다)으로만 쓴다. */
 .money-flow-card {
   position: relative;
   display: flex;
@@ -344,6 +364,58 @@
   border-radius: var(--radius-xl);
   background: var(--surface-base);
   text-align: left;
+}
+
+/* 수입/지출 카드 배경은 새 토큰을 만들지 않고, 이미 등록된 램프에서 가장 가까운 색을
+ * 그대로 쓴다. 수입 = "풋자두" 램프의 밝은 단계(--color-green-3) — --brand-green
+ * (green-5, 올리브 톤)보다 산뜻한 라임에 가깝고, --category-life(딥그린) 텍스트와
+ * 대비 6.24:1. 지출 = 이미 있는 카테고리 쌍(--category-food-bg + --category-food,
+ * 4.48:1) 그대로 재사용 — 제목·보조 문구는 수입과 똑같이 --category-life 를 쓰고,
+ * 강조색(금액·아이콘)만 종류별로 다르게 둔다. */
+.money-flow-card--income {
+  border-color: transparent;
+  background: var(--color-green-3);
+}
+
+.money-flow-card--income .money-flow-card__title,
+.money-flow-card--income .money-flow-card__sub {
+  color: var(--category-life);
+}
+
+.money-flow-card--expense {
+  border-color: transparent;
+  background: var(--category-food-bg);
+}
+
+.money-flow-card--expense .money-flow-card__title {
+  color: var(--category-life);
+}
+
+.money-flow-card--expense .money-flow-card__sub {
+  color: var(--category-life);
+}
+
+.money-flow-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.money-flow-card__title-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  object-fit: contain;
+}
+
+/* 수입/지출 카드 모두 인라인 SVG 단색 아이콘(stroke=currentColor) — 래스터 스티커는 CSS로
+ * 색을 못 바꿔 "아이콘도 강조색과 같이" 요구를 못 맞춘다. 수입=딥그린, 지출=테라코타. */
+.money-flow-card--income .money-flow-card__title-icon {
+  color: var(--category-life);
+}
+
+.money-flow-card--expense .money-flow-card__title-icon {
+  color: var(--category-food);
 }
 
 .money-flow-card__title {
@@ -362,12 +434,23 @@
   white-space: nowrap;
 }
 
+/* 카드 배경 자체가 --color-green-3(풋자두 램프)라 텍스트는 그 위에서 대비가 확보된
+ * --category-life(딥그린)를 쓴다. */
 .money-flow-card__value--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .money-flow-card__value--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
+}
+
+.money-flow-card__sub {
+  margin-top: 4px;
+  font-family: var(--font-suit);
+  font-size: 10px;
+  letter-spacing: -0.2px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 
@@ -378,6 +461,10 @@
   align-items: center;
   gap: 2px;
   margin-top: 16px;
+  padding: var(--card-padding-s) var(--card-padding-m);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
 }
 
 .money-week-strip__arrow {
@@ -437,9 +524,12 @@
   color: var(--text-primary);
 }
 
+/* 오늘은 윤곽선이 아니라 브랜드 레드로 꽉 채운 원 위에 흰 숫자 — 흰 글자 대 red 배경
+ * 대비 약 5.9:1 로 WCAG AA 를 만족한다. */
 .money-week-strip__day.is-today .money-week-strip__date {
+  background: var(--brand-primary);
   border-color: var(--brand-primary);
-  color: var(--brand-primary);
+  color: var(--color-gray-0);
   font-weight: 600;
 }
 
@@ -451,85 +541,194 @@
   white-space: nowrap;
 }
 
+/* 수입 카드(.money-flow-card__value--income)와 같은 --category-life(딥그린)로 통일한다 */
 .money-week-strip__amount--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .money-week-strip__amount--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
-/* ---------- 소비 분석 — 카테고리별 가로 막대 미리보기(상위 3개, 레퍼런스) ---------- */
-.money-spend-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* ---------- 소비 분석 — 카테고리별 카드 그리드(상위 4개 + "기타" 합계, 레퍼런스) ----------
+ * 카테고리 브랜드 색은 아이콘 배경 틴트·아래에서 % 만큼 차오른 물 채우기(fill) 같은
+ * 장식 요소에만 쓰고, 금액·비율 텍스트는 항상 --text-primary/--text-secondary 로
+ * 고정한다 — 카테고리 색 중에는 흰 배경 위에서 WCAG AA(4.5:1)를 못 넘는 것도 있어
+ * (예: --brand-orange ≈ 3.5:1), 텍스트 색으로 직접 쓰면 대비가 흔들린다. fill 도 항상
+ * 흰색과 섞은 옅은 톤만 써서 그 위 텍스트 대비를 지킨다. */
+.money-spend-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
   margin-top: 16px;
 }
 
-.money-spend-bar-row {
+.money-spend-grid-card {
+  position: relative;
+  /* z-index: auto(기본값)인 position: relative 는 그 자체로 stacking context를 만들지
+   * 않는다 — 그러면 __fill의 z-index: -1 이 이 카드 안에서만 뒤로 가는 게 아니라 훨씬
+   * 위쪽(조상) context 까지 뚫고 나가 화면에서 완전히 사라진다. 여기 z-index: 0 을 명시해
+   * 이 카드를 자체 stacking context로 만들어야 __fill이 "이 카드 안에서만" 배경 위·글자
+   * 아래에 놓인다. */
+  z-index: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
-}
-
-.money-spend-bar-row__icon {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+  gap: 4px;
+  /* __fill 의 height: %가 계산될 기준. grid의 align-items: stretch 로 늘어난 auto 높이는
+   * "명시된 높이"가 아니라서 absolute 자식의 %가 0에 가깝게 깨진다 — 그래서 고정값이
+   * 필요하다(아이콘 28 + 3줄 텍스트 + gap·padding의 실제 렌더 높이와 같다). */
+  height: 102px;
+  padding: 10px 4px 8px;
+  border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
-}
-
-.money-spend-bar-row__icon img {
-  width: 16px;
-  height: 16px;
-}
-
-.money-spend-bar-row__label {
-  flex: none;
-  min-width: 34px;
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.money-spend-bar-row__track {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-widget);
+  background: var(--surface-base);
+  text-align: center;
+  /* fill 이 아래에서 차오르고, 흔들릴 때 카드 모서리 밖으로 삐져나오지 않게 잘라낸다 */
   overflow: hidden;
 }
 
-.money-spend-bar-row__fill {
+/* 카테고리 % 만큼 아래에서부터 차오르는 물 채우기 — AnimatedFillLevel(height, JS)이
+ * 채워진 정도를, 색은 카드에 심어둔 --spend-fill-color 커스텀 프로퍼티가 정한다.
+ * 좌우로 카드보다 넓게 둬서 흔들릴 때 스큐(skew)로도 가장자리 틈이 안 보인다. */
+.money-spend-grid-card__fill {
+  position: absolute;
+  /* 카드는 position: relative 라 여기가 새 stacking context 의 기준이 된다 — 음수
+   * z-index 로 non-positioned 인 아이콘/라벨/금액/% 텍스트(그 자체로는 stacking 레벨이
+   * 없어 fill 보다 나중에 그려짐) 보다 한 단계 아래로 깔아 글자가 항상 위에 보이게 한다. */
+  z-index: -1;
+  left: -15%;
+  right: -15%;
+  bottom: 0;
   display: block;
-  height: 100%;
-  border-radius: var(--radius-pill);
-  transition: width 120ms linear;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--spend-fill-color) 32%, white) 0%,
+    color-mix(in srgb, var(--spend-fill-color) 16%, white) 100%
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--spend-fill-color) 50%, white);
+  transition: height 120ms linear;
+  transform-origin: bottom center;
+  pointer-events: none;
+  /* 평상시에도 물이 가만히 있지 않고 옅게 계속 출렁인다 — 흔들림(--wiggle)이 걸리면
+   * 더 센 money-spend-fill-slosh 가 specificity 로 이 동안 덮어써서 재생되고, 끝나면
+   * (탭: JS가 700ms 뒤 클래스를 떼어냄 / 마우스: hover 가 풀림) 다시 이 잔물결로 돌아온다. */
+  animation: money-spend-fill-idle 3200ms ease-in-out infinite;
 }
 
-.money-spend-bar-row__amount {
-  flex: none;
+@keyframes money-spend-fill-idle {
+  0%, 100% { transform: skewX(-1.4deg) translateY(0); }
+  50% { transform: skewX(1.4deg) translateY(-1px); }
+}
+
+/* 카드 5개가 똑같은 박자로 흔들리면 기계적으로 보인다 — 각자 다른 지점에서 시작하게
+ * 음수 delay 로 위상을 어긋나게 둔다(같은 3200ms 루프 안의 다른 지점). */
+.money-spend-grid-card:nth-child(1) .money-spend-grid-card__fill { animation-delay: -0.4s; }
+.money-spend-grid-card:nth-child(2) .money-spend-grid-card__fill { animation-delay: -1.6s; }
+.money-spend-grid-card:nth-child(3) .money-spend-grid-card__fill { animation-delay: -2.4s; }
+.money-spend-grid-card:nth-child(4) .money-spend-grid-card__fill { animation-delay: -0.9s; }
+.money-spend-grid-card:nth-child(5) .money-spend-grid-card__fill { animation-delay: -2.9s; }
+
+/* 카드를 탭하면 문패처럼 위쪽 모서리를 축으로 흔들리다 가라앉는다. money-tappable 의
+ * :active(scale) 과는 서로 다른 타이밍(누른 순간 vs 뗀 뒤)이라 겹쳐도 어색하지 않다.
+ * 안의 물(__fill)은 카드보다 살짝 늦게, 반대 방향으로 출렁이다가 가라앉아 — 유리잔이
+ * 기울 때 안의 물이 그대로 따라가지 않고 출렁이는 느낌을 낸다. */
+.money-spend-grid-card--wiggle {
+  animation: money-spend-wiggle 550ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: top center;
+}
+
+.money-spend-grid-card--wiggle .money-spend-grid-card__fill {
+  animation: money-spend-fill-slosh 650ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes money-spend-wiggle {
+  0% { transform: rotate(0deg); }
+  12% { transform: rotate(8deg); }
+  28% { transform: rotate(-6deg); }
+  44% { transform: rotate(4deg); }
+  60% { transform: rotate(-2.5deg); }
+  76% { transform: rotate(1.5deg); }
+  90% { transform: rotate(-0.5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes money-spend-fill-slosh {
+  0% { transform: rotate(0deg) skewX(0deg); }
+  18% { transform: rotate(-5deg) skewX(7deg); }
+  36% { transform: rotate(6deg) skewX(-8deg); }
+  52% { transform: rotate(-4deg) skewX(6deg); }
+  68% { transform: rotate(2.5deg) skewX(-4deg); }
+  82% { transform: rotate(-1.5deg) skewX(2deg); }
+  94% { transform: rotate(0.5deg) skewX(-0.5deg); }
+  100% { transform: rotate(0deg) skewX(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-spend-grid-card--wiggle,
+  .money-spend-grid-card__fill,
+  .money-spend-grid-card--wiggle .money-spend-grid-card__fill {
+    animation: none;
+  }
+}
+
+/* 웹(마우스) 버전 — 실제 마우스 hover가 있는 환경에서는 탭 없이 올리기만 해도 같은
+ * 흔들림·물결을 재생한다. 터치 기기는 (hover: hover) 를 만족하지 않아 탭 때만 흔들린다. */
+@media (hover: hover) and (pointer: fine) {
+  .money-spend-grid-card:hover {
+    animation: money-spend-wiggle 550ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    transform-origin: top center;
+  }
+
+  .money-spend-grid-card:hover .money-spend-grid-card__fill {
+    animation: money-spend-fill-slosh 650ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .money-spend-grid-card:hover,
+    .money-spend-grid-card:hover .money-spend-grid-card__fill {
+      animation: none;
+    }
+  }
+}
+
+.money-spend-grid-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.money-spend-grid-card__icon img {
+  width: 14px;
+  height: 14px;
+}
+
+.money-spend-grid-card__label {
   font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.money-spend-grid-card__amount {
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 11.5px;
   color: var(--text-primary);
   white-space: nowrap;
 }
 
-.money-spend-bar-row__percent {
-  flex: none;
-  width: 30px;
+.money-spend-grid-card__percent {
   font-family: var(--font-suit);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
-  text-align: right;
 }
 
 /* CategoryDonut.tsx — 배경 트랙 + 세그먼트 원, 가운데 총액 라벨 */
@@ -590,7 +789,9 @@
   padding: var(--space-md) 60px var(--space-md) var(--space-md);
   border: none;
   border-radius: var(--radius-xl);
-  background: #fef6de;
+  /* 햇살 과육(--brand-secondary = --color-secondary-5, #fbdd78) — 어두운 텍스트 대비
+   * 약 13:1 로 WCAG AA 를 넉넉히 넘는다. */
+  background: var(--brand-secondary);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
@@ -653,11 +854,38 @@
   cursor: pointer;
 }
 
+/* 고정비 = 로즈(--brand-rose = --color-primary-4), 내 계좌 = 크림(--color-cream) 램프
+ * 틴트로 두 카드를 색으로 구분한다 — 값 자체는 각 브랜드 톤을 옅게 섞은 것뿐이라
+ * 텍스트(--text-*)는 그대로 써도 대비가 줄지 않는다. */
+.money-mini-card--fixed {
+  border-color: color-mix(in srgb, var(--brand-rose) 22%, transparent);
+  background: color-mix(in srgb, var(--brand-rose) 10%, var(--color-gray-0));
+}
+
+.money-mini-card--accounts {
+  border-color: var(--color-cream-4);
+  background: var(--color-cream-1);
+}
+
 .money-mini-card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.money-mini-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.money-mini-card__title-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  object-fit: contain;
 }
 
 .money-mini-card__title {
@@ -716,7 +944,9 @@
   padding-left: 80px;
   border: none;
   border-radius: var(--radius-xl);
-  background: rgba(199, 117, 59, 0.12);
+  /* 오트 크림(--color-cream-5, #e0cdad) — 어두운 텍스트 대비 약 11.5:1 로 WCAG AA를
+   * 넉넉히 넘는다. */
+  background: var(--color-cream-5);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
@@ -782,11 +1012,18 @@
   position: relative;
 }
 
+/* "9월" 드롭다운 트리거 — 배경(--surface-cream)과 이 버튼이 놓인 페이지 배경
+ * (--surface-page)이 둘 다 거의 흰색이라 border-warm 테두리로는 카드-페이지 대비가
+ * 1.28:1(WCAG 1.4.11 비텍스트 기준 3:1 미달)에 그쳐 칩 모양 자체가 페이지에 묻혔다.
+ * --text-muted 를 그대로 쓰면 대비 5.13:1로 통과는 하지만 두께는 1px 그대로인데도
+ * 진한 색 때문에 굵어 보인다는 피드백 — 같은 색을 75% 로 옅게 섞어 페이지 대비를
+ * 3.12:1(3:1 통과, 여유는 적게)까지만 낮춰 더 가늘어 보이게 한다. 텍스트 색·굵기는
+ * 원래의 무채색 500 그대로 둔다. */
 .money__month-label--btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid var(--border-warm);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 75%, transparent);
   cursor: pointer;
 }
 
@@ -4253,15 +4490,19 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
+/* 오늘/선택 상태는 이 화면의 "포인트" 색인 테라코타(--category-food, #B85028)로 꽉 채운
+ * 원 + 흰 숫자 — 앱 전역 강조색(--brand-primary)이 아니라 이 페이지의 지출 포인트 색을
+ * 그대로 재사용한다. 흰 글자 대 배경 대비 약 4.98:1 로 WCAG AA 를 만족한다. */
 .flow-calendar__cell.is-today .flow-calendar__day {
-  border-color: var(--brand-primary);
-  color: var(--brand-primary);
+  background: var(--category-food);
+  border-color: var(--category-food);
+  color: var(--color-gray-0);
   font-weight: 600;
 }
 
 .flow-calendar__cell.is-selected .flow-calendar__day {
   border-color: transparent;
-  background: var(--brand-primary);
+  background: var(--category-food);
   color: #fff;
   font-weight: 600;
 }
@@ -4274,12 +4515,15 @@ button.fund-card__remaining--tap {
   white-space: nowrap;
 }
 
+/* 수입 강조 텍스트 — --category-life(#2E4632)는 8px 굵은 글자에서는 거의 검정처럼
+ * 보여서, 이 캘린더 칸에서만 등록된 "풋자두(green/point)" 램프의 더 밝은 단계인
+ * --color-green-7(#616A15, 흰 배경 대비 5.85:1)을 쓴다. */
 .flow-calendar__amount--income {
-  color: #2f6fd6;
+  color: var(--color-green-7);
 }
 
 .flow-calendar__amount--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 /* ---------- 선택한 날짜 상세 — 영수증 느낌의 카드. 고정비 탭의 money-fixed-detail 과
@@ -4402,11 +4646,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-receipt__amount--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-receipt__amount--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 /* 선택한 날짜 상세 — 수입/지출(/이체)을 색으로 구분해 묶어 보여준다(레퍼런스). 헤더 배너만
@@ -4423,11 +4667,19 @@ button.fund-card__remaining--tap {
 }
 
 .flow-receipt__group--income .flow-receipt__group-head {
-  background: color-mix(in srgb, #2f6fd6 10%, white);
+  background: var(--color-green-3);
+}
+
+.flow-receipt__group--income .flow-receipt__group-label {
+  color: var(--category-life);
 }
 
 .flow-receipt__group--expense .flow-receipt__group-head {
-  background: color-mix(in srgb, var(--brand-primary) 10%, white);
+  background: var(--category-food-bg);
+}
+
+.flow-receipt__group--expense .flow-receipt__group-label {
+  color: var(--category-food);
 }
 
 .flow-receipt__group--transfer .flow-receipt__group-head {
@@ -4450,11 +4702,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-receipt__group--income .flow-receipt__group-total {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-receipt__group--expense .flow-receipt__group-total {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 /* ---------- 캘린더 보기 상단 요약 카드 — 수입/지출을 divider로 나눈 카드 하나(레퍼런스).
@@ -4466,6 +4718,9 @@ button.fund-card__remaining--tap {
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
   background: var(--surface-base);
+  /* 수입 쪽 col 이 배경을 꽉 채우는 색을 쓰므로, 카드의 둥근 모서리 밖으로 새지
+   * 않게 잘라낸다. */
+  overflow: hidden;
 }
 
 .flow-summary__col {
@@ -4486,6 +4741,19 @@ button.fund-card__remaining--tap {
   text-align: center;
 }
 
+/* 수입 col — "풋자두" 램프의 밝은 단계(--color-green-3)를 꽉 채우고, 그 위 아이콘/텍스트는
+ * 전부 --category-life(딥그린)로 통일한다. 이 규칙이 반드시 위 .flow-summary__col
+ * (background: none) 보다 뒤에 와야 한다 — 클래스 선택자끼리는 명시도가 같아서 소스
+ * 순서로 우선순위가 갈린다. */
+.flow-summary__col--income {
+  background: var(--color-green-3);
+}
+
+/* 지출 col — 이미 등록된 카테고리 쌍(--category-food-bg)을 그대로 쓴다. */
+.flow-summary__col--expense {
+  background: var(--category-food-bg);
+}
+
 .flow-summary__col--button {
   position: relative;
   cursor: pointer;
@@ -4495,7 +4763,7 @@ button.fund-card__remaining--tap {
   flex: none;
   width: 1px;
   margin: 14px 0;
-  background: var(--border-warm);
+  background: #e5e7e3;
 }
 
 .flow-summary__icon {
@@ -4514,12 +4782,18 @@ button.fund-card__remaining--tap {
   height: 18px;
 }
 
+/* 카드 배경 자체가 이미 색이 있는 --color-green-3 라 아이콘은 별도 원 배경 없이 딥그린
+ * 글자색(currentColor)만 준다. */
 .flow-summary__icon--income {
-  background: #2f6fd6;
+  background: none;
+  color: var(--category-life);
 }
 
+/* 지출 col 배경이 옅은 테라코타 틴트라, 아이콘도 수입과 같은 방식(별도 원 배경 없이
+ * 진한 글자색만)으로 바꿔 배경과 대비를 준다. */
 .flow-summary__icon--expense {
-  background: var(--brand-primary);
+  background: none;
+  color: var(--category-food);
 }
 
 .flow-summary__body {
@@ -4537,6 +4811,14 @@ button.fund-card__remaining--tap {
   color: var(--text-secondary);
 }
 
+.flow-summary__col--income .flow-summary__label {
+  color: var(--category-life);
+}
+
+.flow-summary__col--expense .flow-summary__label {
+  color: var(--category-life);
+}
+
 .flow-summary__value {
   font-family: var(--font-asta);
   font-weight: 700;
@@ -4544,11 +4826,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-summary__value--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-summary__value--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 .flow-summary__trend {
@@ -4558,11 +4840,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-summary__trend--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-summary__trend--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 .flow-summary__chevron {
@@ -4576,24 +4858,56 @@ button.fund-card__remaining--tap {
 }
 
 /* ---------- 지난달 대비 인사이트 ---------- */
+/* 레퍼런스처럼 카드 형태(오트 크림 배경 + 아이콘 배지 + 화살표)로 — 지출이 늘면(안 좋은
+ * 소식) 브랜드 레드, 줄면(좋은 소식) 초록 배지로 색부터 방향을 알려준다. */
 .flow-insight {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin: var(--space-sm) var(--screen-margin) 0;
+  gap: var(--space-sm);
+  margin: var(--space-md) var(--screen-margin) 0;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-l);
+  background: var(--color-cream-2);
   font-family: var(--font-suit);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 12.5px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
-.flow-insight img {
-  width: 12px;
-  height: 12px;
+.flow-insight__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-gray-0);
 }
 
-.flow-insight img.is-flipped {
-  transform: rotate(180deg);
+.flow-insight__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.flow-insight--down .flow-insight__icon {
+  background: var(--color-green-7);
+}
+
+.flow-insight--up .flow-insight__icon {
+  background: var(--brand-primary);
+}
+
+.flow-insight__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.flow-insight__chevron {
+  flex: none;
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- 날짜 이동(목록 보기) ---------- */
@@ -4830,6 +5144,23 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
+/* 날짜 그룹의 그 날 수입-지출 순액 — 요약 카드(.flow-summary__value)와 같은 초록/빨강
+ * 색 규칙을 그대로 쓴다. */
+.flow-day-group__total {
+  flex: none;
+  font-family: var(--font-asta);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.flow-day-group__total--income {
+  color: var(--category-life);
+}
+
+.flow-day-group__total--expense {
+  color: var(--brand-primary);
+}
+
 .flow-day-group__chevron {
   flex: none;
   width: 9px;
@@ -4844,6 +5175,8 @@ button.fund-card__remaining--tap {
 /* ---------- 직접 추가 버튼 ---------- */
 /* 고정비 탭의 "+ 고정비 추가하기"(.money-fixed-add-cta)와 같은 톤 — 점선 테두리 +
  * 회색 텍스트라 눈에 잘 안 띄던 걸, 같은 성격의 버튼답게 크림/레드 톤으로 맞춘다. */
+/* 흰 텍스트 대 brand-primary 배경 대비 약 5.9:1 로 WCAG AA 를 만족 — 굵기 700 으로
+ * 이 탭의 대표 액션임을 강조한다(레퍼런스). */
 .flow-list__add {
   display: flex;
   align-items: center;
@@ -4853,11 +5186,11 @@ button.fund-card__remaining--tap {
   height: 48px;
   border: none;
   border-radius: var(--radius-m);
-  background: #fdeceb;
+  background: var(--brand-primary);
   font-family: var(--font-suit);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
-  color: var(--brand-primary);
+  color: var(--color-gray-0);
   cursor: pointer;
 }
 
@@ -4922,11 +5255,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-row__amount--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-row__amount--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 .flow-row__time {
@@ -5038,11 +5371,11 @@ button.fund-card__remaining--tap {
 }
 
 .flow-detail__amount--income {
-  color: #2f6fd6;
+  color: var(--category-life);
 }
 
 .flow-detail__amount--expense {
-  color: var(--brand-primary);
+  color: var(--category-food);
 }
 
 .flow-detail__datetime {

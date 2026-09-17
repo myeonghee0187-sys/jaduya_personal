@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -13,7 +13,9 @@ import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 import {
   TOTAL_EXPENSE,
+  TOTAL_PREV_EXPENSE,
   TOTAL_INCOME,
+  TOTAL_PREV_INCOME,
   TODAY_DAY,
   CATEGORY_META,
   CATEGORY_TOTALS,
@@ -140,9 +142,12 @@ const SPEND_ANALYSIS_REST_PERCENT = SPEND_ANALYSIS_REST.reduce((sum, c) => sum +
 const SPEND_ANALYSIS_ROWS = [
   ...SPEND_ANALYSIS_TOP.map((c) => ({
     key: c.key as string,
-    label: c.label,
+    /* '생활' → '주거·생활' — 이 미리보기 그리드에서만 쓰는 표기다(카테고리 원본 라벨은
+     * 소비 탭 등 다른 화면에서 계속 '생활'로 쓰이니 원본 자체를 바꾸지 않는다). */
+    label: c.key === 'life' ? '주거·생활' : c.label,
     icon: c.icon,
     color: c.color,
+    bg: c.bg,
     amount: CATEGORY_TOTALS[c.key],
     percent: CATEGORY_PERCENTAGES[c.key],
   })),
@@ -152,9 +157,12 @@ const SPEND_ANALYSIS_ROWS = [
           key: 'etc-merged',
           label: '기타',
           icon: 'money-cat-culture.svg',
-          /* 문화/여가(#a39f9a)와 같은 회색 계열(text-tertiary)을 쓰면 도넛 차트에서 두
-           * 구간이 한 덩어리로 붙어 보인다 — 다른 톤(brand-rose)으로 구분한다. */
-          color: 'var(--brand-rose)',
+          /* '생활' 4위 밖으로 밀려나면 '기타'로 합쳐지는 나머지 묶음 — 카테고리 전용
+           * 토큰(tokens.css "Color / Category")의 기타 색을 그대로 쓴다. 예전엔 문화/여가와
+           * 같은 회색(#a39f9a)이 겹쳐서 도넛 차트 두 구간이 붙어 보였는데, 지금은 카테고리마다
+           * 색이 전부 달라 이 문제가 생기지 않는다. */
+          color: 'var(--category-etc)',
+          bg: 'var(--category-etc-bg)',
           amount: SPEND_ANALYSIS_REST_TOTAL,
           percent: SPEND_ANALYSIS_REST_PERCENT,
         },
@@ -165,6 +173,12 @@ const SPEND_ANALYSIS_ROWS = [
 /* "소비 인사이트" 배너 — 가장 많이 쓴 카테고리(TOP_CATEGORY)의 지난달 대비 증감.
  * 카테고리 데이터 원본(CATEGORY_META.prevAmount)에서 그대로 계산한다. */
 const TOP_CATEGORY_DIFF = CATEGORY_TOTALS[TOP_CATEGORY.key] - TOP_CATEGORY.prevAmount;
+
+/* "이번 달 수입·지출" 카드 아래 "지난달보다 ~원 많아요/줄었어요" 비교 문구 — 지출은
+ * 소비 탭 디지털 영수증(CONSUME_DIFF)과 같은 원본(TOTAL_PREV_EXPENSE)에서, 수입은 같은
+ * 성격의 지난달 기준값(TOTAL_PREV_INCOME)에서 그대로 계산한다. */
+const INCOME_DIFF = TOTAL_INCOME - TOTAL_PREV_INCOME;
+const EXPENSE_DIFF = TOTAL_PREV_EXPENSE - TOTAL_EXPENSE;
 
 
 /* 예산/소비 분석/고정비 진행률 바 — 비상금 탭의 count-up(useAnimatedPercent)과 같은 방식으로
@@ -186,6 +200,13 @@ function AnimatedProgressFill({ percent, className, clamp = false, background }:
   const display = useAnimatedPercent(percent);
   const width = clamp ? Math.min(100, display) : display;
   return <span className={className} style={{ width: `${width}%`, ...(background ? { background } : {}) }} />;
+}
+
+/* 소비 분석 카드 5개 각자의 % 만큼 아래에서부터 차오르는 물 채워지는 바 — 세로판 AnimatedProgressFill.
+ * 카드 흔들림(--wiggle)이 걸리면 이 fill 도 같이 물결치도록 money.css 에서 별도 keyframe 을 건다. */
+function AnimatedFillLevel({ percent, className }: { percent: number; className: string }) {
+  const display = useAnimatedPercent(percent);
+  return <span className={className} style={{ height: `${Math.min(100, display)}%` }} />;
 }
 
 /* 돈 관리 — 탭바 '돈관리' 로 들어오는 메인 화면(이번 달 탭).
@@ -225,6 +246,22 @@ export function MoneyPage() {
    * 공개 상태이고, 눈 아이콘을 누르면 전부 "₩ -----" 로 바뀐다(추세 %는 절대 금액이 아니라 계속 보여준다). */
   const [amountsHidden, setAmountsHidden] = useState(false);
   const showAmount = (n: number) => (amountsHidden ? '₩ -----' : `${n.toLocaleString()}원`);
+  /* 소비 분석 카드(5개) 탭 피드백 — 문패처럼 위쪽을 축으로 흔들린다. 같은 카드를 다시 눌러도
+   * 애니메이션이 처음부터 다시 재생되도록, 카드 React key에 이 카운터를 섞어 눌릴 때마다
+   * 새로 마운트시킨다(CSS만으로는 재생 중인 animation을 같은 클래스로 재시작할 수 없다).
+   * --wiggle 이 붙어 있는 동안은 money.css 의 평상시 물결(money-spend-fill-idle)보다
+   * 더 센 출렁임이 우선하도록 덮어 쓴다 — 그래서 재생이 끝나면(700ms) 다시 null 로 돌려
+   * --wiggle 을 떼어내야 평상시 물결이 이어서 보인다(안 떼면 계속 덮인 채로 멈춰 있다). */
+  const [spendCardWiggle, setSpendCardWiggle] = useState<{ key: string; n: number } | null>(null);
+  const spendWiggleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSpendCardTap = (key: string) => {
+    setSpendCardWiggle((prev) => ({ key, n: prev?.key === key ? prev.n + 1 : 1 }));
+    if (spendWiggleTimer.current) clearTimeout(spendWiggleTimer.current);
+    spendWiggleTimer.current = setTimeout(() => setSpendCardWiggle(null), 700);
+  };
+  useEffect(() => () => {
+    if (spendWiggleTimer.current) clearTimeout(spendWiggleTimer.current);
+  }, []);
   /* "이번 달" 탭의 월 선택 드롭다운 — 수입·지출 탭의 정렬 드롭다운(flow-sort)과 같은 방식으로
    * 바깥을 누르면 닫는다. */
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
@@ -528,22 +565,63 @@ export function MoneyPage() {
                 </button>
               </div>
               <div className="money-flow-cards">
-                <div className="money-flow-card">
-                  <span className="money-flow-card__title">이번 달 수입</span>
+                <div className="money-flow-card money-flow-card--income">
+                  <span className="money-flow-card__title-row">
+                    {/* 풋자두 배경 위에서 장식 스티커(icon-badge.png) 대신 --category-life
+                     * 단색 아이콘을 쓴다 — 래스터 이미지는 CSS 로 색을 바꿀 수 없어, 배경과
+                     * 무관하게 항상 같은 톤인 스티커로는 "아이콘도 딥그린" 요구를 못 맞춘다. */}
+                    <svg
+                      className="money-flow-card__title-icon"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M10 16V4M10 4L5 9M10 4l5 5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span className="money-flow-card__title">이번 달 수입</span>
+                  </span>
                   <span
                     key={String(amountsHidden)}
                     className="money-flow-card__value money-flow-card__value--income budget-setup__pulse"
                   >
                     {amountsHidden ? '₩ -----' : `+${TOTAL_INCOME.toLocaleString()}원`}
                   </span>
+                  <span className="money-flow-card__sub">
+                    지난달보다 {Math.abs(INCOME_DIFF).toLocaleString()}원 {INCOME_DIFF >= 0 ? '많아요!' : '적어요!'}
+                  </span>
                 </div>
-                <div className="money-flow-card">
-                  <span className="money-flow-card__title">이번 달 지출</span>
+                <div className="money-flow-card money-flow-card--expense">
+                  <span className="money-flow-card__title-row">
+                    <svg
+                      className="money-flow-card__title-icon"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M10 4V16M10 16L5 11M10 16l5-5"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span className="money-flow-card__title">이번 달 지출</span>
+                  </span>
                   <span
                     key={String(amountsHidden)}
                     className="money-flow-card__value money-flow-card__value--expense budget-setup__pulse"
                   >
                     {amountsHidden ? '₩ -----' : `-${TOTAL_EXPENSE.toLocaleString()}원`}
+                  </span>
+                  <span className="money-flow-card__sub">
+                    지난달보다 {Math.abs(EXPENSE_DIFF).toLocaleString()}원 {EXPENSE_DIFF >= 0 ? '줄었어요!' : '늘었어요!'}
                   </span>
                 </div>
               </div>
@@ -608,31 +686,31 @@ export function MoneyPage() {
                   <img src={icon('chevron-right-gray.svg')} alt="" />
                 </button>
               </div>
-              <div className="money-spend-bars">
-                {SPEND_ANALYSIS_ROWS.slice(0, 3).map((row) => (
-                  <div key={row.key} className="money-spend-bar-row">
-                    <span
-                      className="money-spend-bar-row__icon"
-                      style={{ background: `color-mix(in srgb, ${row.color} 16%, white)` }}
+              <div className="money-spend-grid">
+                {SPEND_ANALYSIS_ROWS.map((row) => {
+                  const wiggleN = spendCardWiggle?.key === row.key ? spendCardWiggle.n : 0;
+                  return (
+                    <button
+                      type="button"
+                      key={`${row.key}-${wiggleN}`}
+                      className={`money-spend-grid-card money-tappable${wiggleN > 0 ? ' money-spend-grid-card--wiggle' : ''}`}
+                      style={{ '--spend-fill-color': row.color } as CSSProperties}
+                      onClick={() => handleSpendCardTap(row.key)}
                     >
-                      <img src={icon(row.icon)} alt="" />
-                    </span>
-                    <span className="money-spend-bar-row__label">{row.label}</span>
-                    <span className="money-spend-bar-row__track">
-                      <AnimatedProgressFill
-                        percent={row.percent}
-                        className="money-spend-bar-row__fill"
-                        background={row.color}
-                      />
-                    </span>
-                    <span className="money-spend-bar-row__amount">
-                      {amountsHidden ? '-----' : `${row.amount.toLocaleString()}원`}
-                    </span>
-                    <span className="money-spend-bar-row__percent">
-                      <AnimatedPercentText percent={row.percent} />
-                    </span>
-                  </div>
-                ))}
+                      <AnimatedFillLevel percent={row.percent} className="money-spend-grid-card__fill" />
+                      <span className="money-spend-grid-card__icon" style={{ background: row.bg }}>
+                        <img src={icon(row.icon)} alt="" />
+                      </span>
+                      <span className="money-spend-grid-card__label">{row.label}</span>
+                      <span className="money-spend-grid-card__amount">
+                        {amountsHidden ? '-----' : `${row.amount.toLocaleString()}원`}
+                      </span>
+                      <span className="money-spend-grid-card__percent">
+                        <AnimatedPercentText percent={row.percent} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <button
@@ -659,9 +737,20 @@ export function MoneyPage() {
 
             <section className="money-section money-section--tight">
               <div className="money-mini-cards">
-                <button type="button" className="money-mini-card money-tappable" onClick={() => setTab('고정비')}>
+                <button
+                  type="button"
+                  className="money-mini-card money-mini-card--fixed money-tappable"
+                  onClick={() => setTab('고정비')}
+                >
                   <span className="money-mini-card__head">
-                    <span className="money-mini-card__title">고정비</span>
+                    <span className="money-mini-card__title-group">
+                      <img
+                        className="money-mini-card__title-icon"
+                        src={img('jaduya_custom_recommendation_36/money_management/icon-badge-2.png')}
+                        alt=""
+                      />
+                      <span className="money-mini-card__title">고정비</span>
+                    </span>
                     <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
                   </span>
                   <span className="money-mini-card__label">이번 달 예정 금액</span>
@@ -677,11 +766,18 @@ export function MoneyPage() {
                 </button>
                 <button
                   type="button"
-                  className="money-mini-card money-tappable"
+                  className="money-mini-card money-mini-card--accounts money-tappable"
                   onClick={() => navigation?.navigate('money-accounts')}
                 >
                   <span className="money-mini-card__head">
-                    <span className="money-mini-card__title">내 계좌</span>
+                    <span className="money-mini-card__title-group">
+                      <img
+                        className="money-mini-card__title-icon"
+                        src={img('jaduya_custom_recommendation_36/money_management/icon-badge-3.png')}
+                        alt=""
+                      />
+                      <span className="money-mini-card__title">내 계좌</span>
+                    </span>
                     <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
                   </span>
                   <span className="money-mini-card__label">총 잔액</span>

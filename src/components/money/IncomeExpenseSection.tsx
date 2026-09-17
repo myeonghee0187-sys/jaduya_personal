@@ -56,6 +56,30 @@ function dayGroupLabel(year: number, month: number, day: number): string {
   return `${month + 1}월 ${day}일 (${weekday})`;
 }
 
+/* flow-summary 아이콘 배지 — arrow-down.svg 와 같은 경로를 인라인 SVG 로 그린다. <img> 로
+ * 불러오면 stroke="currentColor" 가 그 이미지 자체의 기본색(검정)으로 굳어 배지 배경 위에서
+ * 안 보인다 — 인라인 SVG 라야 부모(.flow-summary__icon, color:#fff)의 색을 그대로 받는다. */
+function TrendArrowIcon({ direction }: { direction: 'up' | 'down' }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      style={direction === 'up' ? { transform: 'rotate(180deg)' } : undefined}
+    >
+      <path
+        d="M10 4V16M10 16L5 11M10 16l5-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 interface IncomeExpenseSectionProps {
   onNotice: (message: string) => void;
   /** "이번 달" 탭의 "소비 분석 전체 보기"처럼, 이 탭에 들어오자마자 목록 보기로 열고
@@ -211,7 +235,10 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
           </div>
 
           <div className="flow-summary">
-            <div className="flow-summary__col">
+            <div className="flow-summary__col flow-summary__col--income">
+              <span className="flow-summary__icon flow-summary__icon--income">
+                <TrendArrowIcon direction="up" />
+              </span>
               <span className="flow-summary__body">
                 <span className="flow-summary__label">이번 달 수입</span>
                 <span className="flow-summary__value flow-summary__value--income">
@@ -220,7 +247,10 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
               </span>
             </div>
             <span className="flow-summary__divider" aria-hidden="true" />
-            <div className="flow-summary__col">
+            <div className="flow-summary__col flow-summary__col--expense">
+              <span className="flow-summary__icon flow-summary__icon--expense">
+                <TrendArrowIcon direction="down" />
+              </span>
               <span className="flow-summary__body">
                 <span className="flow-summary__label">이번 달 지출</span>
                 <span className="flow-summary__value flow-summary__value--expense">
@@ -295,15 +325,16 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
           )}
 
           {CONSUME_DIFF !== 0 && (
-            <p className="flow-insight">
-              <img
-                src={icon('arrow-down.svg')}
-                alt=""
-                className={CONSUME_DIFF < 0 ? 'is-flipped' : ''}
-              />
-              {`지난달보다 지출이 ${Math.abs(CONSUME_DIFF).toLocaleString()}원(${CONSUME_CHANGE_PERCENT}%) ${
-                CONSUME_DIFF < 0 ? '더 늘었어요' : '줄었어요'
-              }.`}
+            <p className={`flow-insight${CONSUME_DIFF < 0 ? ' flow-insight--up' : ' flow-insight--down'}`}>
+              <span className="flow-insight__icon">
+                <TrendArrowIcon direction={CONSUME_DIFF < 0 ? 'up' : 'down'} />
+              </span>
+              <span className="flow-insight__text">
+                {`지난달보다 지출이 ${Math.abs(CONSUME_DIFF).toLocaleString()}원(${CONSUME_CHANGE_PERCENT}%) ${
+                  CONSUME_DIFF < 0 ? '더 늘었어요' : '줄었어요'
+                }.`}
+              </span>
+              <img className="flow-insight__chevron" src={icon('chevron-right-gray.svg')} alt="" />
             </p>
           )}
         </>
@@ -391,7 +422,7 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
                 type="button"
                 aria-pressed={categoryFilter === c.key}
                 className={`flow-category-chip${categoryFilter === c.key ? ' is-active' : ''}`}
-                style={{ background: `color-mix(in srgb, ${c.color} 14%, white)` }}
+                style={{ background: c.bg }}
                 onClick={() => setCategoryFilter((prev) => (prev === c.key ? 'all' : c.key))}
               >
                 <img src={icon(c.icon)} alt="" />
@@ -415,6 +446,10 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
             ) : (
               sortedGroups.map((group) => {
                 const collapsed = collapsedDays.has(group.day);
+                /* 그 날의 수입 - 지출 순액 — 이체는 수입/지출 어느 쪽에도 더하지 않는 원칙
+                 * (moneyTransactions.ts dayFlowTotals) 그대로, 이체만 있는 날은 순액이 0이라
+                 * 아무 것도 표시하지 않는다(근거 없는 금액을 만들지 않는다). */
+                const net = group.income - group.expense;
                 return (
                   <div key={group.day} className="flow-day-group">
                     <button
@@ -424,6 +459,14 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
                       onClick={() => toggleDayCollapsed(group.day)}
                     >
                       <span className="flow-day-group__label">{dayGroupLabel(year, month, group.day)}</span>
+                      {net !== 0 && (
+                        <span
+                          className={`flow-day-group__total${net > 0 ? ' flow-day-group__total--income' : ' flow-day-group__total--expense'}`}
+                        >
+                          {net > 0 ? '+' : '-'}
+                          {Math.abs(net).toLocaleString()}원
+                        </span>
+                      )}
                       <img
                         className={`flow-day-group__chevron${collapsed ? '' : ' is-open'}`}
                         src={icon('chevron-down-thin.svg')}
@@ -484,13 +527,13 @@ interface FlowRowProps {
 
 function FlowRow({ item, onClick, dateLabel }: FlowRowProps) {
   const meta = item.category ? CATEGORY_META.find((c) => c.key === item.category) : undefined;
-  const color = item.type === 'income' ? '#2f6fd6' : item.type === 'transfer' ? 'var(--text-tertiary)' : meta?.color;
+  const color = item.type === 'income' ? 'var(--category-life)' : item.type === 'transfer' ? 'var(--text-tertiary)' : meta?.color;
+  /* 카테고리 뱃지 배경은 카테고리 전용 보조 배경 토큰(meta.bg)을 그대로 쓴다 — 수입/이체는
+   * 카테고리가 없어 자기 색을 18% 로 옅게 섞은 배경을 그대로 유지한다. */
+  const bg = item.type === 'expense' && meta ? meta.bg : color ? `color-mix(in srgb, ${color} 18%, white)` : undefined;
   return (
     <button type="button" className="flow-row money-tappable" onClick={onClick}>
-      <span
-        className="flow-row__badge"
-        style={color ? { background: `color-mix(in srgb, ${color} 18%, white)` } : undefined}
-      >
+      <span className="flow-row__badge" style={bg ? { background: bg } : undefined}>
         <img src={icon(item.icon)} alt="" />
       </span>
       <span className="flow-row__text">
@@ -519,7 +562,10 @@ interface FlowItemDetailProps {
  * 맞춰 카테고리 행만 있고 없고를 가른다. */
 function FlowItemDetail({ item, onClose, onNotice }: FlowItemDetailProps) {
   const meta = item.category ? CATEGORY_META.find((c) => c.key === item.category) : undefined;
-  const color = item.type === 'income' ? '#2f6fd6' : item.type === 'transfer' ? 'var(--text-tertiary)' : meta?.color;
+  const color = item.type === 'income' ? 'var(--category-life)' : item.type === 'transfer' ? 'var(--text-tertiary)' : meta?.color;
+  /* 카테고리 뱃지 배경은 카테고리 전용 보조 배경 토큰(meta.bg)을 그대로 쓴다 — 수입/이체는
+   * 카테고리가 없어 자기 색을 18% 로 옅게 섞은 배경을 그대로 유지한다. */
+  const bg = item.type === 'expense' && meta ? meta.bg : color ? `color-mix(in srgb, ${color} 18%, white)` : undefined;
   return (
     <div className="flow-detail" role="dialog" aria-modal="true" aria-label={`${item.name} 상세`}>
       <div className="flow-detail__dim" onClick={onClose} aria-hidden="true" />
@@ -530,7 +576,7 @@ function FlowItemDetail({ item, onClose, onNotice }: FlowItemDetailProps) {
         <button type="button" className="flow-detail__close" aria-label="닫기" onClick={onClose}>
           <img src={icon('sheet-close.svg')} alt="" />
         </button>
-        <span className="flow-detail__badge" style={color ? { background: `color-mix(in srgb, ${color} 18%, white)` } : undefined}>
+        <span className="flow-detail__badge" style={bg ? { background: bg } : undefined}>
           <img src={icon(item.icon)} alt="" />
         </span>
         <p className="flow-detail__name">{item.name}</p>
