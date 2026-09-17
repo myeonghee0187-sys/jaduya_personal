@@ -4,6 +4,7 @@ import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent, ReactNode } 
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
+import { LeafletRepairMap } from '../components/ai/LeafletRepairMap';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { AI_SCENARIOS, scenarioStage } from '../data/aiScenarios';
 import { resolveConversationInput } from '../data/resolveConversationInput';
@@ -14,6 +15,9 @@ import type { AILocation } from '../data/aiChatSettings';
 import { reverseGeocodeKoreanLocation, searchKoreanLocations } from '../data/locationSearch';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon, img } from '../lib/asset';
+import { getDemoRepairShops, getPreferredRepairLocation } from '../services/repairShops';
+import type { RepairKind, RepairSearchLocation, RepairShop } from '../services/repairShops';
+import { deliverRepairShopVCard } from '../utils/vcard';
 
 /* 사용자 조건 칩 — Figma chip_row (2271:33681) */
 
@@ -71,7 +75,16 @@ type ImageAttachment = {
 type FileAttachment = { type: 'file'; id: string; name: string; size: number };
 type ContactAttachment = { type: 'contact'; id: string; name?: string; tel: string };
 type ChatAttachment = ImageAttachment | FileAttachment | ContactAttachment;
-type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>>; getProperties?: () => Promise<string[]> };
+type ContactPickerEntry = { name?: string[]; tel?: string[] };
+type ContactPicker = {
+  select: (properties: Array<'name' | 'tel'>, options: { multiple: false }) => Promise<ContactPickerEntry[]>;
+};
+
+function getContactPicker(): ContactPicker | null {
+  if (typeof window === 'undefined' || !('ContactsManager' in window) || !('contacts' in navigator)) return null;
+  const contacts = (navigator as Navigator & { contacts?: ContactPicker }).contacts;
+  return contacts && typeof contacts.select === 'function' ? contacts : null;
+}
 
 function AttachmentDetails({ attachment }: { attachment: FileAttachment | ContactAttachment }) {
   const isContact = attachment.type === 'contact';
@@ -123,18 +136,32 @@ const BENEFIT_RECOMMENDATIONS: BenefitRecommendation[] = [
   { status: '조건 확인 필요', title: '구직 급여', description: '취업 준비 기간\n생활비 지원' },
 ];
 
-/* 실제 업체 조회 API가 연결되기 전 지도 UX를 확인하기 위한 프로토타입 데이터다. */
-const MOCK_REPAIR_PROVIDERS = [
-  { name: '우리집 보일러 수리', distance: '0.8km', status: '영업 중', position: 'is-first' },
-  { name: '금천 생활수리', distance: '1.3km', status: '영업 중', position: 'is-second' },
-  { name: '바로홈 설비', distance: '1.9km', status: '영업 중', position: 'is-third' },
-] as const;
-
 const REPAIR_MAP_PLAYBACK_RATE = 1.5;
 const REPAIR_MAP_RESULT_DELAY = 250;
 const REPAIR_MAP_FALLBACK_DELAY = 15000;
 const REPAIR_MAP_FALLBACK_BUFFER = 5000;
 const REPAIR_MAP_LOADING_TEXT = '주변 수리업체 찾는중...';
+
+const BUILDING_LIFE_INFO = [
+  {
+    title: '공용 배수구 확인',
+    description: '공용 배수구가 막히면 세대 내부 문제가 아니라 건물 공용부 문제일 수 있어요.',
+  },
+  {
+    title: '쓰레기 배출 공간 확인',
+    description: '배수구 주변에 쓰레기나 이물질이 쌓여 있는지도 확인해보세요.',
+  },
+  {
+    title: '관리실 문의',
+    description: '공용부 문제로 보인다면 관리실이나 건물 관리자에게 먼저 문의하는 것이 좋아요.',
+  },
+] as const;
+
+const BUILDING_COMMUNITY_POSTS = [
+  '배수구 냄새 잡은 방법',
+  '공용 배수구 막힘 관리실에 문의한 후기',
+  '원룸 건물 배수 문제 해결 후기',
+] as const;
 
 type PowerAnswer = 'power_off' | 'power_on';
 type BoilerStage =
@@ -154,6 +181,13 @@ type DiagnosticReply = {
   content: string;
   diagnosis: Diagnosis;
 };
+
+function repairKindFor(diagnosis: Diagnosis, flowId: string | null): RepairKind {
+  if (diagnosis?.topic === 'boiler' || flowId === 'boiler') return 'boiler';
+  if (flowId === 'plumbing-leak' || flowId === 'toilet-clog') return 'plumbing';
+  if (flowId === 'power-outage') return 'electric';
+  return 'general';
+}
 
 type QuickReply = {
   id: string;
@@ -674,11 +708,12 @@ export function AIChatPage() {
   const [attachmentPanel, setAttachmentPanel] = useState<'camera' | 'file' | 'contact' | null>(null);
   const [contactName, setContactName] = useState('');
   const [contactTel, setContactTel] = useState('');
+  const [contactMode, setContactMode] = useState<'choice' | 'manual'>('choice');
+  const [contactNotice, setContactNotice] = useState('');
+  const [isContactSelecting, setIsContactSelecting] = useState(false);
   const [attachmentNotice, setAttachmentNotice] = useState('');
   const [showFallbackSuggestions, setShowFallbackSuggestions] = useState(false);
   const [aiView, setAiView] = useState<'home' | 'chat' | 'settings'>('home');
-  const contactPicker = typeof navigator !== 'undefined' ? (navigator as Navigator & { contacts?: ContactPicker }).contacts : undefined;
-  const supportsContactPicker = Boolean(contactPicker && typeof contactPicker.select === 'function');
   const storedAISettings = loadAIChatSettings(user?.email ?? 'guest');
   const [contractType, setContractType] = useState(storedAISettings.contractType);
   const [aiLocation, setAiLocation] = useState<AILocation | null>(storedAISettings.location);
@@ -692,8 +727,16 @@ export function AIChatPage() {
   const [isRepairLocationModalOpen, setIsRepairLocationModalOpen] = useState(false);
   const [isRepairSearchLoading, setIsRepairSearchLoading] = useState(false);
   const [isRepairMapOpen, setIsRepairMapOpen] = useState(false);
-  const [repairMapState, setRepairMapState] = useState<'loading' | 'result'>('loading');
+  const [repairMapState, setRepairMapState] = useState<'loading' | 'result' | 'empty' | 'error'>('loading');
+  const [repairRequestState, setRepairRequestState] = useState<'idle' | 'loading' | 'success' | 'empty' | 'error'>('idle');
+  const [repairAnimationDone, setRepairAnimationDone] = useState(false);
+  const [repairSearchLocation, setRepairSearchLocation] = useState<RepairSearchLocation | null>(null);
+  const [repairShops, setRepairShops] = useState<RepairShop[]>([]);
+  const [selectedRepairShopId, setSelectedRepairShopId] = useState<string | null>(null);
+  const [repairContactNotice, setRepairContactNotice] = useState('');
+  const [repairSearchAttempt, setRepairSearchAttempt] = useState(0);
   const [isRepairConnectionNoticeOpen, setIsRepairConnectionNoticeOpen] = useState(false);
+  const [isBuildingInfoOpen, setIsBuildingInfoOpen] = useState(false);
   const [housingDraft, setHousingDraft] = useState('원룸');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
   const pageRef = useRef<HTMLDivElement>(null);
@@ -709,6 +752,7 @@ export function AIChatPage() {
   const repairMapFallbackTimerRef = useRef<number | null>(null);
   const repairMapResultTimerRef = useRef<number | null>(null);
   const repairMapVideoRef = useRef<HTMLVideoElement>(null);
+  const repairSearchAbortRef = useRef<AbortController | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -850,6 +894,11 @@ export function AIChatPage() {
     repairMapFallbackTimerRef.current = null;
     repairMapResultTimerRef.current = null;
     setRepairMapState('loading');
+    setRepairRequestState('idle');
+    setRepairAnimationDone(false);
+    setRepairShops([]);
+    setSelectedRepairShopId(null);
+    setRepairContactNotice('');
     setIsRepairMapOpen(true);
   };
 
@@ -867,16 +916,39 @@ export function AIChatPage() {
       repairMapFallbackTimerRef.current = null;
     }
     repairMapResultTimerRef.current = window.setTimeout(() => {
-      setRepairMapState('result');
+      setRepairAnimationDone(true);
       repairMapResultTimerRef.current = null;
     }, REPAIR_MAP_RESULT_DELAY);
   };
 
   const closeRepairMap = () => {
     clearRepairMapTimers();
+    repairSearchAbortRef.current?.abort();
+    repairSearchAbortRef.current = null;
     repairMapVideoRef.current?.pause();
     setIsRepairMapOpen(false);
     setRepairMapState('loading');
+    setRepairRequestState('idle');
+    setSelectedRepairShopId(null);
+    setRepairContactNotice('');
+  };
+
+  const retryRepairSearch = () => {
+    clearRepairMapTimers();
+    repairSearchAbortRef.current?.abort();
+    setRepairMapState('loading');
+    setRepairRequestState('idle');
+    setRepairAnimationDone(false);
+    setRepairShops([]);
+    setSelectedRepairShopId(null);
+    setRepairContactNotice('');
+    setRepairSearchAttempt((attempt) => attempt + 1);
+  };
+
+  const saveRepairShopContact = async (shop: RepairShop) => {
+    if (!shop.name.trim() || !shop.phone.trim()) return;
+    const result = await deliverRepairShopVCard(shop);
+    if (result !== 'cancelled') setRepairContactNotice(shop.name);
   };
 
   const handleCta = (cta: ChatCta, source: string) => {
@@ -923,8 +995,7 @@ export function AIChatPage() {
         navigation?.navigate('benefits-recommend');
         return;
       case '건물 생활 정보 보기':
-        navigation?.closeAIChat();
-        navigation?.navigate('community-region');
+        setIsBuildingInfoOpen(true);
         return;
       case '해결 방법 보기':
         appendAssistantMessage('직접 확인할 수 있는 범위부터 한 단계씩 볼게요.\n\nSTEP 1\n보일러 플러그가 콘센트에 단단히 꽂혀 있는지 확인해주세요.', [
@@ -1109,34 +1180,64 @@ export function AIChatPage() {
     });
   };
 
-  const addContactAttachment = (name: string, tel: string) => {
-    if (!tel.trim()) return;
+  const resetContactPanel = () => {
+    setContactName('');
+    setContactTel('');
+    setContactMode('choice');
+    setContactNotice('');
+    setIsContactSelecting(false);
+  };
+
+  const closeAttachmentPanel = () => {
+    if (attachmentPanel === 'contact') resetContactPanel();
+    setAttachmentPanel(null);
+  };
+
+  const addContactAttachment = ({ name, tel }: { name: string; tel: string }) => {
+    const normalizedTel = tel.trim();
+    if (!normalizedTel) return;
     if (attachments.length >= MAX_ATTACHMENTS) {
       setAttachmentNotice('첨부는 최대 5개까지 가능해요.');
       return;
     }
     setAttachments((current) => [...current, {
-      type: 'contact', id: `contact-${Date.now()}`, name: name.trim() || undefined, tel: tel.trim(),
+      type: 'contact', id: `contact-${Date.now()}`, name: name.trim() || '이름 없는 연락처', tel: normalizedTel,
     }]);
-    setContactName('');
-    setContactTel('');
+    resetContactPanel();
     setAttachmentPanel(null);
   };
 
   const openContactPicker = () => {
     setIsAttachMenuOpen(false);
+    resetContactPanel();
     setAttachmentPanel('contact');
   };
 
   const selectDeviceContact = async () => {
-    if (!contactPicker?.select) return;
+    const contactPicker = getContactPicker();
+    if (!contactPicker) {
+      setContactNotice('현재 환경에서는 연락처 불러오기를 지원하지 않아요.\n직접 입력해서 추가해주세요.');
+      setContactMode('manual');
+      return;
+    }
+    setContactNotice('');
+    setIsContactSelecting(true);
     try {
       const [contact] = await contactPicker.select(['name', 'tel'], { multiple: false });
       if (!contact) return;
-      setContactName(contact.name?.[0] ?? '');
-      setContactTel(contact.tel?.[0] ?? '');
-    } catch {
-      /* 사용자가 선택기를 취소하거나 권한 호출이 실패해도 직접 입력 상태를 유지한다. */
+      const name = contact.name?.find((value) => value.trim()) ?? '';
+      const tel = contact.tel?.find((value) => value.trim()) ?? '';
+      if (!tel) {
+        setContactNotice('전화번호가 등록된 연락처를 선택해주세요.');
+        return;
+      }
+      addContactAttachment({ name, tel });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setContactNotice('연락처를 불러오지 못했어요. 직접 입력해서 추가해주세요.');
+      setContactMode('manual');
+    } finally {
+      setIsContactSelecting(false);
     }
   };
 
@@ -1452,6 +1553,7 @@ export function AIChatPage() {
       if (repairSearchTimerRef.current !== null) window.clearTimeout(repairSearchTimerRef.current);
       if (repairMapFallbackTimerRef.current !== null) window.clearTimeout(repairMapFallbackTimerRef.current);
       if (repairMapResultTimerRef.current !== null) window.clearTimeout(repairMapResultTimerRef.current);
+      repairSearchAbortRef.current?.abort();
       repairMapVideoRef.current?.pause();
       revokeAllAttachmentUrls();
     },
@@ -1480,6 +1582,56 @@ export function AIChatPage() {
       video?.pause();
     };
   }, [isRepairMapOpen, repairMapState]);
+
+  useEffect(() => {
+    if (!isRepairMapOpen) return undefined;
+    const controller = new AbortController();
+    repairSearchAbortRef.current?.abort();
+    repairSearchAbortRef.current = controller;
+    setRepairRequestState('loading');
+
+    void getPreferredRepairLocation(aiLocation ? {
+      label: aiLocation.displayName,
+      latitude: aiLocation.latitude,
+      longitude: aiLocation.longitude,
+    } : null).then(async (location) => {
+      if (controller.signal.aborted) return;
+      setRepairSearchLocation(location);
+      const shops = await getDemoRepairShops(location, repairKindFor(diagnosis, conversation.flowId), controller.signal);
+      if (controller.signal.aborted) return;
+      setRepairShops(shops);
+      setRepairRequestState(shops.length > 0 ? 'success' : 'empty');
+    }).catch(() => {
+      if (!controller.signal.aborted) setRepairRequestState('error');
+    });
+
+    return () => controller.abort();
+  }, [isRepairMapOpen, repairSearchAttempt]);
+
+  useEffect(() => {
+    if (!isRepairMapOpen || !repairAnimationDone) return;
+    if (repairRequestState === 'success') setRepairMapState('result');
+    else if (repairRequestState === 'empty') setRepairMapState('empty');
+    else if (repairRequestState === 'error') setRepairMapState('error');
+  }, [isRepairMapOpen, repairAnimationDone, repairRequestState]);
+
+  useEffect(() => {
+    if (!isRepairMapOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isRepairConnectionNoticeOpen) closeRepairMap();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [isRepairMapOpen, isRepairConnectionNoticeOpen]);
+
+  useEffect(() => {
+    if (!isBuildingInfoOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsBuildingInfoOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [isBuildingInfoOpen]);
 
   const conversationStarted = messages.length > 0 && aiView === 'chat';
   const hasConversationHistory = history.length > 0;
@@ -2026,12 +2178,20 @@ export function AIChatPage() {
             <header>
               <div>
                 <h2 id="repair-map-title">
-                  {repairMapState === 'loading' ? '주변 수리 업체를 찾고있어요' : `${repairMapAreaName} 주변 수리업체`}
+                  {repairMapState === 'loading'
+                    ? '주변 수리 업체를 찾고있어요'
+                    : repairMapState === 'error'
+                      ? '업체 정보를 불러오지 못했어요'
+                      : repairMapState === 'empty'
+                        ? '가까운 업체를 찾지 못했어요'
+                        : `${repairSearchLocation?.label ?? repairMapAreaName} 주변 수리업체`}
                 </h2>
                 <p id="repair-map-description">
                   {repairMapState === 'loading'
                     ? '설정한 지역을 기준으로 가까운 업체를 확인하고 있어요.'
-                    : '설정한 지역을 기준으로 찾았어요.'}
+                    : repairMapState === 'result'
+                      ? `${repairSearchLocation?.isCurrentLocation ? '현재 위치' : '설정한 지역'}를 기준으로 찾았어요.`
+                      : '잠시 후 다시 찾아보거나 검색 지역을 변경해보세요.'}
                 </p>
               </div>
               <button type="button" aria-label="수리업체 지도 닫기" onClick={closeRepairMap}>
@@ -2076,37 +2236,61 @@ export function AIChatPage() {
                   ))}
                 </p>
               </div>
-            ) : (
-              <div className="ai-chat-page__repair-map-result">
-                <div className="ai-chat-page__repair-map" aria-label={`${repairMapAreaName} 주변 수리업체 예시 지도`}>
-                  <span className="ai-chat-page__map-road is-horizontal" aria-hidden="true" />
-                  <span className="ai-chat-page__map-road is-vertical" aria-hidden="true" />
-                  <span className="ai-chat-page__map-road is-diagonal" aria-hidden="true" />
-                  <span className="ai-chat-page__map-district is-main">{repairMapAreaName}</span>
-                  <span className="ai-chat-page__map-district is-sub">생활수리 거리</span>
-                  {MOCK_REPAIR_PROVIDERS.map((provider) => (
-                    <div
-                      key={provider.name}
-                      className={`ai-chat-page__repair-map-marker ${provider.position}`}
-                      role="img"
-                      aria-label={`${provider.name}, ${provider.distance}, ${provider.status}`}
-                    >
-                      <span className="ai-chat-page__repair-map-pin" aria-hidden="true" />
-                      <span className="ai-chat-page__repair-map-label">
-                        <strong>{provider.name}</strong>
-                        <small>{provider.distance} · {provider.status}</small>
-                      </span>
+            ) : repairMapState === 'result' && repairSearchLocation ? (
+              <div className="ai-chat-page__repair-map-content">
+                <div className="ai-chat-page__repair-map-result">
+                  <LeafletRepairMap
+                    location={repairSearchLocation}
+                    shops={repairShops}
+                    selectedShopId={selectedRepairShopId}
+                    onSelectShop={setSelectedRepairShopId}
+                  />
+                  <div className="ai-chat-page__repair-shop-list" aria-label="주변 수리업체 목록">
+                    {repairShops.map((shop) => (
+                      <article key={shop.id} className={selectedRepairShopId === shop.id ? 'is-selected' : ''}>
+                        <div className="ai-chat-page__repair-shop-info">
+                          <strong>{shop.name}</strong>
+                          <span>{shop.roadAddress || shop.address}</span>
+                          <small>{shop.category}</small>
+                          <small>{shop.phone}</small>
+                        </div>
+                        <div className="ai-chat-page__repair-shop-actions">
+                          <button type="button" onClick={() => setSelectedRepairShopId(shop.id)}>지도에서 보기</button>
+                          <button
+                            type="button"
+                            className="is-primary"
+                            disabled={!shop.name.trim() || !shop.phone.trim()}
+                            onClick={() => { void saveRepairShopContact(shop); }}
+                          >
+                            연락처 저장
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  {repairContactNotice && (
+                    <div className="ai-chat-page__repair-contact-notice" role="status">
+                      <strong>연락처 파일을 준비했어요.</strong>
+                      <span>{repairContactNotice} 연락처를 기기의 연락처 앱에서 저장해주세요.</span>
                     </div>
-                  ))}
+                  )}
+                  <p className="ai-chat-page__repair-map-disclaimer">업체 정보는 프로토타입용 예시예요.</p>
                 </div>
-                <p className="ai-chat-page__repair-map-disclaimer">업체 정보는 프로토타입용 예시예요.</p>
-                <button
-                  type="button"
-                  className="ai-chat-page__repair-connect-button"
-                  onClick={() => setIsRepairConnectionNoticeOpen(true)}
-                >
-                  수리기사 연결하기
-                </button>
+                <footer className="ai-chat-page__repair-map-footer">
+                  <button
+                    type="button"
+                    className="ai-chat-page__repair-connect-button"
+                    onClick={() => setIsRepairConnectionNoticeOpen(true)}
+                  >
+                    수리기사 연결하기
+                  </button>
+                </footer>
+              </div>
+            ) : (
+              <div className="ai-chat-page__repair-map-empty" role="status">
+                <strong>{repairMapState === 'empty' ? '이 지역에서는 바로 확인되는 업체가 없어요.' : '주변 업체 정보를 불러오지 못했어요.'}</strong>
+                <p>{repairMapState === 'empty' ? '검색 범위를 조금 넓혀 다시 찾아볼까요?' : '잠시 후 다시 찾아주세요.'}</p>
+                <button type="button" onClick={retryRepairSearch}>다시 찾기</button>
               </div>
             )}
           </section>
@@ -2137,9 +2321,69 @@ export function AIChatPage() {
         </div>
       )}
 
+      {isBuildingInfoOpen && (
+        <div
+          className="ai-chat-page__building-info-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsBuildingInfoOpen(false);
+          }}
+        >
+          <section
+            className="ai-chat-page__building-info-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="building-info-title"
+            aria-describedby="building-info-description"
+          >
+            <div className="ai-chat-page__building-info-handle" aria-hidden="true" />
+            <header>
+              <div>
+                <h2 id="building-info-title">건물 생활 정보</h2>
+                <p id="building-info-description">비슷한 상황에서 함께 확인하면 좋은 정보예요.</p>
+              </div>
+              <button type="button" aria-label="건물 생활 정보 닫기" onClick={() => setIsBuildingInfoOpen(false)}>
+                <img src={icon('sheet-close.svg')} alt="" />
+              </button>
+            </header>
+
+            <div className="ai-chat-page__building-info-list">
+              {BUILDING_LIFE_INFO.map((item, index) => (
+                <article key={item.title}>
+                  <span aria-hidden="true">{index + 1}</span>
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <section className="ai-chat-page__building-community" aria-labelledby="building-community-title">
+              <h3 id="building-community-title">이웃들이 공유한 생활 정보</h3>
+              <ul>
+                {BUILDING_COMMUNITY_POSTS.map((post) => <li key={post}>{post}</li>)}
+              </ul>
+            </section>
+
+            <button
+              type="button"
+              className="ai-chat-page__building-community-cta"
+              onClick={() => {
+                setIsBuildingInfoOpen(false);
+                navigation?.closeAIChat();
+                navigation?.navigate('community-region');
+              }}
+            >
+              <span>커뮤니티에서 더 보기</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </section>
+        </div>
+      )}
+
       {(isAttachMenuOpen || attachmentPanel) && (
         <div className="ai-chat-page__attachment-layer">
-          <button type="button" className="ai-chat-page__attach-backdrop" aria-label="첨부 화면 닫기" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel(null); }} />
+          <button type="button" className="ai-chat-page__attach-backdrop" aria-label="첨부 화면 닫기" onClick={() => { setIsAttachMenuOpen(false); closeAttachmentPanel(); }} />
           {isAttachMenuOpen && (
             <div className="ai-chat-page__attach-menu" role="menu" aria-label="첨부 메뉴">
               <button type="button" className="ai-chat-page__attach-menu-item" role="menuitem" onClick={() => { setIsAttachMenuOpen(false); setAttachmentPanel('camera'); }}><img src="/assets/icon/chatbot/camera.svg" alt="" />카메라</button>
@@ -2150,10 +2394,35 @@ export function AIChatPage() {
           )}
           {attachmentPanel && (
             <section className="ai-chat-page__attachment-sheet" role="dialog" aria-modal="true" aria-label={`${attachmentPanel} 첨부`}>
-              <header><strong>{attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={() => setAttachmentPanel(null)}>×</button></header>
+              <header><strong>{attachmentPanel === 'file' ? '파일 선택' : attachmentPanel === 'camera' ? '카메라' : '연락처 추가'}</strong><button type="button" aria-label="첨부 화면 닫기" onClick={closeAttachmentPanel}>×</button></header>
               {attachmentPanel === 'camera' && <><p>촬영한 사진은 입력창 위 미리보기로 추가돼요.</p><button type="button" className="ai-chat-page__sheet-action" onClick={() => cameraInputRef.current?.click()}>사진 촬영하기</button></>}
               {attachmentPanel === 'file' && <><ul className="ai-chat-page__file-list"><li><img className="ai-chat-page__attachment-type-icon" src="/assets/icon/chatbot/file.svg" alt="" aria-hidden="true" /><span><strong>문서 파일</strong><small>PDF, TXT, DOC, DOCX 등 · 최대 10MB</small></span></li></ul><button type="button" className="ai-chat-page__sheet-action" onClick={() => fileInputRef.current?.click()}>기기에서 파일 선택</button></>}
-              {attachmentPanel === 'contact' && <>{supportsContactPicker ? <button type="button" className="ai-chat-page__sheet-action" onClick={() => { void selectDeviceContact(); }}>연락처에서 선택</button> : <p>현재 브라우저에서는 연락처 불러오기를 지원하지 않아요. 이름과 전화번호를 직접 입력해주세요.</p>}<input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름 (선택)" aria-label="연락처 이름" /><input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호" inputMode="tel" aria-label="연락처 전화번호" /><button type="button" className="ai-chat-page__sheet-action" disabled={!contactTel.trim()} onClick={() => addContactAttachment(contactName, contactTel)}>연락처 추가</button></>}
+              {attachmentPanel === 'contact' && (
+                <div className="ai-chat-page__contact-panel">
+                  {contactMode === 'choice' ? (
+                    <>
+                      <p className="ai-chat-page__contact-description">연락처에서 한 명을 선택해 자두AI에 추가할 수 있어요.<br />선택한 연락처 정보만 사용합니다.</p>
+                      {contactNotice && <p className="ai-chat-page__contact-notice" role="status">{contactNotice}</p>}
+                      <div className="ai-chat-page__contact-actions">
+                        <button type="button" className="ai-chat-page__sheet-action is-primary" disabled={isContactSelecting} onClick={() => { void selectDeviceContact(); }}>
+                          {isContactSelecting ? '연락처 여는 중...' : '연락처에서 선택하기'}
+                        </button>
+                        <button type="button" className="ai-chat-page__sheet-action" onClick={() => { setContactNotice(''); setContactMode('manual'); }}>직접 입력하기</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {contactNotice && <p className="ai-chat-page__contact-notice" role="status">{contactNotice}</p>}
+                      <button type="button" className="ai-chat-page__contact-picker-link" disabled={isContactSelecting} onClick={() => { void selectDeviceContact(); }}>
+                        {isContactSelecting ? '연락처 여는 중...' : '연락처에서 선택하기'}
+                      </button>
+                      <label className="ai-chat-page__contact-field">이름 (선택)<input value={contactName} onChange={(event) => setContactName(event.target.value)} placeholder="이름을 입력해주세요" /></label>
+                      <label className="ai-chat-page__contact-field">전화번호<input value={contactTel} onChange={(event) => setContactTel(event.target.value)} placeholder="전화번호를 입력해주세요" inputMode="tel" /></label>
+                      <button type="button" className="ai-chat-page__sheet-action is-primary" disabled={!contactTel.trim()} onClick={() => addContactAttachment({ name: contactName, tel: contactTel })}>연락처 추가</button>
+                    </>
+                  )}
+                </div>
+              )}
             </section>
           )}
         </div>
