@@ -23,7 +23,7 @@
   content: none;
 }
 
-/* 기존 영상 크기와 중앙 배치를 유지한다. */
+/* 스플래시 영상이 모바일 화면과 웹 목업 영역을 여백 없이 채운다. */
 .splash-screen__media {
   position: absolute;
   inset: 0;
@@ -37,5 +37,5 @@
   filter: none;
   opacity: 1;
   object-fit: cover;
-  transform: scale(0.6);
+  transform: none;
 }
