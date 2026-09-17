@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { icon } from '../../lib/asset';
+import { useElasticDragScroll } from '../../hooks/useElasticDragScroll';
 import { IncomeExpenseCalendar } from './IncomeExpenseCalendar';
 import {
   CATEGORY_META,
@@ -31,6 +32,7 @@ import type { CategoryKey, FlowType, MoneyFlowItem } from '../../data/moneyTrans
 
 type ViewMode = 'calendar' | 'list';
 type TypeFilter = 'all' | FlowType;
+type SortSelection = 'all' | SortOption;
 
 const TYPE_FILTER_LABEL: Record<TypeFilter, string> = {
   all: '전체',
@@ -70,11 +72,17 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
   /* 목록 보기 — 날짜 그룹 헤더를 눌러 접었다 펼 수 있다(기본은 전부 펼침) */
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(() => new Set());
   /* 목록 보기 정렬 — 최신/오래된순은 날짜 그룹을 그대로 두고 순서만 뒤집고,
-   * 금액순은 날짜 구분 없이 평평한 목록으로 보여준다(커뮤니티 정렬 드롭다운과 같은 구조). */
-  const [sortOption, setSortOption] = useState<SortOption>('최신순');
+   * 금액순은 날짜 구분 없이 평평한 목록으로 보여준다(커뮤니티 정렬 드롭다운과 같은 구조).
+   * 아무것도 고르지 않은 초기 상태는 'all' — 버튼에 "전체"로 표시되고 동작은 최신순과
+   * 같다(listGroups 가 이미 최근 날짜순이라 별도 분기가 필요 없다). 옵션을 고르면 그 값으로
+   * 바뀌고 버튼 글자도 월 선택 드롭다운(money__month-label--btn)처럼 선택한 옵션으로 바뀐다. */
+  const [sortOption, setSortOption] = useState<SortSelection>('all');
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  /* 카테고리 칩 줄은 overflow-x: auto 만으로는 터치가 없는 웹/태블릿(마우스)에서 스크롤할
+   * 방법이 없다 — 클릭+드래그로도 넘길 수 있게 한다(스크롤바는 계속 숨김 유지). */
+  const categoryDragScroll = useElasticDragScroll<HTMLDivElement>();
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -311,14 +319,9 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
               >
                 <img src={icon('chevron-right-gray.svg')} alt="" className="is-prev" />
               </button>
-              <button
-                type="button"
-                className="flow-list-toolbar__month-btn"
-                onClick={() => onNotice('월 선택 기능은 준비 중이에요.')}
-              >
+              <span className="flow-list-toolbar__month-label">
                 {year}년 {month + 1}월
-                <img src={icon('chevron-down-thin.svg')} alt="" />
-              </button>
+              </span>
               <button
                 type="button"
                 className="flow-month-nav__arrow"
@@ -328,62 +331,60 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
                 <img src={icon('chevron-right-gray.svg')} alt="" />
               </button>
             </div>
-            <div className="flow-list-toolbar__actions">
+          </div>
+
+          <div className="flow-filter-row">
+            <div className="flow-filter__pills" role="tablist" aria-label="구분 필터">
+              {(Object.keys(TYPE_FILTER_LABEL) as TypeFilter[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={typeFilter === key}
+                  className={`flow-filter__pill${typeFilter === key ? ' is-active' : ''}`}
+                  onClick={() => setTypeFilter(key)}
+                >
+                  {TYPE_FILTER_LABEL[key]}
+                </button>
+              ))}
+            </div>
+
+            <div className="flow-sort" ref={sortRef}>
               <button
                 type="button"
-                className="flow-list-toolbar__icon-btn"
-                aria-label="검색"
-                onClick={() => onNotice('검색 기능은 준비 중이에요.')}
+                className="flow-sort__trigger"
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+                aria-label="정렬"
+                onClick={() => setSortOpen((open) => !open)}
               >
-                <img src={icon('community-search.svg')} alt="" />
+                {sortOption === 'all' ? '전체' : sortOption}
+                <img
+                  src={icon('chevron-down-thin.svg')}
+                  alt=""
+                  className={sortOpen ? 'is-open' : ''}
+                />
               </button>
-              <div className="flow-sort" ref={sortRef}>
-                <button
-                  type="button"
-                  className="flow-list-toolbar__icon-btn"
-                  aria-haspopup="listbox"
-                  aria-expanded={sortOpen}
-                  aria-label="정렬"
-                  onClick={() => setSortOpen((open) => !open)}
-                >
-                  <img src={icon('community-filter.svg')} alt="" />
-                </button>
-                <ul className="flow-sort__list" role="listbox" hidden={!sortOpen}>
-                  {SORT_OPTIONS.map((option) => (
-                    <li key={option} role="option" aria-selected={option === sortOption}>
-                      <button
-                        type="button"
-                        className={option === sortOption ? 'is-selected' : undefined}
-                        onClick={() => {
-                          setSortOption(option);
-                          setSortOpen(false);
-                        }}
-                      >
-                        {option}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="flow-sort__list" role="listbox" hidden={!sortOpen}>
+                {SORT_OPTIONS.map((option) => (
+                  <li key={option} role="option" aria-selected={option === sortOption}>
+                    <button
+                      type="button"
+                      className={option === sortOption ? 'is-selected' : undefined}
+                      onClick={() => {
+                        setSortOption(option);
+                        setSortOpen(false);
+                      }}
+                    >
+                      {option}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
-          <div className="flow-filter__pills" role="tablist" aria-label="구분 필터">
-            {(Object.keys(TYPE_FILTER_LABEL) as TypeFilter[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={typeFilter === key}
-                className={`flow-filter__pill${typeFilter === key ? ' is-active' : ''}`}
-                onClick={() => setTypeFilter(key)}
-              >
-                {TYPE_FILTER_LABEL[key]}
-              </button>
-            ))}
-          </div>
-
-          <div className="flow-category-chips">
+          <div className="flow-category-chips" ref={categoryDragScroll.ref} {...categoryDragScroll.dragProps}>
             {categoryChips.map((c) => (
               <button
                 key={c.key}
