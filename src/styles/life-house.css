@@ -58,7 +58,7 @@
 
 .lh-intro p {
   margin: 0;
-  color: var(--text-nav);
+  color: #653b04;
   font: 400 13px/1.5 var(--font-suit);
 }
 
@@ -310,7 +310,7 @@
   min-width: 60px;
   border-radius: var(--radius-pill);
   background: var(--lh-plum-3);
-  color: var(--text-black);
+  color: #ffffff;
   font: 700 13px/1.35 var(--font-suit);
   letter-spacing: -0.325px;
   text-align: center;
@@ -318,7 +318,7 @@
 
 .lh-routine__dday.is-urgent {
   background: var(--brand-orange);
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
 .lh-routine__meta {
@@ -356,9 +356,10 @@
   flex-direction: column;
   gap: 4px;
   width: 100%;
-  border: 0;
-  background: none;
-  padding: 16px 0;
+  border: 1px solid #d8af69;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 16px;
   text-align: left;
   cursor: pointer;
 }

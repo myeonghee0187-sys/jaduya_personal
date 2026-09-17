@@ -56,7 +56,7 @@
   min-height: 20px;
   word-break: keep-all;
   margin: 0;
-  color: var(--text-nav);
+  color: #653b04;
   font: 400 13px/1.5 var(--font-suit);
 }
 
@@ -312,8 +312,9 @@
   align-items: stretch;
   /* 테두리를 포함한 안쪽 여백이 Figma처럼 16px이 되도록 맞춘다. */
   padding: 15px;
-  border: 1px solid var(--brand-secondary);
+  border: 1px solid #dda232;
   border-radius: 16px;
+  background: #fff3d8;
   width: 100%;
 }
 
@@ -588,6 +589,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {
