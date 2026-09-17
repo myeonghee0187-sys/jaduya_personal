@@ -658,7 +658,8 @@ a { text-decoration: none; color: inherit; }
    * 다 차지해 카드가 부자연스럽게 늘어난다 — Figma 규격 폭을 넘지 않게 막는다. */
   max-width: var(--widget-medium-w);
   height: var(--widget-medium-h);
-  padding: var(--card-padding-m);
+  /* border-radius(20px)의 50% — tokens.css --widget-card-padding 참고 */
+  padding: var(--widget-card-padding);
   border: 1px solid var(--border-widget);
   border-radius: var(--radius-xl);
   background: var(--surface-widget-card);
@@ -766,9 +767,12 @@ a { text-decoration: none; color: inherit; }
    * 그 쪽에서 다시 해제한다. */
   max-width: var(--widget-small-w);
   height: var(--widget-small-h);
-  padding: 12px 14px;
+  /* radius를 다른 위젯 카드(.widget, .wcard--*)와 같은 --radius-xl(20px)로 맞추고
+   * (전에는 16px 하드코딩이라 위젯 페이지의 같은 S 카드와 값이 달랐다), padding도
+   * 그 50%로 맞춘다 — tokens.css --widget-card-padding 참고 */
+  padding: var(--widget-card-padding);
   border: 1px solid var(--border-warm);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   background: var(--surface-widget-card);
   filter: drop-shadow(0 4px 7px rgba(79, 50, 30, 0.06));
 }

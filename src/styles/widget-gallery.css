@@ -89,7 +89,9 @@
 .wcard--medium {
   width: var(--widget-medium-w);
   height: var(--widget-medium-h);
-  padding: var(--card-padding-m);
+  /* border-radius(.wcard, --radius-xl = 20px)의 50% — tokens.css --widget-card-padding
+   * 참고. 예전엔 --card-padding-m(16px, radius와 무관하게 고른 값)이었다. */
+  padding: var(--widget-card-padding);
   /* 세로 가운데 정렬을 쓰면 위젯마다 본문 분량이 달라서(rows 2줄 vs 값+rows 등)
    * 헤더(아이콘+제목) 시작 높이가 위젯마다 달라져, 옆에 나란히 놓인 카드끼리
    * 헤더가 서로 다른 위치에서 시작하는 것처럼 보였다(요구사항: 통일성).
@@ -101,21 +103,21 @@
 .wcard--small {
   width: var(--widget-small-w);
   height: var(--widget-small-h);
-  /* --card-padding-s(12px, tokens.css) 전용 값을 쓴다 — 전에는 space-md(16px)를 그대로
-   * 써서 M/L보다 훨씬 좁은 128.5px 카드 안에서 콘텐츠 폭이 96.5px밖에 안 남아, "최대 30%
-   * 할인"처럼 조금만 긴 값도 줄임표 직전까지 붙어 보였다. */
-  padding: var(--card-padding-s);
+  /* border-radius의 50% — tokens.css --widget-card-padding 참고. 예전엔
+   * --card-padding-s(12px)였다 — M/L보다 좁은 128.5px 카드 안에서 "최대 30% 할인"처럼
+   * 조금만 긴 값도 줄임표 직전까지 붙어 보이던 문제 때문에 space-md(16px) 대신 따로 뺀
+   * 값이었는데, 지금 10px이 그보다 더 좁아 같은 문제가 다시 생기는지 확인이 필요하다. */
+  padding: var(--widget-card-padding);
 }
 
 .wcard--large {
   width: var(--content-width);
   height: var(--widget-large-h);
-  /* L은 342px로 M(167px)보다 훨씬 넓은데 지금까지 같은 --card-padding-m(16px)을 그대로
-   * 써서, 상태 목록/순위 목록의 오른쪽 텍스트가 폭 대비 여백 없이 카드 끝에 바짝 붙어
-   * 보였다. 가로만 tokens.css의 L 전용 값(--card-padding-l: 20px)으로 늘린다 — 세로까지
-   * 늘리면 114px 높이 예산이 더 빠듯해져 5줄 체크리스트처럼 이미 꽉 찬 위젯들이 새로
-   * 넘치므로, 위아래는 기존 --card-padding-m(16px)을 그대로 둔다. */
-  padding: var(--card-padding-m) var(--card-padding-l);
+  /* border-radius의 50% — tokens.css --widget-card-padding 참고. 예전엔 상태 목록/순위
+   * 목록의 오른쪽 텍스트가 카드 끝에 바짝 붙어 보여서 가로 padding만 --card-padding-l
+   * (20px)로 따로 늘렸었다(--card-padding-m 16px보다 큼) — 지금 10px은 그보다도 좁아서
+   * 그 문제가 다시 나타날 수 있다(확인 필요). */
+  padding: var(--widget-card-padding);
   /* M과 같은 이유로 세로 가운데 정렬을 없애고 상단 고정으로 되돌린다(위 .wcard--medium
    * 주석 참고) — 내용이 짧은 L 위젯(자취 체크 등)은 카드 아래쪽에 여백이 남지만,
    * 모든 위젯의 헤더 위치는 항상 같다. */

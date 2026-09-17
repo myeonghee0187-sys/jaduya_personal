@@ -182,13 +182,15 @@ export function WidgetPage() {
             <button type="button" className="wpg-guide-btn" onClick={() => setGuideSheetOpen(true)}>
               가이드
             </button>
-            <button type="button" className="wpg-edit-btn" onClick={() => setEditing((v) => !v)}>
-              {editing ? '완료' : '편집'}
-            </button>
           </div>
 
           <div className="wpg-canvas-card">
-            <WidgetGuidePanel />
+            <div className="wpg-guide-row">
+              <WidgetGuidePanel />
+              <button type="button" className="wpg-guide-row__edit-btn" onClick={() => setEditing((v) => !v)}>
+                {editing ? '완료' : '편집'}
+              </button>
+            </div>
             <PlacementGrid
               state={placement.state}
               editing={editing}
