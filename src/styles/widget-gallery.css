@@ -23,7 +23,7 @@
   text-align: center;
   font-family: var(--font-suit);
   font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 /* ================= 카테고리 탭 — 가로 스크롤 필(pill) ================= */
@@ -250,7 +250,7 @@
   margin-top: var(--space-2xs);
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -259,7 +259,7 @@
 /* value 앞에 붙는 초록 체크 — 보증금 안전 전용 */
 .wcard__check {
   flex: none;
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* 공통 Progress Bar — Figma 위젯 시스템 전체가 원형 링이 아니라 이 막대를 쓴다 */
@@ -412,7 +412,7 @@
   flex: none;
   font-weight: var(--font-weight-bold);
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .wcard__status-row--done .wcard__status-mark {
@@ -431,11 +431,11 @@
 
 .wcard__status-value {
   flex: none;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .wcard__status-row--done .wcard__status-value {
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* 순위 목록 — 실시간 인기 Large 전용. gap·글씨 크기는 위 두 목록(.wcard__rows,
@@ -479,7 +479,7 @@
 .wcard__rank-meta {
   flex: none;
   font-size: var(--font-size-caption);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 구간별 비율 막대 + 범례 — 소비 분석 Large 전용 */
@@ -607,7 +607,7 @@
 .wg-size__dim {
   font-family: var(--font-suit);
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .wg-size__btn.is-active {
@@ -617,9 +617,11 @@
 }
 
 .wg-size__btn.is-active .wg-size__dim {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--surface-cream);
 }
 
 .wg-size__btn.is-unavailable {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
 }

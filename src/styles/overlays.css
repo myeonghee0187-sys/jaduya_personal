@@ -164,82 +164,98 @@
   padding: 20px var(--screen-margin) 0;
 }
 
-/* ---- main menu ---- */
-
-.gnb-menu__item { border-bottom: 1px solid rgba(242, 236, 228, 0.7); }
-.gnb-menu__item:last-child { border-bottom: 0; }
-
-.gnb-menu__button {
+/* ---- main menu: 좌측 대메뉴 / 우측 하위 메뉴 2열 구조 ----
+ * 아코디언이 아니다 — 좌측에서 고른 대메뉴 하나의 하위 메뉴만 우측에 뿌린다.
+ * 선택 상태는 색이 아니라 배경 대비로만 표현한다(텍스트/아이콘 색은 선택 여부와
+ * 무관하게 항상 동일) — 좌우 모두 같은 규칙이다: 연한 그레이 트랙 위에 선택된
+ * 행만 흰색(#FFFFFF)으로 떠 보인다. border/indicator/텍스트 색 강조는 쓰지 않는다. */
+.gnb-menu2 {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 14px 0;
+  align-items: stretch;
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  border: 1px solid rgba(242, 236, 228, 0.7);
 }
 
-.gnb-menu__label {
+.gnb-menu2__categories {
+  flex: 0 0 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background-color: var(--surface-widget);
+}
+
+.gnb-menu2__category {
   display: flex;
   align-items: center;
   gap: var(--space-2xs);
+  padding: 10px 8px;
+  border-radius: var(--radius-m);
+  background-color: transparent;
+  text-align: left;
 }
 
-.gnb-menu__icon { width: 24px; height: 24px; }
+.gnb-menu2__category.is-selected {
+  background-color: var(--surface-base);
+}
 
-.gnb-menu__name {
+/* 원본 SVG 는 단색 글리프(#3D302C/black)라 mask 로 모양만 가져온다 — 선택 여부와
+ * 무관하게 항상 같은 색이다(컬러 변경 금지, background 로만 선택 상태를 구분한다). */
+.gnb-menu2__category-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  background-color: #3d302c;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.gnb-menu2__category-name {
   font-family: var(--font-a2z);
   font-weight: 600;
-  font-size: 16px;
-  line-height: 1;
+  font-size: 14px;
+  line-height: 1.3;
   color: #1c1917;
+  /* 한글은 음절 중간에서 줄바꿈되면 어색하다 — "커뮤니티" 처럼 길어져도 좁은 좌측
+   * 칸에서 syllable 단위로만 줄바꿈되게 한다 */
+  word-break: keep-all;
 }
 
-.gnb-menu__chevron { width: 10.683px; height: 6.466px; }
-
-/* 하위 메뉴는 max-height 로 스르륵 여닫는다.
- * display:none 은 전환할 중간값이 없고, grid 0fr↔1fr 은 transition 을 걸면
- * 트랙이 0 으로 무너져서 쓰지 않는다.
- * ponytail: 링크가 400px(약 10줄)을 넘으면 잘린다 — 그때 값만 올리면 된다. */
-.gnb-menu__sub {
-  overflow: hidden;
-  max-height: 400px;
-  opacity: 1;
-  transition: max-height 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
-}
-
-.gnb-menu__item[data-open="false"] .gnb-menu__sub {
-  max-height: 0;
-  opacity: 0;
-  /* 다 접힌 뒤에 초점·스크린리더에서 빠진다 */
-  visibility: hidden;
-  transition: max-height 260ms cubic-bezier(0.4, 0, 1, 1), opacity 160ms ease-in, visibility 0s linear 260ms;
-}
-
-.gnb-menu__sub-inner {
+.gnb-menu2__items {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  padding: 2px 8px 10px 26px;
+  gap: 2px;
+  padding: 8px;
+  /* 좌측과 같은 "연한 그레이 트랙" — 선택된 행이 흰색으로 뜨는 기준면이다 */
+  background-color: var(--surface-widget);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gnb-menu__sub,
-  .gnb-menu__item[data-open="false"] .gnb-menu__sub {
-    transition-duration: 0s;
-    transition-delay: 0s;
-  }
-}
-
-.gnb-menu__sub-link {
+.gnb-menu2__item {
   display: block;
-  padding: 10px 0;
+  padding: 12px 10px;
+  border-radius: var(--radius-s);
+  background-color: transparent;
   font-family: var(--font-suit);
   font-size: 14px;
   line-height: 1.4;
   color: #57534e;
 }
 
-/* 카테고리 대표 화면 — 크기·높이·정렬은 그대로 두고 굵기만 한 단계 올린다 */
-.gnb-menu__sub-link.is-home {
+/* 카테고리 대표 화면 — 크기·색은 그대로 두고 굵기만 한 단계 올린다(선택 상태와는 별개) */
+.gnb-menu2__item.is-home {
   font-weight: 600;
+}
+
+/* 지금 실제로 보고 있는 하위 메뉴 — 텍스트 색은 바꾸지 않고 배경만 흰색으로 구분한다.
+ * 좌측 대메뉴의 선택 표시(흰색 vs 연한 그레이)와 동일한 규칙이다. */
+.gnb-menu2__item.is-selected {
+  background-color: var(--surface-base);
 }
 
 /* ---- 내 메뉴 ---- */
@@ -270,7 +286,7 @@
   font-family: var(--font-suit);
   font-size: 12px;
   line-height: 1.4;
-  color: #a8a29e;
+  color: var(--text-muted);
 }
 
 .shortcut-grid {
@@ -285,7 +301,7 @@
   font-family: var(--font-suit);
   font-size: 12px;
   line-height: 1.4;
-  color: #a8a29e;
+  color: var(--text-muted);
 }
 
 .shortcut {
@@ -477,7 +493,7 @@
   font-family: var(--font-suit);
   font-size: 12px;
   line-height: 1.4;
-  color: #a8a29e;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -507,7 +523,7 @@
   font-family: var(--font-suit);
   font-size: 12px;
   line-height: 1.4;
-  color: #a8a29e;
+  color: var(--text-muted);
 }
 
 .menu-card {
@@ -696,7 +712,7 @@
   outline: none;
 }
 
-.add-widget__search input::placeholder { color: #757575; }
+.add-widget__search input::placeholder { color: var(--text-muted); opacity: 1; }
 
 .add-widget__body {
   flex: 1 1 auto;
@@ -736,7 +752,7 @@
   font-weight: 500;
   font-size: 13px;
   line-height: 20.15px;
-  color: #a39f9a;
+  color: var(--text-muted);
 }
 
 .add-widget__group { padding-top: 12px; }
@@ -777,7 +793,15 @@
 }
 
 .wpick[hidden] { display: none; }
-.wpick:disabled { opacity: 0.45; cursor: default; }
+.wpick:disabled { cursor: default; }
+
+.wpick:disabled .wpick__card {
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
+}
+
+.wpick:disabled .wpick__card img { opacity: 0.6; }
 
 .wpick__card {
   display: flex;
@@ -861,7 +885,7 @@
   padding-top: 8px;
   font-family: var(--font-suit);
   font-size: 11.5px;
-  color: #a39f9a;
+  color: var(--text-muted);
 }
 
 .wpick__sub--accent { color: var(--brand-primary); }
@@ -917,7 +941,7 @@
 .wpick__list-row b { font-weight: 600; font-size: 14px; color: var(--text-primary); }
 .wpick__list-row i { font-style: normal; font-weight: 700; font-size: 12px; color: var(--brand-primary); }
 .wpick__list-row span { font-size: 12.5px; color: var(--text-secondary); }
-.wpick__list-row em { font-style: normal; font-size: 11.5px; color: #a39f9a; }
+.wpick__list-row em { font-style: normal; font-size: 11.5px; color: var(--text-muted); }
 
 .wpick__todo {
   width: 100%;
@@ -944,7 +968,7 @@
   flex: none;
 }
 
-.wpick__todo-row--done { color: #a39f9a; text-decoration: line-through; }
+.wpick__todo-row--done { color: var(--text-muted); text-decoration: line-through; }
 
 .wpick__bars {
   display: flex;
@@ -964,7 +988,7 @@
 }
 
 .wpick__bar-head b { font-weight: 600; color: var(--text-primary); }
-.wpick__bar-head span { color: #a39f9a; }
+.wpick__bar-head span { color: var(--text-muted); }
 
 .wpick__bar-track {
   height: 6px;
@@ -1008,7 +1032,7 @@
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 13px;
-  color: #a39f9a;
+  color: var(--text-muted);
 }
 
 .add-widget__cat-meta img { width: 16px; height: 16px; }
@@ -1054,7 +1078,7 @@
   padding: 24px var(--screen-margin);
   font-family: var(--font-suit);
   font-size: 13px;
-  color: #a39f9a;
+  color: var(--text-muted);
 }
 
 .add-widget__body.is-empty .add-widget__empty { display: block; }

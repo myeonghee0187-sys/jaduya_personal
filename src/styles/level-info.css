@@ -66,7 +66,7 @@
 .level-info__intro p {
   margin: 0;
   padding: 0 0 26px 8px;
-  color: #a49173;
+  color: var(--text-secondary);
   font: 400 12px/1.4 var(--font-suit);
   /* 한글이 단어 중간에서 끊기지 않게 한다 */
   word-break: keep-all;
@@ -174,7 +174,7 @@
 .level-info__stage.is-completed .level-info__name,
 .level-info__stage.is-current .level-info__step,
 .level-info__stage.is-current .level-info__name {
-  color: #c3615e;
+  color: var(--brand-primary);
 }
 
 .level-info__stage.is-current .level-info__circle img {
@@ -196,7 +196,7 @@
 
 .level-info__stage.is-next .level-info__step,
 .level-info__stage.is-next .level-info__name {
-  color: #e1b0af;
+  color: var(--brand-primary);
 }
 
 .level-info__stage.is-locked .level-info__circle img {
@@ -207,7 +207,7 @@
 
 .level-info__stage.is-locked .level-info__step,
 .level-info__stage.is-locked .level-info__name {
-  color: #d6d6d6;
+  color: var(--text-muted);
 }
 
 .level-info__cta {

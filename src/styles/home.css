@@ -520,7 +520,9 @@ a { text-decoration: none; color: inherit; }
 }
 
 .recommend-setup__save:disabled {
-  background: #d6d3d1;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -970,13 +972,13 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__page-chevron:disabled {
-  opacity: 0.3;
+  color: var(--text-muted);
   cursor: default;
 }
 
 @media (hover: hover) {
   .discovery__page-chevron:not(:disabled):hover {
-    opacity: 0.65;
+    color: var(--text-primary);
   }
 }
 
@@ -1145,7 +1147,7 @@ a { text-decoration: none; color: inherit; }
   font-size: 10px;
   font-weight: 400;
   line-height: 1.4;
-  color: var(--text-ad-mark);
+  color: var(--text-ad-label);
 }
 
 .info-card__tit {

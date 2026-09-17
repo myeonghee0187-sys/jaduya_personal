@@ -137,7 +137,8 @@
 }
 
 .lh-search input::placeholder {
-  color: var(--lh-oat-7);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 /* 왼쪽 Accent Line 은 border 대신 ::before 로 그린다 — 결과가 바뀔 때 위에서 아래로
@@ -317,7 +318,7 @@
 
 .lh-routine__dday.is-urgent {
   background: var(--brand-orange);
-  color: #fffdfb;
+  color: var(--text-primary);
 }
 
 .lh-routine__meta {
@@ -396,7 +397,7 @@
 /* 결과 하단 안내 — 지자체마다 기준이 달라 단정하지 않는다. 강조하지 않는 caption. */
 .lh-result__notice {
   margin: 0;
-  color: var(--lh-oat-7);
+  color: var(--text-muted);
   font: 400 10px/1.4 var(--font-suit);
 }
 
@@ -433,7 +434,7 @@
 }
 
 .lh-panel__facts dt {
-  color: var(--lh-oat-7);
+  color: var(--text-secondary);
   font: 400 12px/1.5 var(--font-suit);
 }
 
@@ -486,7 +487,7 @@
   border: 0;
   background: none;
   padding: 0 8px;
-  color: var(--lh-oat-7);
+  color: var(--text-secondary);
   font: 500 12px/1.5 var(--font-suit);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -606,7 +607,8 @@
 }
 
 .lh-sheet__input::placeholder {
-  color: var(--lh-oat-7);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .lh-sheet__input:focus {
@@ -657,7 +659,9 @@
 }
 
 .lh-sheet__submit:disabled {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
 

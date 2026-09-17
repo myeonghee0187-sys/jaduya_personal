@@ -142,7 +142,7 @@
   margin-bottom: -5px;
   padding: 8px 4px 12px;
   background: transparent;
-  color: rgba(115, 115, 115, 0.7);
+  color: var(--text-muted);
   font: 400 13px/16px var(--font-suit);
   white-space: nowrap;
   cursor: pointer;
@@ -364,7 +364,7 @@
 }
 
 .mission__time {
-  color: #a3a3a3;
+  color: var(--text-secondary);
   font: 400 12px/1.4 var(--font-suit);
 }
 
@@ -398,7 +398,7 @@
 }
 
 .mission__card--done .mission__xp-badge {
-  color: #919191;
+  color: var(--text-muted);
 }
 
 .mission__card--done .mission__card-title,
@@ -412,13 +412,13 @@
 }
 
 .mission__done-at {
-  color: #919191;
+  color: var(--text-secondary);
   font: 400 12px/1.4 var(--font-suit);
 }
 
 .mission__done-info {
   flex: none;
-  color: #919191;
+  color: var(--text-secondary);
   font: 500 11px/16.5px var(--font-suit);
   text-align: right;
 }

@@ -179,7 +179,9 @@
 /* 관심 분야 2개 제한 — 이미 고른 분야가 있고 추가 모드도 아닐 때는 나머지가
  * 눌러도 반응하지 않는 상태임을 흐림으로 알려준다 */
 .profile-settings__choice--category:disabled {
-  opacity: 0.45;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
 

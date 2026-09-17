@@ -271,7 +271,6 @@
 .money-budget__setting-btn img {
   width: 16px;
   height: 16px;
-  opacity: 0.5;
 }
 
 /* ---------- 섹션 공통 ---------- */
@@ -393,7 +392,6 @@
 }
 
 .money-week-strip__arrow:disabled {
-  opacity: 0.3;
   cursor: default;
 }
 
@@ -423,7 +421,7 @@
 .money-week-strip__weekday {
   font-weight: 500;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-week-strip__date {
@@ -530,7 +528,7 @@
   width: 30px;
   font-family: var(--font-suit);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: right;
 }
 
@@ -848,7 +846,7 @@
 }
 
 .money-month-menu__item:disabled {
-  color: var(--text-tertiary, #a39f9a);
+  color: var(--text-muted);
   cursor: default;
 }
 
@@ -856,7 +854,7 @@
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 11px;
-  color: var(--text-tertiary, #a39f9a);
+  color: var(--text-muted);
 }
 
 .money-io-toggle {
@@ -1010,7 +1008,7 @@
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-flow-chart__bars {
@@ -1111,7 +1109,7 @@
   font-family: var(--font-asta);
   font-weight: 500;
   font-size: 11px;
-  color: #a39f9a;
+  color: var(--text-muted);
 }
 
 /* 주간/월간처럼 막대 수가 적을 때는 시작/중간/끝이 아니라 막대마다 라벨을 하나씩 단다 */
@@ -1295,7 +1293,7 @@
   font-family: var(--font-asta);
   font-weight: 500;
   font-size: 11px;
-  color: var(--text-tertiary, #a39f9a);
+  color: var(--text-secondary);
 }
 
 /* ---------- 카테고리 상세 — 헤더(금액+진행률+전월비) ---------- */
@@ -1398,7 +1396,7 @@
 }
 
 .money-cat-hero__trend-badge.is-down {
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* ---------- 카테고리 상세 — 주요 내역 리스트 ---------- */
@@ -1457,7 +1455,7 @@
   font-family: var(--font-asta);
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-tertiary, #a39f9a);
+  color: var(--text-secondary);
 }
 
 .money-cat-merchant-row__amount {
@@ -1587,7 +1585,7 @@
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 10px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .money-fixed-toggle-guide__text {
@@ -1736,7 +1734,7 @@
 .money-fixed-next__sub {
   font-family: var(--font-suit);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-fixed-next__amount {
@@ -1832,7 +1830,7 @@
   padding: 0;
   font-family: var(--font-suit);
   font-size: 12.5px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -1903,7 +1901,7 @@
   margin: var(--space-md) 0 0;
   font-family: var(--font-suit);
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -2011,7 +2009,7 @@
 .money-fixed-row__sub {
   font-family: var(--font-suit);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-fixed-row__toggle {
@@ -2155,7 +2153,7 @@
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -2210,7 +2208,7 @@
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -2248,7 +2246,8 @@
 }
 
 .fixed-add-sheet__field input::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .fixed-add-sheet__input-row {
@@ -2303,7 +2302,9 @@
 }
 
 .fixed-add-sheet__submit:disabled {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2343,7 +2344,7 @@
   font-family: var(--font-asta);
   font-weight: 700;
   font-size: 20px;
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* ==========================================================================
@@ -2599,7 +2600,7 @@
   width: 22px;
   height: 22px;
   margin-bottom: 4px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .fund-card__empty-title {
@@ -2707,7 +2708,7 @@
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 긁는 중 격려 문구(레퍼런스) — 처음 안내(잠금 배지/제목/버튼) 대신 잠깐 보여준다 */
@@ -2817,7 +2818,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(32px, 8.5vh, 40px);
-  color: var(--brand-green);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2830,7 +2831,7 @@
   font-family: var(--font-asta);
   font-weight: 500;
   font-size: 14px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -2864,7 +2865,7 @@
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 14px;
-  color: var(--brand-green);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2975,7 +2976,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12.5px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -3012,9 +3013,10 @@ button.fund-card__remaining--tap {
   min-width: 0;
 }
 
-.fund-hint__chevron {
+.fund-hint img.fund-hint__chevron {
   width: 12px !important;
   height: 12px !important;
+  opacity: 1;
   transition: transform 200ms ease;
 }
 
@@ -3023,7 +3025,7 @@ button.fund-card__remaining--tap {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fund-hint__chevron {
+  .fund-hint img.fund-hint__chevron {
     transition: none;
   }
 }
@@ -3055,7 +3057,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12.5px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -3127,7 +3129,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-asta);
   font-weight: 600;
   font-size: 13px;
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* ---------- 비상금 채우기 — 스크래치 상태와 무관하게 항상 보이는, 화면 맨 아래 CTA ---------- */
@@ -3142,7 +3144,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 16px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .fund-fill-cta:active {
@@ -3250,7 +3252,8 @@ button.fund-card__remaining--tap {
 }
 
 .fund-sheet__input-row input::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .fund-sheet__input-row span {
@@ -3282,7 +3285,7 @@ button.fund-card__remaining--tap {
 .fund-sheet__quick-btn:active {
   background: #f0f3dc;
   border-color: var(--brand-green);
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 /* ---------- 채우기 시트 — 현재/추가할/입금 후 비상금 3줄 요약 ---------- */
@@ -3313,7 +3316,7 @@ button.fund-card__remaining--tap {
 }
 
 .fund-sheet__summary-plus {
-  color: var(--brand-green) !important;
+  color: var(--text-primary) !important;
 }
 
 .fund-sheet__summary-row--total {
@@ -3325,7 +3328,7 @@ button.fund-card__remaining--tap {
 
 .fund-sheet__summary-row--total span:last-child {
   font-size: 14.5px;
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 .fund-sheet__submit {
@@ -3341,7 +3344,9 @@ button.fund-card__remaining--tap {
 }
 
 .fund-sheet__submit:disabled {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
 }
 
 /* ==========================================================================
@@ -3488,7 +3493,9 @@ button.fund-card__remaining--tap {
 }
 
 .budget-setup__stepper-btn:disabled {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
 
@@ -3550,7 +3557,9 @@ button.fund-card__remaining--tap {
 }
 
 .budget-setup__recommend-apply:disabled {
-  opacity: 0.45;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
 
@@ -3663,7 +3672,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-asta);
   font-weight: 600;
   font-size: 14px;
-  color: var(--brand-green);
+  color: var(--text-primary);
 }
 
 .budget-setup__today.is-negative .budget-setup__today-value {
@@ -3824,7 +3833,8 @@ button.fund-card__remaining--tap {
 }
 
 .budget-sheet__input-row input::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 .budget-sheet__input-row span {
@@ -3849,7 +3859,9 @@ button.fund-card__remaining--tap {
 }
 
 .budget-sheet__submit:disabled {
-  opacity: 0.4;
+  border-color: var(--border-warm);
+  background: var(--surface-widget);
+  color: var(--text-muted);
   cursor: default;
 }
 
@@ -3875,7 +3887,7 @@ button.fund-card__remaining--tap {
 
 .spend-compare-peers__sub {
   margin: 0;
-  color: #a49173;
+  color: var(--text-secondary);
   font: 500 12px/1.3 var(--font-suit);
   letter-spacing: -0.12px;
 }
@@ -3948,7 +3960,7 @@ button.fund-card__remaining--tap {
 }
 
 .peer-card__condition {
-  color: #a49173;
+  color: var(--text-secondary);
   font: 400 10px/1.4 var(--font-suit);
   white-space: nowrap;
 }
@@ -4094,7 +4106,7 @@ button.fund-card__remaining--tap {
 }
 
 .spend-app-link__sub {
-  color: #a49173;
+  color: var(--text-secondary);
   font: 400 10px/1.4 var(--font-suit);
   white-space: nowrap;
 }
@@ -4198,7 +4210,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .flow-calendar__grid {
@@ -4291,7 +4303,7 @@ button.fund-card__remaining--tap {
   text-align: center;
   font-family: var(--font-suit);
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .flow-receipt__paper {
@@ -4378,7 +4390,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 11.5px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .flow-receipt__amount {
@@ -4789,7 +4801,7 @@ button.fund-card__remaining--tap {
   text-align: center;
   font-family: var(--font-suit);
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-muted);
 }
 
 .flow-day-group {
@@ -4898,7 +4910,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .flow-row__amount {
@@ -4923,7 +4935,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ---------- 거래 상세 — 살림 시트(.lh-sheet)와 같은 bottom sheet 구조를 그대로 옮겨
@@ -5038,7 +5050,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12.5px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .flow-detail__divider {
@@ -5066,7 +5078,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .flow-detail__row dd {
@@ -5181,7 +5193,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-accounts__row-value {
@@ -5242,7 +5254,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .money-accounts__connect-row-chevron {
