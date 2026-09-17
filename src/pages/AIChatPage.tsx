@@ -1039,7 +1039,10 @@ export function AIChatPage() {
         return;
       case '맞춤 혜택 전체 보기':
         navigation?.closeAIChat();
-        navigation?.navigate('benefits-recommend');
+        navigation?.navigate('benefits-recommend', {
+          returnTo: navigation.page,
+          reopenAIChat: true,
+        });
         return;
       case '건물 생활 정보 보기':
         setIsBuildingInfoOpen(true);
@@ -1108,7 +1111,10 @@ export function AIChatPage() {
 
   const openBenefitRecommendations = () => {
     navigation?.closeAIChat();
-    navigation?.navigate('benefits-recommend');
+    navigation?.navigate('benefits-recommend', {
+      returnTo: navigation.page,
+      reopenAIChat: true,
+    });
   };
 
   const handleBenefitRailPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -2441,7 +2447,10 @@ export function AIChatPage() {
               onClick={() => {
                 setIsBuildingInfoOpen(false);
                 navigation?.closeAIChat();
-                navigation?.navigate('community-region');
+                navigation?.navigate('community-region', {
+                  returnTo: navigation.page,
+                  reopenAIChat: true,
+                });
               }}
             >
               <span>커뮤니티에서 더 보기</span>

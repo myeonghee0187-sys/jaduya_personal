@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { icon, img } from '../lib/asset';
+import { icon } from '../lib/asset';
 import { authorBadgeColor } from '../lib/authorBadgeColor';
+import { resolveCommunityPostImage } from '../data/communityPosts';
 import type { CommunityPost } from '../data/communityPosts';
 
 interface CommunityPostCardProps {
@@ -28,6 +29,7 @@ export function CommunityPostCard({
   showChips = true,
   onOpenDetail,
 }: CommunityPostCardProps) {
+  const postImage = resolveCommunityPostImage(post);
   const titleRef = useRef<HTMLHeadingElement>(null);
   /* 제목이 실제로 1줄로 끝났는지(줄바꿈 없이) 재서, 그럴 때만 미리보기 위 여백을 살짝 준다.
    * -webkit-line-clamp 는 최대 줄 수만 제한할 뿐 실제 줄 수는 알려주지 않아서 직접 잰다. */
@@ -110,12 +112,8 @@ export function CommunityPostCard({
             </div>
           )}
         </div>
-        {post.thumbDataUrl || post.thumb ? (
-          <img
-            className="post-card__thumb"
-            src={post.thumbDataUrl ?? img(`community/${post.thumb}`)}
-            alt=""
-          />
+        {postImage ? (
+          <img className="post-card__thumb" src={postImage} alt="" />
         ) : (
           <span className="post-card__thumb post-card__thumb--placeholder" aria-hidden="true">
             {post.thumbEmoji}

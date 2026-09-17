@@ -30,7 +30,10 @@ export interface SavedItem {
   /** 저장 시각을 따로 기록하지 않아, 원본 콘텐츠 자체의 날짜성 문구(작성 시각·마감일 등)를
    * 그대로 보여준다 — "YYYY.MM.DD 저장" 형식이 아닐 수 있다. */
   savedAt: string;
-  /** public/assets/img/thumb/ 아래 파일명. 없으면 icon 으로 대체한다 */
+  /** 이미 완성된 절대경로(예: resolveCommunityPostImage() 결과) — 원본 콘텐츠마다
+   * 이미지가 저장된 폴더가 달라서(커뮤니티는 assets/img/community, 혜택은 아직 없음
+   * 등) 파일명만 받지 않고 각 sourceType 이 자기 방식대로 완성한 URL을 그대로 받는다.
+   * 없으면(원본에 실제 이미지가 없으면) icon 으로 대체한다. */
   thumbnail?: string;
   /** public/assets/icon/ 아래 파일명 — thumbnail 이 없는 항목의 대체 이미지 */
   icon: string;

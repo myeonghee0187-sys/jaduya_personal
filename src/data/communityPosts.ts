@@ -63,6 +63,18 @@ export function postMatchesKeyword(post: CommunityPost, keyword: string): boolea
   return haystack.includes(trimmed);
 }
 
+/** 게시글의 실제 썸네일 이미지 절대경로 — CommunityPostCard 가 쓰던 우선순위
+ * (직접 첨부한 사진 → 정적 썸네일 파일)를 그대로 함수로 뺐다. CommunityPostCard 뿐
+ * 아니라 SavedPage(저장한 정보)처럼 커뮤니티 화면 밖에서도 같은 게시글이면 같은
+ * 이미지가 보여야 하는 곳에서 재사용한다. 실제 이미지가 하나도 없으면(thumbEmoji만
+ * 있는 게시글) undefined 를 돌려주고, 그때만 각 화면의 자체 fallback(이모지/아이콘)을
+ * 쓰면 된다. */
+export function resolveCommunityPostImage(post: CommunityPost): string | undefined {
+  if (post.thumbDataUrl) return post.thumbDataUrl;
+  if (post.thumb) return img(`community/${post.thumb}`);
+  return undefined;
+}
+
 export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'fee-1',
@@ -262,7 +274,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '6시간 전',
     likes: 9,
     comments: 0,
-    thumbEmoji: '📋',
+    thumb: 'post-declaration.webp',
     level: '초보',
   },
   {
@@ -281,7 +293,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '어제',
     likes: 5,
     comments: 1,
-    thumbEmoji: '📄',
+    thumb: 'post-contract.webp',
     level: '초보',
   },
   {
@@ -300,7 +312,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '2일 전',
     likes: 12,
     comments: 2,
-    thumbEmoji: '🔑',
+    thumb: 'post-house.webp',
     level: '초보',
   },
   {
@@ -319,7 +331,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '3일 전',
     likes: 7,
     comments: 0,
-    thumbEmoji: '🔥',
+    thumb: 'post-sink.webp',
     level: '초보',
   },
   {
@@ -339,7 +351,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '5시간 전',
     likes: 18,
     comments: 1,
-    thumbEmoji: '🧹',
+    thumb: 'post-fixup.webp',
     level: '고수',
   },
   {
@@ -359,7 +371,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '1일 전',
     likes: 24,
     comments: 2,
-    thumbEmoji: '📦',
+    thumb: 'post-move.webp',
     level: '고수',
   },
   {
@@ -379,7 +391,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     time: '4시간 전',
     likes: 6,
     comments: 3,
-    thumbEmoji: '🛏️',
+    thumb: 'post-storagebox.webp',
     level: '중수',
   },
 ];

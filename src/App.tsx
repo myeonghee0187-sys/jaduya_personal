@@ -43,6 +43,7 @@ function MainPages() {
   const navigation = useAppNavigation();
   const page = navigation?.page ?? 'home';
   const isAIChatOpen = navigation?.isAIChatOpen ?? false;
+  const hasAIChatOpened = navigation?.hasAIChatOpened ?? false;
   const isHome = page === 'home';
   return (
     <>
@@ -115,7 +116,11 @@ function MainPages() {
         initialLift={page.startsWith('community') ? 68 : 0}
       />
       {/* 기반 화면은 계속 마운트된 채로 두고 자두AI만 최상단 overlay로 올린다. */}
-      {isAIChatOpen && <AIChatPage />}
+      {hasAIChatOpened && (
+        <div hidden={!isAIChatOpen} style={isAIChatOpen ? { display: 'contents' } : undefined}>
+          <AIChatPage />
+        </div>
+      )}
     </>
   );
 }

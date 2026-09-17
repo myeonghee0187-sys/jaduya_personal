@@ -107,7 +107,7 @@ export function LifeHomecarePage() {
       <SubPageHeader
         title="생활"
         backLabel="생활로"
-        onBack={() => navigation?.navigate('life')}
+        onBack={() => navigation?.goBack('life')}
         onMenu={() => setGnbOpen(true)}
       />
 

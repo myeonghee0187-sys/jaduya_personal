@@ -157,7 +157,7 @@ export function LifeEatPage() {
 
   return (
     <div className="life-eat app">
-      <SubPageHeader title="생활" backLabel="생활로" onBack={() => navigation?.navigate('life')} onMenu={() => setGnbOpen(true)} />
+      <SubPageHeader title="생활" backLabel="생활로" onBack={() => navigation?.goBack('life')} onMenu={() => setGnbOpen(true)} />
       <CategoryTabs active="food" />
 
       <main

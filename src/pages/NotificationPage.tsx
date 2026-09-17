@@ -21,11 +21,11 @@ export function NotificationPage() {
   const { items, markRead } = useNotifications();
 
   /* 종을 누른 화면으로 돌아간다 — 어디서 들어왔는지는 navigate 가 넘겨준다 */
-  const goBack = () => navigation?.navigate(navigation.options.returnTo ?? 'home');
+  const goBack = () => navigation?.goBack('home');
 
   const open = (id: string, route?: Parameters<NonNullable<typeof navigation>['navigate']>[0]) => {
     markRead(id);
-    if (route) navigation?.navigate(route);
+    if (route) navigation?.navigate(route, { returnTo: 'notifications', returnOptions: navigation.options });
   };
 
   return (

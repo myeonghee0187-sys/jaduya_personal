@@ -14,6 +14,7 @@ import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { SavedCard } from '../components/SavedCard';
 import { SAVED_FILTERS, SAVED_CHIP_COLOR } from '../data/savedItems';
+import { resolveCommunityPostImage } from '../data/communityPosts';
 import type { SavedFilter, SavedItem } from '../data/savedItems';
 import { getBenefitById } from '../data/benefits';
 import { useMyMenu } from '../menu/MyMenuContext';
@@ -43,7 +44,12 @@ export function SavedPage() {
 
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
-  const [tab, setTab] = useState<ActivityTab>('저장한 정보');
+  const requestedTab = navigation?.options.tab;
+  const [tab, setTab] = useState<ActivityTab>(() =>
+    requestedTab && (ACTIVITY_TABS as readonly string[]).includes(requestedTab)
+      ? requestedTab as ActivityTab
+      : '저장한 정보',
+  );
   const [filter, setFilter] = useState<SavedFilter>('전체');
   const [filterOpen, setFilterOpen] = useState(false);
   /** 방금 저장 해제한 항목 — 토스트의 "되돌리기"가 다시 저장할 때 쓴다 */
@@ -81,6 +87,10 @@ export function SavedPage() {
           title: post.title,
           description: post.preview,
           savedAt: post.time,
+          /* CommunityPostCard 와 같은 우선순위(resolveCommunityPostImage)로 이미지를
+           * 정한다 — 실제 이미지가 없는 게시글(thumbEmoji만 있는 경우)만 undefined 가
+           * 되어 아래 icon(장식용 아이콘)으로 자연스럽게 대체된다. */
+          thumbnail: resolveCommunityPostImage(post),
           icon: 'community-book.svg',
         })),
     [bookmarks.savedPostIds, allCommunityPosts],
@@ -150,7 +160,7 @@ export function SavedPage() {
    * 앱에 상세 화면 자체가 없는 콘텐츠는 안내만 띄운다(새 상세 화면을 만들지 않는다). */
   const openItem = (item: SavedItem) => {
     if (item.category === '커뮤니티' && isRoutable(item.id)) {
-      navigation?.navigate('community', { postId: item.id });
+      navigation?.navigate('community', { postId: item.id, returnTo: 'saved', returnTab: tab });
       return;
     }
     if (item.category === '혜택') {
@@ -164,7 +174,7 @@ export function SavedPage() {
   /** 작성한 글 / 댓글 항목 열기 — 둘 다 결국 커뮤니티 게시글 상세로 이동한다.
    * 내가 쓴 글·댓글은 항상 COMMUNITY_POSTS 또는 실제 작성 글에만 존재해서 always routable. */
   const openPost = (postId: string) => {
-    navigation?.navigate('community', { postId });
+    navigation?.navigate('community', { postId, returnTo: 'saved', returnTab: tab });
   };
 
   return (
@@ -176,15 +186,16 @@ export function SavedPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      {/* 1차 탭 — 헤더 바로 아래에 고정한다 (생활 하위 탭과 같은 밑줄 탭 방식) */}
-      <nav className="saved__tabs" role="tablist" aria-label="나의 활동">
+      {/* 1차 탭 — 헤더 바로 아래에 고정한다. 다른 세부 화면과 같은 공통 탭 UI(.dc-tabs)를
+        * 그대로 쓴다 — 탭 전환 로직(setTab)만 이 화면 것이다. */}
+      <nav className="dc-tabs" role="tablist" aria-label="나의 활동">
         {ACTIVITY_TABS.map((name) => (
           <button
             key={name}
             type="button"
             role="tab"
             aria-selected={tab === name}
-            className={`saved__tab${tab === name ? ' is-active' : ''}`}
+            className={`dc-tabs__tab${tab === name ? ' is-active' : ''}`}
             onClick={() => setTab(name)}
           >
             {name}
