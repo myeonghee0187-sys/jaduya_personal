@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { BottomSheet } from '../components/BottomSheet';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { img } from '../lib/asset';
+import { icon, img } from '../lib/asset';
 
 /* 돈관리 > 예산 설정 — Figma node 2628:28275 "예산" 기준.
  * "이번 달" 탭의 "예산 설정" 버튼으로 들어오는 하위 화면이다(탭바는 '돈관리' active 유지).
@@ -23,7 +25,7 @@ const RECOMMENDED_CAPTION = '지난달 소비와 이번 달 고정비를 기준�
 const SUBMIT_CONFIRM_MS = 260;
 
 /* 이번 달 이미 쓴 금액 — 예산을 조절해도 바뀌지 않는 값이다 */
-const CURRENT_USED = 842_000;
+const CURRENT_USED = 730_000;
 /* 이번 달 남은 일수 — 남은 예산을 균등하게 나눠 "오늘 쓸 수 있는 금액"을 계산한다 */
 const DAYS_LEFT_IN_MONTH = 10;
 
@@ -46,6 +48,28 @@ export function MoneyBudgetPage() {
 
   /* 추천 금액 적용처럼 큰 폭으로 바뀔 때만 스테퍼 테두리를 한 번 더 강조한다 */
   const [recommendFlashKey, setRecommendFlashKey] = useState(0);
+
+  /* "직접 입력" — 10,000원 단위로만 조절되던 +/- 스테퍼와 별개로, 원하는 금액을 바로
+   * 타이핑해서 넣을 수 있는 바텀시트. 스테퍼 가운데 숫자를 인풋으로 바꿔 끼우는
+   * 방식(v1)은 브라우저 기본 input 폭이 span 보다 넓어서 -/+ 버튼이 밀리는 문제가
+   * 있었다 — 스테퍼 자체는 손대지 않고, 비상금 탭의 FundAmountSheet 와 같은 톤의
+   * 별도 시트로 분리한다. */
+  const budgetSheetTitleId = useId();
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
+  const [budgetSheetValue, setBudgetSheetValue] = useState('');
+
+  const openBudgetSheet = () => {
+    setBudgetSheetValue(String(budget));
+    setBudgetSheetOpen(true);
+  };
+  const closeBudgetSheet = () => setBudgetSheetOpen(false);
+  const budgetSheetNumeric = Number(budgetSheetValue.replace(/[^0-9]/g, ''));
+  const submitBudgetSheet = (e: FormEvent) => {
+    e.preventDefault();
+    if (budgetSheetValue.trim() === '') return;
+    setBudget(Math.max(BUDGET_MIN, budgetSheetNumeric));
+    closeBudgetSheet();
+  };
 
   /* 진행률 바 진입 애니메이션 — 처음엔 0%로 그렸다가 다음 프레임에 실제 값으로 올려서
    * width transition이 "차오르는" 연출로 재생되게 한다 */
@@ -122,6 +146,9 @@ export function MoneyBudgetPage() {
               +
             </button>
           </div>
+          <button type="button" className="budget-setup__stepper-edit" onClick={openBudgetSheet}>
+            직접 입력
+          </button>
         </div>
 
         <section className="budget-setup__recommend">
@@ -197,6 +224,16 @@ export function MoneyBudgetPage() {
               </>
             )}
           </div>
+          {!isOverBudget && (
+            <div className="budget-setup__today-guide">
+              <span className="budget-setup__today-guide-icon" aria-hidden="true">
+                i
+              </span>
+              <span className="budget-setup__today-guide-title">
+                남은 예산을 이번 달 남은 {DAYS_LEFT_IN_MONTH}일로 나눈 금액이에요.
+              </span>
+            </div>
+          )}
         </section>
 
         <button
@@ -222,6 +259,45 @@ export function MoneyBudgetPage() {
         onClose={myMenu.closeEdit}
         onSave={myMenu.saveEdit}
       />
+
+      <BottomSheet
+        open={budgetSheetOpen}
+        className="budget-sheet"
+        labelledBy={budgetSheetTitleId}
+        onDimClick={closeBudgetSheet}
+      >
+        <div className="bsheet__grip">
+          <span />
+        </div>
+        <div className="budget-sheet__header">
+          <h2 className="budget-sheet__title" id={budgetSheetTitleId}>
+            예산을 직접 입력해볼까요?
+          </h2>
+          <button type="button" className="budget-sheet__close" aria-label="닫기" onClick={closeBudgetSheet}>
+            <img src={icon('sheet-close.svg')} alt="" />
+          </button>
+        </div>
+        <form className="budget-sheet__form" onSubmit={submitBudgetSheet}>
+          <label className="budget-sheet__field">
+            <span className="budget-sheet__label">예산 금액</span>
+            <span className="budget-sheet__input-row">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                autoFocus
+                value={budgetSheetValue ? budgetSheetNumeric.toLocaleString() : ''}
+                onChange={(e) => setBudgetSheetValue(e.target.value)}
+                aria-label="예산 금액"
+              />
+              <span>원</span>
+            </span>
+          </label>
+          <button type="submit" className="budget-sheet__submit" disabled={budgetSheetValue.trim() === ''}>
+            적용하기
+          </button>
+        </form>
+      </BottomSheet>
     </div>
   );
 }

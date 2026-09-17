@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { icon } from '../../lib/asset';
 import { IncomeExpenseCalendar } from './IncomeExpenseCalendar';
 import {
@@ -22,8 +22,9 @@ import type { CategoryKey, FlowType, MoneyFlowItem } from '../../data/moneyTrans
  *
  * 캘린더 보기 — 날짜별 수입/지출 금액을 한눈에, 날짜를 고르면 그날 내역을 영수증
  * 카드로 펼쳐 보여준다(고정비 탭의 날짜 선택 → 상세 목록과 같은 구조).
- * 목록 보기 — 날짜 단위로 이동하며, 전체/수입/지출/이체 + 카테고리 필터로 걸러
- * 최근 날짜부터 거래를 훑어본다.
+ * 목록 보기 — 캘린더 보기와 같은 월을 공유하며, 전체/수입/지출/이체 + 카테고리 필터로
+ * 걸러 그 달의 거래를 날짜별로(최근 날짜부터) 훑어본다. 날짜 그룹 헤더는 눌러서
+ * 접고 펼 수 있다.
  *
  * 실데이터가 있는 달은 2026년 9월(TOTAL_EXPENSE 등과 같은 원본, moneyTransactions.ts)
  * 하나뿐이다 — 고정비 탭과 같은 원칙으로, 다른 달로 이동하면 정직하게 빈 상태를 보여준다. */
@@ -38,6 +39,21 @@ const TYPE_FILTER_LABEL: Record<TypeFilter, string> = {
   transfer: '이체',
 };
 
+const SORT_OPTIONS = ['최신순', '오래된순', '금액 많은순', '금액 적은순'] as const;
+type SortOption = (typeof SORT_OPTIONS)[number];
+
+/* 목록 보기의 카테고리 칩 노출 순서 — 가로 스와이프 한 줄(money-cat-swiper와 같은
+ * 패턴)로 전부 보여주니 숨김 없이 전체 카테고리를 이 순서대로 나열한다. */
+const CATEGORY_CHIP_ORDER: CategoryKey[] = ['food', 'life', 'transport', 'shopping', 'culture', 'etc'];
+
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** 목록 날짜 그룹 헤더 — "오늘/어제" 상대 표현 없이 항상 "N월 N일 (요일)"로 보여준다. */
+function dayGroupLabel(year: number, month: number, day: number): string {
+  const weekday = WEEKDAY_LABELS[new Date(year, month, day).getDay()];
+  return `${month + 1}월 ${day}일 (${weekday})`;
+}
+
 interface IncomeExpenseSectionProps {
   onNotice: (message: string) => void;
 }
@@ -46,12 +62,25 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
   const [view, setView] = useState<ViewMode>('calendar');
   const [calendarDate, setCalendarDate] = useState(() => new Date(2026, 8, 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(TODAY_DAY);
-  /* 목록 보기의 날짜 이동 기준 — 이 날짜의 요약 칩을 보여주고, 목록은 이 날짜부터
-   * 과거 순으로 이어진다(레퍼런스: 9/20 선택 → 9/20, 9/19 순으로 계속 이어짐). */
-  const [listDay, setListDay] = useState(TODAY_DAY);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryKey | 'all'>('all');
+  /* 목록 보기 — 날짜 그룹 헤더를 눌러 접었다 펼 수 있다(기본은 전부 펼침) */
+  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(() => new Set());
+  /* 목록 보기 정렬 — 최신/오래된순은 날짜 그룹을 그대로 두고 순서만 뒤집고,
+   * 금액순은 날짜 구분 없이 평평한 목록으로 보여준다(커뮤니티 정렬 드롭다운과 같은 구조). */
+  const [sortOption, setSortOption] = useState<SortOption>('최신순');
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onOutside = (event: PointerEvent) => {
+      if (!sortRef.current?.contains(event.target as Node)) setSortOpen(false);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [sortOpen]);
 
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
@@ -73,6 +102,19 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
     setSelectedDay(null);
   };
 
+  const toggleDayCollapsed = (day: number) => {
+    setCollapsedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
+
+  const categoryChips = CATEGORY_CHIP_ORDER.map((key) => CATEGORY_META.find((c) => c.key === key)).filter(
+    (c): c is (typeof CATEGORY_META)[number] => c !== undefined,
+  );
+
   /* 캘린더에서 날짜를 고르면 그날 내역을 영수증처럼 아래 펼쳐 보여준다 — 고정비 탭의
    * 날짜 선택 → 상세 목록 패턴(money-fixed-detail)과 같은 구조. */
   const selectedDayItems = useMemo(() => {
@@ -80,18 +122,34 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
     return flowItemsGroupedByDay((t) => t.day === selectedDay)[0]?.items ?? [];
   }, [isMockMonth, selectedDay]);
 
-  /* 목록 보기 — 필터가 적용된 항목을 listDay 이전(과거 방향)만 남기고 날짜별로 묶는다. */
+  /* 목록 보기 — 현재 달(캘린더 보기와 같은 월)의 필터된 항목을 날짜별로 묶는다.
+   * 실데이터가 있는 달(9월)이 아니면 정직하게 빈 목록을 보여준다. */
   const listGroups = useMemo(
     () =>
-      flowItemsGroupedByDay((t) => {
-        if (t.day > listDay) return false;
-        if (typeFilter !== 'all' && t.type !== typeFilter) return false;
-        if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
-        return true;
-      }),
-    [listDay, typeFilter, categoryFilter],
+      isMockMonth
+        ? flowItemsGroupedByDay((t) => {
+            if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+            if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+            return true;
+          })
+        : [],
+    [isMockMonth, typeFilter, categoryFilter],
   );
-  const listDayTotals = dayFlowTotals(listDay);
+  const isAmountSort = sortOption === '금액 많은순' || sortOption === '금액 적은순';
+
+  /* 최신/오래된순 — listGroups 는 이미 최근 날짜순이니 오래된순만 뒤집는다. */
+  const sortedGroups = useMemo(
+    () => (sortOption === '오래된순' ? [...listGroups].reverse() : listGroups),
+    [listGroups, sortOption],
+  );
+
+  /* 금액순 — 날짜 구분을 없애고 모든 항목을 금액 기준으로 한 줄로 편다. */
+  const sortedFlatItems = useMemo(() => {
+    if (!isAmountSort) return [];
+    const items = listGroups.flatMap((group) => group.items);
+    return [...items].sort((a, b) => (sortOption === '금액 많은순' ? b.amount - a.amount : a.amount - b.amount));
+  }, [listGroups, sortOption, isAmountSort]);
+
   const selectedItem = selectedItemId ? findFlowItem(selectedItemId) : undefined;
 
   return (
@@ -141,6 +199,26 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
             </button>
           </div>
 
+          <div className="flow-summary">
+            <div className="flow-summary__col">
+              <span className="flow-summary__body">
+                <span className="flow-summary__label">이번 달 수입</span>
+                <span className="flow-summary__value flow-summary__value--income">
+                  +{TOTAL_INCOME.toLocaleString()}원
+                </span>
+              </span>
+            </div>
+            <span className="flow-summary__divider" aria-hidden="true" />
+            <div className="flow-summary__col">
+              <span className="flow-summary__body">
+                <span className="flow-summary__label">이번 달 지출</span>
+                <span className="flow-summary__value flow-summary__value--expense">
+                  -{TOTAL_EXPENSE.toLocaleString()}원
+                </span>
+              </span>
+            </div>
+          </div>
+
           <IncomeExpenseCalendar
             year={year}
             month={month}
@@ -159,50 +237,51 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
                 <p className="flow-receipt__empty">내역이 없어요.</p>
               ) : (
                 <div className="flow-receipt__paper">
-                  {selectedDayItems.map((item, index) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="flow-receipt__item money-tappable"
-                      onClick={() => setSelectedItemId(item.id)}
-                    >
-                      {index > 0 && <span className="flow-receipt__divider" aria-hidden="true" />}
-                      <span className="flow-receipt__icon">
-                        <img src={icon(item.icon)} alt="" />
-                      </span>
-                      <span className="flow-receipt__info">
-                        <span className="flow-receipt__name">{item.name}</span>
-                        <span className="flow-receipt__meta">
-                          {typeLabel(item)} · {transactionTime(item.id)}
-                        </span>
-                      </span>
-                      <span className={`flow-receipt__amount flow-receipt__amount--${item.type}`}>
-                        {item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}
-                        {item.amount.toLocaleString()}원
-                      </span>
-                    </button>
-                  ))}
+                  {(['income', 'expense', 'transfer'] as FlowType[]).map((type) => {
+                    const items = selectedDayItems.filter((item) => item.type === type);
+                    if (items.length === 0) return null;
+                    const groupTotal = items.reduce((sum, item) => sum + item.amount, 0);
+                    return (
+                      <div key={type} className={`flow-receipt__group flow-receipt__group--${type}`}>
+                        <div className="flow-receipt__group-head">
+                          <span className="flow-receipt__group-label">
+                            {typeGroupLabel(type)} {items.length}건
+                          </span>
+                          <span className="flow-receipt__group-total">
+                            {type === 'income' ? '+' : type === 'expense' ? '-' : ''}
+                            {groupTotal.toLocaleString()}원
+                          </span>
+                        </div>
+                        {items.map((item, index) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="flow-receipt__item money-tappable"
+                            onClick={() => setSelectedItemId(item.id)}
+                          >
+                            {index > 0 && <span className="flow-receipt__divider" aria-hidden="true" />}
+                            <span className="flow-receipt__icon">
+                              <img src={icon(item.icon)} alt="" />
+                            </span>
+                            <span className="flow-receipt__info">
+                              <span className="flow-receipt__name">{item.name}</span>
+                              <span className="flow-receipt__meta">
+                                {typeLabel(item)} · {transactionTime(item.id)}
+                              </span>
+                            </span>
+                            <span className={`flow-receipt__amount flow-receipt__amount--${item.type}`}>
+                              {item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}
+                              {item.amount.toLocaleString()}원
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
           )}
-
-          <div className="flow-summary-cards">
-            <div className="flow-summary-card flow-summary-card--income">
-              <span className="flow-summary-card__icon">
-                <img src={icon('money-income.svg')} alt="" />
-              </span>
-              <span className="flow-summary-card__label">이번 달 수입</span>
-              <span className="flow-summary-card__value">+{TOTAL_INCOME.toLocaleString()}원</span>
-            </div>
-            <div className="flow-summary-card flow-summary-card--expense">
-              <span className="flow-summary-card__icon">
-                <img src={icon('money-spend.svg')} alt="" />
-              </span>
-              <span className="flow-summary-card__label">이번 달 지출</span>
-              <span className="flow-summary-card__value">-{TOTAL_EXPENSE.toLocaleString()}원</span>
-            </div>
-          </div>
 
           {CONSUME_DIFF !== 0 && (
             <p className="flow-insight">
@@ -219,95 +298,153 @@ export function IncomeExpenseSection({ onNotice }: IncomeExpenseSectionProps) {
         </>
       ) : (
         <>
-          <div className="flow-date-nav">
-            <button
-              type="button"
-              className="flow-date-nav__arrow"
-              aria-label="이전 날짜"
-              onClick={() => setListDay((d) => Math.max(1, d - 1))}
-            >
-              <img src={icon('chevron-right-sm.svg')} alt="" className="is-prev" />
-            </button>
-            <span className="flow-date-nav__label">
-              {year}년 {month + 1}월 {listDay}일
-            </span>
-            <button
-              type="button"
-              className="flow-date-nav__arrow"
-              aria-label="다음 날짜"
-              onClick={() => setListDay((d) => Math.min(new Date(year, month + 1, 0).getDate(), d + 1))}
-            >
-              <img src={icon('chevron-right-sm.svg')} alt="" />
-            </button>
-          </div>
-
-          <div className="flow-filter">
-            <div className="flow-filter__pills" role="tablist" aria-label="구분 필터">
-              {(Object.keys(TYPE_FILTER_LABEL) as TypeFilter[]).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={typeFilter === key}
-                  className={`flow-filter__pill${typeFilter === key ? ' is-active' : ''}`}
-                  onClick={() => setTypeFilter(key)}
-                >
-                  {TYPE_FILTER_LABEL[key]}
-                </button>
-              ))}
-            </div>
-            <label className="flow-filter__category">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as CategoryKey | 'all')}
-                aria-label="카테고리 필터"
+          <div className="flow-list-toolbar">
+            <div className="flow-list-toolbar__month">
+              <button
+                type="button"
+                className="flow-month-nav__arrow"
+                aria-label="이전 달"
+                onClick={() => goCalendarMonth(-1)}
               >
-                <option value="all">카테고리</option>
-                {CATEGORY_META.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <img src={icon('chevron-down-thin.svg')} alt="" aria-hidden="true" />
-            </label>
+                <img src={icon('chevron-right-sm.svg')} alt="" className="is-prev" />
+              </button>
+              <button
+                type="button"
+                className="flow-list-toolbar__month-btn"
+                onClick={() => onNotice('월 선택 기능은 준비 중이에요.')}
+              >
+                {year}년 {month + 1}월
+                <img src={icon('chevron-down-thin.svg')} alt="" />
+              </button>
+              <button
+                type="button"
+                className="flow-month-nav__arrow"
+                aria-label="다음 달"
+                onClick={() => goCalendarMonth(1)}
+              >
+                <img src={icon('chevron-right-sm.svg')} alt="" />
+              </button>
+            </div>
+            <div className="flow-list-toolbar__actions">
+              <button
+                type="button"
+                className="flow-list-toolbar__icon-btn"
+                aria-label="검색"
+                onClick={() => onNotice('검색 기능은 준비 중이에요.')}
+              >
+                <img src={icon('community-search.svg')} alt="" />
+              </button>
+              <div className="flow-sort" ref={sortRef}>
+                <button
+                  type="button"
+                  className="flow-list-toolbar__icon-btn"
+                  aria-haspopup="listbox"
+                  aria-expanded={sortOpen}
+                  aria-label="정렬"
+                  onClick={() => setSortOpen((open) => !open)}
+                >
+                  <img src={icon('community-filter.svg')} alt="" />
+                </button>
+                <ul className="flow-sort__list" role="listbox" hidden={!sortOpen}>
+                  {SORT_OPTIONS.map((option) => (
+                    <li key={option} role="option" aria-selected={option === sortOption}>
+                      <button
+                        type="button"
+                        className={option === sortOption ? 'is-selected' : undefined}
+                        onClick={() => {
+                          setSortOption(option);
+                          setSortOpen(false);
+                        }}
+                      >
+                        {option}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
 
-          <div className="flow-day-summary">
-            <span className="flow-day-summary__chip flow-day-summary__chip--income">
-              <img src={icon('money-income.svg')} alt="" />
-              수입
-              <strong>{listDayTotals.income.toLocaleString()}원</strong>
-            </span>
-            <span className="flow-day-summary__chip flow-day-summary__chip--expense">
-              <img src={icon('money-spend.svg')} alt="" />
-              지출
-              <strong>{listDayTotals.expense.toLocaleString()}원</strong>
-            </span>
+          <div className="flow-filter__pills" role="tablist" aria-label="구분 필터">
+            {(Object.keys(TYPE_FILTER_LABEL) as TypeFilter[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={typeFilter === key}
+                className={`flow-filter__pill${typeFilter === key ? ' is-active' : ''}`}
+                onClick={() => setTypeFilter(key)}
+              >
+                {TYPE_FILTER_LABEL[key]}
+              </button>
+            ))}
+          </div>
+
+          <div className="flow-category-chips">
+            {categoryChips.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                aria-pressed={categoryFilter === c.key}
+                className={`flow-category-chip${categoryFilter === c.key ? ' is-active' : ''}`}
+                style={{ background: `color-mix(in srgb, ${c.color} 14%, white)` }}
+                onClick={() => setCategoryFilter((prev) => (prev === c.key ? 'all' : c.key))}
+              >
+                <img src={icon(c.icon)} alt="" />
+                {c.label}
+              </button>
+            ))}
           </div>
 
           <div className="flow-list">
             {listGroups.length === 0 ? (
               <p className="flow-list__empty">조건에 맞는 내역이 없어요.</p>
-            ) : (
-              listGroups.map((group) => (
-                <div key={group.day} className="flow-day-group">
-                  {group.day !== listDay && (
-                    <p className="flow-day-group__label">
-                      {group.label} · 총 {group.items.length}건
-                      {group.expense > 0 && ` -${group.expense.toLocaleString()}원`}
-                      {group.income > 0 && ` +${group.income.toLocaleString()}원`}
-                    </p>
-                  )}
-                  {group.items.map((t) => (
-                    <FlowRow key={t.id} item={t} onClick={() => setSelectedItemId(t.id)} />
-                  ))}
-                </div>
+            ) : isAmountSort ? (
+              sortedFlatItems.map((t) => (
+                <FlowRow
+                  key={t.id}
+                  item={t}
+                  dateLabel={dayGroupLabel(year, month, t.day)}
+                  onClick={() => setSelectedItemId(t.id)}
+                />
               ))
+            ) : (
+              sortedGroups.map((group) => {
+                const collapsed = collapsedDays.has(group.day);
+                return (
+                  <div key={group.day} className="flow-day-group">
+                    <button
+                      type="button"
+                      className="flow-day-group__header"
+                      aria-expanded={!collapsed}
+                      onClick={() => toggleDayCollapsed(group.day)}
+                    >
+                      <span className="flow-day-group__label">{dayGroupLabel(year, month, group.day)}</span>
+                      <img
+                        className={`flow-day-group__chevron${collapsed ? '' : ' is-open'}`}
+                        src={icon('chevron-down-thin.svg')}
+                        alt=""
+                      />
+                    </button>
+                    {!collapsed &&
+                      group.items.map((t) => (
+                        <FlowRow key={t.id} item={t} onClick={() => setSelectedItemId(t.id)} />
+                      ))}
+                  </div>
+                );
+              })
             )}
           </div>
         </>
       )}
+
+      <button
+        type="button"
+        className="flow-list__add"
+        onClick={() => onNotice('수입·지출 직접 추가 기능은 준비 중이에요.')}
+      >
+        + 수입·지출 직접 추가하기
+      </button>
 
       {selectedItem && (
         <FlowItemDetail item={selectedItem} onClose={() => setSelectedItemId(null)} onNotice={onNotice} />
@@ -327,7 +464,21 @@ function typeLabel(item: MoneyFlowItem): string {
   return '이체';
 }
 
-function FlowRow({ item, onClick }: { item: MoneyFlowItem; onClick: () => void }) {
+/** 선택한 날짜 상세의 그룹 헤더 라벨 — "수입 N건"/"지출 N건"/"이체 N건". */
+function typeGroupLabel(type: FlowType): string {
+  if (type === 'income') return '수입';
+  if (type === 'expense') return '지출';
+  return '이체';
+}
+
+interface FlowRowProps {
+  item: MoneyFlowItem;
+  onClick: () => void;
+  /** 금액순 정렬처럼 날짜 그룹 헤더 없이 평평하게 보여줄 때만 날짜를 같이 표시한다 */
+  dateLabel?: string;
+}
+
+function FlowRow({ item, onClick, dateLabel }: FlowRowProps) {
   const meta = item.category ? CATEGORY_META.find((c) => c.key === item.category) : undefined;
   const color = item.type === 'income' ? '#2f6fd6' : item.type === 'transfer' ? 'var(--text-tertiary)' : meta?.color;
   return (
@@ -340,7 +491,10 @@ function FlowRow({ item, onClick }: { item: MoneyFlowItem; onClick: () => void }
       </span>
       <span className="flow-row__text">
         <span className="flow-row__name">{item.name}</span>
-        <span className="flow-row__category">{typeLabel(item)}</span>
+        <span className="flow-row__category">
+          {typeLabel(item)}
+          {dateLabel ? ` · ${dateLabel}` : ''}
+        </span>
       </span>
       <span className={`flow-row__amount flow-row__amount--${item.type}`}>
         {item.type === 'income' ? '+' : item.type === 'expense' ? '-' : ''}
