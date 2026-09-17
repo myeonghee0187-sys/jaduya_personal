@@ -20,6 +20,7 @@ import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingPro
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
+import { getDemoAccountId } from '../auth/mockUsers';
 import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
 import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
@@ -48,6 +49,7 @@ type HomeSheetView = 'home' | 'recommend';
 export function Home() {
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
+  const isDemoAccount = !!user?.email && getDemoAccountId(user.email) !== null;
   const persona = user?.persona ?? DEFAULT_PERSONA;
   const content = HOME_PERSONA_CONTENT[persona];
   const personaProfile = PERSONA_PROFILE[persona];
@@ -206,7 +208,7 @@ export function Home() {
       className={`home app${sheet.isDragging ? ' is-dragging' : ''}`}
       data-sheet-state={sheet.state}
     >
-      <Hero />
+      <Hero showFallingLeaves={isDemoAccount} />
 
       <Header onMenuClick={() => layers.open('gnb')} />
 

@@ -1,0 +1,43 @@
+.carousel-dots {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 10px;
+  height: 22px;
+  padding: 0 7px;
+}
+
+.carousel-dots__dot {
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--carousel-dot-idle, var(--dot-idle));
+  transition: opacity 200ms ease;
+}
+
+.carousel-dots__dot.is-active {
+  opacity: 0;
+}
+
+.carousel-dots__active {
+  position: absolute;
+  /* top: 0; */
+  left: 0;
+  display: block;
+  width: 16px;
+  height: 16px;
+  max-width: none;
+  object-fit: contain;
+  pointer-events: none;
+  transition: transform 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-dots__dot,
+  .carousel-dots__active {
+    transition: none;
+  }
+}

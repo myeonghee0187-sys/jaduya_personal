@@ -53,6 +53,14 @@ export const GNB_CATEGORIES: GnbCategory[] = [
     ],
   },
   {
+    id: 'benefit',
+    name: '혜택',
+    iconFile: 'gnb-nav-benefit.svg',
+    /* 아직 혜택·복지 안에 별도 하위 화면이 없어 대표 화면 하나만 둔다 —
+     * 2열 구조에서는 대메뉴도 항상 우측에 최소 1개의 하위 메뉴로 나타나야 한다. */
+    items: [{ id: 'benefit-main', name: '혜택·복지', route: 'benefits' }],
+  },
+  {
     id: 'community',
     name: '커뮤니티',
     iconFile: 'gnb-nav-community.svg',
@@ -61,14 +69,6 @@ export const GNB_CATEGORIES: GnbCategory[] = [
       { id: 'community-tip', name: '자취꿀팁', route: 'community-tip' },
       { id: 'community-region', name: '지역후기', route: 'community-region' },
     ],
-  },
-  {
-    id: 'benefit',
-    name: '혜택',
-    iconFile: 'gnb-nav-benefit.svg',
-    /* 아직 혜택·복지 안에 별도 하위 화면이 없어 대표 화면 하나만 둔다 —
-     * 2열 구조에서는 대메뉴도 항상 우측에 최소 1개의 하위 메뉴로 나타나야 한다. */
-    items: [{ id: 'benefit-main', name: '혜택·복지', route: 'benefits' }],
   },
 ];
 

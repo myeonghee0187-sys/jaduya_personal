@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import type { Persona } from '../auth/mockUsers';
 import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CarouselDots } from '../components/CarouselDots';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
@@ -423,12 +424,7 @@ export function LifeFirstPage() {
             />
           </div>
           <div className="regret__pager">
-            {REGRETS.map((regret, index) => (
-              <span
-                key={regret.key}
-                className={`regret__dot${index === regretTop ? ' is-active' : ''}`}
-              />
-            ))}
+            <CarouselDots count={REGRETS.length} activeIndex={regretTop} />
             <span className="regret__status" aria-live="polite">
               후회 {regretTop + 1} / 전체 {REGRETS.length}
             </span>

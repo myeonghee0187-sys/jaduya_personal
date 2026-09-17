@@ -48,6 +48,128 @@
   cursor: grabbing;
 }
 
+/* 홈 진입 1초 뒤 나타나는 AI 기능 안내. FAB와 같은 .app 좌표계를 쓰되 레이아웃에는
+ * 참여하지 않고, 기본 FAB 자리 바로 위에서 오른쪽 프레임 밖으로 출입한다. */
+.ai-fab-hint {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--tab-bar-h) + 5vh + 84px);
+  z-index: 51;
+  box-sizing: border-box;
+  width: min(310px, calc(100% - 32px));
+  min-height: 82px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: 17px 42px 16px 18px;
+  border: 1px solid rgba(233, 222, 209, 0.72);
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  box-shadow: 0 8px 24px rgba(59, 51, 46, 0.13);
+  opacity: 0;
+  transform: translate3d(115%, 0, 0);
+  transform-origin: center;
+  pointer-events: none;
+  transition:
+    opacity 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+
+.ai-fab-hint.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  pointer-events: auto;
+}
+
+/* 닫기·자동 종료 시 형태를 바꾸지 않고 화면 오른쪽 바깥으로 천천히 빠진다. */
+.ai-fab-hint.is-exiting {
+  opacity: 0;
+  transform: translate3d(115%, 0, 0);
+  pointer-events: none;
+  transition:
+    opacity 3333ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 3333ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ai-fab-hint::after {
+  content: '';
+  position: absolute;
+  right: 39px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid rgba(233, 222, 209, 0.72);
+  border-bottom: 1px solid rgba(233, 222, 209, 0.72);
+  background: var(--surface-base);
+  transform: rotate(45deg);
+}
+
+.ai-fab-hint__copy {
+  min-width: 0;
+}
+
+.ai-fab-hint__copy strong {
+  display: block;
+  margin: 0 0 5px;
+  color: var(--text-primary);
+  font: 700 15px/1.35 var(--font-a2z);
+  letter-spacing: -0.2px;
+  word-break: keep-all;
+}
+
+.ai-fab-hint__copy p {
+  position: relative;
+  margin: 0;
+  padding-left: 12px;
+  color: var(--text-secondary);
+  font: 400 12px/1.45 var(--font-suit);
+  word-break: keep-all;
+}
+
+.ai-fab-hint__copy p::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-green);
+}
+
+.ai-fab-hint__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ai-fab-hint__close img {
+  width: 16px;
+  height: 16px;
+}
+
+.ai-fab-hint__close:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-fab-hint {
+    transition: none;
+  }
+}
+
 /* 코치마크 "자두를 원하는 곳으로 옮겨보세요" 단계 전용 데모 — 실제 저장된 위치(left/top,
  * state)는 그대로 두고 transform 으로만 왕복한다. 가로로 반대쪽까지만 갔다 오면 "좌/우
  * 두 자리 중 하나"로 오해할 수 있어(실제로는 헤더 아래~바텀네비 위, 화면 어디든 놓을 수

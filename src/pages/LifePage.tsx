@@ -3,6 +3,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { CarouselDots } from '../components/CarouselDots';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
@@ -762,12 +763,7 @@ export function LifePage() {
 
           {/* 지금 몇 번째 팁인지만 알려주는 표시 — 복제 카드는 세지 않는다 */}
           <div className="life-tips__pager">
-            {TIPS.map((tip, index) => (
-              <span
-                key={tip.key}
-                className={`life-tips__dot${index === tipPage ? ' is-active' : ''}`}
-              />
-            ))}
+            <CarouselDots count={TIP_REAL_COUNT} activeIndex={tipPage} />
             <span className="life-tips__status" aria-live="polite">
               현재 해결팁 {tipPage + 1} / 전체 {TIP_REAL_COUNT}
             </span>

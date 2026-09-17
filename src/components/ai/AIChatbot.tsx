@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import '../../styles/ai-chatbot.css';
 import { AIChatbotButton } from './AIChatbotButton';
+import { AIChatbotHint } from './AIChatbotHint';
 import { aiFabRef } from './aiFabRef';
 import { playAIChatMorph } from './aiChatMorph';
 import { useAppNavigation } from '../../navigation/AppNavigation';
@@ -14,6 +15,8 @@ interface AIChatbotProps {
   hidden?: boolean;
   /** overlay가 FAB를 덮는 동안 DOM/위치는 유지하고 입력만 차단한다. */
   disabled?: boolean;
+  /** 홈 화면에 진입했을 때 AI 기능 안내를 한 번 재생한다. */
+  showEntryHint?: boolean;
 }
 
 /** 지금 AIChatbot과 같은 App 인스턴스 안에서 보이는 .app — Home 은 다른 화면에서도
@@ -37,7 +40,12 @@ function visibleApp(anchor: HTMLElement | null): HTMLElement | null {
  * 드래그로 옮긴 위치(컴포넌트 state)가 화면을 이동해도 그대로 남는다.
  *
  * 누르면 자두AI 전체 화면(AIChatPage)으로 이동한다. */
-export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIChatbotProps) {
+export function AIChatbot({
+  initialLift,
+  hidden = false,
+  disabled = false,
+  showEntryHint = false,
+}: AIChatbotProps) {
   const navigation = useAppNavigation();
   const page = navigation?.page;
 
@@ -76,14 +84,17 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
     <>
       <span ref={anchorRef} hidden aria-hidden="true" />
       {createPortal(
-        <AIChatbotButton
-          onClick={openChat}
-          initialLift={initialLift}
-          hidden={hidden}
-          disabled={disabled}
-          coachmarkRef={aiFabRef}
-          settleRef={settleRef}
-        />,
+        <>
+          <AIChatbotHint show={showEntryHint && !hidden && !disabled} />
+          <AIChatbotButton
+            onClick={openChat}
+            initialLift={initialLift}
+            hidden={hidden}
+            disabled={disabled}
+            coachmarkRef={aiFabRef}
+            settleRef={settleRef}
+          />
+        </>,
         hostRef.current,
       )}
     </>

@@ -1,3 +1,4 @@
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { INTEREST_TOPICS, loadLivingProfile } from '../data/livingProfile';
@@ -14,6 +15,11 @@ import { icon, img } from '../lib/asset';
  * --discovery-page-gap)와 아래 translateX 계산이 이 값 하나만 같이 쓴다(중복 하드코딩
  * 금지). 카드 내부 레이아웃이나 카드 사이 간격과는 무관하다. */
 const DISCOVERY_PAGE_GAP_PX = 4;
+
+/* 페이지네이션 클릭(탭/화살표)으로 넘어갈 때만 붙는 진입 애니메이션 지속 시간 —
+ * home.css 의 discovery-slide-enter-* 키프레임(300ms)과 반드시 같이 맞춘다. 살짝
+ * 여유(20ms)를 둬서 클래스가 애니메이션보다 먼저 떨어져 나가 중간에 끊기지 않게 한다. */
+const CLICK_NAV_ANIMATION_MS = 320;
 
 interface DiscoverySectionProps {
   /* 맞춤 추천 카드의 '설정하기' · 헤더의 '추천 설정' 공통 진입점 —
@@ -180,6 +186,32 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
    * swipe 가 쓰는 것과 같은 함수)를 그대로 써서 04 → 01 로 끊김 없이 돈다. */
   const isFirstPage = pageCarousel.index === 0;
 
+  /* 페이지네이션(탭/화살표) 클릭으로 넘어갈 때만 켜는 진입 애니메이션 방향 — 스와이프는
+   * 이미 트랙이 손가락을 따라 자연스럽게 넘어가므로 건드리지 않는다(이 값이 null 이면
+   * 트랙도 원래 320ms 슬라이드 transition 을 그대로 쓰고, 슬라이드에도 진입 클래스를
+   * 붙이지 않는다 — 즉 스와이프 결과는 지금과 완전히 동일하게 보인다).
+   * setClickNavDirection 과 pageCarousel.goTo/goNext 호출을 한 이벤트 핸들러(triggerClickNav)
+   * 안에서 같이 하므로 React 가 같은 커밋으로 묶어, index 가 바뀌는 바로 그 렌더에서부터
+   * 정확한 방향이 반영된다(effect 로 한 박자 늦게 따라잡을 필요가 없다). */
+  const [clickNavDirection, setClickNavDirection] = useState<'next' | 'prev' | null>(null);
+  const clickNavTimeoutRef = useRef<number>();
+
+  useEffect(() => () => window.clearTimeout(clickNavTimeoutRef.current), []);
+
+  const triggerClickNav = (direction: 'next' | 'prev', navigate: () => void) => {
+    navigate();
+    setClickNavDirection(direction);
+    window.clearTimeout(clickNavTimeoutRef.current);
+    clickNavTimeoutRef.current = window.setTimeout(() => setClickNavDirection(null), CLICK_NAV_ANIMATION_MS);
+  };
+
+  const handlePrevClick = () => triggerClickNav('prev', () => pageCarousel.goTo(pageCarousel.index - 1));
+  const handleNextClick = () => triggerClickNav('next', pageCarousel.goNext);
+  const handleTabClick = (index: number) => {
+    if (index === pageCarousel.index) return;
+    triggerClickNav(index > pageCarousel.index ? 'next' : 'prev', () => pageCarousel.goTo(index));
+  };
+
   return (
     <section className="discovery">
       <div className="discovery__top">
@@ -200,34 +232,36 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
           className="discovery__page-chevron"
           aria-label="이전 페이지"
           disabled={isFirstPage}
-          onClick={() => pageCarousel.goTo(pageCarousel.index - 1)}
+          onClick={handlePrevClick}
         >
           <span aria-hidden="true">‹</span>
         </button>
         {pages.map(({ key, day }, index) => {
           const isActive = index === pageCarousel.index;
-          const isLast = index === pages.length - 1;
           return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              className={`discovery__page-item${isActive ? ' is-active' : ''}`}
-              aria-selected={isActive}
-              aria-label={day.date}
-              onClick={() => pageCarousel.goTo(index)}
-            >
-              {isActive && isLast && <span className="discovery__page-line" aria-hidden="true" />}
-              <span className="discovery__page-num">{String(index + 1).padStart(2, '0')}</span>
-              {isActive && !isLast && <span className="discovery__page-line" aria-hidden="true" />}
-            </button>
+            <Fragment key={key}>
+              <button
+                type="button"
+                role="tab"
+                className={`discovery__page-item${isActive ? ' is-active' : ''}`}
+                aria-selected={isActive}
+                aria-label={day.date}
+                onClick={() => handleTabClick(index)}
+              >
+                {String(index + 1).padStart(2, '0')}
+              </button>
+              <span
+                className={`discovery__page-line${isActive ? ' is-active' : ''}`}
+                aria-hidden="true"
+              />
+            </Fragment>
           );
         })}
         <button
           type="button"
           className="discovery__page-chevron"
           aria-label="다음 페이지"
-          onClick={pageCarousel.goNext}
+          onClick={handleNextClick}
         >
           <span aria-hidden="true">›</span>
         </button>
@@ -239,7 +273,9 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
         <div className="discovery-page__carousel">
           <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
             <div
-              className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}`}
+              className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}${
+                clickNavDirection ? ' is-instant' : ''
+              }`}
               style={
                 {
                   '--discovery-page-gap': `${DISCOVERY_PAGE_GAP_PX}px`,
@@ -247,11 +283,19 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
                 } as CSSProperties
               }
             >
-              {pages.map(({ key, day, tip }) => (
-                <div className="discovery-page__slide" key={key}>
-                  <DiscoveryPage day={day} tip={tip} onOpenRecommendSetup={onOpenRecommendSetup} />
-                </div>
-              ))}
+              {pages.map(({ key, day, tip }, index) => {
+                const isActive = index === pageCarousel.index;
+                return (
+                  <div
+                    className={`discovery-page__slide${
+                      isActive && clickNavDirection ? ` is-entering-${clickNavDirection}` : ''
+                    }`}
+                    key={key}
+                  >
+                    <DiscoveryPage day={day} tip={tip} onOpenRecommendSetup={onOpenRecommendSetup} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

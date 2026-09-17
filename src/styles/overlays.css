@@ -161,7 +161,10 @@
 }
 
 .gnb__content {
-  padding: 20px var(--screen-margin) 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 20px 0 0;
 }
 
 /* ---- main menu: 좌측 대메뉴 / 우측 하위 메뉴 2열 구조 ----
@@ -171,8 +174,8 @@
  * 행만 흰색(#FFFFFF)으로 떠 보인다. border/indicator/텍스트 색 강조는 쓰지 않는다. */
 .gnb-menu2 {
   display: flex;
+  flex: 1 0 360px;
   align-items: stretch;
-  border-radius: var(--radius-l);
   overflow: hidden;
   border: 1px solid rgba(242, 236, 228, 0.7);
 }
@@ -181,17 +184,37 @@
   flex: 0 0 112px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
   background-color: var(--surface-widget);
+}
+
+.gnb-menu2__category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gnb-menu2__utility {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  margin-bottom: 24px;
+}
+
+.gnb-menu2__utility-link {
+  display: block;
+  padding: 12px;
+  font-family: var(--font-suit);
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333333;
 }
 
 .gnb-menu2__category {
   display: flex;
   align-items: center;
   gap: var(--space-2xs);
-  padding: 10px 8px;
-  border-radius: var(--radius-m);
+  padding: 16px 8px;
   background-color: transparent;
   text-align: left;
 }
@@ -231,14 +254,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px;
-  /* 좌측과 같은 "연한 그레이 트랙" — 선택된 행이 흰색으로 뜨는 기준면이다 */
-  background-color: var(--surface-widget);
+  background-color: #fff;
 }
 
 .gnb-menu2__item {
   display: block;
-  padding: 12px 10px;
+  padding: 16px 10px;
   border-radius: var(--radius-s);
   background-color: transparent;
   font-family: var(--font-suit);
@@ -264,7 +285,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-top: 28px;
+  padding: 0 26px 28px;
 }
 
 .gnb-mymenu__head {
@@ -291,7 +312,7 @@
 
 .shortcut-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -306,19 +327,23 @@
 
 .shortcut {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
-  height: 46px;
-  padding: 1px 15px;
+  justify-content: center;
+  gap: 6px;
+  height: 60px;
+  min-width: 0;
+  padding: 6px 4px;
   border: 1px solid #e8c4c3;
   border-radius: var(--radius-m);
+  background: #fff;
 }
 
 /* 내 메뉴에 보이는 항목은 모두 사용자가 등록한 메뉴다 — 아이콘 색을 primary 로 통일한다.
  * 원본 SVG 는 파일마다 색이 달라서(#B43936 / #252525 / black) mask 로 모양만 가져온다. */
 .shortcut__icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: none;
   background-color: var(--brand-primary);
   -webkit-mask-size: contain;
@@ -332,7 +357,8 @@
 .shortcut__label {
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 14px;
+  max-width: 100%;
+  font-size: 12px;
   line-height: 1.3;
   letter-spacing: -0.14px;
   color: #44403c;
@@ -340,29 +366,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* ---- divider / personal ---- */
-
-.gnb__divider {
-  height: 1px;
-  margin: 24px 0;
-  border-top: 1px solid rgba(242, 236, 228, 0.6);
-}
-
-.gnb-personal { padding-bottom: 24px; }
-
-.gnb-personal__link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-family: var(--font-suit);
-  font-size: 14px;
-  line-height: 1.4;
-  color: #57534e;
-}
-
-.gnb-personal__chevron { width: 5.29px; height: 8.74px; }
 
 /* ================= ② gnb_my_menu_edit ================= */
 
@@ -490,6 +493,7 @@
 }
 
 .menu-edit__status {
+  display: none;
   font-family: var(--font-suit);
   font-size: 12px;
   line-height: 1.4;
@@ -527,21 +531,26 @@
 }
 
 .menu-card {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  height: 46px;
-  padding: 1px 13px;
+  justify-content: center;
+  gap: 6px;
+  height: 60px;
+  min-width: 0;
+  padding: 6px 4px;
   border-radius: var(--radius-m);
-  text-align: left;
+  text-align: center;
   width: 100%;
 }
 
 .menu-card__main {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 6px;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -549,8 +558,8 @@
  * 원본 SVG 는 파일마다 색이 다르게 박혀 있어서(#B43936 / #252525 / black)
  * mask 로 모양만 가져오고 색은 여기서 한 번에 정한다. */
 .menu-card__icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: none;
   background-color: #2f2f2f;
   -webkit-mask-size: contain;
@@ -568,9 +577,12 @@
 }
 
 .menu-card__label {
+  max-width: 100%;
   font-family: var(--font-suit);
-  font-size: 14px;
-  line-height: 1.4;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  letter-spacing: -0.14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -597,7 +609,9 @@
 }
 
 .menu-card--off .menu-card__label { color: #292524; }
-.menu-card--off .menu-card__mark { width: 10.125px; height: 10.125px; flex: none; }
+.menu-card--off .menu-card__mark {
+  display: none;
+}
 
 .menu-card--off[disabled] { cursor: default; }
 

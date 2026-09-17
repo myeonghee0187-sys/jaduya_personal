@@ -3,6 +3,7 @@ import { DEFAULT_MENU, MAX_MENU, MENU_CATALOG, findMenu } from '../data/menuCata
 import { useDraftSelection } from '../hooks/useDraftSelection';
 import { BottomSheet } from './BottomSheet';
 import { MenuCard } from './MenuCard';
+import { ShortcutCard } from './ShortcutCard';
 
 interface MyMenuEditProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function MyMenuEdit({ open, draft, onClose, onSave }: MyMenuEditProps) {
             {draft.draft.map((id) => {
               const item = findMenu(id);
               return item ? (
-                <MenuCard key={id} item={item} selected onClick={draft.remove} />
+                <ShortcutCard key={id} item={item} onSelect={() => draft.remove(id)} />
               ) : null;
             })}
           </div>
