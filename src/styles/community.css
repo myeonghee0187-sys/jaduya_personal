@@ -25,7 +25,7 @@
 
 /* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .community.app {
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 /* 헤더·탭바는 고정이고 이 영역만 스크롤한다. */
@@ -1154,7 +1154,7 @@
  * display:none 대신 opacity/transform/visibility 전환으로 처리해 애니메이션을 건다. */
 
 .write-panel {
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
   opacity: 1;
@@ -1643,7 +1643,7 @@
 
 .draft-list-panel {
   z-index: 65;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
   opacity: 1;
@@ -1854,7 +1854,7 @@
 /* ================= 게시글 상세보기 — write-panel과 같은 슬라이드인 오버레이 구조 ================= */
 
 .post-detail {
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   display: flex;
   flex-direction: column;
   opacity: 1;
@@ -2062,7 +2062,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   padding: 16px 0;
   margin: 0 calc(var(--screen-margin) * -1) 8px;
   padding-left: var(--screen-margin);

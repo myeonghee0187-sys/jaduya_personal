@@ -7,7 +7,7 @@
   z-index: 70;
   display: grid;
   place-items: center;
-  background: #fffaf5;
+  background: var(--surface-page);
   opacity: 1;
   transition: opacity 250ms ease;
 }

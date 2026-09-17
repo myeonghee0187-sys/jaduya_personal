@@ -15,7 +15,7 @@
 
 /* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .mypage.app {
-  background: var(--surface-warm);
+  background: var(--surface-page);
 }
 
 /* ================= 스크롤 영역 ================= */

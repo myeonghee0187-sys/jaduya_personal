@@ -25,7 +25,7 @@
 
 /* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .daily-care.app {
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 /* ================= 하위 탭 ================= */

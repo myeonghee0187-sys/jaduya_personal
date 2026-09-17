@@ -7,7 +7,7 @@
 .money.app {
   display: flex;
   flex-direction: column;
-  background: var(--surface-warm);
+  background: var(--surface-page);
 }
 
 .money__scroll {
@@ -3353,7 +3353,7 @@ button.fund-card__remaining--tap {
 .budget-setup.app {
   display: flex;
   flex-direction: column;
-  background: var(--surface-warm);
+  background: var(--surface-page);
 }
 
 .budget-setup__scroll {
@@ -5089,7 +5089,7 @@ button.fund-card__remaining--tap {
 .money-accounts.app {
   display: flex;
   flex-direction: column;
-  background: var(--surface-warm);
+  background: var(--surface-page);
 }
 
 .money-accounts__scroll {

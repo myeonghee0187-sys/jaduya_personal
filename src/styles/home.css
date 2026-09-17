@@ -46,7 +46,7 @@ a { text-decoration: none; color: inherit; }
   width: var(--frame-width);
   height: var(--frame-height);
   overflow: hidden;
-  background: var(--screen-base);
+  background: var(--surface-page);
 
   /* Bottom Sheet 상태 값 */
   --sheet-top: 575px;          /* home_1 : peek */
@@ -68,7 +68,7 @@ a { text-decoration: none; color: inherit; }
  * .app 의 기본 배경(--screen-base, 핑크)이 아니라 이 하늘색이 보이게 한다.
  * 클래스 두 개짜리 선택자라 .app 보다 명시도가 높아 순서와 무관하게 이긴다. */
 .home.app {
-  background: #90d2f9;
+  background: var(--surface-page);
 }
 
 /* 예전엔 여기서 402px 보다 좁거나 짧은 화면의 .app 바깥 여백(레터박스) 배경을
@@ -339,7 +339,7 @@ a { text-decoration: none; color: inherit; }
   width: var(--frame-width);
   overflow: hidden;
   border-radius: 22px 22px 0 0;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
   box-shadow: 0 -5px 6.8px 0 rgba(0, 0, 0, 0.05);
   transition: top 320ms cubic-bezier(0.32, 0.72, 0, 1);
 }
