@@ -18,8 +18,13 @@ interface MyLifeSectionProps {
   placement: PlacementState;
   /** 하트 표기 — data/personaProfile.ts 의 resolveLevel() 결과 (예: 1,200) */
   heartsLabel: string;
-  /** 레벨 표기 — 같은 원본에서 계산한다. 마이페이지와 값이 어긋나면 안 된다 (예: Level.41) */
+  /** 레벨 표기 — 같은 원본에서 계산한다. 마이페이지와 값이 어긋나면 안 된다 (예: Lv.1) */
   levelLabel: string;
+  /** 현재 페르소나의 성장 단계 아이콘과 이름 — personaProfile.resolveLevel() 결과 */
+  levelIcon: string;
+  levelStageName: string;
+  /** 레벨 안내 그룹 전체를 눌렀을 때 현재 버튼을 기준으로 공용 안내 팝오버를 연다 */
+  onOpenLevelInfo?: (anchor: HTMLElement) => void;
   /** '+' 위젯 추가 슬롯을 눌렀을 때 — 위젯 관리 화면으로 이동한다 */
   onAddWidget?: () => void;
   /** 아래 두 ref 는 코치마크가 강조 영역을 잴 때만 쓴다. 평소 렌더링에는 영향 없다. */
@@ -33,6 +38,9 @@ export function MyLifeSection({
   placement,
   heartsLabel,
   levelLabel,
+  levelIcon,
+  levelStageName,
+  onOpenLevelInfo,
   onAddWidget,
   statusRef,
   addSlotRef,
@@ -56,10 +64,16 @@ export function MyLifeSection({
             <span className="stat-bar__bar">{heartsLabel}</span>
             <img className="stat-bar__badge" src={img('badge-love.png')} alt="" />
           </div>
-          <div className="stat-bar stat-bar--level">
+          <button
+            type="button"
+            className="stat-bar stat-bar--level"
+            aria-label={`${levelStageName} ${levelLabel}, 자취 레벨 안내 보기`}
+            aria-haspopup="dialog"
+            onClick={(event) => onOpenLevelInfo?.(event.currentTarget)}
+          >
+            <img className="stat-bar__badge" src={levelIcon} alt={`${levelStageName} 레벨`} />
             <span className="stat-bar__bar">{levelLabel}</span>
-            <img className="stat-bar__badge" src={img('badge-level.png')} alt="" />
-          </div>
+          </button>
         </div>
       </div>
 

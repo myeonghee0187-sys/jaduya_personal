@@ -562,7 +562,7 @@ a { text-decoration: none; color: inherit; }
 
 .section-header__status {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
 }
 
@@ -587,13 +587,48 @@ a { text-decoration: none; color: inherit; }
 
 .stat-bar__badge { position: absolute; object-fit: contain; }
 
-.stat-bar--love { width: 73px; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.11)); }
+.stat-bar--love {
+  width: 73px;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.11));
+  display: none;
+}
 .stat-bar--love .stat-bar__bar { left: 16px; right: 0; padding-left: 18px; }
 .stat-bar--love .stat-bar__badge { left: 0; top: 5px; width: 34px; height: 31px; }
 
-.stat-bar--level { width: 100px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.11)); }
-.stat-bar--level .stat-bar__bar { left: 14px; width: 86px; padding-left: 27px; }
-.stat-bar--level .stat-bar__badge { left: 0; top: 0; width: 36px; height: 36px; }
+.stat-bar--level {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.11));
+}
+.stat-bar--level:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.stat-bar--level .stat-bar__bar {
+  position: static;
+  height: 27px;
+  padding: 0 10px 0 28px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.stat-bar--level .stat-bar__badge {
+  position: relative;
+  left: 28%;
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
 
 /* ---- Personal Widget Canvas (342 × 194) ---- */
 

@@ -41,7 +41,13 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     name: '김하린',
     persona: 'worker',
     onboarded: true,
-    preferences: null,
+    preferences: {
+      completedAt: '2026-09-01T00:00:00.000Z',
+      answers: {
+        interests: ['생활 꿀팁', '돈 관리'],
+        stage: ['자취에 조금 익숙해졌어요'],
+      },
+    },
     description: '직장인 자취러',
   },
   'seojun@jaduya.com': {
@@ -50,7 +56,13 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     name: '이서준',
     persona: 'beginner',
     onboarded: true,
-    preferences: null,
+    preferences: {
+      completedAt: '2026-09-01T00:00:00.000Z',
+      answers: {
+        interests: ['자취 준비', '생활 꿀팁'],
+        stage: ['자취 준비 중'],
+      },
+    },
     description: '자취 초보',
   },
   'ayoung@jaduya.com': {
@@ -59,7 +71,13 @@ export const MOCK_USERS: Record<string, MockAccount> = {
     name: '조아영',
     persona: 'pet',
     onboarded: true,
-    preferences: null,
+    preferences: {
+      completedAt: '2026-09-01T00:00:00.000Z',
+      answers: {
+        interests: ['생활 꿀팁', '동네 · 커뮤니티'],
+        stage: ['자취에 조금 익숙해졌어요'],
+      },
+    },
     description: '반려동물과 함께 사는 자취러',
   },
 };

@@ -6,14 +6,25 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { StatusBar } from '../components/StatusBar';
 import { LeafletRepairMap } from '../components/ai/LeafletRepairMap';
 import { aiFabRef } from '../components/ai/aiFabRef';
-import { AI_SCENARIOS, MOLD_CARE_RESULTS, repairSearchLocationStep, resolveMoldLocation, resolveScenarioRepairKind, scenarioStage } from '../data/aiScenarios';
+import {
+  AI_SCENARIOS,
+  MOLD_CARE_RESULTS,
+  repairSearchLocationStep,
+  moveInAddressCheckStep,
+  moveInAddressConfirmStep,
+  moveInRegistrationReadyStep,
+  resolveMoldLocation,
+  resolveScenarioRepairKind,
+  scenarioStage,
+} from '../data/aiScenarios';
 import { resolveConversationInput } from '../data/resolveConversationInput';
 import type { AIConversationContext, ScenarioCta, ScenarioUserContext } from '../data/aiScenarios';
-import { AI_PROMPTS_BY_PERSONA } from '../data/aiPersonaPrompts';
+import { AI_FIRST_SCREEN_PROMPTS } from '../data/aiPersonaPrompts';
 import type { AIPersonaPrompt } from '../data/aiPersonaPrompts';
 import { HOUSING_TYPES, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { loadAIChatSettings, saveAIChatSettings } from '../data/aiChatSettings';
 import type { AILocation } from '../data/aiChatSettings';
+import { markPendingMoveInChecklistReturn, consumePendingMoveInChecklistReturn } from '../data/moveInChecklistReturn';
 import { reverseGeocodeKoreanLocation, searchKoreanLocations } from '../data/locationSearch';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon, img } from '../lib/asset';
@@ -747,6 +758,10 @@ export function AIChatPage() {
   const [locationNotice, setLocationNotice] = useState('');
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [isRepairLocationModalOpen, setIsRepairLocationModalOpen] = useState(false);
+  /* 이 지역 검색 모달은 수리업체 지역 설정과 pre-move-check 의 "새 집 주소" 확인 둘 다에서
+   * 쓴다 — 입력/검색/선택 UI는 그대로 재사용하고, 확인 버튼을 눌렀을 때의 동작(수리 검색
+   * 시작 vs 전입신고 준비 다음 단계로 진행)만 이 값으로 갈린다. */
+  const [locationModalPurpose, setLocationModalPurpose] = useState<'repair' | 'move-in-address'>('repair');
   const [isRepairSearchLoading, setIsRepairSearchLoading] = useState(false);
   const [isRepairMapOpen, setIsRepairMapOpen] = useState(false);
   const [repairMapState, setRepairMapState] = useState<'loading' | 'result' | 'empty' | 'error'>('loading');
@@ -803,7 +818,7 @@ export function AIChatPage() {
     housing: livingProfile.housing,
     contract: contractType,
   };
-  const personaPrompts = AI_PROMPTS_BY_PERSONA[user?.persona ?? 'beginner'];
+  const personaPrompts = AI_FIRST_SCREEN_PROMPTS;
 
   const appendAssistantMessage = (
     content: string,
@@ -891,6 +906,17 @@ export function AIChatPage() {
   };
 
   const openRepairLocationModal = () => {
+    setLocationModalPurpose('repair');
+    setLocationDraft(aiLocation);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+    setIsRepairLocationModalOpen(true);
+  };
+
+  /* pre-move-check "주소 입력하기 / 주소 변경하기" — 같은 모달을 새 집 주소 확인 목적으로 연다. */
+  const openMoveInAddressModal = () => {
+    setLocationModalPurpose('move-in-address');
     setLocationDraft(aiLocation);
     setLocationQuery('');
     setLocationResults([]);
@@ -915,6 +941,23 @@ export function AIChatPage() {
     setLocationResults([]);
     setLocationNotice('');
     startRepairSearch(locationDraft.displayName, 'new');
+  };
+
+  /* pre-move-check 에서 새 주소를 고르고 "설정하기"를 눌렀을 때 — 수리 검색과 달리 검색을
+   * 시작하지 않고, 같은 위치 저장소(AIChatSettings.location)에 저장한 뒤 conversation을
+   * address-confirm 단계로 이어간다. */
+  const saveMoveInAddress = () => {
+    if (!locationDraft) return;
+    saveAIChatSettings(user?.email ?? 'guest', { contractType, location: locationDraft });
+    setAiLocation(locationDraft);
+    setIsRepairLocationModalOpen(false);
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationNotice('');
+    const step = moveInAddressConfirmStep(locationDraft.displayName);
+    appendAssistantMessage(step.message, step.ctas.map((cta) => ({ ...cta })));
+    setConversation((current) =>
+      current.flowId === 'pre-move-check' ? { ...current, stage: 'address-confirm' } : current);
   };
 
   const openRepairMap = () => {
@@ -982,9 +1025,53 @@ export function AIChatPage() {
 
   const handleCta = (cta: ChatCta, source: string) => {
     switch (cta.action ?? cta.label) {
+      /* pre-move-check — 정보 제공에서 끝나지 않고 전입신고 준비까지 대화 안에서 이어간다.
+       * 아래 네 케이스가 그 실행형 플로우다(overview → address-check → address-confirm →
+       * registration-ready, aiScenarios.ts 의 moveIn* 헬퍼 참고). */
+      case 'start-registration-prep': {
+        const step = moveInAddressCheckStep(effectiveLocation);
+        appendAssistantMessage(step.message, step.ctas.map((stepCta) => ({ ...stepCta })));
+        setConversation((current) =>
+          current.flowId === 'pre-move-check' ? { ...current, stage: 'address-check' } : current);
+        return;
+      }
+      case 'open-move-in-address-search':
+        openMoveInAddressModal();
+        return;
+      case 'confirm-move-in-address': {
+        const confirmedLocation = effectiveLocation ?? '등록된 주소';
+        appendAssistantMessage(
+          moveInRegistrationReadyStep(profileContext, confirmedLocation),
+          [{ label: '전입신고 신청하기', action: 'open-move-in-registration-apply', recommended: true }],
+        );
+        setConversation((current) =>
+          current.flowId === 'pre-move-check'
+            ? {
+                ...current,
+                stage: 'registration-ready',
+                answers: { ...current.answers, moveInAddress: confirmedLocation, addressConfirmed: 'true' },
+              }
+            : current);
+        return;
+      }
+      case 'open-move-in-registration-apply':
+        /* 아직 입주 전이라 "신청 완료"가 아니라 실제 신청 경로(정부24)로만 연결한다. */
+        window.open('https://www.gov.kr', '_blank', 'noopener,noreferrer');
+        return;
+      case 'open-move-in-checklist-prompt':
+        /* 다른 내부 화면으로 넘어가기 전, 어디로/왜 가는지 먼저 알리고 확인을 받는다
+         * (곧바로 페이지를 전환하지 않는다). */
+        appendAssistantMessage(
+          '전체 체크리스트는 생활 메뉴에서 확인할 수 있어요.\n확인하고 돌아오시면 여기서 계속 도와드릴게요!',
+          [{ label: '체크리스트로 이동', action: 'open-move-in-checklist' }],
+        );
+        return;
       case 'open-move-in-checklist':
+        /* life-first 에서 뒤로가기를 누르면(AppNavigation.goBack 의 reopenAIChat) 자두AI가
+         * 다시 열린다 — 이 신호로 그때 한 번만 대화를 이어서 시작한다(중복 방지). */
+        markPendingMoveInChecklistReturn();
         navigation?.closeAIChat();
-        navigation?.navigate('life-first');
+        navigation?.navigate('life-first', { returnTo: navigation.page, reopenAIChat: true });
         return;
       case 'open-life-homecare':
         navigation?.closeAIChat();
@@ -1468,7 +1555,6 @@ export function AIChatPage() {
       }
       setIsTerminalResult(
         scenarioReply?.conversation.stage === 'result'
-        || startedConversation?.stage === 'result'
         || reply?.diagnosis?.stage === 'result'
         || answersImageLocationQuestion
         || Boolean(answersAttachmentFollowup)
@@ -1564,6 +1650,22 @@ export function AIChatPage() {
     setIsTyping(false);
     setAiView('chat');
   };
+
+  /* life-first 체크리스트를 보고 "자두AI로 돌아가기"로 다시 열렸을 때만(마운트당 한 번),
+   * 나가기 전 conversation(계속 자동 저장되던 가장 최근 snapshot)을 그대로 복원하고
+   * 이어서 진행할지 물어본다 — messages/flowId/stage/answers 를 새로 만들지 않고 그대로 쓴다. */
+  useEffect(() => {
+    if (!consumePendingMoveInChecklistReturn()) return;
+    const latest = history[0];
+    if (!latest || latest.conversation.flowId !== 'pre-move-check') return;
+    openSavedConversation(latest);
+    appendAssistantMessage(
+      '체크리스트 확인하셨네요!\n그럼 전입신고 준비도 이어서 해볼까요?',
+      [{ label: '전입신고 준비하기', action: 'start-registration-prep', recommended: true }],
+    );
+    // 이 효과는 "자두AI가 방금 다시 열렸다"는 마운트 시점 한 번만 확인하면 된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startNewConversation = () => {
     const preservedCurrentConversation = persistConversationSnapshot(messages, conversation, diagnosis);
@@ -2194,8 +2296,14 @@ export function AIChatPage() {
             aria-describedby="repair-location-description"
           >
             <header>
-              <h2 id="repair-location-title">지역을 설정해주세요</h2>
-              <p id="repair-location-description">주변 수리업체를 찾으려면 지역 정보가 필요해요.</p>
+              <h2 id="repair-location-title">
+                {locationModalPurpose === 'move-in-address' ? '새 집 주소를 확인해주세요' : '지역을 설정해주세요'}
+              </h2>
+              <p id="repair-location-description">
+                {locationModalPurpose === 'move-in-address'
+                  ? '전입신고를 준비하려면 새 집 주소가 필요해요.'
+                  : '주변 수리업체를 찾으려면 지역 정보가 필요해요.'}
+              </p>
             </header>
             <form className="ai-chat-page__repair-location-search" onSubmit={submitLocationSearch}>
               <input
@@ -2231,7 +2339,14 @@ export function AIChatPage() {
             )}
             <div className="ai-chat-page__repair-location-actions">
               <button type="button" onClick={closeRepairLocationModal}>취소</button>
-              <button type="button" className="is-primary" disabled={!locationDraft} onClick={saveRepairLocation}>설정하기</button>
+              <button
+                type="button"
+                className="is-primary"
+                disabled={!locationDraft}
+                onClick={locationModalPurpose === 'move-in-address' ? saveMoveInAddress : saveRepairLocation}
+              >
+                설정하기
+              </button>
             </div>
           </section>
         </div>

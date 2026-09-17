@@ -53,7 +53,7 @@ function loadStoredUser(): AuthUser | null {
       persona: parsed.persona ?? 'beginner',
       profileImage: parsed.profileImage,
       onboarded: parsed.onboarded ?? true,
-      preferences: parsed.preferences ?? null,
+      preferences: parsed.preferences ?? MOCK_USERS[parsed.email.trim().toLowerCase()]?.preferences ?? null,
     };
   } catch {
     return null;

@@ -152,7 +152,8 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
     (category) => {
       const orderedTopics = INTEREST_TOPICS[category];
       const chosenTopics = livingProfile.topics[category] ?? [];
-      const matchedTopics = orderedTopics.filter((topic) => chosenTopics.includes(topic));
+      /* 저장된 순서는 온보딩 단계별 우선순위 또는 사용자가 고른 순서다. */
+      const matchedTopics = chosenTopics.filter((topic) => orderedTopics.includes(topic));
       const topicsForCategory = matchedTopics.length > 0 ? matchedTopics : orderedTopics.slice(0, 1);
       return topicsForCategory.map((topic) => ({ category, topic }));
     },

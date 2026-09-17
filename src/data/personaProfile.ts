@@ -157,7 +157,7 @@ export function resolveLevel(source: LevelSource): ResolvedLevel {
     remainingXp: isMaxLevel ? null : LEVEL_XP_SPAN - progress,
     isMaxLevel,
     progressLabel: isMaxLevel ? 'MAX' : String(progress),
-    levelLabel: `Level.${source.level}`,
+    levelLabel: `Lv.${source.level}`,
     heartsLabel: source.hearts.toLocaleString('ko-KR'),
   };
 }

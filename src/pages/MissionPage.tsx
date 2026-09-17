@@ -308,8 +308,10 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
         <LevelInfoPopover
           stages={LEVEL_STAGE_LIST}
           stage={level.stage}
+          remainingXp={level.remainingXp}
           anchorTop={levelInfo.top}
           anchorLeft={levelInfo.left}
+          onViewMissions={() => setLevelInfo(null)}
           onClose={() => setLevelInfo(null)}
         />
       )}

@@ -48,8 +48,8 @@ import './styles/settings-pages.css';
 import './styles/coachmark.css';
 import './styles/widget-gallery.css';
 import './styles/widget-management.css';
-/* 인트로는 화면 전체를 덮는 최상위 레이어라 가장 마지막에 읽는다 */
-import './styles/intro.css';
+/* 앱 실행 스플래시는 화면 전체를 덮는 최상위 레이어라 가장 마지막에 읽는다 */
+import './styles/splash-screen.css';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const container = document.getElementById('root');

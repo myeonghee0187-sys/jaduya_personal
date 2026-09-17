@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
@@ -6,8 +6,8 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { greetingName } from '../data/personaHome';
-import { SNACK_QUIZZES } from '../data/lifeSnackQuiz';
+import { getLivingQuizByPersona } from '../data/livingQuizData';
+import type { LivingQuizData, LivingQuizOption } from '../data/livingQuizData';
 import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
@@ -91,19 +91,19 @@ type QuizSaved = {
 
 /* 저장된 답 — 지금 배열에 있는 문제의 보기와 맞을 때만 인정한다
  * (문제가 바뀌거나 보기가 수정되면 저장값을 버리고 처음부터 푼다) */
-function readQuizSaved(): QuizSaved | null {
+function readQuizSaved(quiz: LivingQuizData): QuizSaved | null {
   try {
     const raw = localStorage.getItem(QUIZ_STORE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw) as Partial<QuizSaved>;
-    const quiz = SNACK_QUIZZES.find((item) => item.id === saved.quizId);
-    if (!quiz || !saved.answer || !quiz.options.some((option) => option === saved.answer)) {
+    if (saved.quizId !== quiz.id || !saved.answer || !quiz.options.some((option) => option.id === saved.answer)) {
       return null;
     }
+    const selectedOption = quiz.options.find((option) => option.id === saved.answer);
     return {
       quizId: quiz.id,
       answer: saved.answer,
-      correct: saved.answer === quiz.correctAnswer,
+      correct: selectedOption?.isCorrect ?? false,
       submitted: true,
     };
   } catch {
@@ -118,8 +118,7 @@ function readQuizSaved(): QuizSaved | null {
 export function LifePage() {
   const navigation = useAppNavigation();
   const { user } = useAuth();
-  /* 인사말 이름은 Home·마이페이지와 같은 기준을 쓴다 (성 제외) */
-  const name = greetingName(user?.name ?? '자두');
+  const quiz = getLivingQuizByPersona(user?.persona);
   const [gnbOpen, setGnbOpen] = useState(false);
   const myMenu = useMyMenu();
   const tipsRef = useRef<HTMLDivElement>(null);
@@ -128,18 +127,8 @@ export function LifePage() {
   const tipPrevRef = useRef<(() => void) | null>(null);
   /* 퀴즈: 답을 고르기 전에는 결과를 감춰 둔다.
    * 저장된 답이 있으면 결과가 끝난 모습 그대로 시작한다 (애니메이션 없이). */
-  const [restoredSaved] = useState(readQuizSaved);
+  const [restoredSaved] = useState(() => readQuizSaved(quiz));
   const solved = restoredSaved !== null;
-  /* 지금 푸는 문제 — 저장된 답이 있으면 그 문제부터 보여준다 */
-  const [quizIndex, setQuizIndex] = useState(() => {
-    const found = restoredSaved
-      ? SNACK_QUIZZES.findIndex((item) => item.id === restoredSaved.quizId)
-      : 0;
-    return found < 0 ? 0 : found;
-  });
-  const quiz = SNACK_QUIZZES[quizIndex];
-  /* 다음 문제가 없으면 '다음 퀴즈' 를 그리지 않는다 — 같은 문제를 다시 내지 않기 위해서다 */
-  const nextQuiz = SNACK_QUIZZES[quizIndex + 1] ?? null;
   const [quizAnswer, setQuizAnswer] = useState<string | null>(restoredSaved?.answer ?? null);
   /* 계란 껍데기를 끌어다 놓는 방식 — 탭으로도 같은 답변 처리를 쓴다 */
   const [quizRevealed, setQuizRevealed] = useState(solved);
@@ -153,8 +142,32 @@ export function LifePage() {
   /* 잡고 있는지는 ref 로 본다 — 리렌더를 기다리지 않아 첫 move 부터 따라온다 */
   const eggHeld = useRef(false);
   const zoneRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const previousQuizIdRef = useRef(quiz.id);
   /* 해결팁 pagination — 복제를 뺀 실제 카드 번호 */
   const [tipPage, setTipPage] = useState(0);
+
+  /* 계정/persona가 바뀌면 이전 문제의 선택·결과·드래그 상태를 새 문제로 넘기지 않는다. */
+  useLayoutEffect(() => {
+    if (previousQuizIdRef.current === quiz.id) return;
+    previousQuizIdRef.current = quiz.id;
+    eggHeld.current = false;
+    zoneRefs.current = {};
+    if (eggRef.current) {
+      eggRef.current.style.setProperty('--egg-x', '0px');
+      eggRef.current.style.setProperty('--egg-y', '0px');
+    }
+    setQuizAnswer(null);
+    setQuizRevealed(false);
+    setQuizDragging(false);
+    setQuizOver(null);
+    setQuizEggGone(false);
+    setQuizEggCracked(false);
+    try {
+      localStorage.removeItem(QUIZ_STORE_KEY);
+    } catch {
+      /* 저장소를 사용할 수 없어도 화면 상태 초기화는 유지한다 */
+    }
+  }, [quiz.id]);
 
   /* 해결팁 캐러셀 — 가운데에 가까울수록 큰 카드다.
    * 넘기는 방법은 좌우 버튼 / 방향키 / 손가락 스와이프 세 가지이고 모두 같은 이동 함수를 쓴다.
@@ -419,15 +432,15 @@ export function LifePage() {
   }, []);
 
   /* 드래그로 놓든 탭으로 고르든 답변 처리는 이 하나를 쓴다 */
-  const answerQuiz = (answer: string) => {
+  const answerQuiz = (option: LivingQuizOption) => {
     if (quizAnswer) return;
-    setQuizAnswer(answer);
+    setQuizAnswer(option.id);
     setQuizOver(null);
     try {
       const saved: QuizSaved = {
         quizId: quiz.id,
-        answer,
-        correct: answer === quiz.correctAnswer,
+        answer: option.id,
+        correct: option.isCorrect,
         submitted: true,
       };
       localStorage.setItem(QUIZ_STORE_KEY, JSON.stringify(saved));
@@ -452,13 +465,6 @@ export function LifePage() {
     setQuizOver(null);
   };
 
-  /* 다음 문제 — 현재 문제를 초기화한 뒤 배열의 다음 항목으로 넘어간다 */
-  const goNextQuiz = () => {
-    if (!nextQuiz) return;
-    resetQuiz();
-    setQuizIndex((index) => index + 1);
-  };
-
   /* 고른 자리를 먼저 보여주고 잠깐 뒤에 결과를 연다 */
   useEffect(() => {
     if (!quizAnswer || quizRevealed) return;
@@ -475,10 +481,10 @@ export function LifePage() {
 
   /* 포인터 위치가 어느 칸 안인지 — 마우스와 터치를 같은 식으로 본다 */
   const zoneAt = (x: number, y: number): string | null =>
-    quiz.options.find((answer) => {
-      const box = zoneRefs.current[answer]?.getBoundingClientRect();
+    quiz.options.find((option) => {
+      const box = zoneRefs.current[option.id]?.getBoundingClientRect();
       return !!box && x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
-    }) ?? null;
+    })?.id ?? null;
 
   const moveEgg = (x: number, y: number) => {
     const egg = eggRef.current;
@@ -513,12 +519,13 @@ export function LifePage() {
     const dropped = zoneAt(event.clientX, event.clientY);
     /* 칸 밖에서 놓으면 제자리로 돌아온다 (transition 이 짧게 되돌린다) */
     moveEgg(0, 0);
-    if (dropped) answerQuiz(dropped);
+    const droppedOption = quiz.options.find((option) => option.id === dropped);
+    if (droppedOption) answerQuiz(droppedOption);
     else setQuizOver(null);
   };
 
   /* 결과 문구가 여러 곳에서 같은 판정을 봐야 해서 한 번만 계산한다 */
-  const quizCorrect = quizAnswer === quiz.correctAnswer;
+  const quizCorrect = quiz.options.find((option) => option.id === quizAnswer)?.isCorrect ?? false;
 
   return (
     <div className="life app">
@@ -574,60 +581,58 @@ export function LifePage() {
         {/* ================= ② 생활 퀴즈 ================= */}
         <section className="life-quiz">
           <div className="life-quiz__head">
-            <h2>{name}님, 이것도 알고 있나요?</h2>
-            <p>30초면 끝나요. 오늘 하나만 알아가세요.</p>
+            <h2>{quiz.headline}</h2>
+            <p>{quiz.subheadline}</p>
           </div>
 
           <div className="life-quiz__result">
-            {/* 안내문과 계란은 DOM 에서 바로 빼지 않는다 — 높이를 접어서 버튼이 부드럽게 올라오게 한다 */}
-            <div
-              className={`life-quiz__intro${quizEggGone ? ' is-gone' : ''}`}
-              aria-hidden={quizEggGone || undefined}
-            >
-              <div className="life-quiz__intro-inner">
-                {/* 끌어다 놓는 계란 — 잡으면 깨지고, 답을 고르면 고른 칸 쪽으로 빠지며 사라진다 */}
-                <div className="life-quiz__egg-row">
-                  <div
-                    ref={eggRef}
-                    className={`life-quiz__egg${quizDragging ? ' is-dragging' : ''}${
-                      quizEggCracked ? ' is-cracked' : ''
-                    }${quizAnswer ? ' is-done' : ''}`}
-                    style={
-                      quizAnswer
-                        ? ({ '--egg-drop': quizAnswer === quiz.options[0] ? '-56px' : '56px' } as CSSProperties)
-                        : undefined
-                    }
-                    onPointerDown={onEggDown}
-                    onPointerMove={onEggMove}
-                    onPointerUp={onEggUp}
-                    onPointerCancel={onEggUp}
-                  >
-                    {/* 온전한 계란과 깨진 껍데기를 같은 크기의 칸에 겹쳐 두고 서로 교차시킨다 —
-                     * 이미지를 갈아끼우지 않아 높이가 흔들리지 않는다 */}
-                    <span className="life-quiz__egg-stack">
-                      <img
-                        className="life-quiz__egg-img life-quiz__egg-img--whole"
-                        src={img(quiz.image)}
-                        alt="계란"
-                        draggable={false}
-                      />
-                      <img
-                        className="life-quiz__egg-img life-quiz__egg-img--cracked"
-                        src={img(quiz.crackedImage ?? quiz.image)}
-                        alt=""
-                        aria-hidden="true"
-                        draggable={false}
-                      />
-                    </span>
+            {quiz.visualKey === 'egg' && (
+              /* 안내문과 계란은 서준의 egg 퀴즈에서만 유지한다. */
+              <div
+                className={`life-quiz__intro${quizEggGone ? ' is-gone' : ''}`}
+                aria-hidden={quizEggGone || undefined}
+              >
+                <div className="life-quiz__intro-inner">
+                  <div className="life-quiz__egg-row">
+                    <div
+                      ref={eggRef}
+                      className={`life-quiz__egg${quizDragging ? ' is-dragging' : ''}${
+                        quizEggCracked ? ' is-cracked' : ''
+                      }${quizAnswer ? ' is-done' : ''}`}
+                      style={
+                        quizAnswer
+                          ? ({ '--egg-drop': quizAnswer === quiz.options[0]?.id ? '-56px' : '56px' } as CSSProperties)
+                          : undefined
+                      }
+                      onPointerDown={onEggDown}
+                      onPointerMove={onEggMove}
+                      onPointerUp={onEggUp}
+                      onPointerCancel={onEggUp}
+                    >
+                      <span className="life-quiz__egg-stack">
+                        <img
+                          className="life-quiz__egg-img life-quiz__egg-img--whole"
+                          src={img('life/life-quiz_egg.png')}
+                          alt="계란"
+                          draggable={false}
+                        />
+                        <img
+                          className="life-quiz__egg-img life-quiz__egg-img--cracked"
+                          src={img('life/life-quiz-eggshell.png')}
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                        />
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* 끌 수 있다는 안내는 계란 바로 아래에 둔다 */}
-                <p className={`life-quiz__guide${quizAnswer ? ' is-gone' : ''}`}>
-                  계란을 끌어서 알맞은 곳에 넣어보세요
-                </p>
+                  <p className={`life-quiz__guide${quizAnswer ? ' is-gone' : ''}`}>
+                    계란을 끌어서 알맞은 곳에 넣어보세요
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 무엇에 대한 문제인지 먼저 알려주고 질문을 던진다 */}
             <p className="life-quiz__chip">
@@ -636,24 +641,24 @@ export function LifePage() {
             <p className="life-quiz__question">{quiz.question}</p>
 
             <div className="life-quiz__labels">
-              {quiz.options.map((answer) => (
+              {quiz.options.map((option) => (
                 <button
-                  key={answer}
+                  key={option.id}
                   type="button"
                   ref={(node) => {
-                    zoneRefs.current[answer] = node;
+                    zoneRefs.current[option.id] = node;
                   }}
-                  className={`life-quiz__choice${quizAnswer === answer ? ' is-picked' : ''}${
-                    quizOver === answer ? ' is-over' : ''
+                  className={`life-quiz__choice${quizAnswer === option.id ? ' is-picked' : ''}${
+                    quizOver === option.id ? ' is-over' : ''
                   }`}
-                  aria-pressed={quizAnswer === answer}
+                  aria-pressed={quizAnswer === option.id}
                   disabled={quizAnswer !== null}
-                  onClick={() => answerQuiz(answer)}
+                  onClick={() => answerQuiz(option)}
                 >
                   {/* 평소엔 쓰레기통, 고른 뒤엔 같은 자리에서 체크로 바뀐다 — 두 아이콘 모두
                    * 같은 크기라 글자 위치는 그대로다. 쓰레기통은 <img> 가 부모 color 를
                    * 못 받아서 mask 로 그린다. */}
-                  {quizAnswer === answer ? (
+                  {quizAnswer === option.id ? (
                     <svg
                       className="life-quiz__check"
                       viewBox="0 0 12 12"
@@ -668,7 +673,7 @@ export function LifePage() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  ) : (
+                  ) : quiz.visualKey === 'egg' ? (
                     <span
                       className="life-quiz__choice-icon"
                       style={{
@@ -677,8 +682,8 @@ export function LifePage() {
                       }}
                       aria-hidden="true"
                     />
-                  )}
-                  {answer}
+                  ) : null}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -687,16 +692,14 @@ export function LifePage() {
             {quizRevealed && (
               <div className="life-quiz__reveal" role="status">
                 {quizCorrect ? (
-                  /* 이미 정답 버튼에 표시가 남아 있으니 정답을 다시 말하지 않는다 */
                   <>
-                    <p className="life-quiz__headline is-correct">{quiz.result.correct}</p>
-                    <p className="life-quiz__why">{quiz.explanation.why.correct}</p>
+                    <p className="life-quiz__headline is-correct">{quiz.correctFeedback}</p>
+                    <p className="life-quiz__why">{quiz.explanation}</p>
                   </>
                 ) : (
                   <>
-                    <p className="life-quiz__headline">{quiz.result.wrong}</p>
-                    <p className="life-quiz__answer">{quiz.explanation.answer}</p>
-                    <p className="life-quiz__why">{quiz.explanation.why.wrong}</p>
+                    <p className="life-quiz__headline">{quiz.incorrectFeedback}</p>
+                    <p className="life-quiz__why">{quiz.explanation}</p>
                   </>
                 )}
 
@@ -724,11 +727,6 @@ export function LifePage() {
                     </svg>
                     다시 풀기
                   </button>
-                  {nextQuiz && (
-                    <button type="button" className="life-quiz__next" onClick={goNextQuiz}>
-                      다음 퀴즈 <span aria-hidden="true">→</span>
-                    </button>
-                  )}
                 </div>
               </div>
             )}

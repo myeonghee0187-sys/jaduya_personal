@@ -71,6 +71,9 @@ interface LevelInfoPopoverProps {
   anchorTop: number;
   /** info 버튼 중심 x — .app 기준 px */
   anchorLeft: number;
+  /** 현재 단계에서 다음 단계까지 남은 XP. 최고 단계에서는 null */
+  remainingXp: number | null;
+  onViewMissions: () => void;
   onClose: () => void;
 }
 
@@ -79,6 +82,8 @@ export function LevelInfoPopover({
   stage,
   anchorTop,
   anchorLeft,
+  remainingXp,
+  onViewMissions,
   onClose,
 }: LevelInfoPopoverProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -155,7 +160,9 @@ export function LevelInfoPopover({
 
           <section className="level-info__roadmap-box">
             <h3>
-              {next ? `${next.step}단계까지 얼마 안 남았어요!` : '최고 단계까지 성장했어요!'}
+              {next && remainingXp !== null
+                ? `${next.step}단계까지 ${remainingXp}XP 남았어요!`
+                : '최고 단계까지 성장했어요!'}
             </h3>
             <ol className="level-info__roadmap">
               {stages.map((item) => {
@@ -181,6 +188,10 @@ export function LevelInfoPopover({
               })}
             </ol>
           </section>
+
+          <button type="button" className="level-info__cta" onClick={onViewMissions}>
+            내 자취 미션 보기 <span aria-hidden="true">→</span>
+          </button>
         </div>
       </div>
     </div>

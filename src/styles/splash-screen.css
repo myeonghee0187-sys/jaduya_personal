@@ -1,0 +1,28 @@
+/* JADUYA 앱 실행 스플래시 — 기존 자두 마스코트 비주얼을 그대로 사용한다. */
+
+/* iPhone 목업 화면(.iphone-frame__screen, position: relative) 또는 모바일 앱 화면을 덮는다. */
+.splash-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: #fffaf5;
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+
+.splash-screen.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 기존 영상 크기와 중앙 배치를 유지한다. */
+.splash-screen__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(0.6);
+}

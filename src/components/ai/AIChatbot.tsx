@@ -16,10 +16,15 @@ interface AIChatbotProps {
   disabled?: boolean;
 }
 
-/** 지금 화면에 보이는 .app — Home 은 다른 화면에서도 DOM 에 남아 있으므로(hidden)
- * 실제로 그려지는 것 하나만 고른다. */
-function visibleApp(): HTMLElement | null {
-  const apps = Array.from(document.querySelectorAll<HTMLElement>('.app'));
+/** 지금 AIChatbot과 같은 App 인스턴스 안에서 보이는 .app — Home 은 다른 화면에서도
+ * DOM 에 남아 있으므로(hidden) 실제로 그려지는 것 하나만 고른다.
+ *
+ * 데스크톱 데모에서 App을 전환 애니메이션으로 다시 마운트하는 동안 이전 App과 새 App이
+ * 잠시 함께 존재한다. document 전체의 첫 .app을 고르면 새 버튼이 곧 제거될 이전 App에
+ * 붙을 수 있으므로, 렌더 트리 안의 anchor로 현재 App 전환 영역을 먼저 한정한다. */
+function visibleApp(anchor: HTMLElement | null): HTMLElement | null {
+  const appRoot = anchor?.closest<HTMLElement>('.login-showcase__app-transition');
+  const apps = Array.from((appRoot ?? document).querySelectorAll<HTMLElement>('.app'));
   return apps.find((app) => app.getClientRects().length > 0) ?? null;
 }
 
@@ -38,6 +43,8 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
 
   /* 버튼이 담길 고정 host — 한 번만 만들고 계속 재사용한다 */
   const hostRef = useRef<HTMLDivElement | null>(null);
+  /* 데모 전환 중 이전/새 App을 구분하기 위한 현재 렌더 트리의 기준점 */
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
   /* 화면을 옮긴 뒤 버튼에게 '다시 자리 잡아라' 고 알리는 통로 */
   const settleRef = useRef<(() => void) | null>(null);
   if (!hostRef.current && typeof document !== 'undefined') {
@@ -50,7 +57,7 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
   /* 화면이 바뀌면 host 를 새 .app 안으로 옮긴다 (노드 이동이라 버튼은 그대로 살아 있다) */
   useLayoutEffect(() => {
     const host = hostRef.current;
-    const app = visibleApp();
+    const app = visibleApp(anchorRef.current);
     if (host && app && host.parentElement !== app) app.appendChild(host);
     /* 새 화면의 헤더·탭바·금지 영역을 다시 재서 필요하면 비켜 준다
      * (커뮤니티 글쓰기 버튼과 겹친 채로 들어오는 경우) */
@@ -65,15 +72,20 @@ export function AIChatbot({ initialLift, hidden = false, disabled = false }: AIC
 
   if (!hostRef.current) return null;
 
-  return createPortal(
-    <AIChatbotButton
-      onClick={openChat}
-      initialLift={initialLift}
-      hidden={hidden}
-      disabled={disabled}
-      coachmarkRef={aiFabRef}
-      settleRef={settleRef}
-    />,
-    hostRef.current,
+  return (
+    <>
+      <span ref={anchorRef} hidden aria-hidden="true" />
+      {createPortal(
+        <AIChatbotButton
+          onClick={openChat}
+          initialLift={initialLift}
+          hidden={hidden}
+          disabled={disabled}
+          coachmarkRef={aiFabRef}
+          settleRef={settleRef}
+        />,
+        hostRef.current,
+      )}
+    </>
   );
 }
