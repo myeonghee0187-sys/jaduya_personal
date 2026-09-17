@@ -875,6 +875,27 @@
   display: none;
 }
 
+.ai-chat-page__cta-item {
+  display: grid;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+}
+
+.ai-chat-page__ctas--benefit .ai-chat-page__cta-item {
+  width: 100%;
+}
+
+.ai-chat-page__cta-item.is-recommended {
+  animation: ai-chat-recommended-cta-in 220ms ease-out both;
+}
+
+.ai-chat-page__cta-recommend-label {
+  color: var(--brand-primary);
+  font: 700 11px/1.35 var(--font-suit);
+  letter-spacing: -0.01em;
+}
+
 .ai-chat-page__cta {
   display: inline-flex;
   align-items: center;
@@ -900,6 +921,19 @@
   background: #f7ebeb;
 }
 
+.ai-chat-page__cta.ai-chat-page__cta--recommended {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: var(--surface-base);
+}
+
+.ai-chat-page__cta.ai-chat-page__cta--recommended:hover,
+.ai-chat-page__cta.ai-chat-page__cta--recommended:active {
+  border-color: #922e2c;
+  background: #922e2c;
+  color: var(--surface-base);
+}
+
 .ai-chat-page__cta:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
@@ -909,6 +943,11 @@
   flex: none;
   font-size: 16px;
   line-height: 1;
+}
+
+@keyframes ai-chat-recommended-cta-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .ai-chat-page__quick-replies {
@@ -1796,6 +1835,7 @@
   .ai-chat-page__repair-notice-backdrop,
   .ai-chat-page__building-info-backdrop,
   .ai-chat-page__building-info-sheet,
+  .ai-chat-page__cta-item.is-recommended,
   .ai-chat-page__repair-map-loading-status span {
     animation: none;
   }
