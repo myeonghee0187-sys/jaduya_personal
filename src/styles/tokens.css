@@ -50,6 +50,150 @@
   --brand-orange: #c7753b;
   --brand-rose: #c3615e;
 
+  /* ---------- Color / Category (돈관리 카테고리) ----------
+   * 카테고리마다 "진한 메인" + "연한 보조 배경" 한 쌍. 메인은 아이콘/뱃지/그래프처럼
+   * 시각적으로 두드러지는 자리에, 보조 배경은 칩/뱃지 배경처럼 넓은 면에 쓴다 —
+   * 연한 색을 메인으로 쓰지 않는다(가독성·구분성 저하).
+   * 대비 검증(WCAG 2.1, sRGB relative luminance 기준):
+   *   메인 vs 자기 보조 배경 / 메인 vs #FFFFFF
+   *   식비       #B85028 → 4.48:1 / 4.98:1
+   *   생활       #2E4632 → 8.66:1 / 10.29:1
+   *   교통       #547000 → 5.08:1 / 5.69:1  (요청값 #8BAF00 은 2.28:1/2.55:1 로 WCAG AA 미달 — 같은
+   *                                          색 계열을 유지한 채 명도만 낮췄다)
+   *   쇼핑       #8F6300 → 4.85:1 / 5.31:1  (요청값 #C58A00 은 2.73:1/3.00:1 로 미달 — 명도만 낮췄다)
+   *   문화/여가  #766548 → 4.77:1 / 5.64:1  (--color-cream-85/--color-cream-2, "오트 크림" 램프)
+   *   기타       #59605A → 5.55:1 / 6.47:1
+   * 전부 텍스트 기준 AA(4.5:1) 이상 — 아이콘/그래프처럼 비텍스트 요소만 있는 자리도
+   * AA 비텍스트 기준(3:1)을 넉넉히 넘긴다. 기존에 식비·기타가 각각 --brand-primary(빨강,
+   * 지출 강조색과 충돌)·--text-tertiary(#a39f9a, 문화/여가와 완전히 같은 회색, 대비
+   * 2.63:1)를 재사용해 카테고리끼리 색이 겹치거나 회색이 잘 안 보이던 문제를 해결한다.
+   *
+   * 문화/여가는 처음에 #6250A4(보라)로 잡았는데, 이 앱 팔레트(primary/secondary/orange/
+   * green/cream/gray, 전부 DESIGN_SYSTEM.md 4장)에는 보라·파랑 계열이 아예 없다 — Figma에
+   * 없는 색을 새로 만든 셋이라 "Don't: rainbow widgets" 원칙에 어긋난다. 기존 6개 램프 중
+   * 남는 자리를 다시 보면: 빨강(primary)은 지출/CTA 전역 강조색이라 카테고리에 쓰면 그
+   * 의미와 겹치고, 주황(orange)은 식비, 초록(green)은 생활·교통, 무채색(gray)은 기타가
+   * 이미 쓴다 — 남는 건 "오트 크림(cream)" 램프뿐이라 그 진한 단계(--color-cream-85)를
+   * 문화/여가 메인으로 쓴다. 다만 cream 램프의 실제 색각(hue)이 쇼핑(#8F6300, hue 약
+   * 41°)과 아주 가깝다(cream 램프는 hue 약 38° 로 전 구간 동일) — 6개 카테고리를 이 앱의
+   * "warm-only" 5색 램프 + 무채색 안에서만 고르면 완전히 다른 색각을 6개 다 확보할 수
+   * 없는 구조적 한계다. 대신 채도(쇼핑 100% vs 문화/여가 24%)와 명도를 크게 벌려서
+   * "선명한 머스터드"과 "차분한 브라운/타우프"로 눈에 다르게 읽히게 하고, 아이콘·배지
+   * 배경(--category-culture-bg)도 서로 다르게 둔다. */
+  --category-food: #b85028;
+  --category-food-bg: #fff0e8;
+  --category-life: #2e4632;
+  --category-life-bg: #e7ede7;
+  --category-transport: #547000;
+  --category-transport-bg: #f0f5d9;
+  --category-shopping: #8f6300;
+  --category-shopping-bg: #fff4d6;
+  --category-culture: var(--color-cream-85);
+  --category-culture-bg: var(--color-cream-2);
+  --category-etc: #59605a;
+  --category-etc-bg: #eceeec;
+
+  /* ---------- Color / Scale (Figma "컬러" 섹션, node 952:4114) ----------
+   * 잘 익은 자두(primary) · 햇살 과육(secondary) · 구운 자두(orange) ·
+   * 풋자두(green/point) · 오트 크림(cream) · gray, 각 0(밝음)~10(어두움) 램프.
+   * 위 --brand-* 는 이 램프의 5단계(--brand-rose 는 4단계)와 동일한 값이다.
+   * Figma가 source of truth이므로 임의로 값을 바꾸지 않는다. */
+  --color-primary-0: #ffffff;
+  --color-primary-05: #f8ebeb;
+  --color-primary-1: #f0d7d7;
+  --color-primary-15: #e9c4c3;
+  --color-primary-2: #e1b0af;
+  --color-primary-3: #d28886;
+  --color-primary-4: #c3615e;
+  --color-primary-5: #b43936;
+  --color-primary-6: #902e2b;
+  --color-primary-7: #6c2220;
+  --color-primary-8: #481716;
+  --color-primary-85: #361110;
+  --color-primary-9: #240b0b;
+  --color-primary-95: #120605;
+  --color-primary-10: #000000;
+
+  --color-secondary-0: #ffffff;
+  --color-secondary-05: #fffcf2;
+  --color-secondary-1: #fef8e4;
+  --color-secondary-15: #fef5d7;
+  --color-secondary-2: #fdf1c9;
+  --color-secondary-3: #fdebae;
+  --color-secondary-4: #fce493;
+  --color-secondary-5: #fbdd78;
+  --color-secondary-6: #d7bc60;
+  --color-secondary-7: #b49b49;
+  --color-secondary-8: #907b31;
+  --color-secondary-85: #7e6a25;
+  --color-secondary-9: #6d5a1a;
+  --color-secondary-95: #5b490e;
+  --color-secondary-10: #493902;
+
+  --color-orange-0: #ffffff;
+  --color-orange-05: #f9f1eb;
+  --color-orange-1: #f4e3d8;
+  --color-orange-15: #eed6c4;
+  --color-orange-2: #e9c8b1;
+  --color-orange-3: #ddac89;
+  --color-orange-4: #d29162;
+  --color-orange-5: #c7753b;
+  --color-orange-6: #9f5e2f;
+  --color-orange-7: #774623;
+  --color-orange-8: #502f18;
+  --color-orange-85: #3c2312;
+  --color-orange-9: #28170c;
+  --color-orange-95: #140c06;
+  --color-orange-10: #000000;
+
+  --color-green-0: #fefffd;
+  --color-green-05: #f5f7e7;
+  --color-green-1: #ecefd1;
+  --color-green-15: #e2e8bc;
+  --color-green-2: #d9e0a6;
+  --color-green-3: #c7d07a;
+  --color-green-4: #b4c14f;
+  --color-green-5: #a2b123;
+  --color-green-6: #82be1c;
+  --color-green-7: #616a15;
+  --color-green-8: #41470e;
+  --color-green-85: #31350b;
+  --color-green-9: #202307;
+  --color-green-95: #101204;
+  --color-green-10: #000000;
+
+  --color-cream-0: #ffffff;
+  --color-cream-05: #fcfaf7;
+  --color-cream-1: #f9f5ef;
+  --color-cream-15: #f6f0e6;
+  --color-cream-2: #f3ebde;
+  --color-cream-3: #ece1ce;
+  --color-cream-4: #e6d7bd;
+  --color-cream-5: #e0cdad;
+  --color-cream-6: #c2af90;
+  --color-cream-7: #a49173;
+  --color-cream-8: #857456;
+  --color-cream-85: #766548;
+  --color-cream-9: #675639;
+  --color-cream-95: #58472b;
+  --color-cream-10: #49381c;
+
+  --color-gray-0: #ffffff;
+  --color-gray-05: #f1f1f1;
+  --color-gray-1: #e3e3e3;
+  --color-gray-15: #d6d6d6;
+  --color-gray-2: #c8c8c8;
+  --color-gray-3: #acacac;
+  --color-gray-4: #919191;
+  --color-gray-5: #757575;
+  --color-gray-6: #5e5e5e;
+  --color-gray-7: #464646;
+  --color-gray-8: #2f2f2f;
+  --color-gray-85: #232323;
+  --color-gray-9: #171717;
+  --color-gray-95: #0c0c0c;
+  --color-gray-10: #000000;
+
   /* ---------- Color / Surface ---------- */
   --surface-page: #fffaf5;
   --surface-warm: #faf8f5;

@@ -14,21 +14,30 @@ export interface CategoryMeta {
   key: CategoryKey;
   label: string;
   icon: string;
+  /** 진한 메인 컬러 — 아이콘/그래프/뱃지처럼 눈에 띄어야 하는 자리. 연한 색을 메인으로
+   * 쓰지 않는다(tokens.css "Color / Category" 참고 — 전부 자기 보조 배경(bg) 기준 WCAG AA
+   * 4.5:1 이상 확보). */
   color: string;
+  /** 연한 보조 배경 — 칩/뱃지처럼 넓은 면을 채우는 자리. color 와 항상 한 쌍으로 쓴다. */
+  bg: string;
   /** 지난달(8월) 카테고리 총액 — 트렌드 문구·월간 그래프에만 쓰는 단일 값이라
    * 지난달 거래 내역까지는 만들지 않는다(이번 달만 실제 transaction 단위로 관리). */
   prevAmount: number;
 }
 
 /* culture/life/etc 는 전용 아이콘이 없어 기존 결정대로 money-cat-culture.svg 를 공유한다
- * (임의로 새 아이콘 에셋을 만들지 않는다). 색만 서로 겹치지 않게 기존 브랜드 토큰에서 고른다. */
+ * (임의로 새 아이콘 에셋을 만들지 않는다). 색은 카테고리 전용 토큰(tokens.css "Color /
+ * Category")에서 가져온다 — 예전엔 --brand-primary/--brand-orange/--brand-green/--brand-rose
+ * 를 재사용해서 식비가 지출 강조색(빨강)과 겹치고, 문화/여가·기타가 똑같은 회색(#a39f9a,
+ * 대비 2.63:1)이라 도넛 차트·칩에서 구분이 안 됐다 — 6개 전부 서로 다르고 대비도 확보된
+ * 전용 토큰으로 바꿨다. */
 export const CATEGORY_META: readonly CategoryMeta[] = [
-  { key: 'food', label: '식비', icon: 'money-cat-food.svg', color: 'var(--brand-primary)', prevAmount: 286_000 },
-  { key: 'shopping', label: '쇼핑', icon: 'money-cat-shopping.svg', color: 'var(--brand-orange)', prevAmount: 235_000 },
-  { key: 'transport', label: '교통', icon: 'money-cat-transport.svg', color: 'var(--brand-green)', prevAmount: 95_000 },
-  { key: 'culture', label: '문화/여가', icon: 'money-cat-culture.svg', color: '#a39f9a', prevAmount: 68_000 },
-  { key: 'life', label: '생활', icon: 'money-cat-culture.svg', color: 'var(--brand-rose)', prevAmount: 60_000 },
-  { key: 'etc', label: '기타', icon: 'money-cat-culture.svg', color: 'var(--text-tertiary)', prevAmount: 51_000 },
+  { key: 'food', label: '식비', icon: 'money-cat-food.svg', color: 'var(--category-food)', bg: 'var(--category-food-bg)', prevAmount: 286_000 },
+  { key: 'shopping', label: '쇼핑', icon: 'money-cat-shopping.svg', color: 'var(--category-shopping)', bg: 'var(--category-shopping-bg)', prevAmount: 235_000 },
+  { key: 'transport', label: '교통', icon: 'money-cat-transport.svg', color: 'var(--category-transport)', bg: 'var(--category-transport-bg)', prevAmount: 95_000 },
+  { key: 'culture', label: '문화/여가', icon: 'money-cat-culture.svg', color: 'var(--category-culture)', bg: 'var(--category-culture-bg)', prevAmount: 68_000 },
+  { key: 'life', label: '생활', icon: 'money-cat-culture.svg', color: 'var(--category-life)', bg: 'var(--category-life-bg)', prevAmount: 60_000 },
+  { key: 'etc', label: '기타', icon: 'money-cat-culture.svg', color: 'var(--category-etc)', bg: 'var(--category-etc-bg)', prevAmount: 51_000 },
 ] as const;
 
 export interface ExpenseTransaction {
@@ -308,6 +317,10 @@ export const INCOME_TRANSACTIONS: readonly IncomeTransaction[] = [
 ] as const;
 
 export const TOTAL_INCOME = INCOME_TRANSACTIONS.reduce((sum, t) => sum + t.amount, 0);
+
+/** "이번 달" 탭 수입 카드의 "지난달보다 ~원 많아요" 비교 문구용 지난달 수입 총액 —
+ * 지출의 TOTAL_PREV_EXPENSE(카테고리별 prevAmount 합)와 같은 성격의 목업 기준값이다. */
+export const TOTAL_PREV_INCOME = 2_180_000;
 
 export interface TransferTransaction {
   id: string;
