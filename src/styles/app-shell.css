@@ -28,6 +28,10 @@ body,
 #root {
   height: 100vh;
   height: 100dvh;
+  /* 런처 실행 직후 첫 페인트가 흰 화면으로 번쩍이지 않도록, 자두야 기본 배경색을
+   * 여기서 먼저 깔아둔다(SplashScreen.tsx/splash-screen.css, site.webmanifest 의
+   * background_color 와 같은 값) — index.html 은 프로젝트 규칙상 직접 수정하지 않는다. */
+  background: #fffaf5;
 }
 
 html,

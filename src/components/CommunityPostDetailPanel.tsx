@@ -5,6 +5,8 @@ import { BellButton } from './BellButton';
 import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
 import { useAuth } from '../auth/AuthContext';
+import { useCommunityPosts } from '../community/CommunityPostsContext';
+import type { OwnComment } from '../community/CommunityPostsContext';
 import type { CommunityPost } from '../data/communityPosts';
 import { COMMUNITY_COMMENTS } from '../data/communityComments';
 import type { CommunityComment } from '../data/communityComments';
@@ -20,17 +22,6 @@ interface CommunityPostDetailPanelProps {
   onToggleLike: () => void;
   saved: boolean;
   onToggleSave: () => void;
-}
-
-/** 내가 이번 세션에 새로 등록한 댓글 — 10개 제한과 무관하게 항상 보이고 NEW 표시가 붙는다.
- * 아바타는 mock 댓글처럼 이모지가 아니라 로그인 계정의 실제 프로필 사진을 쓴다. */
-interface OwnComment {
-  id: string;
-  author: string;
-  avatarImage: string;
-  level: LevelValue;
-  body: string;
-  likes: number;
 }
 
 /** 목록에 보여줄 댓글 하나 — mock 댓글과 내가 쓴 댓글을 같은 모양으로 그리기 위한 공통 형태.
@@ -98,8 +89,9 @@ export function CommunityPostDetailPanel({
   const [sort, setSort] = useState<CommentSort>('인기');
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
-  /** 게시글 id → 내가 이번 세션에 등록한 댓글. 다른 글로 넘어가도 서로 안 섞이게 id로 나눠 들고 있는다 */
-  const [ownCommentsByPost, setOwnCommentsByPost] = useState<Record<string, OwnComment[]>>({});
+  /** 게시글 id → 내가 등록한 댓글 — CommunityPostsContext 가 로그인 계정별로 영속화해서
+   * 관리한다(이 컴포넌트가 닫히거나 언마운트돼도, 새로고침해도 사라지지 않는다). */
+  const { ownCommentsByPost, addComment } = useCommunityPosts();
   /** 이번 세션에 좋아요를 누른 댓글 id — mock·내 댓글 공통, id가 서로 겹치지 않아 하나로 관리한다 */
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   /** 방금 등록한 댓글 id — 렌더 후 그 댓글로 스크롤하고 나면 비운다 */
@@ -160,17 +152,17 @@ export function CommunityPostDetailPanel({
     const persona = PERSONA_PROFILE[user?.persona ?? 'beginner'];
     const comment: OwnComment = {
       id: `own-${post.id}-${Date.now()}`,
+      postId: post.id,
       author: user?.name ?? '자두메이트',
+      authorId: user?.email,
       avatarImage: img(persona.profileImage),
       level: persona.level.level,
       body: text,
       likes: 0,
+      createdAt: new Date().toISOString(),
     };
     const nextOwnComments = [...ownComments, comment];
-    setOwnCommentsByPost((prev) => ({
-      ...prev,
-      [post.id]: nextOwnComments,
-    }));
+    addComment(comment);
     setDraft('');
 
     /* 방금 쓴 댓글이 지금 정렬 방식에서 몇 번째 줄에 놓이는지 미리 계산해서,

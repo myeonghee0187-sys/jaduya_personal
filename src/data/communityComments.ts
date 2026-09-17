@@ -3,6 +3,9 @@ import type { LevelValue } from './personaProfile';
 export interface CommunityComment {
   id: string;
   author: string;
+  /** 화면에 보이는 이름(author)과 별개로, 실제 로그인 사용자와 비교하기 위한 식별값 —
+   * 이 프로젝트에서는 AuthUser.email 을 그대로 쓴다. 정적 mock 댓글에는 없다(optional). */
+  authorId?: string;
   /** 닉네임 옆 원형 아바타에 쓰는 이모지 — 실제 사진이 없는 mock 댓글 전용 */
   avatar: string;
   /** 댓글 작성자의 계정 성장 레벨(1~5) — personaProfile.ts LEVEL_STAGES 와 1:1 대응 */
@@ -52,5 +55,29 @@ export const COMMUNITY_COMMENTS: Record<string, CommunityComment[]> = {
     { id: 'desk-34', author: '월세방탈출', avatar: '🍞', level: 2, body: '충전기 자리 딱 정해두는 거 진짜 필요했어요', time: '2일 전', likes: 2 },
     { id: 'desk-35', author: '작심삼일방지', avatar: '🪴', level: 1, body: '저는 꾸준히 유지가 안 되던데 팁 있으면 알려주세요', time: '3일 전', likes: 4 },
     { id: 'desk-36', author: '자취9년차', avatar: '🔑', level: 5, body: '오래 자취해도 책상 정리는 늘 숙제네요 잘 보고 갑니다', time: '3일 전', likes: 21 },
+    /* 데모 계정(이서준/김하린/조아영) 댓글 — 마이페이지 "나의 활동 > 댓글"이 실제
+     * authorId 로 필터링한다는 걸 보여주기 위한 고정 데모 데이터(활동량: 서준7·하린4·아영1). */
+    { id: 'demo-comment-seojun-1', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '혹시 이건 관리비에도 포함되나요?', time: '3시간 전', likes: 1 },
+    { id: 'demo-comment-seojun-2', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '정리 팁 감사합니다. 저도 따라해볼게요!', time: '2시간 전', likes: 0 },
+    { id: 'demo-comment-harin-3', author: '김하린', authorId: 'harin@jaduya.com', avatar: '🧑‍💼', level: 5, body: '이 방법 써봤는데 생각보다 편했어요.', time: '1시간 전', likes: 3 },
+  ],
+  'demo-seojun-post-2': [
+    { id: 'demo-comment-harin-1', author: '김하린', authorId: 'harin@jaduya.com', avatar: '🧑‍💼', level: 5, body: '관리비 항목도 같이 확인해보는 게 좋아요.', time: '어제', likes: 2 },
+  ],
+  'demo-seojun-post-3': [
+    { id: 'demo-comment-harin-2', author: '김하린', authorId: 'harin@jaduya.com', avatar: '🧑‍💼', level: 5, body: '저는 입주하자마자 사진부터 찍어뒀어요.', time: '1일 전', likes: 4 },
+    { id: 'demo-comment-ayoung-1', author: '조아영', authorId: 'ayoung@jaduya.com', avatar: '🐾', level: 3, body: '환기부터 하고 짐 정리하면 훨씬 쾌적해요!', time: '1일 전', likes: 1 },
+  ],
+  'demo-harin-post-1': [
+    { id: 'demo-comment-seojun-3', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '이 부분은 처음 알았어요.', time: '4시간 전', likes: 2 },
+  ],
+  'demo-harin-post-2': [
+    { id: 'demo-comment-seojun-4', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '저도 곧 입주하는데 도움됐어요!', time: '20시간 전', likes: 1 },
+    { id: 'demo-comment-seojun-5', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '계약 전에 확인해봐야겠네요.', time: '19시간 전', likes: 0 },
+  ],
+  'demo-ayoung-post-1': [
+    { id: 'demo-comment-seojun-6', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '반려동물 키우면 수납 고민이 더 크겠어요, 좋은 정보 감사합니다!', time: '3시간 전', likes: 1 },
+    { id: 'demo-comment-seojun-7', author: '이서준', authorId: 'seojun@jaduya.com', avatar: '🐣', level: 1, body: '저도 곧 필요할 것 같아서 저장해둡니다.', time: '2시간 전', likes: 0 },
+    { id: 'demo-comment-harin-4', author: '김하린', authorId: 'harin@jaduya.com', avatar: '🧑‍💼', level: 5, body: '저도 비슷하게 하고 있는데 확실히 편합니다.', time: '1시간 전', likes: 2 },
   ],
 };

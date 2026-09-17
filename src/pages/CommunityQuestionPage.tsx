@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
+import { useCommunityCommentCount } from '../community/communitySelectors';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { GnbOverlay } from '../components/GnbOverlay';
@@ -48,9 +49,15 @@ export function CommunityQuestionPage() {
   const [notice, setNotice] = useState('');
   /* 내가 쓴 글은 종류 제한 없이 다 합치고, 아래 게시글종류 버튼으로 좁혀본다 */
   const { ownPosts } = useCommunityPosts();
+  /* 댓글 수는 실제 댓글 데이터가 있는 게시글이면 그 실제 개수로 바꾼다(전체 탭과 같은 기준) */
+  const getCommentCount = useCommunityCommentCount();
   const allBoardPosts = useMemo(
-    () => mergeOwnPosts([...QUESTION_POSTS, ...COMMUNITY_POSTS], ownPosts),
-    [ownPosts],
+    () =>
+      mergeOwnPosts([...QUESTION_POSTS, ...COMMUNITY_POSTS], ownPosts).map((post) => ({
+        ...post,
+        comments: getCommentCount(post.id, post.comments),
+      })),
+    [ownPosts, getCommentCount],
   );
   const typeFilteredPosts = useMemo(
     () => allBoardPosts.filter((post) => post.category === postTypeFilter),

@@ -1,6 +1,8 @@
 /* 커뮤니티 홈 게시글 — Figma community_home (1742:6378) 의 PostList 내용 그대로.
  * 카드 UI 는 모두 CommunityPostCard 하나로 그린다. */
 
+import { img } from '../lib/asset';
+
 export interface CommunityPost {
   id: string;
   /** 해시태그 chip (초록 계열) */
@@ -17,6 +19,9 @@ export interface CommunityPost {
   /** 내가 쓴 글 전용 — 로그인 계정의 프로필 사진(img() 절대경로). 있으면 badge(이모지) 대신 이 사진을 쓴다 */
   badgeImage?: string;
   author: string;
+  /** 화면에 보이는 이름(author)과 별개로, 실제 로그인 사용자와 비교하기 위한 식별값 —
+   * 이 프로젝트에서는 AuthUser.email 을 그대로 쓴다. 정적 mock 게시글에는 없다(optional). */
+  authorId?: string;
   time: string;
   likes: number;
   comments: number;
@@ -93,7 +98,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     author: '수납장인',
     time: '어제',
     likes: 211,
-    comments: 36,
+    comments: 39,
     thumb: 'post-desk.png',
     level: '초보',
   },
@@ -223,6 +228,147 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
     comments: 16,
     thumb: 'post-move.webp',
     level: '고수',
+  },
+
+  /* 데모 계정(이서준/김하린/조아영) 활동 데이터 — 마이페이지 "나의 활동"이 실제 커뮤니티
+   * 데이터를 필터링해 보여준다는 걸 데모에서 확인할 수 있도록, 세 계정의 글쓰기 활동량을
+   * 일부러 다르게 구성했다(서준 4 > 하린 2 > 아영 1). 마이페이지 전용 배열을 따로 만들지
+   * 않고 이 정적 목록에 실제 게시글로 포함시킨다 — authorId 로 "내가 쓴 글"을 가려낸다. */
+  {
+    id: 'demo-seojun-post-1',
+    hashtag: '#자취 시작',
+    category: '질문',
+    title: '첫 자취인데 전입신고는 언제 하는 게 좋나요?',
+    preview: '이사 날짜는 정해졌는데 며칠 안에 해야 하는지 감이 안 와요.',
+    body:
+      '이사 날짜는 정해졌는데 전입신고를 언제 하는 게 좋은지 감이 안 와요. 이사 당일에 바로 해야 하나요, ' +
+      '아니면 며칠 여유가 있나요? 확정일자도 같이 받아야 한다고 들었는데 순서가 궁금합니다.',
+    badge: '🐣',
+    badgeImage: img('profile_seojun.webp'),
+    author: '이서준',
+    authorId: 'seojun@jaduya.com',
+    time: '6시간 전',
+    likes: 9,
+    comments: 0,
+    thumbEmoji: '📋',
+    level: '초보',
+  },
+  {
+    id: 'demo-seojun-post-2',
+    hashtag: '#집·주거',
+    category: '질문',
+    title: '원룸 계약 전에 꼭 확인해야 하는 게 있을까요?',
+    preview: '다음 주에 계약하기로 했는데 뭘 챙겨봐야 할지 모르겠어요.',
+    body:
+      '다음 주에 원룸 계약을 하기로 했는데, 처음이라 뭘 확인해야 할지 감이 안 옵니다. 등기부등본은 ' +
+      '어디서 어떻게 떼는 건지, 특약사항은 뭘 넣어야 안전한지 알려주시면 감사하겠습니다.',
+    badge: '🐣',
+    badgeImage: img('profile_seojun.webp'),
+    author: '이서준',
+    authorId: 'seojun@jaduya.com',
+    time: '어제',
+    likes: 5,
+    comments: 1,
+    thumbEmoji: '📄',
+    level: '초보',
+  },
+  {
+    id: 'demo-seojun-post-3',
+    hashtag: '#자취 시작',
+    category: '질문',
+    title: '입주 첫날 가장 먼저 해야 하는 일이 뭔가요?',
+    preview: '짐 정리보다 먼저 해둬야 할 게 있다고 들었는데 뭔지 모르겠어요.',
+    body:
+      '드디어 다음 주에 입주하는데, 짐 정리부터 시작하면 되는 건지 아니면 먼저 해둬야 하는 게 따로 있는지 ' +
+      '궁금합니다. 선배 자취러분들의 팁 부탁드려요!',
+    badge: '🐣',
+    badgeImage: img('profile_seojun.webp'),
+    author: '이서준',
+    authorId: 'seojun@jaduya.com',
+    time: '2일 전',
+    likes: 12,
+    comments: 2,
+    thumbEmoji: '🔑',
+    level: '초보',
+  },
+  {
+    id: 'demo-seojun-post-4',
+    hashtag: '#생활문제',
+    category: '질문',
+    title: '보일러 처음 켜봤는데 이 상태가 정상인가요?',
+    preview: '작동하면서 소리도 나고 물도 좀 탁하게 나와서 걱정돼요.',
+    body:
+      '이사 온 뒤 처음으로 보일러를 켰는데, 작동하면서 소리가 좀 크게 나고 온수도 처음엔 탁하게 나왔어요. ' +
+      '이게 원래 그런 건지 고장인지 구분이 안 돼서 여쭤봅니다.',
+    badge: '🐣',
+    badgeImage: img('profile_seojun.webp'),
+    author: '이서준',
+    authorId: 'seojun@jaduya.com',
+    time: '3일 전',
+    likes: 7,
+    comments: 0,
+    thumbEmoji: '🔥',
+    level: '초보',
+  },
+  {
+    id: 'demo-harin-post-1',
+    hashtag: '#청소·정리',
+    category: '후기',
+    title: '자취 3년 하면서 진짜 유용했던 생활 습관',
+    preview: '매일 5분씩만 투자해서 바꾼 습관인데 확실히 삶의 질이 달라졌어요.',
+    body:
+      '자취 3년 차가 되면서 이것저것 시행착오를 겪었는데, 그중에서도 진짜 도움이 됐던 습관 몇 가지를 ' +
+      '공유합니다. 매일 자기 전 5분만 정리하기, 장보기 전 냉장고 사진 찍어두기, 청소 요일 미리 정해두기 — ' +
+      '별거 아닌 것 같아도 확실히 삶의 질이 달라졌어요.',
+    badge: '🧑‍💼',
+    badgeImage: img('profile_harin.webp'),
+    author: '김하린',
+    authorId: 'harin@jaduya.com',
+    time: '5시간 전',
+    likes: 18,
+    comments: 1,
+    thumbEmoji: '🧹',
+    level: '고수',
+  },
+  {
+    id: 'demo-harin-post-2',
+    hashtag: '#집·주거',
+    category: '정보',
+    title: '이사 첫날 이것부터 해두면 편해요',
+    preview: '짐 풀기 전에 이 순서로 하면 나중에 훨씬 편해집니다.',
+    body:
+      '이사할 때마다 느끼는 건데, 짐부터 무작정 풀지 말고 이 순서대로 하면 훨씬 편해요. ' +
+      '1) 관리실에 연락처 남기기 2) 도어락·창문 잠금 확인 3) 수건·침구류부터 꺼내두기 ' +
+      '4) 그다음 나머지 짐 정리. 이 순서만 지켜도 첫날 밤이 훨씬 편해집니다.',
+    badge: '🧑‍💼',
+    badgeImage: img('profile_harin.webp'),
+    author: '김하린',
+    authorId: 'harin@jaduya.com',
+    time: '1일 전',
+    likes: 24,
+    comments: 2,
+    thumbEmoji: '📦',
+    level: '고수',
+  },
+  {
+    id: 'demo-ayoung-post-1',
+    hashtag: '#인테리어',
+    category: '후기',
+    title: '투룸 살면서 생각보다 유용했던 수납 방법',
+    preview: '반려동물 용품 때문에 짐이 많았는데 이 방법으로 정리했어요.',
+    body:
+      '투룸에 살면서 반려동물 용품까지 있다 보니 짐이 은근히 많더라고요. 그래서 방마다 용도를 나누고, ' +
+      '자주 안 쓰는 계절 용품은 침대 밑 수납으로 넣었더니 훨씬 넓어 보여요. 반려동물과 함께 자취하시는 ' +
+      '분들께 도움이 될 것 같아 공유합니다.',
+    badge: '🐾',
+    badgeImage: img('profile_ayoung.webp'),
+    author: '조아영',
+    authorId: 'ayoung@jaduya.com',
+    time: '4시간 전',
+    likes: 6,
+    comments: 3,
+    thumbEmoji: '🛏️',
+    level: '중수',
   },
 ];
 
