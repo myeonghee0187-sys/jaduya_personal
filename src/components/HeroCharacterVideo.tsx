@@ -5,7 +5,7 @@ export function HeroCharacterVideo() {
   return (
     <video
       className="hero__character"
-      src={img('hero_trans_character.webm')}
+      src={img('093152.webm')}
       autoPlay
       loop
       muted
