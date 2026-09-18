@@ -215,7 +215,9 @@
   cursor: pointer;
 }
 
-.community-filter__button img {
+/* 드롭다운 화살표 — img 로 넣으면 SVG 원래 색(#444)이 mask 색을 덮으므로 span + mask 로 칠한다 */
+.community-filter__button-arrow {
+  flex: none;
   display: block;
   width: 12px;
   height: 12px;

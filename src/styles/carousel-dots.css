@@ -30,7 +30,10 @@
   width: 16px;
   height: 16px;
   max-width: none;
-  object-fit: contain;
+  /* jadu_community 모양을 mask 로 잘라 기존 활성 색(#b43936)으로 칠한다 */
+  background-color: #b43936;
+  mask: url('/assets/icon/jadu_community.svg') center / contain no-repeat;
+  -webkit-mask: url('/assets/icon/jadu_community.svg') center / contain no-repeat;
   pointer-events: none;
   transition: transform 200ms ease;
 }
