@@ -101,7 +101,7 @@ Do not create separate static HTML files for individual UI states.
 
 ### Border
 
-`#E9DED1`
+`#919191` (Gray 4 — 흰 배경 대비 3:1 이상 확보를 위해 이전 `#E9DED1`에서 교체)
 
 ### Text
 

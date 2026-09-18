@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { icon } from '../../lib/asset';
 import { useElasticDragScroll } from '../../hooks/useElasticDragScroll';
 import { IncomeExpenseCalendar } from './IncomeExpenseCalendar';
@@ -48,6 +48,11 @@ type SortOption = (typeof SORT_OPTIONS)[number];
  * 패턴)로 전부 보여주니 숨김 없이 전체 카테고리를 이 순서대로 나열한다. */
 const CATEGORY_CHIP_ORDER: CategoryKey[] = ['food', 'life', 'transport', 'shopping', 'culture', 'etc'];
 
+/* 목록 보기(날짜 그룹) — "전체" 등 필터를 걸지 않으면 그 달 모든 날짜가 한 번에 펼쳐져
+ * 목록이 너무 길고 빽빽해 보였다. 최근 3일치만 펼쳐서 먼저 보여주고, 나머지는 "더보기"를
+ * 눌러야 나타나며 접힌 채로 시작한다(눌러서 펼 수 있는 건 그대로). */
+const LIST_GROUPS_PREVIEW_COUNT = 3;
+
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /** 목록 날짜 그룹 헤더 — "오늘/어제" 상대 표현 없이 항상 "N월 N일 (요일)"로 보여준다. */
@@ -72,7 +77,7 @@ function TrendArrowIcon({ direction }: { direction: 'up' | 'down' }) {
       <path
         d="M10 4V16M10 16L5 11M10 16l5-5"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -93,13 +98,18 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
   const [selectedDay, setSelectedDay] = useState<number | null>(TODAY_DAY);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryKey | 'all'>('all');
-  /* 목록 보기 — 날짜 그룹 헤더를 눌러 접었다 펼 수 있다(기본은 전부 펼침) */
+  /* 목록 보기 — 날짜 그룹 헤더를 눌러 접었다 펼 수 있다. 미리보기(처음 3개)는 기본
+   * 펼침, "더보기"로 나타나는 나머지는 기본 접힘이라 — 이 Set은 "그 그룹의 기본값을
+   * 사용자가 뒤집었는지"만 기록한다(실제 펼침 여부는 아래 listGroups 렌더링에서 index
+   * 기준 기본값과 XOR 해서 계산한다). */
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(() => new Set());
+  /* "더보기"를 눌렀는지 — 필터/월이 바뀌면 다시 미리보기 상태로 되돌린다. */
+  const [showAllGroups, setShowAllGroups] = useState(false);
   /* 목록 보기 정렬 — 최신/오래된순은 날짜 그룹을 그대로 두고 순서만 뒤집고,
    * 금액순은 날짜 구분 없이 평평한 목록으로 보여준다(커뮤니티 정렬 드롭다운과 같은 구조).
    * 아무것도 고르지 않은 초기 상태는 'all' — 버튼에 "전체"로 표시되고 동작은 최신순과
    * 같다(listGroups 가 이미 최근 날짜순이라 별도 분기가 필요 없다). 옵션을 고르면 그 값으로
-   * 바뀌고 버튼 글자도 월 선택 드롭다운(money__month-label--btn)처럼 선택한 옵션으로 바뀐다. */
+   * 바뀌고 버튼 글자도 월 선택 드롭다운(money-budget__month-btn)처럼 선택한 옵션으로 바뀐다. */
   const [sortOption, setSortOption] = useState<SortSelection>('all');
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -116,6 +126,12 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [sortOpen]);
+
+  /* 필터·정렬·월이 바뀌면 완전히 다른 목록이니 "더보기" 이전의 미리보기 상태로 되돌린다. */
+  useEffect(() => {
+    setShowAllGroups(false);
+    setCollapsedDays(new Set());
+  }, [typeFilter, categoryFilter, sortOption, calendarDate]);
 
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
@@ -422,7 +438,10 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
                 type="button"
                 aria-pressed={categoryFilter === c.key}
                 className={`flow-category-chip${categoryFilter === c.key ? ' is-active' : ''}`}
-                style={{ background: c.bg }}
+                /* 구분 필터(전체/수입/지출/이체)의 활성색은 계속 --brand-primary — 이 칩은
+                 * 카테고리 축이라 선택했을 때 그 카테고리 자신의 색(c.color)으로 테두리·글자가
+                 * 바뀌게 한다. 두 필터가 같은 빨강으로 겹쳐 보이던 걸 색으로 구분한다. */
+                style={{ background: c.bg, '--chip-accent': c.color } as CSSProperties}
                 onClick={() => setCategoryFilter((prev) => (prev === c.key ? 'all' : c.key))}
               >
                 <img src={icon(c.icon)} alt="" />
@@ -444,42 +463,56 @@ export function IncomeExpenseSection({ onNotice, initialView = 'calendar' }: Inc
                 />
               ))
             ) : (
-              sortedGroups.map((group) => {
-                const collapsed = collapsedDays.has(group.day);
-                /* 그 날의 수입 - 지출 순액 — 이체는 수입/지출 어느 쪽에도 더하지 않는 원칙
-                 * (moneyTransactions.ts dayFlowTotals) 그대로, 이체만 있는 날은 순액이 0이라
-                 * 아무 것도 표시하지 않는다(근거 없는 금액을 만들지 않는다). */
-                const net = group.income - group.expense;
-                return (
-                  <div key={group.day} className="flow-day-group">
-                    <button
-                      type="button"
-                      className="flow-day-group__header"
-                      aria-expanded={!collapsed}
-                      onClick={() => toggleDayCollapsed(group.day)}
-                    >
-                      <span className="flow-day-group__label">{dayGroupLabel(year, month, group.day)}</span>
-                      {net !== 0 && (
-                        <span
-                          className={`flow-day-group__total${net > 0 ? ' flow-day-group__total--income' : ' flow-day-group__total--expense'}`}
+              <>
+                {(showAllGroups ? sortedGroups : sortedGroups.slice(0, LIST_GROUPS_PREVIEW_COUNT)).map(
+                  (group, index) => {
+                    /* 미리보기(처음 3개)는 기본 펼침, "더보기"로 나온 나머지(index >= 3)는
+                     * 기본 접힘 — collapsedDays 는 "이 그룹만 기본값을 뒤집었는지"라 그
+                     * 기본값과 XOR 해서 실제 펼침 여부를 정한다. */
+                    const isDefaultCollapsed = index >= LIST_GROUPS_PREVIEW_COUNT;
+                    const collapsed = collapsedDays.has(group.day) ? !isDefaultCollapsed : isDefaultCollapsed;
+                    /* 그 날의 수입 - 지출 순액 — 이체는 수입/지출 어느 쪽에도 더하지 않는 원칙
+                     * (moneyTransactions.ts dayFlowTotals) 그대로, 이체만 있는 날은 순액이 0이라
+                     * 아무 것도 표시하지 않는다(근거 없는 금액을 만들지 않는다). */
+                    const net = group.income - group.expense;
+                    return (
+                      <div key={group.day} className="flow-day-group">
+                        <button
+                          type="button"
+                          className="flow-day-group__header"
+                          aria-expanded={!collapsed}
+                          onClick={() => toggleDayCollapsed(group.day)}
                         >
-                          {net > 0 ? '+' : '-'}
-                          {Math.abs(net).toLocaleString()}원
-                        </span>
-                      )}
-                      <img
-                        className={`flow-day-group__chevron${collapsed ? '' : ' is-open'}`}
-                        src={icon('chevron-down-thin.svg')}
-                        alt=""
-                      />
-                    </button>
-                    {!collapsed &&
-                      group.items.map((t) => (
-                        <FlowRow key={t.id} item={t} onClick={() => setSelectedItemId(t.id)} />
-                      ))}
-                  </div>
-                );
-              })
+                          <span className="flow-day-group__label">{dayGroupLabel(year, month, group.day)}</span>
+                          {net !== 0 && (
+                            <span
+                              className={`flow-day-group__total${net > 0 ? ' flow-day-group__total--income' : ' flow-day-group__total--expense'}`}
+                            >
+                              {net > 0 ? '+' : '-'}
+                              {Math.abs(net).toLocaleString()}원
+                            </span>
+                          )}
+                          <img
+                            className={`flow-day-group__chevron${collapsed ? '' : ' is-open'}`}
+                            src={icon('chevron-down-thin.svg')}
+                            alt=""
+                          />
+                        </button>
+                        {!collapsed &&
+                          group.items.map((t) => (
+                            <FlowRow key={t.id} item={t} onClick={() => setSelectedItemId(t.id)} />
+                          ))}
+                      </div>
+                    );
+                  },
+                )}
+                {!showAllGroups && sortedGroups.length > LIST_GROUPS_PREVIEW_COUNT && (
+                  <button type="button" className="flow-list__more" onClick={() => setShowAllGroups(true)}>
+                    더보기
+                    <img src={icon('chevron-down-thin.svg')} alt="" />
+                  </button>
+                )}
+              </>
             )}
           </div>
         </>

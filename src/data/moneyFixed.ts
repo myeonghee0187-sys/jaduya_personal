@@ -45,20 +45,20 @@ export const FIXED_CATEGORY_EMOJI: Partial<Record<(typeof FIXED_CATEGORY_OPTIONS
  * 있으면 카테고리 스프라이트/이모지보다 우선한다(월세만 바꾸고 같은 카테고리인 관리비는
  * 그대로 스프라이트를 쓰는 식). 경로는 assets/img/ 기준(lib/asset.ts 의 img()). */
 export const FIXED_ITEM_IMAGE: Partial<Record<string, string>> = {
-  rent: 'jaduya_custom_recommendation_36/money_management/fixed_expenses1.png',
-  maintenance: 'jaduya_custom_recommendation_36/money_management/utility_bills.png',
-  phone: 'jaduya_custom_recommendation_36/money_management/fixed_expenses2.png',
-  music: 'jaduya_custom_recommendation_36/money_management/fixed_expenses3.png',
-  ott: 'jaduya_custom_recommendation_36/money_management/fixed_expenses7.png',
-  insurance: 'jaduya_custom_recommendation_36/money_management/fixed_expenses5.png',
-  gym: 'jaduya_custom_recommendation_36/money_management/fixed_expenses4.png',
+  rent: 'jaduya_custom_recommendation_36/money_management/image 287.png',
+  maintenance: 'jaduya_custom_recommendation_36/money_management/image 288.png',
+  phone: 'jaduya_custom_recommendation_36/money_management/image 280.png',
+  music: 'jaduya_custom_recommendation_36/money_management/image 281.png',
+  ott: 'jaduya_custom_recommendation_36/money_management/image 282.png',
+  insurance: 'jaduya_custom_recommendation_36/money_management/image 283.png',
+  gym: 'jaduya_custom_recommendation_36/money_management/image 284.png',
 };
 
 /* "고정비 추가하기" 로 새로 만든 항목은 key 가 매번 새로 생겨(added-${Date.now()})
- * FIXED_ITEM_IMAGE 로 못 찾는다 — 이름으로도 한 번 더 찾아서, 더미 채우기("넷플릭스")로
- * 추가한 항목도 카테고리 스프라이트 대신 같은 OTT 아이콘을 쓰게 한다. */
+ * FIXED_ITEM_IMAGE 로 못 찾는다 — 이름으로도 한 번 더 찾아서, 더미 채우기("교통비")로
+ * 추가한 항목도 카테고리 스프라이트 대신 이 아이콘을 쓰게 한다. */
 export const FIXED_ITEM_IMAGE_BY_NAME: Partial<Record<string, string>> = {
-  '넷플릭스': 'jaduya_custom_recommendation_36/money_management/fixed_expenses7.png',
+  '교통비': 'jaduya_custom_recommendation_36/money_management/image 286.png',
 };
 
 export const FIXED_EXPENSES: FixedExpenseItem[] = [

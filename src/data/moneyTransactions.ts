@@ -20,6 +20,9 @@ export interface CategoryMeta {
   color: string;
   /** 연한 보조 배경 — 칩/뱃지처럼 넓은 면을 채우는 자리. color 와 항상 한 쌍으로 쓴다. */
   bg: string;
+  /** 장식용 물 채우기(소비 분석 카드 fill)처럼 텍스트 대비 제약이 없는 자리 전용 —
+   * color 보다 밝고 채도 높은, 같은 램프의 등록된 단계(tokens.css "Category accent"). */
+  accent: string;
   /** 지난달(8월) 카테고리 총액 — 트렌드 문구·월간 그래프에만 쓰는 단일 값이라
    * 지난달 거래 내역까지는 만들지 않는다(이번 달만 실제 transaction 단위로 관리). */
   prevAmount: number;
@@ -32,12 +35,12 @@ export interface CategoryMeta {
  * 대비 2.63:1)이라 도넛 차트·칩에서 구분이 안 됐다 — 6개 전부 서로 다르고 대비도 확보된
  * 전용 토큰으로 바꿨다. */
 export const CATEGORY_META: readonly CategoryMeta[] = [
-  { key: 'food', label: '식비', icon: 'money-cat-food.svg', color: 'var(--category-food)', bg: 'var(--category-food-bg)', prevAmount: 286_000 },
-  { key: 'shopping', label: '쇼핑', icon: 'money-cat-shopping.svg', color: 'var(--category-shopping)', bg: 'var(--category-shopping-bg)', prevAmount: 235_000 },
-  { key: 'transport', label: '교통', icon: 'money-cat-transport.svg', color: 'var(--category-transport)', bg: 'var(--category-transport-bg)', prevAmount: 95_000 },
-  { key: 'culture', label: '문화/여가', icon: 'money-cat-culture.svg', color: 'var(--category-culture)', bg: 'var(--category-culture-bg)', prevAmount: 68_000 },
-  { key: 'life', label: '생활', icon: 'money-cat-culture.svg', color: 'var(--category-life)', bg: 'var(--category-life-bg)', prevAmount: 60_000 },
-  { key: 'etc', label: '기타', icon: 'money-cat-culture.svg', color: 'var(--category-etc)', bg: 'var(--category-etc-bg)', prevAmount: 51_000 },
+  { key: 'food', label: '식비', icon: 'money-cat-food.svg', color: 'var(--category-food)', bg: 'var(--category-food-bg)', accent: 'var(--category-food-accent)', prevAmount: 286_000 },
+  { key: 'shopping', label: '쇼핑', icon: 'money-cat-shopping.svg', color: 'var(--category-shopping)', bg: 'var(--category-shopping-bg)', accent: 'var(--category-shopping-accent)', prevAmount: 235_000 },
+  { key: 'transport', label: '교통', icon: 'money-cat-transport.svg', color: 'var(--category-transport)', bg: 'var(--category-transport-bg)', accent: 'var(--category-transport-accent)', prevAmount: 95_000 },
+  { key: 'culture', label: '문화/여가', icon: 'money-cat-culture.svg', color: 'var(--category-culture)', bg: 'var(--category-culture-bg)', accent: 'var(--category-culture-accent)', prevAmount: 68_000 },
+  { key: 'life', label: '생활', icon: 'money-cat-culture.svg', color: 'var(--category-lifestyle)', bg: 'var(--category-lifestyle-bg)', accent: 'var(--category-lifestyle-accent)', prevAmount: 60_000 },
+  { key: 'etc', label: '기타', icon: 'money-cat-culture.svg', color: 'var(--category-etc)', bg: 'var(--category-etc-bg)', accent: 'var(--category-etc-accent)', prevAmount: 51_000 },
 ] as const;
 
 export interface ExpenseTransaction {
@@ -311,9 +314,14 @@ export interface IncomeTransaction {
   amount: number;
 }
 
-/** "이번 달" 탭 돈 흐름 카드의 수입(2,500,000원)과 같은 값 — 월급 하나뿐이다. */
+/** "이번 달" 탭 돈 흐름 카드의 수입(2,500,000원)과 같은 총액을 월급 하나 대신 여러 소득원
+ * (월급·부수입·이자)으로 나눈다 — 총액(TOTAL_INCOME)이 이 목록의 합으로 그대로 유지되니
+ * "+2,500,000원"·지난달 대비 비교 문구 등 다른 화면은 안 바뀌고, 캘린더·목록에만 여러
+ * 날짜에 걸쳐 나타난다(EXPENSE_TRANSACTIONS 처럼 지출도 원래 여러 건으로 나뉘어 있었다). */
 export const INCOME_TRANSACTIONS: readonly IncomeTransaction[] = [
-  { id: 'income-1', day: 8, source: '월급', amount: 2_500_000 },
+  { id: 'income-1', day: 5, source: '월급', amount: 2_200_000 },
+  { id: 'income-2', day: 12, source: '부수입', amount: 200_000 },
+  { id: 'income-3', day: 18, source: '이자', amount: 100_000 },
 ] as const;
 
 export const TOTAL_INCOME = INCOME_TRANSACTIONS.reduce((sum, t) => sum + t.amount, 0);

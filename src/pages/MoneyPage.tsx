@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { GnbOverlay } from '../components/GnbOverlay';
 import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
+import { EmergencyRing } from '../components/money/EmergencyRing';
 import { FundAmountSheet } from '../components/money/FundAmountSheet';
 import { IncomeExpenseSection } from '../components/money/IncomeExpenseSection';
 import { useAnimatedPercent } from '../components/money/useAnimatedPercent';
@@ -148,6 +149,7 @@ const SPEND_ANALYSIS_ROWS = [
     icon: c.icon,
     color: c.color,
     bg: c.bg,
+    accent: c.accent,
     amount: CATEGORY_TOTALS[c.key],
     percent: CATEGORY_PERCENTAGES[c.key],
   })),
@@ -163,6 +165,7 @@ const SPEND_ANALYSIS_ROWS = [
            * 색이 전부 달라 이 문제가 생기지 않는다. */
           color: 'var(--category-etc)',
           bg: 'var(--category-etc-bg)',
+          accent: 'var(--category-etc-accent)',
           amount: SPEND_ANALYSIS_REST_TOTAL,
           percent: SPEND_ANALYSIS_REST_PERCENT,
         },
@@ -200,6 +203,15 @@ function AnimatedProgressFill({ percent, className, clamp = false, background }:
   const display = useAnimatedPercent(percent);
   const width = clamp ? Math.min(100, display) : display;
   return <span className={className} style={{ width: `${width}%`, ...(background ? { background } : {}) }} />;
+}
+
+/* 고정비 탭 지출 완료 링 — useAnimatedPercent 주석이 "돈관리의 다른 진행률 바(예산, 소비
+ * 분석, 고정비)에도 그대로 재사용한다"고 이미 명시하는데, EmergencyRing 이 원형(레퍼런스)
+ * 으로 되돌아오면서 정적인 percent 를 그대로 받아 애니메이션이 빠져 있었다 — 예산 진행률
+ * 바·소비 분석 카드와 똑같이 0에서 차오르도록 여기서 감싼다. */
+function AnimatedEmergencyRing({ percent, ...rest }: ComponentProps<typeof EmergencyRing>) {
+  const display = useAnimatedPercent(percent);
+  return <EmergencyRing {...rest} percent={display} />;
 }
 
 /* 소비 분석 카드 5개 각자의 % 만큼 아래에서부터 차오르는 물 채워지는 바 — 세로판 AnimatedProgressFill.
@@ -308,6 +320,16 @@ export function MoneyPage() {
     const timer = window.setTimeout(() => setNotice(''), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+  /* "고정비 추가하기" 직후 — 알림 문구(위 notice) + 방금 추가된 행으로 스크롤·하이라이트를
+   * 같이 준다(1안+2안 조합). key 를 잠깐 들고 있다가 스크롤/애니메이션이 끝나면 지운다. */
+  const [highlightFixedKey, setHighlightFixedKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!highlightFixedKey) return;
+    const node = scrollRef.current?.querySelector(`[data-fixed-key="${highlightFixedKey}"]`);
+    node?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = window.setTimeout(() => setHighlightFixedKey(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [highlightFixedKey]);
   const allFixedItems = [...FIXED_EXPENSES, ...addedFixedItems];
   const isFixedItemEnabled = (item: FixedExpenseItem) => fixedToggleOverrides[item.key] ?? item.enabled;
   const toggleFixedItem = (item: FixedExpenseItem) =>
@@ -395,11 +417,11 @@ export function MoneyPage() {
 
   /* 매번 입력하기 번거로운 테스트용 — 눌러진 순간 값이 바로 채워지는 더미 텍스트로 넣는다 */
   const fillFixedAddDummy = () => {
-    setFixedAddName('넷플릭스');
-    setFixedAddAmount('9500');
+    setFixedAddName('교통비');
+    setFixedAddAmount('65000');
     setFixedAddDay('15');
-    setFixedAddDetail('구독');
-    setFixedAddCategory('통신 · 구독');
+    setFixedAddDetail('대중교통');
+    setFixedAddCategory('기타');
     setFixedAddMethod('신한카드 · •• 4821');
   };
 
@@ -420,12 +442,14 @@ export function MoneyPage() {
     fixedAddMethod.trim() !== '';
   const submitFixedAdd = () => {
     if (!canSubmitFixedAdd) return;
+    const newKey = `added-${Date.now()}`;
+    const newLabel = fixedAddName.trim();
     setAddedFixedItems((prev) => [
       ...prev,
       {
-        key: `added-${Date.now()}`,
+        key: newKey,
         day: fixedAddDayNumber,
-        label: fixedAddName.trim(),
+        label: newLabel,
         amount: Number(fixedAddAmount),
         detail: fixedAddDetail.trim() || fixedAddCategory,
         category: fixedAddCategory,
@@ -433,6 +457,11 @@ export function MoneyPage() {
         enabled: true,
       },
     ]);
+    /* 지금 보고 있던 카테고리 필터가 새 항목의 카테고리와 다르면 목록에 아예 안 보여서
+     * 아래 스크롤·하이라이트가 아무 효과가 없다 — "전체"로 되돌려 반드시 보이게 한다. */
+    setActiveFixedCategory('전체');
+    setNotice(`${newLabel} 고정비를 추가했어요.`);
+    setHighlightFixedKey(newKey);
     setFixedAddSheetOpen(false);
     resetFixedAddForm();
   };
@@ -466,63 +495,65 @@ export function MoneyPage() {
 
         </div>
 
-        {/* '이번 달' 탭의 월 선택 — 왼쪽 정렬 라벨을 누르면 월 목록 드롭다운이 열린다.
-         * 실데이터가 있는 달은 9월 하나뿐이라 나머지는 "준비 중"으로 비활성화한다. */}
-        {tab === '이번 달' && (
-          <div className="money__month">
-            <div className="money-month-dropdown" ref={monthMenuRef}>
-              <button
-                type="button"
-                className="money__month-label money__month-label--btn"
-                aria-haspopup="listbox"
-                aria-expanded={monthMenuOpen}
-                onClick={() => setMonthMenuOpen((open) => !open)}
-              >
-                {MONTH_OPTIONS[0]}
-                <img
-                  src={icon('chevron-down-thin.svg')}
-                  alt=""
-                  className={monthMenuOpen ? 'is-open' : ''}
-                />
-              </button>
-              {monthMenuOpen && (
-                <div className="money-month-menu" role="listbox" aria-label="월 선택">
-                  {MONTH_OPTIONS.map((label, index) => {
-                    const selected = index === 0;
-                    return (
-                      <button
-                        key={label}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        disabled={!selected}
-                        className={`money-month-menu__item${selected ? ' is-active' : ''}`}
-                        onClick={() => setMonthMenuOpen(false)}
-                      >
-                        {label}
-                        {!selected && <span className="money-month-menu__soon">준비 중</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {tab === '이번 달' && (
           <>
             <section className="money-budget">
-              <button
-                type="button"
-                className="money-budget__eye"
-                aria-label={amountsHidden ? '금액 표시' : '금액 가리기'}
-                onClick={() => setAmountsHidden((v) => !v)}
-              >
-                <img src={icon(amountsHidden ? 'eye-slash.svg' : 'eye.svg')} alt="" />
-              </button>
-
-              <span className="money-budget__title">이번 달 쓸 수 있는 돈</span>
+              {/* 월 선택 — 예전엔 카드 위에 혼자 뜬 줄이라 위치가 애매했다. 어느 달을
+               * 보고 있는지가 곧 이 카드가 보여주는 값을 정하니, 그 값을 담은 카드의
+               * 제목 줄로 옮겼다 — 제목보다 먼저(왼쪽) 와야 "무엇의 9월인지"가 아니라
+               * "9월의 무엇인지" 순서로 읽혀서, 월 선택이 이 줄 전체를 스코프하는
+               * 컨트롤이라는 게 먼저 눈에 들어온다. 실데이터가 있는 달은 9월 하나뿐이라
+               * 나머지는 "준비 중"으로 비활성화한다. */}
+              <div className="money-budget__head">
+                <div className="money-budget__head-lead">
+                  <div className="money-month-dropdown" ref={monthMenuRef}>
+                    <button
+                      type="button"
+                      className="money-budget__month-btn"
+                      aria-haspopup="listbox"
+                      aria-expanded={monthMenuOpen}
+                      onClick={() => setMonthMenuOpen((open) => !open)}
+                    >
+                      {MONTH_OPTIONS[0]}
+                      <img
+                        src={icon('chevron-down-thin.svg')}
+                        alt=""
+                        className={monthMenuOpen ? 'is-open' : ''}
+                      />
+                    </button>
+                    {monthMenuOpen && (
+                      <div className="money-month-menu" role="listbox" aria-label="월 선택">
+                        {MONTH_OPTIONS.map((label, index) => {
+                          const selected = index === 0;
+                          return (
+                            <button
+                              key={label}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              disabled={!selected}
+                              className={`money-month-menu__item${selected ? ' is-active' : ''}`}
+                              onClick={() => setMonthMenuOpen(false)}
+                            >
+                              {label}
+                              {!selected && <span className="money-month-menu__soon">준비 중</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <span className="money-budget__title">이번 달 쓸 수 있는 돈</span>
+                </div>
+                <button
+                  type="button"
+                  className="money-budget__eye"
+                  aria-label={amountsHidden ? '금액 표시' : '금액 가리기'}
+                  onClick={() => setAmountsHidden((v) => !v)}
+                >
+                  <img src={icon(amountsHidden ? 'eye-slash.svg' : 'eye.svg')} alt="" />
+                </button>
+              </div>
               <p key={String(amountsHidden)} className="money-budget__amount budget-setup__pulse">
                 {showAmount(SPENDABLE)}
               </p>
@@ -579,7 +610,7 @@ export function MoneyPage() {
                       <path
                         d="M10 16V4M10 4L5 9M10 4l5 5"
                         stroke="currentColor"
-                        strokeWidth="1.8"
+                        strokeWidth="2.4"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
@@ -607,7 +638,7 @@ export function MoneyPage() {
                       <path
                         d="M10 4V16M10 16L5 11M10 16l5-5"
                         stroke="currentColor"
-                        strokeWidth="1.8"
+                        strokeWidth="2.4"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
@@ -694,7 +725,7 @@ export function MoneyPage() {
                       type="button"
                       key={`${row.key}-${wiggleN}`}
                       className={`money-spend-grid-card money-tappable${wiggleN > 0 ? ' money-spend-grid-card--wiggle' : ''}`}
-                      style={{ '--spend-fill-color': row.color } as CSSProperties}
+                      style={{ '--spend-fill-color': row.accent } as CSSProperties}
                       onClick={() => handleSpendCardTap(row.key)}
                     >
                       <AnimatedFillLevel percent={row.percent} className="money-spend-grid-card__fill" />
@@ -716,6 +747,7 @@ export function MoneyPage() {
               <button
                 type="button"
                 className="money-insight-banner money-tappable"
+                style={{ '--insight-accent': TOP_CATEGORY.color } as CSSProperties}
                 onClick={() => navigation?.navigate('benefits', { returnTo: 'money' })}
               >
                 <span className="money-insight-banner__text">
@@ -808,27 +840,29 @@ export function MoneyPage() {
 
         {tab === '고정비' && (
           <>
-            {/* 진행률 중심 구성(B안) — "총액을 두 번 보여주는" 대신 "이번 달 지출이 얼마나
-             * 진행됐는지"를 헤드라인으로 삼는다. 총액은 서브텍스트로 한 번만, 증감은 오른쪽
-             * 위 작은 배지 하나로 압축, 진행률 바 아래엔 총액 반복 대신 "남은 금액"을 보여준다. */}
+            {/* 이번 달 고정비 요약 카드(레퍼런스) — 총액을 헤드라인으로, 지출/남은 금액을
+             * 서브텍스트 한 줄로, 진행률은 오른쪽 도넛 링(EmergencyRing — 비상금 탭과 같은
+             * 컴포넌트)으로 보여준다. 막대 진행률(B안) 대신 레퍼런스의 원형 구성으로 되돌린다. */}
             <section className="money-fixed-summary">
-              <div className="money-fixed-summary__head">
-                <div className="money-fixed-summary__stat">
-                  <p className="money-fixed-summary__label">이번 달 고정비 지출 현황</p>
-                  <p className="money-fixed-summary__amount">
-                    <AnimatedPercentText percent={FIXED_PAID_PERCENT} /> 지출 완료
-                  </p>
-                  <p className="money-fixed-summary__total">
-                    이번 달 고정비 {FIXED_MONTHLY_TOTAL.toLocaleString()}원
-                  </p>
-                </div>
+              <div className="money-fixed-summary__stat">
+                <p className="money-fixed-summary__label">이번 달 고정비</p>
+                <p className="money-fixed-summary__amount">{FIXED_MONTHLY_TOTAL.toLocaleString()}원</p>
+                <p className="money-fixed-summary__total">
+                  지출 {FIXED_PAID_TOTAL.toLocaleString()}원 · 남은 {FIXED_REMAINING_TOTAL.toLocaleString()}원
+                </p>
               </div>
-              <div className="money-fixed-status__track">
-                <AnimatedProgressFill percent={FIXED_PAID_PERCENT} className="money-fixed-status__fill" />
-              </div>
-              <div className="money-fixed-status__labels">
-                <span>지출 {FIXED_PAID_TOTAL.toLocaleString()}원</span>
-                <span>남은 {FIXED_REMAINING_TOTAL.toLocaleString()}원</span>
+              <div className="money-fixed-summary__ring">
+                <AnimatedEmergencyRing
+                  percent={FIXED_PAID_PERCENT}
+                  size={92}
+                  stroke={9}
+                  trackColor="var(--color-primary-2)"
+                  progressColor="var(--color-gray-0)"
+                  valueColor="var(--color-gray-0)"
+                  valueSize={18}
+                  valueFontFamily="var(--font-asta)"
+                />
+                <span className="money-fixed-summary__ring-label">지출 완료</span>
               </div>
             </section>
 
@@ -937,7 +971,11 @@ export function MoneyPage() {
                 {filteredFixedItems.map((item) => {
                   const enabled = isFixedItemEnabled(item);
                   return (
-                    <div key={item.key} className="money-fixed-row">
+                    <div
+                      key={item.key}
+                      data-fixed-key={item.key}
+                      className={`money-fixed-row${item.key === highlightFixedKey ? ' money-fixed-row--highlight' : ''}`}
+                    >
                       <button
                         type="button"
                         className="money-fixed-row__main money-tappable"
