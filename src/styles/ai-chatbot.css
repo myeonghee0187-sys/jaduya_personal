@@ -56,7 +56,7 @@
   bottom: calc(var(--tab-bar-h) + 5vh + 84px);
   z-index: 51;
   box-sizing: border-box;
-  width: min(310px, calc(100% - 32px));
+  width: min(260px, calc(100% - 32px));
   min-height: 82px;
   display: flex;
   align-items: flex-start;
