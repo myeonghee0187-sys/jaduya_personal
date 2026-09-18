@@ -219,6 +219,14 @@ export function CommunityTipPage() {
               >
                 <span className="tip-category__circle">
                   <span
+                    className="tip-category__badge"
+                    style={{
+                      maskImage: `url(${icon('jadu_community.svg')})`,
+                      WebkitMaskImage: `url(${icon('jadu_community.svg')})`,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span
                     className="tip-category__glyph"
                     style={{ maskImage: `url(${icon(item.icon)})`, WebkitMaskImage: `url(${icon(item.icon)})` }}
                     aria-hidden="true"

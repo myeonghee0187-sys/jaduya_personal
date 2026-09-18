@@ -306,7 +306,7 @@
   margin: 2px 0 0;
   font-family: var(--font-suit);
   font-size: var(--font-size-caption);
-  color: var(--text-secondary);
+  color: #653b04;
 }
 
 .wpg-all__head {
@@ -889,7 +889,7 @@
   display: block;
   width: 100%;
   padding: var(--space-md);
-  border: 1px solid var(--border-warm);
+  border: 1px solid #d5c4af;
   border-radius: var(--radius-l);
   background: var(--surface-cream);
   text-align: left;

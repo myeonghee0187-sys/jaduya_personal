@@ -1180,7 +1180,7 @@ a { text-decoration: none; color: inherit; }
    * 영향을 주지 않는다). */
   width: calc(100% - 1px);
   padding: 10px 12px;
-  border: 1px solid var(--border-today);
+  border: 1px solid rgba(149, 163, 32, 0.72);
   border-radius: var(--radius-l);
   background: var(--surface-today);
   overflow: hidden;
@@ -1247,7 +1247,7 @@ a { text-decoration: none; color: inherit; }
   position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-today);
+  border: 1px solid rgba(149, 163, 32, 0.72);
   border-radius: var(--radius-l);
   background: var(--surface-base);
   overflow: hidden;

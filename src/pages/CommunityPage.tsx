@@ -115,7 +115,7 @@ export function CommunityPage() {
         onMenu={() => setGnbOpen(true)}
       />
 
-      <main className="community__scroll community__scroll--enter">
+      <main className="community__scroll">
         {/* ============ 검색 ============ */}
         <section className="community-search">
           <div className="community-search__input">

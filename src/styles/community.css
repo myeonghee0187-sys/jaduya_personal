@@ -39,24 +39,6 @@
   scrollbar-width: none;
 }
 
-/* 커뮤니티에 처음 진입할 때(전체 탭, CommunityPage)만 부드럽게 나타난다.
- * 그 안에서 다른 탭(질문·자취꿀팁·지역후기·소비비교)으로 이동할 때는 애니메이션이
- * 없다 — 이 클래스는 CommunityPage.tsx 에만 붙어 있다.
- * backwards: 애니메이션 시작 전부터 from(투명도 0) 상태를 미리 적용해서
- * 첫 프레임에 잠깐 원래 모습이 비쳤다가 튀는 현상을 없앤다. */
-.community__scroll--enter {
-  animation: community-content-enter 150ms ease backwards;
-}
-
-@keyframes community-content-enter {
-  from {
-    opacity: 0.4;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .community__scroll::-webkit-scrollbar {
   display: none;
 }
@@ -78,7 +60,7 @@
   gap: 12px;
   width: 100%;
   padding: 8px 14px;
-  border: 1px solid var(--border-warm);
+  border: 1px solid var(--cm-oat);
   border-radius: var(--radius-s);
   background: #f9f5ef;
 }
@@ -223,12 +205,12 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 8px 10px;
   border: 1px solid #b43936;
   border-radius: 18px;
   background: var(--surface-base);
   color: #b43936;
-  font: 400 13px/16.8px var(--font-suit);
+  font: 400 12px/16.8px var(--font-suit);
   letter-spacing: 0.14px;
   cursor: pointer;
 }
@@ -321,44 +303,54 @@
   cursor: pointer;
 }
 
-.board-type-filter__circle {
-  flex: none;
+/* 원형 배경 대신 jadu_community 마스코트를 배지처럼 뒤에 깔고, 그 위에 종류별 아이콘을
+ * 겹친다 — 활성/비활성은 원 색이 아니라 마스코트+아이콘 색 자체로 함께 구분한다. */
+.board-type-filter__icon-stack {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 1px solid var(--cm-card-border);
-  background-color: var(--surface-base);
-  transition: background-color 160ms ease, border-color 160ms ease;
+  width: 60px;
+  height: 60px;
 }
 
-.board-type-filter__glyph {
-  width: 24px;
-  height: 24px;
-  background-color: var(--cm-oat);
+.board-type-filter__badge {
+  position: absolute;
+  inset: 0;
+  background-color: #e7dac7;
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
-  transition: background-color 160ms ease;
+  transition: background-color 280ms ease-out;
 }
 
-.board-type-filter__btn:hover:not(.is-active) .board-type-filter__circle {
-  border-color: var(--brand-primary);
-  background-color: rgba(180, 57, 54, 0.06);
+.board-type-filter__glyph {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  /* 마스코트 실루엣이 비대칭(왼쪽 위 잎·오른쪽 아래 꼬리)이라, 수학적 중앙이 아니라
+   * 몸통(사과 부분) 위로 보이도록 살짝 내려서 맞춘다 — 눈대중 보정값 */
+  transform: translateY(5px);
+  background-color: #a08f73;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: background-color 280ms ease-out;
 }
 
-.board-type-filter__btn.is-active .board-type-filter__circle {
+.board-type-filter__btn.is-active .board-type-filter__badge {
   background-color: var(--brand-primary);
-  border-color: var(--brand-primary);
 }
 
 .board-type-filter__btn.is-active .board-type-filter__glyph {
-  background-color: var(--surface-base);
+  background-color: #ffffff;
 }
 
 .board-type-filter__label {
@@ -372,14 +364,14 @@
     width: 60px;
   }
 
-  .board-type-filter__circle {
-    width: 48px;
-    height: 48px;
+  .board-type-filter__icon-stack {
+    width: 56px;
+    height: 56px;
   }
 
   .board-type-filter__glyph {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
 }
 
@@ -392,14 +384,14 @@
     width: 56px;
   }
 
-  .board-type-filter__circle {
-    width: 46px;
-    height: 46px;
+  .board-type-filter__icon-stack {
+    width: 54px;
+    height: 54px;
   }
 
   .board-type-filter__glyph {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -427,44 +419,50 @@
 }
 
 .tip-category__circle {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 1px solid var(--cm-card-border);
-  background-color: var(--surface-base);
-  transition: background-color 160ms ease, border-color 160ms ease;
+  width: 60px;
+  height: 60px;
 }
 
-.tip-category__glyph {
-  width: 24px;
-  height: 24px;
-  background-color: var(--cm-oat);
+.tip-category__badge {
+  position: absolute;
+  inset: 0;
+  background-color: #e7dac7;
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
-  transition: background-color 160ms ease;
+  transition: background-color 280ms ease-out;
 }
 
-/* 안 눌린 상태에서만 hover 를 보여준다 — 이미 선택된 타일은 hover 로 바뀌지 않는다 */
-.tip-category:hover:not(.is-active) .tip-category__circle {
-  border-color: var(--brand-primary);
-  background-color: rgba(180, 57, 54, 0.06);
+.tip-category__glyph {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  transform: translateY(5px);
+  background-color: #a08f73;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: background-color 280ms ease-out;
 }
 
-.tip-category.is-active .tip-category__circle {
+.tip-category.is-active .tip-category__badge {
   background-color: var(--brand-primary);
-  border-color: var(--brand-primary);
 }
 
 .tip-category.is-active .tip-category__glyph {
-  background-color: var(--surface-base);
+  background-color: #ffffff;
 }
 
 .tip-category__label {
@@ -491,13 +489,13 @@
   }
 
   .tip-category__circle {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
   }
 
   .tip-category__glyph {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
 
   .tip-category__label {
@@ -523,13 +521,13 @@
   }
 
   .tip-category__circle {
-    width: 46px;
-    height: 46px;
+    width: 54px;
+    height: 54px;
   }
 
   .tip-category__glyph {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -905,6 +903,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
+  margin-top: auto;
 }
 
 .post-card__stat {
@@ -978,8 +977,8 @@
 .post-card__thumb {
   flex: none;
   display: block;
-  width: 96px;
-  height: 96px;
+  width: 86px;
+  height: 86px;
   border-radius: var(--radius-m);
   object-fit: cover;
 }
@@ -1001,7 +1000,7 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 4px 0;
+  padding: 4px 0 0;
 }
 
 .post-card__title {
