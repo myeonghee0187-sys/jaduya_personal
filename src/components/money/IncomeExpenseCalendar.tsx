@@ -15,8 +15,14 @@ export interface IncomeExpenseCalendarProps {
   onSelectDay: (day: number) => void;
 }
 
+/* 원 단위 그대로 찍으면 "+2,500,000"처럼 칸 폭(1/7)보다 훨씬 긴 값이 나와 옆 칸 숫자와
+ * 겹쳐 보였다("일월화수목금토 랑 날짜가 라인이 안맞아" 다음으로 나온 문제) — 이 앱이
+ * 이미 위젯 등에서 쓰는 "84.2만원" 식 만원 단위 축약(소수 1자리, .0 은 생략)으로 모든
+ * 칸의 글자 수를 짧게 맞춰 구조적으로 겹칠 일을 없앤다. 정확한 원 단위 금액은 날짜를
+ * 눌렀을 때 아래 영수증(flow-receipt)에서 그대로 보여준다. */
 function formatCellAmount(amount: number): string {
-  return amount.toLocaleString();
+  const manwon = Math.round((amount / 10_000) * 10) / 10;
+  return `${Number.isInteger(manwon) ? manwon : manwon.toFixed(1)}만`;
 }
 
 export function IncomeExpenseCalendar({

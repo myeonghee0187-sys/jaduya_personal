@@ -65,7 +65,10 @@ export function EmergencyRing({
         className="money-fund-ring__value"
         style={{ color: valueColor, fontSize: valueSize, fontFamily: valueFontFamily }}
       >
-        {clamped}%
+        {/* 링 호(stroke-dashoffset)는 부드럽게 움직이도록 percent 를 그대로 쓰지만, 이
+         * 숫자는 count-up 애니메이션(고정비 탭 AnimatedEmergencyRing) 중간값이 소수점
+         * 다차리까지 그대로 찍혀 링 밖으로 넘치던 문제가 있었다 — 표시용으로만 반올림한다. */}
+        {Math.round(clamped)}%
       </span>
     </div>
   );

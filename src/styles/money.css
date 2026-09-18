@@ -134,35 +134,14 @@
   }
 }
 
-/* ---------- 월 선택 ---------- */
-.money__month {
-  padding: 18px var(--screen-margin) 0;
-}
-
-.money__month-label {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-warm);
-  background: var(--surface-cream);
-  font-family: var(--font-asta);
-  font-weight: 500;
-  font-size: 16px;
-  white-space: nowrap;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
 /* ---------- 이번 달 쓸 수 있는 돈 카드 ----------
  * 진한 브랜드 레드 배경(--brand-primary = --color-primary-5) + 흰 텍스트 — 연한 로즈
  * 틴트(#fbeceb) + 어두운 텍스트 조합보다 웹표준 색대비(WCAG AA, 흰 글자 대비
  * --brand-primary ≈ 5.9:1)를 확실히 만족하면서 카드 위계도 한눈에 드러난다.
  * "흰색"/"검정" 오버레이는 색상 램프의 끝단 토큰(--color-gray-0/--color-gray-10)을
  * 그대로 쓴다 — 임의의 #fff/#000 대신 토큰에 값을 맡긴다.
- * 레이아웃: 제목+눈 아이콘 → 큰 금액 → "예산 · 사용 · %" → 진행률 바 → "예산 설정" 버튼. */
+ * 레이아웃: 제목+월 선택+눈 아이콘 → 큰 금액 → "예산 · 사용 · %" → 진행률 바 → "예산 설정" 버튼. */
 .money-budget {
-  position: relative;
   margin: 18px var(--screen-margin) 0;
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
@@ -170,8 +149,18 @@
   color: var(--color-gray-0);
 }
 
+/* 제목 줄 — 예전엔 월 선택("9월")이 이 카드 위에 따로 뜬 줄이라 위치가 애매했다.
+ * 어느 달을 보고 있는지가 곧 이 카드가 보여주는 값을 정하니, 그 컨트롤을 값을 담은
+ * 카드의 제목 옆으로 옮겨 "무엇을 조절하는지"를 바로 보여준다. */
+.money-budget__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
 .money-budget__title {
-  display: block;
+  min-width: 0;
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12px;
@@ -179,23 +168,60 @@
   color: var(--color-gray-0);
 }
 
-/* 눈 아이콘 토글 — 카드 오른쪽 위. 누르면 이 탭의 모든 금액이 "₩ -----" 로 바뀐다.
- * 아이콘(흰 스트로크)만 보면 대비가 7.7:1로 충분하지만, 이전엔 원형 배경을 검정 18%로
- * 깔아서 카드(레드)와 거의 같은 어두운 톤이 되어 "누를 수 있는 원" 자체가 카드에 묻혔다
- * (원 vs 카드 대비 1.3:1). 흰색 테두리(60%)로 원의 경계선만 또렷하게 그려 카드와
- * 최소 3:1(WCAG 1.4.11 비텍스트 대비)을 확보하고, 안쪽 채움은 흰색 20%로 옅게만 남겨
- * 아이콘을 짓누르지 않는다. */
-.money-budget__eye {
-  position: absolute;
-  z-index: 2;
-  top: var(--card-padding-l);
-  right: var(--card-padding-l);
+/* 왼쪽 묶음 — "9월" 드롭다운을 제목보다 먼저 두면 "이 줄 전체가 9월 기준"이라는 게
+ * 먼저 읽힌다. 오른쪽 눈 아이콘(.money-budget__eye)과 space-between으로 벌어진다. */
+.money-budget__head-lead {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+/* "9월" 드롭다운 트리거 — 오른쪽 눈 아이콘(.money-budget__eye)과 같은 흰색 테두리(60%)
+ * + 옅은 흰색 채움(20%) 패턴을 그대로 써서 카드 대비 3:1(WCAG 1.4.11)을 넉넉히 넘긴다.
+ * 두 컨트롤이 같은 스타일 언어를 쓰면 "이 카드의 보조 컨트롤"이라는 게 한눈에 묶여 보인다. */
+.money-budget__month-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-gray-0) 60%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-gray-0) 20%, transparent);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-gray-0);
+  cursor: pointer;
+}
+
+.money-budget__month-btn img {
+  width: 10px;
+  height: 10px;
+  /* chevron-down-thin.svg는 <img>라 CSS color를 못 받는다 — 다른 화면(예: 흰 배지 위
+   * 아이콘)과 같은 필터로 흰색으로 뒤집는다. */
+  filter: brightness(0) invert(1);
+  transition: transform 0.15s ease;
+}
+
+.money-budget__month-btn img.is-open {
+  transform: rotate(180deg);
+}
+
+/* 눈 아이콘 토글 — 누르면 이 탭의 모든 금액이 "₩ -----" 로 바뀐다. 아이콘(흰 스트로크)만
+ * 보면 대비가 7.7:1로 충분하지만, 이전엔 원형 배경을 검정 18%로 깔아서 카드(레드)와
+ * 거의 같은 어두운 톤이 되어 "누를 수 있는 원" 자체가 카드에 묻혔다(원 vs 카드 대비
+ * 1.3:1). 흰색 테두리(60%)로 원의 경계선만 또렷하게 그려 카드와 최소 3:1(WCAG 1.4.11
+ * 비텍스트 대비)을 확보하고, 안쪽 채움은 흰색 20%로 옅게만 남겨 아이콘을 짓누르지 않는다. */
+.money-budget__eye {
+  display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  flex: none;
   border: 1px solid color-mix(in srgb, var(--color-gray-0) 60%, transparent);
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-gray-0) 20%, transparent);
@@ -366,33 +392,25 @@
   text-align: left;
 }
 
-/* 수입/지출 카드 배경은 새 토큰을 만들지 않고, 이미 등록된 램프에서 가장 가까운 색을
- * 그대로 쓴다. 수입 = "풋자두" 램프의 밝은 단계(--color-green-3) — --brand-green
- * (green-5, 올리브 톤)보다 산뜻한 라임에 가깝고, --category-life(딥그린) 텍스트와
- * 대비 6.24:1. 지출 = 이미 있는 카테고리 쌍(--category-food-bg + --category-food,
- * 4.48:1) 그대로 재사용 — 제목·보조 문구는 수입과 똑같이 --category-life 를 쓰고,
- * 강조색(금액·아이콘)만 종류별로 다르게 둔다. */
-.money-flow-card--income {
-  border-color: transparent;
-  background: var(--color-green-3);
-}
-
+/* (B안) 수입/지출 카드 — 예전엔 카드 배경 전체를 중간 톤 tint(--color-green-3/
+ * --color-primary-3)로 채웠는데, "강조 색"도 "중립 배경"도 아닌 애매한 중간 톤이라는
+ * 피드백으로 이 앱 카드 대다수(.money-mini-card, .flow-row 등)와 같은 흰 배경(.money-flow-card
+ * 기본값 그대로) + 텍스트/아이콘만 색으로 바꾼다. 배경이 흰색이라 지출 쪽도 대비를 위해
+ * 낮췄던 --color-primary-8 대신 이 앱의 실제 지출 강조색인 --brand-primary 를 그대로
+ * 쓸 수 있다(흰 배경 대비 5.87:1). */
+/* 제목/보조문구는 색 신호보다 가독성이 우선이라 무채색(--text-primary)을 쓴다 — 수입·지출
+ * 탭의 같은 카드(.flow-summary__label)와 같은 원칙. --category-life(딥그린, #41470e)를
+ * 흰 배경에 직접 얹으면 대비 수치(9.85:1)는 높아도 채도가 낮아 "초록"이 아니라 거의
+ * 검정처럼 보였다("이번달이랑 수입·지출 컨텐츠 동일하잖아") — 색 신호는 아래 아이콘·
+ * 금액 값에만 남긴다. */
 .money-flow-card--income .money-flow-card__title,
 .money-flow-card--income .money-flow-card__sub {
-  color: var(--category-life);
+  color: var(--text-primary);
 }
 
-.money-flow-card--expense {
-  border-color: transparent;
-  background: var(--category-food-bg);
-}
-
-.money-flow-card--expense .money-flow-card__title {
-  color: var(--category-life);
-}
-
+.money-flow-card--expense .money-flow-card__title,
 .money-flow-card--expense .money-flow-card__sub {
-  color: var(--category-life);
+  color: var(--brand-primary);
 }
 
 .money-flow-card__title-row {
@@ -409,13 +427,16 @@
 }
 
 /* 수입/지출 카드 모두 인라인 SVG 단색 아이콘(stroke=currentColor) — 래스터 스티커는 CSS로
- * 색을 못 바꿔 "아이콘도 강조색과 같이" 요구를 못 맞춘다. 수입=딥그린, 지출=테라코타. */
+ * 색을 못 바꿔 "아이콘도 강조색과 같이" 요구를 못 맞춘다. 수입=초록, 지출=--brand-primary
+ * (흰 배경이라 카드 배경이 색 있던 시절 쓰던 --color-primary-8 없이도 대비가 충분하다).
+ * 수입 아이콘은 --category-life 대신 아래 값(.money-flow-card__value--income)과 같은
+ * --color-green-7 을 쓴다 — 이유는 그 규칙 옆 설명 참고. */
 .money-flow-card--income .money-flow-card__title-icon {
-  color: var(--category-life);
+  color: var(--color-green-7);
 }
 
 .money-flow-card--expense .money-flow-card__title-icon {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .money-flow-card__title {
@@ -434,19 +455,23 @@
   white-space: nowrap;
 }
 
-/* 카드 배경 자체가 --color-green-3(풋자두 램프)라 텍스트는 그 위에서 대비가 확보된
- * --category-life(딥그린)를 쓴다. */
+/* --category-life(--color-green-8, #41470e)는 흰 배경 대비(9.85:1)는 넉넉해도 채도가 낮아
+ * "초록"이 아니라 거의 검정처럼 보였다 — 수입·지출 탭의 같은 카드(.flow-summary__value--income)
+ * 에 적용한 것과 같은 이유로 더 밝은 --color-green-7(#616a15, 흰 배경 대비 5.85:1)을 쓴다. */
 .money-flow-card__value--income {
-  color: var(--category-life);
+  color: var(--color-green-7);
 }
 
 .money-flow-card__value--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .money-flow-card__sub {
   margin-top: 4px;
   font-family: var(--font-suit);
+  /* 10px밖에 안 되는 작은 글자가 기본 굵기(400)라 색 대비는 통과해도(5.4~6.4:1) 눈에 잘
+   * 안 띈다는 피드백 — 제목/금액과 같은 계열로 살짝 더 굵게(600) 준다. */
+  font-weight: 600;
   font-size: 10px;
   letter-spacing: -0.2px;
   color: var(--text-secondary);
@@ -456,12 +481,15 @@
 
 /* ---------- 이번 달 돈 흐름 — 이번 주 요일 스트립(레퍼런스). 실거래 데이터가 있는 한 주(9/15~9/21)만
  * 보여준다. 날짜 셀 디자인은 flow-calendar(수입·지출 탭 캘린더)와 같은 값을 그대로 쓴다. ---------- */
+/* 좌우 패딩(예전엔 --card-padding-m, 16px)이 화살표 너비(24px)에 더해져 7일 그리드가
+ * 쓸 수 있는 폭을 안쪽으로 크게 깎아먹어 요일이 가운데로 몰려 보였다 — --space-xs(8px)로
+ * 줄여 그리드가 카드 폭에 더 꽉 차 보이게 한다. */
 .money-week-strip {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-top: 16px;
-  padding: var(--card-padding-s) var(--card-padding-m);
+  padding: var(--card-padding-s) var(--space-xs);
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
   background: var(--surface-base);
@@ -541,13 +569,16 @@
   white-space: nowrap;
 }
 
-/* 수입 카드(.money-flow-card__value--income)와 같은 --category-life(딥그린)로 통일한다 */
+/* 수입 카드(.money-flow-card__value--income)와 같은 색으로 통일한다 — --category-life 대신
+ * --color-green-7 을 쓰는 이유는 그 규칙 옆 설명 참고(거의 검정처럼 보이던 문제). */
 .money-week-strip__amount--income {
-  color: var(--category-life);
+  color: var(--color-green-7);
 }
 
+/* 지출 카드(.money-flow-card__value--expense)와 같은 계열(빨강)로 통일한다 — "수입은
+ * 초록, 지출은 빨강" 요청. 예전엔 --category-food(테라코타, 식비 카테고리 색)였다. */
 .money-week-strip__amount--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 /* ---------- 소비 분석 — 카테고리별 카드 그리드(상위 4개 + "기타" 합계, 레퍼런스) ----------
@@ -590,7 +621,11 @@
 
 /* 카테고리 % 만큼 아래에서부터 차오르는 물 채우기 — AnimatedFillLevel(height, JS)이
  * 채워진 정도를, 색은 카드에 심어둔 --spend-fill-color 커스텀 프로퍼티가 정한다.
- * 좌우로 카드보다 넓게 둬서 흔들릴 때 스큐(skew)로도 가장자리 틈이 안 보인다. */
+ * 좌우로 카드보다 넓게 둬서 흔들릴 때 스큐(skew)로도 가장자리 틈이 안 보인다.
+ * --spend-fill-color 는 CATEGORY_META.color(텍스트에도 쓰이는 어두운 메인색)가 아니라
+ * .accent(같은 램프의 더 밝고 채도 높은 등록된 단계) 다 — 메인색은 흰 배경 위 텍스트
+ * 대비 때문에 일부러 어둡게 골라서, 그걸 그대로 흰색과 옅게만 섞으면 5개 카테고리가
+ * 전부 비슷한 탁한 베이지로 뭉개진다(tokens.css "Category accent" 참고). */
 .money-spend-grid-card__fill {
   position: absolute;
   /* 카드는 position: relative 라 여기가 새 stacking context 의 기준이 된다 — 음수
@@ -786,12 +821,21 @@
   margin-top: var(--space-lg);
   /* 360px(최소 지원 폭)에서 제목이 한 줄에 다 안 들어가 두 줄로 꺾이던 문제 —
    * 오른쪽에 남겨두던 여백(아이콘 자리)을 아이콘 실제 크기에 맞게 줄여 글자 공간을 늘린다. */
-  padding: var(--space-md) 60px var(--space-md) var(--space-md);
-  border: none;
+  padding: var(--space-md) 60px var(--space-md) 20px;
+  border: 1px solid var(--border-warm);
+  /* (옵션 2) 마스코트·배경·텍스트는 그대로 두고, 왼쪽에만 TOP_CATEGORY 색 악센트 바를
+   * 얹어 "이 배너가 무슨 카테고리 얘기인지" 표지처럼 알려준다 — ai-chat-page.css의
+   * .ai-chat-page__pest-diagnosis-score(border-left: 4px solid var(--brand-primary))와
+   * 같은 패턴. --insight-accent는 JSX에서 TOP_CATEGORY.color 를 인라인으로 넣어준다. */
+  border-left: 4px solid var(--insight-accent, var(--border-warm));
   border-radius: var(--radius-xl);
-  /* 햇살 과육(--brand-secondary = --color-secondary-5, #fbdd78) — 어두운 텍스트 대비
-   * 약 13:1 로 WCAG AA 를 넉넉히 넘는다. */
-  background: var(--brand-secondary);
+  /* 이 배너의 노랑(--brand-secondary)은 정보를 나르지 않는 장식용 틴트라 CLAUDE.md
+   * "위젯은 neutral surface를 기본으로, 브랜드 컬러는 강조·상태 표현에만" 규칙에 따라
+   * 다른 카드(money-flow-card 등)와 같은 중립 표면으로 바꾼다 — 한 화면에 예산(빨강)·
+   * 수입/지출(라임·로즈)·카테고리 5색까지 이미 색이 많아, 정보와 무관한 카드까지 색을
+   * 더하면 위계 없이 알록달록해진다(왼쪽 악센트 바 하나는 이 원칙과 배치되지 않는
+   * "표지" 수준의 강조라 유지한다). */
+  background: var(--surface-base);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
@@ -854,18 +898,11 @@
   cursor: pointer;
 }
 
-/* 고정비 = 로즈(--brand-rose = --color-primary-4), 내 계좌 = 크림(--color-cream) 램프
- * 틴트로 두 카드를 색으로 구분한다 — 값 자체는 각 브랜드 톤을 옅게 섞은 것뿐이라
- * 텍스트(--text-*)는 그대로 써도 대비가 줄지 않는다. */
-.money-mini-card--fixed {
-  border-color: color-mix(in srgb, var(--brand-rose) 22%, transparent);
-  background: color-mix(in srgb, var(--brand-rose) 10%, var(--color-gray-0));
-}
-
-.money-mini-card--accounts {
-  border-color: var(--color-cream-4);
-  background: var(--color-cream-1);
-}
+/* 고정비/내 계좌 두 카드는 예산(빨강)·수입-지출(라임·로즈)·카테고리(5색)처럼 색 자체가
+ * 정보를 나르지 않는다 — 그냥 나란히 놓인 두 미니 카드를 색으로만 구분하던 장식용
+ * 틴트였다. CLAUDE.md "위젯은 neutral surface를 기본으로, 브랜드 컬러는 강조·상태
+ * 표현에만" 규칙에 따라 .money-mini-card 기본값(흰 배경 + --border-warm)을 그대로
+ * 쓰고, 아이콘·라벨만으로 두 카드를 구분한다. */
 
 .money-mini-card__head {
   display: flex;
@@ -944,9 +981,11 @@
   padding-left: 80px;
   border: none;
   border-radius: var(--radius-xl);
-  /* 오트 크림(--color-cream-5, #e0cdad) — 어두운 텍스트 대비 약 11.5:1 로 WCAG AA를
-   * 넉넉히 넘는다. */
-  background: var(--color-cream-5);
+  /* 레퍼런스는 비상금 배너를 초록 계열로 보여준다 — 이 화면의 수입 카드
+   * (.money-flow-card--income)·다른 화면의 수입 열(.money-flow-col--income)과 이미 같이
+   * 쓰고 있는 "풋자두" 램프의 밝은 단계(--color-green-3)를 그대로 재사용한다(새 hex 없음).
+   * 어두운 텍스트(--text-primary/--text-secondary) 대비는 그 카드들과 동일하게 유지된다. */
+  background: var(--color-green-3);
   text-align: left;
   cursor: pointer;
   overflow: hidden;
@@ -1010,31 +1049,6 @@
 
 .money-month-dropdown {
   position: relative;
-}
-
-/* "9월" 드롭다운 트리거 — 배경(--surface-cream)과 이 버튼이 놓인 페이지 배경
- * (--surface-page)이 둘 다 거의 흰색이라 border-warm 테두리로는 카드-페이지 대비가
- * 1.28:1(WCAG 1.4.11 비텍스트 기준 3:1 미달)에 그쳐 칩 모양 자체가 페이지에 묻혔다.
- * --text-muted 를 그대로 쓰면 대비 5.13:1로 통과는 하지만 두께는 1px 그대로인데도
- * 진한 색 때문에 굵어 보인다는 피드백 — 같은 색을 75% 로 옅게 섞어 페이지 대비를
- * 3.12:1(3:1 통과, 여유는 적게)까지만 낮춰 더 가늘어 보이게 한다. 텍스트 색·굵기는
- * 원래의 무채색 500 그대로 둔다. */
-.money__month-label--btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid color-mix(in srgb, var(--text-muted) 75%, transparent);
-  cursor: pointer;
-}
-
-.money__month-label--btn img {
-  width: 10px;
-  height: 10px;
-  transition: transform 0.15s ease;
-}
-
-.money__month-label--btn img.is-open {
-  transform: rotate(180deg);
 }
 
 .money-month-menu {
@@ -1839,14 +1853,19 @@
 .money-fixed-summary {
   margin: 14px var(--screen-margin) 0;
   padding: var(--card-padding-l);
-  border-radius: var(--radius-xl);
-  background: #fdeceb;
-}
-
-.money-fixed-summary__head {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: var(--space-md);
+  border-radius: var(--radius-xl);
+  /* --color-primary-3(중간 톤 핑크) + --text-primary 조합은 계산상 6.37:1로 AA는
+   * 통과했지만, 카드 자체가 파스텔이라 "글자가 카드에 묻힌다"는 피드백을 받았다 —
+   * 명도 대비만으로는 안 잡히는 채도·주목도 문제였다. 이 앱의 진짜 강조 브랜드 레드인
+   * --brand-primary(#b43936, "잘 익은 자두" 5단계, 오늘/선택 배지에 이미 쓰는 톤)로
+   * 카드 배경 자체를 바꾸고 글자를 전부 흰색으로 올린다 — 흰 글자 대비 5.87:1(이 앱에서
+   * --brand-primary 위 흰 글자로 이미 검증된 조합, .flow-calendar__cell.is-today 등과 동일)
+   * 로 AA를 넉넉히 넘기면서, 진한 레드+흰 글자라 실제로도 눈에 훨씬 잘 들어온다. 페이지
+   * 배경(--surface-page) 대비도 2.66:1→5.66:1로 카드 경계 자체가 더 뚜렷해진다. */
+  background: var(--brand-primary);
 }
 
 .money-fixed-summary__stat {
@@ -1854,15 +1873,12 @@
   min-width: 0;
 }
 
-/* 카드 배경이 연한 핑크(#fdeceb)라 --text-secondary/--text-tertiary 를 그대로 쓰면
- * 명도 대비가 너무 낮아(각각 약 4.2:1, 2.3:1) 잘 안 읽힌다(Design System 20. Accessibility
- * "contrast 확보"). 흰 배경 기준 토큰 대신, 이 카드 안에서만 더 짙은 회색으로 맞춘다. */
 .money-fixed-summary__label {
   margin: 0;
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 13px;
-  color: var(--text-gray);
+  color: var(--color-gray-0);
 }
 
 .money-fixed-summary__amount {
@@ -1870,46 +1886,30 @@
   font-family: var(--font-asta);
   font-weight: 700;
   font-size: 24px;
-  color: var(--text-primary);
+  color: var(--color-gray-0);
 }
 
 .money-fixed-summary__total {
   margin: 4px 0 0;
   font-family: var(--font-suit);
   font-size: 12.5px;
-  color: var(--text-meta);
+  color: var(--color-gray-0);
 }
 
-
-/* ---------- 이번 달 고정비 지출 현황 — 오늘까지 결제된 금액 vs 이번 달 전체 예정 금액 ---------- */
-.money-fixed-status__track {
-  position: relative;
-  width: 100%;
-  height: 8px;
-  margin-top: 14px;
-  border-radius: var(--radius-pill);
-  background: var(--border-warm);
-  overflow: hidden;
-}
-
-.money-fixed-status__fill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--brand-primary);
-  transition: width 120ms linear;
-}
-
-.money-fixed-status__labels {
+/* ---------- 이번 달 고정비 지출 현황 — 도넛 링(EmergencyRing, 비상금 탭과 공유) ---------- */
+.money-fixed-summary__ring {
+  flex: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
+  gap: 4px;
+}
+
+.money-fixed-summary__ring-label {
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 12.5px;
-  /* 같은 카드(#fdeceb) 안이라 위 라벨과 같은 이유로 --text-secondary 대신 더 짙은 톤을 쓴다 */
-  color: var(--text-gray);
+  font-size: 11px;
+  color: var(--color-gray-0);
 }
 
 /* ---------- 다음 결제 — 단일 행(토글 없음) ---------- */
@@ -1920,8 +1920,11 @@
   width: 100%;
   margin-top: var(--space-sm);
   padding: var(--space-md);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-xl);
+  /* --border-warm이 이제 전역에서 --color-gray-4다(tokens.css 참고) — 여기는 두께만
+   * 1px→1.5px로 올려 경계를 확실히 주고, 위 요약 카드(--radius-xl)보다 한 단계 작은
+   * --radius-l 로 "핵심 카드 1개 + 보조 행" 위계를 나눈다. */
+  border: 1.5px solid var(--border-warm);
+  border-radius: var(--radius-l);
   background: var(--surface-base);
   text-align: left;
   cursor: pointer;
@@ -1988,8 +1991,20 @@
   flex: none;
 }
 
-/* ---------- + 고정비 추가하기 ---------- */
+/* ---------- + 고정비 추가하기 ----------
+ * 예전엔 연한 톤(옅은 배경 + 빨강 글자)이었다 — 같은 "돈관리" 안의 다른 "직접 추가" CTA인
+ * 수입·지출 탭의 .flow-list__add, 예산 설정 탭의 .budget-setup__submit 은 전부 꽉 찬
+ * --brand-primary 배경 + 흰 글자로, 그 화면의 대표 액션임을 확실히 드러낸다 — 이 버튼만
+ * 옅은 톤이라 같은 "돈관리" 안에서 톤이 안 맞았다. 나머지 두 버튼과 같은 스타일로
+ * 맞춘다(흰 텍스트 대 brand-primary 배경 대비 5.87:1, WCAG AA 통과).
+ * 스크롤해도 계속 보이게 — .flow-list__add 와 같은 이유로 position: fixed 대신 sticky를
+ * 쓴다(뷰포트 기준인 fixed는 데스크톱 IPhoneFrame 프리뷰 밖으로 삐져나온다). 이 버튼이
+ * 속한 스크롤 컨테이너(.money__scroll)가 이미 탭바를 피해 padding-bottom을 확보해 둬서
+ * bottom: 0 만으로 그 안쪽 바닥에 붙는다. */
 .money-fixed-add-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1999,20 +2014,20 @@
   height: 48px;
   border: none;
   border-radius: var(--radius-m);
-  background: #fdeceb;
+  background: var(--brand-primary);
   font-family: var(--font-suit);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
-  color: var(--brand-primary);
+  color: var(--color-gray-0);
   cursor: pointer;
 }
 
 .money-fixed-add-cta img {
   width: 16px;
   height: 16px;
-  /* plus-add.svg 는 currentColor 를 못 받는 <img> 라, 다른 화면과 같은 방식으로 브랜드
-   * 레드 톤에 맞춰 필터로 색을 낸다 */
-  filter: invert(24%) sepia(54%) saturate(2500%) hue-rotate(340deg) brightness(90%);
+  /* plus-add.svg 는 currentColor 를 못 받는 <img> 라, 이 앱의 다른 흰 아이콘(.wpg-toast__check
+   * 등)과 같은 방식으로 필터로 흰색을 낸다 */
+  filter: brightness(0) invert(1);
 }
 
 /* ---------- 고정비 탭 — 카테고리 필터 + 목록 헤더 ----------
@@ -2179,9 +2194,28 @@
   border-bottom: 0;
 }
 
+/* "고정비 추가하기" 직후 방금 추가된 행에 잠깐 배경을 밝혔다 가라앉혀서 "여기 새로
+ * 생겼어요"를 알려준다(알림 문구 + 이 하이라이트를 같이 쓴다) — JS 쪽 타이머(1600ms)가
+ * 지나면 클래스 자체를 떼어내니, 여기 지속시간은 그보다 살짝 짧게 잡아 자연스럽게 끝난다. */
+@keyframes money-fixed-row-highlight {
+  0% { background: var(--color-primary-1); }
+  100% { background: transparent; }
+}
+
+.money-fixed-row--highlight {
+  animation:
+    money-fixed-row-in 200ms ease both,
+    money-fixed-row-highlight 1400ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .money-fixed-row {
     animation: none;
+  }
+
+  .money-fixed-row--highlight {
+    animation: none;
+    background: var(--color-primary-1);
   }
 }
 
@@ -2555,8 +2589,8 @@
  * 비상금 탭 — Figma node 2628:27675 "비상금"
  * ========================================================================== */
 
-/* EmergencyRing.tsx 원형 링 스타일 — 이 탭에선 더 안 쓰지만(진행률은 아래 막대로 바꿨다),
- * 고정비 탭(money-fixed-hero__stat)이 같은 컴포넌트를 계속 쓰므로 그대로 둔다. */
+/* EmergencyRing.tsx 원형 링 스타일 — 이 탭(비상금)에선 안 쓰지만, 고정비 탭
+ * (money-fixed-summary__ring)이 같은 컴포넌트를 쓰므로 그대로 둔다. */
 .money-fund-ring {
   position: relative;
   display: flex;
@@ -2788,10 +2822,13 @@
   transition: background 240ms ease;
 }
 
-/* 공개된 뒤에는 레퍼런스처럼 아주 옅은 mint/green 톤으로 — 긁는 중(중립)과 구분되게 */
+/* 공개된 뒤에는 레퍼런스처럼 아주 옅은 mint/green 톤으로 — 긁는 중(중립)과 구분되게.
+ * 예전엔 #f2f6e6/#dde6c3 — green 램프 어디에도 정확히 안 맞는 손조정 값이었다.
+ * --color-green-1/--color-green-3 로 바꾼다 — green-3 는 이번 달 탭 "수입 카드" 배경과
+ * 같은 색이라, 비상금이 열렸을 때도 "돈이 늘어난다"는 초록 톤이 다른 화면과 이어진다. */
 .fund-card.is-open .fund-card__body {
-  background: #f2f6e6;
-  border-color: #dde6c3;
+  background: var(--color-green-1);
+  border-color: var(--color-green-3);
 }
 
 /* 헤딩 아래 상태(스크래치/결과/달성/빈 상태)별 콘텐츠 자리 — 각 상태 루트가 스스로
@@ -3194,6 +3231,9 @@ button.fund-card__remaining--tap {
   color: var(--text-secondary);
 }
 
+/* 흰 글자(#fff) 대 --brand-green(#A2B123) 배경은 실측 대비 2.37:1로 WCAG AA(4.5:1)에
+ * 크게 못 미쳐 거의 안 보였다 — 같은 배경을 쓰는 아래 .fund-fill-cta 처럼 어두운
+ * --text-primary 로 바꾼다(대비 7.41:1). */
 .fund-achieved__confirm {
   width: 100%;
   max-width: 220px;
@@ -3204,7 +3244,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 14px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .fund-achieved__edit {
@@ -3336,6 +3376,7 @@ button.fund-card__remaining--tap {
   border-top: 1px solid var(--border-warm);
 }
 
+/* 손조정 hex(#eef2dc) 대신 가장 가까운 등록 단계(--color-green-1)를 쓴다. */
 .fund-deposit-row__badge {
   display: flex;
   align-items: center;
@@ -3344,7 +3385,7 @@ button.fund-card__remaining--tap {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #eef2dc;
+  background: var(--color-green-1);
 }
 
 .fund-deposit-row__badge img {
@@ -3369,18 +3410,23 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
-/* ---------- 비상금 채우기 — 스크래치 상태와 무관하게 항상 보이는, 화면 맨 아래 CTA ---------- */
+/* ---------- 비상금 채우기 — 스크래치 상태와 무관하게 항상 보이는, 화면 맨 아래 CTA ----------
+ * 배경색(--brand-green)은 그대로 둔다 — 흰 텍스트를 올리면 대비 2.37:1로 기준 미달이라
+ * (.fund-achieved__confirm 과 같은 이유, 대비 7.41:1인 --text-primary 유지) 색 자체는
+ * 안 바꾼다. 대신 이 화면의 다른 "직접 추가" CTA(.flow-list__add, .budget-setup__submit,
+ * .money-fixed-add-cta)와 모양만 통일한다 — 알약(pill) 모양·16px/600 대신 둥근 사각형
+ * (--radius-m)·14px/700. */
 .fund-fill-cta {
   display: block;
   width: 100%;
   height: 48px;
   flex: none;
   margin-top: 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-m);
   background: var(--brand-green);
   font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 14px;
   color: var(--text-primary);
 }
 
@@ -3519,8 +3565,9 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
+/* 손조정 hex(#f0f3dc) 대신 가장 가까운 등록 단계(--color-green-1)를 쓴다. */
 .fund-sheet__quick-btn:active {
-  background: #f0f3dc;
+  background: var(--color-green-1);
   border-color: var(--brand-green);
   color: var(--text-primary);
 }
@@ -3568,6 +3615,8 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
+/* 흰 글자 대 --brand-green 배경 대비 2.37:1 — 위 .fund-achieved__confirm 과 같은 문제라
+ * 같은 방식(어두운 --text-primary, 대비 7.41:1)으로 고친다. */
 .fund-sheet__submit {
   width: 100%;
   height: 50px;
@@ -3577,7 +3626,7 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 15px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .fund-sheet__submit:disabled {
@@ -4430,14 +4479,33 @@ button.fund-card__remaining--tap {
 }
 
 /* ---------- 캘린더 — money-fixed-calendar 와 같은 grid, 칸마다 수입(파랑)/지출(빨강)
- * 금액도 보여줘야 해서 셀 높이만 키운다 ---------- */
+ * 금액도 보여줘야 해서 셀 높이만 키운다.
+ * 예전엔 배경이 없어 캘린더 전체가 페이지 배경(--surface-page)과 같은 면이라 경계가 안
+ * 보였다 — 무채색 --color-gray-4 실선 테두리로 대비(3:1)를 맞췄지만, 이 앱 전체가 따뜻한
+ * 톤(자두/크림)인데 이 테두리만 차가운 회색이라 "어색해" 보였다. 실선 테두리 대신, 이
+ * 앱의 떠 있는 카드/시트에서 이미 쓰는 따뜻한 회갈색 그림자(rgba(59, 51, 46, …), 예:
+ * .bsheet, .discovery-card)를 옅게 둘러서 경계를 만든다 — 색상 대비 기준(선/면 색 자체)
+ * 대신 그림자의 명암으로 분리하는 방식이라 회색 테두리 특유의 딱딱함이 없다. */
 .flow-calendar {
   margin: var(--space-sm) var(--screen-margin) 0;
+  padding: var(--space-md) var(--space-sm) var(--space-sm);
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--surface-base);
+  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.18), 0 0 0 1px rgba(59, 51, 46, 0.06);
 }
 
+/* 요일 헤더 · 날짜 그리드(.flow-calendar__grid) 둘 다 부모(.flow-calendar) 안에서 독립된
+ * grid라, 한쪽 칸의 내용(예: "+2,500,000" 같은 긴 금액)이 그 칸의 최소 콘텐츠 너비를
+ * 늘리면 grid가 1fr을 그 늘어난 값 기준으로 다시 나눠 칸마다 폭이 미묘하게 달라진다 —
+ * 요일 헤더는 전부 한 글자라 이 문제가 없어서, 두 grid의 칸 경계가 서로 어긋나 보였다
+ * ("일월화수목금토 랑 날짜가 라인이 안맞아"). minmax(0, 1fr)로 최소 콘텐츠 너비를
+ * 무시하게 하면 두 grid 모두 순수하게 7등분되어 항상 같은 칸 경계를 쓴다 — 긴 금액은
+ * white-space: nowrap(.flow-calendar__amount)로 이미 그대로 두는 대로 옆 칸 위로
+ * 겹쳐 보일 수 있지만, 칸 자체의 폭이 흔들리지는 않는다. */
 .flow-calendar__weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   margin-bottom: var(--space-xs);
 }
 
@@ -4452,8 +4520,11 @@ button.fund-card__remaining--tap {
 
 .flow-calendar__grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  row-gap: 2px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* 금액 폰트를 8px→11px로 키우면서 각 칸(56px 고정 높이) 안에서 콘텐츠가 차지하는
+   * 세로 공간이 늘어(위아래 여유가 거의 없어짐) — row-gap 이 2px 그대로면 한 주 줄과
+   * 다음 주 줄의 금액 숫자가 서로 거의 붙어 보여 날짜 줄 구분이 잘 안 됐다. */
+  row-gap: 8px;
 }
 
 .flow-calendar__cell {
@@ -4474,8 +4545,20 @@ button.fund-card__remaining--tap {
   pointer-events: none;
 }
 
-.flow-calendar__cell.is-selected {
-  background: var(--surface-widget);
+/* 예전엔 배경만 --surface-widget(#F7F3ED)이었는데, 이 페이지 배경(--surface-page,
+ * #FFFAF5)과 거의 같은 밝기라 실측 대비가 1.07:1 — 선택 표시가 사실상 안 보였다("달력이
+ * 배경색이랑 똑같다"). 안의 원(.flow-calendar__day)은 이미 색이 꽉 채워져 보이지만,
+ * 그 원 밖 셀 전체가 선택됐다는 걸 알려주는 이 배경 자체는 죽어 있었다. 옅은 톤을 더
+ * 진하게 섞어도(20%) 1.3:1 정도밖에 안 나올 만큼 이 페이지 배경 자체가 이미 거의
+ * 흰색이라(옅은 tint로는 물리적으로 3:1을 못 만든다) — 배경 대신 실선 테두리
+ * (--brand-primary, 흰 카드 배경 대비 5.87:1)로 확실히 보이게 한다.
+ * 오늘(is-today)은 이미 원 안이 --brand-primary 로 꽉 채워져 그 자체로 눈에 띄어서,
+ * 이 칸 전체 배경/테두리까지 같이 붙으면 이중으로 두꺼워 보인다("현재날짜 전체에 배경
+ * 라운드") — 처음 들어왔을 때 selectedDay 기본값이 todayDay라 매번 겹쳐 보였다.
+ * is-today 는 이 칸 배경에서 빼서 원 하나만 남긴다. */
+.flow-calendar__cell.is-selected:not(.is-today) {
+  border: 1px solid var(--brand-primary);
+  background: var(--color-primary-1);
 }
 
 .flow-calendar__day {
@@ -4490,40 +4573,50 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
-/* 오늘/선택 상태는 이 화면의 "포인트" 색인 테라코타(--category-food, #B85028)로 꽉 채운
- * 원 + 흰 숫자 — 앱 전역 강조색(--brand-primary)이 아니라 이 페이지의 지출 포인트 색을
- * 그대로 재사용한다. 흰 글자 대 배경 대비 약 4.98:1 로 WCAG AA 를 만족한다. */
+/* 오늘/선택 상태 — 앱 전역 강조색 --brand-primary(잘 익은 자두)로 꽉 채운 원 + 흰 숫자.
+ * "수입은 초록, 지출은 빨강으로 한눈에 알아보게" 요청에 맞춰, 이 캘린더 칸의 지출 금액
+ * (.flow-calendar__amount--expense)과 같은 계열(빨강)로 통일한다 — 예전엔 대신
+ * --category-food(테라코타, 식비 카테고리 색)를 재사용했었다. 흰 글자 대 배경 대비
+ * 5.87:1 로 WCAG AA 를 만족한다. */
 .flow-calendar__cell.is-today .flow-calendar__day {
-  background: var(--category-food);
-  border-color: var(--category-food);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
   color: var(--color-gray-0);
   font-weight: 600;
 }
 
 .flow-calendar__cell.is-selected .flow-calendar__day {
   border-color: transparent;
-  background: var(--category-food);
-  color: #fff;
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
   font-weight: 600;
 }
 
 .flow-calendar__amount {
-  font-size: 8px;
+  /* 예전엔 8px — 색 대비는 통과해도(각주 참고) 문서화된 최소 크기(--font-size-caption,
+   * 11px)보다 작아 실제로는 읽기 어려웠다. */
+  font-size: var(--font-size-caption);
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.3px;
   white-space: nowrap;
 }
 
-/* 수입 강조 텍스트 — --category-life(#2E4632)는 8px 굵은 글자에서는 거의 검정처럼
- * 보여서, 이 캘린더 칸에서만 등록된 "풋자두(green/point)" 램프의 더 밝은 단계인
+/* 수입 강조 텍스트 — --category-life(--color-green-8)를 그대로 쓰면 이 작은 글자(8px→11px로
+ * 키웠지만 여전히 작다) 크기에서 진한 색이 다 비슷하게 어두워 보여 "수입"이라는 정보가
+ * 잘 안 읽힌다 — 이 캘린더 칸에서만 "풋자두(green/point)" 램프의 더 밝은 단계인
  * --color-green-7(#616A15, 흰 배경 대비 5.85:1)을 쓴다. */
 .flow-calendar__amount--income {
   color: var(--color-green-7);
 }
 
+/* 지출 텍스트 — "수입은 초록, 지출은 빨강으로 한눈에" 요청에 맞춰 --brand-primary(잘
+ * 익은 자두)를 쓴다. 예전엔 --category-food(테라코타, 식비 카테고리 색)를 재사용했었다 —
+ * 카테고리 색과 지출/수입 방향 색은 서로 다른 의미라 분리한다(식비 카테고리 자체는
+ * CATEGORY_META 를 통해 카테고리 칩·소비 분석 막대 등에서 여전히 category-food/테라코타를
+ * 쓴다 — 이 값은 안 바꿨다). */
 .flow-calendar__amount--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 /* ---------- 선택한 날짜 상세 — 영수증 느낌의 카드. 고정비 탭의 money-fixed-detail 과
@@ -4650,7 +4743,7 @@ button.fund-card__remaining--tap {
 }
 
 .flow-receipt__amount--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 /* 선택한 날짜 상세 — 수입/지출(/이체)을 색으로 구분해 묶어 보여준다(레퍼런스). 헤더 배너만
@@ -4674,12 +4767,18 @@ button.fund-card__remaining--tap {
   color: var(--category-life);
 }
 
+/* 수입 그룹 헤드(--color-green-3)와 짝이 맞도록, "잘 익은 자두" 램프에서 같은 단계
+ * (--color-primary-3)를 쓴다 — 이번 달 탭 지출 카드(.money-flow-card--expense)와 같은
+ * 배경. 예전엔 --category-food-bg(테라코타 틴트, 식비 카테고리 색)였다. */
 .flow-receipt__group--expense .flow-receipt__group-head {
-  background: var(--category-food-bg);
+  background: var(--color-primary-3);
 }
 
+/* primary-3 배경 위에서 --brand-primary 텍스트는 대비 2.13:1로 기준 미달이라, 이미
+ * 검증된 조합(money-flow-card__value--expense 와 동일)인 --color-primary-8(대비
+ * 5.40:1)을 쓴다. */
 .flow-receipt__group--expense .flow-receipt__group-label {
-  color: var(--category-food);
+  color: var(--color-primary-8);
 }
 
 .flow-receipt__group--transfer .flow-receipt__group-head {
@@ -4706,11 +4805,16 @@ button.fund-card__remaining--tap {
 }
 
 .flow-receipt__group--expense .flow-receipt__group-total {
-  color: var(--category-food);
+  color: var(--color-primary-8);
 }
 
 /* ---------- 캘린더 보기 상단 요약 카드 — 수입/지출을 divider로 나눈 카드 하나(레퍼런스).
  * 아이콘은 money-flow-card(이번 달 탭)와 같은 원색 배지를 재사용한다. ---------- */
+/* (B안) 예전엔 수입/지출 컬럼이 카드 안쪽을 중간 톤 색(--color-green-3/--color-primary-3)
+ * 으로 꽉 채웠다 — "강조 색도 중립 배경도 아닌 애매한 톤"이라는 피드백으로, 이번 달 탭
+ * 수입/지출 카드(.money-flow-card)와 같은 방식으로 흰 배경 + 텍스트/아이콘만 색을 쓴다.
+ * 그래서 테두리를 다시 켠다(예전엔 색 면이 이미 페이지 배경과 갈려서 테두리가 필요
+ * 없었다). */
 .flow-summary {
   display: flex;
   align-items: stretch;
@@ -4718,8 +4822,6 @@ button.fund-card__remaining--tap {
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-xl);
   background: var(--surface-base);
-  /* 수입 쪽 col 이 배경을 꽉 채우는 색을 쓰므로, 카드의 둥근 모서리 밖으로 새지
-   * 않게 잘라낸다. */
   overflow: hidden;
 }
 
@@ -4741,19 +4843,6 @@ button.fund-card__remaining--tap {
   text-align: center;
 }
 
-/* 수입 col — "풋자두" 램프의 밝은 단계(--color-green-3)를 꽉 채우고, 그 위 아이콘/텍스트는
- * 전부 --category-life(딥그린)로 통일한다. 이 규칙이 반드시 위 .flow-summary__col
- * (background: none) 보다 뒤에 와야 한다 — 클래스 선택자끼리는 명시도가 같아서 소스
- * 순서로 우선순위가 갈린다. */
-.flow-summary__col--income {
-  background: var(--color-green-3);
-}
-
-/* 지출 col — 이미 등록된 카테고리 쌍(--category-food-bg)을 그대로 쓴다. */
-.flow-summary__col--expense {
-  background: var(--category-food-bg);
-}
-
 .flow-summary__col--button {
   position: relative;
   cursor: pointer;
@@ -4763,7 +4852,9 @@ button.fund-card__remaining--tap {
   flex: none;
   width: 1px;
   margin: 14px 0;
-  background: #e5e7e3;
+  /* 예전엔 #E5E7E3 — 디자인 시스템에 등록된 어떤 토큰과도 안 맞는 임의 값이었다.
+   * 이 앱의 표준 구분선/보더 톤인 --border-warm 으로 바꾼다. */
+  background: var(--border-warm);
 }
 
 .flow-summary__icon {
@@ -4774,7 +4865,7 @@ button.fund-card__remaining--tap {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--color-gray-0);
 }
 
 .flow-summary__icon img {
@@ -4782,18 +4873,18 @@ button.fund-card__remaining--tap {
   height: 18px;
 }
 
-/* 카드 배경 자체가 이미 색이 있는 --color-green-3 라 아이콘은 별도 원 배경 없이 딥그린
- * 글자색(currentColor)만 준다. */
+/* (B안) 카드 배경이 흰색이 되면서, 흰 원 배지(--color-gray-0)는 이제 흰 카드 위에서
+ * 경계가 안 보인다 — 옅은 색 틴트 원으로 바꿔 아이콘 자리를 표시하고, 안의 선은
+ * --category-life 그대로 유지한다. */
 .flow-summary__icon--income {
-  background: none;
+  background: var(--color-green-1);
   color: var(--category-life);
 }
 
-/* 지출 col 배경이 옅은 테라코타 틴트라, 아이콘도 수입과 같은 방식(별도 원 배경 없이
- * 진한 글자색만)으로 바꿔 배경과 대비를 준다. */
+/* 지출 아이콘도 같은 이유로 옅은 레드 틴트 원 위에 --brand-primary 선을 얹는다. */
 .flow-summary__icon--expense {
-  background: none;
-  color: var(--category-food);
+  background: var(--color-primary-1);
+  color: var(--brand-primary);
 }
 
 .flow-summary__body {
@@ -4804,11 +4895,13 @@ button.fund-card__remaining--tap {
   gap: 2px;
 }
 
+/* (B안) 배경이 색 있는 카드였을 때는 라벨까지 색을 주면 "같은 색 가족"이라 오히려 안
+ * 보였다("텍스트가 눈에 잘 안들어와") — 지금은 흰 배경이라 그 문제가 없다. 이번 달 탭
+ * 카드(.money-flow-card__title)와 같은 방식으로 라벨도 값/아이콘과 같은 색을 준다. */
 .flow-summary__label {
   font-family: var(--font-suit);
   font-weight: 400;
   font-size: 12px;
-  color: var(--text-secondary);
 }
 
 .flow-summary__col--income .flow-summary__label {
@@ -4816,7 +4909,7 @@ button.fund-card__remaining--tap {
 }
 
 .flow-summary__col--expense .flow-summary__label {
-  color: var(--category-life);
+  color: var(--brand-primary);
 }
 
 .flow-summary__value {
@@ -4825,12 +4918,17 @@ button.fund-card__remaining--tap {
   font-size: 16px;
 }
 
+/* --category-life(--color-green-8, #41470e)는 카드 배경(--color-green-3) 대비로는 충분해도
+ * 명도가 너무 낮아 "초록"이 아니라 거의 검정처럼 보였다("이번 달 수입이 거의 검정색") —
+ * 캘린더 칸(.flow-calendar__amount--income)이 같은 이유로 이미 쓰는 더 밝은 단계
+ * --color-green-7(#616a15)로 값 텍스트만 바꾼다. 라벨(.flow-summary__label)은 가독성
+ * 때문에 무채색을 유지하니, 색 신호는 이 핵심 금액 숫자에 집중된다. */
 .flow-summary__value--income {
-  color: var(--category-life);
+  color: var(--color-green-7);
 }
 
 .flow-summary__value--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .flow-summary__trend {
@@ -4844,7 +4942,7 @@ button.fund-card__remaining--tap {
 }
 
 .flow-summary__trend--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .flow-summary__chevron {
@@ -4943,20 +5041,24 @@ button.fund-card__remaining--tap {
 }
 
 /* 아이콘만 있던 정렬 버튼(예전: community-filter.svg 아이콘 하나) 대신, 이번 달 탭의
- * 월 선택 드롭다운(.money__month-label--btn)과 같은 "글자 + 셰브론" 모양으로 바꾼다 —
- * 지금 선택된 옵션이 무엇인지 보이지 않으면 정렬이 걸려 있는지 알기 어렵다. */
+ * 월 선택 드롭다운(.money-budget__month-btn)과 같은 "글자 + 셰브론" 모양으로 바꾼다 —
+ * 지금 선택된 옵션이 무엇인지 보이지 않으면 정렬이 걸려 있는지 알기 어렵다.
+ * 아래 구분 필터·카테고리 칩과 같은 pill 모양·크림 배경이라 눈에 잘 안 갈렸다 — 높이를
+ * 줄여 "누르면 목록이 펼쳐지는 태그"처럼 더 작고 가볍게 만들어 구분한다(모양 자체는
+ * pill 그대로 둬서 "누르면 선택되는 필터/칩"과는 다른 "누르면 열리는 드롭다운"이라는
+ * 인터랙션 차이를 그대로 유지한다). */
 .flow-sort__trigger {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 32px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 0 9px;
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-pill);
   background: var(--surface-cream);
   font-family: var(--font-suit);
   font-weight: 500;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-primary);
   white-space: nowrap;
   cursor: pointer;
@@ -5029,10 +5131,14 @@ button.fund-card__remaining--tap {
   min-width: 0;
 }
 
+/* radius: DESIGN_SYSTEM.md 3장 "Button / selected state → 12px" — 이 칩·아래 카테고리
+ * 칩·정렬 드롭다운이 전부 pill 반경을 써서 셋 다 같은 종류의 버튼처럼 보였다. 이 필터는
+ * 문서에 정의된 "선택 상태가 있는 버튼"이라 pill 대신 --radius-m 을 쓴다 — 캘린더/목록
+ * 토글(트랙 있는 세그먼트 컨트롤)과 정렬 드롭다운(pill 유지)과는 다른 모양이 된다. */
 .flow-filter__pill {
   padding: 7px 14px;
   border: 1px solid var(--border-warm);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-m);
   background: var(--surface-base);
   font-family: var(--font-suit);
   font-weight: 500;
@@ -5044,7 +5150,7 @@ button.fund-card__remaining--tap {
 .flow-filter__pill.is-active {
   border-color: var(--brand-primary);
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--color-gray-0);
   font-weight: 600;
 }
 
@@ -5076,6 +5182,8 @@ button.fund-card__remaining--tap {
   cursor: grabbing;
 }
 
+/* radius: 위 구분 필터(.flow-filter__pill)와 같은 이유로 --radius-m — 둘 다 "선택 상태가
+ * 있는 버튼"이라 pill(캘린더/목록 토글, 정렬 드롭다운)과는 다른 모양으로 통일한다. */
 .flow-category-chip {
   display: flex;
   flex: none;
@@ -5083,7 +5191,7 @@ button.fund-card__remaining--tap {
   gap: 4px;
   padding: 7px 12px;
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-m);
   font-family: var(--font-suit);
   font-weight: 500;
   font-size: 12.5px;
@@ -5098,10 +5206,14 @@ button.fund-card__remaining--tap {
   height: 14px;
 }
 
+/* 활성색 — 구분 필터(전체/수입/지출/이체)는 --brand-primary 하나로 고정인데, 이 칩을
+ * 고르면 그 칩만의 카테고리 색(--chip-accent, 버튼에 인라인으로 심어둔 c.color)으로
+ * 바뀐다 — 이전엔 두 필터 축이 똑같은 빨강이라 "지금 뭘 고른 건지" 구분이 안 됐다.
+ * --chip-accent 가 없는 경우를 대비해 brand-primary 를 기본값으로 둔다. */
 .flow-category-chip.is-active {
-  border-color: var(--brand-primary);
+  border-color: var(--chip-accent, var(--brand-primary));
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--chip-accent, var(--brand-primary));
 }
 
 /* ---------- 목록 ---------- */
@@ -5172,12 +5284,44 @@ button.fund-card__remaining--tap {
   transform: rotate(180deg);
 }
 
+/* 미리보기 3일치 → "더보기"로 나머지 날짜 그룹 펼치기 — 비상금 적립 내역
+ * (.fund-deposit-panel__more)과 같은 톤. */
+.flow-list__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--border-warm);
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.flow-list__more img {
+  width: 12px;
+  height: 12px;
+}
+
 /* ---------- 직접 추가 버튼 ---------- */
 /* 고정비 탭의 "+ 고정비 추가하기"(.money-fixed-add-cta)와 같은 톤 — 점선 테두리 +
  * 회색 텍스트라 눈에 잘 안 띄던 걸, 같은 성격의 버튼답게 크림/레드 톤으로 맞춘다. */
 /* 흰 텍스트 대 brand-primary 배경 대비 약 5.9:1 로 WCAG AA 를 만족 — 굵기 700 으로
  * 이 탭의 대표 액션임을 강조한다(레퍼런스). */
+/* 스크롤해도 계속 보이게 — position: fixed 는 뷰포트 기준이라 데스크톱 IPhoneFrame
+ * 프리뷰에서 프레임 밖으로 삐져나온다(widget-management.css 의 같은 원칙). 대신
+ * 홈 화면 추천 설정 저장 버튼(.recommend-setup__save)과 같은 sticky 관례를 쓴다 —
+ * 이 버튼이 속한 스크롤 컨테이너(.money__scroll)가 이미 탭바를 피해 padding-bottom을
+ * 확보해 둬서, bottom: 0 만으로 그 안쪽 바닥에 붙는다. */
 .flow-list__add {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5259,7 +5403,7 @@ button.fund-card__remaining--tap {
 }
 
 .flow-row__amount--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .flow-row__time {
@@ -5375,7 +5519,7 @@ button.fund-card__remaining--tap {
 }
 
 .flow-detail__amount--expense {
-  color: var(--category-food);
+  color: var(--brand-primary);
 }
 
 .flow-detail__datetime {

@@ -118,7 +118,8 @@ Figma "컬러" 섹션(node `952:4114`) 기준. 각 색상은 0(가장 밝음)~10
 -   Warm background: `#FAF8F5`
 -   Light cream surface: `#FFFDF9`
 -   Warm widget surface: `#F7F3ED`
--   Border: `#E9DED1`
+-   Border: `#919191` (Gray 4 — 이전 `#E9DED1`은 흰 배경 대비 1.5:1로 UI 컴포넌트 경계
+    기준(3:1) 미달이라 교체)
 
 ### Text
 

@@ -54,44 +54,64 @@
    * 카테고리마다 "진한 메인" + "연한 보조 배경" 한 쌍. 메인은 아이콘/뱃지/그래프처럼
    * 시각적으로 두드러지는 자리에, 보조 배경은 칩/뱃지 배경처럼 넓은 면에 쓴다 —
    * 연한 색을 메인으로 쓰지 않는다(가독성·구분성 저하).
-   * 대비 검증(WCAG 2.1, sRGB relative luminance 기준):
-   *   메인 vs 자기 보조 배경 / 메인 vs #FFFFFF
-   *   식비       #B85028 → 4.48:1 / 4.98:1
-   *   생활       #2E4632 → 8.66:1 / 10.29:1
-   *   교통       #547000 → 5.08:1 / 5.69:1  (요청값 #8BAF00 은 2.28:1/2.55:1 로 WCAG AA 미달 — 같은
-   *                                          색 계열을 유지한 채 명도만 낮췄다)
-   *   쇼핑       #8F6300 → 4.85:1 / 5.31:1  (요청값 #C58A00 은 2.73:1/3.00:1 로 미달 — 명도만 낮췄다)
-   *   문화/여가  #766548 → 4.77:1 / 5.64:1  (--color-cream-85/--color-cream-2, "오트 크림" 램프)
-   *   기타       #59605A → 5.55:1 / 6.47:1
-   * 전부 텍스트 기준 AA(4.5:1) 이상 — 아이콘/그래프처럼 비텍스트 요소만 있는 자리도
-   * AA 비텍스트 기준(3:1)을 넉넉히 넘긴다. 기존에 식비·기타가 각각 --brand-primary(빨강,
-   * 지출 강조색과 충돌)·--text-tertiary(#a39f9a, 문화/여가와 완전히 같은 회색, 대비
-   * 2.63:1)를 재사용해 카테고리끼리 색이 겹치거나 회색이 잘 안 보이던 문제를 해결한다.
    *
-   * 문화/여가는 처음에 #6250A4(보라)로 잡았는데, 이 앱 팔레트(primary/secondary/orange/
-   * green/cream/gray, 전부 DESIGN_SYSTEM.md 4장)에는 보라·파랑 계열이 아예 없다 — Figma에
-   * 없는 색을 새로 만든 셋이라 "Don't: rainbow widgets" 원칙에 어긋난다. 기존 6개 램프 중
-   * 남는 자리를 다시 보면: 빨강(primary)은 지출/CTA 전역 강조색이라 카테고리에 쓰면 그
-   * 의미와 겹치고, 주황(orange)은 식비, 초록(green)은 생활·교통, 무채색(gray)은 기타가
-   * 이미 쓴다 — 남는 건 "오트 크림(cream)" 램프뿐이라 그 진한 단계(--color-cream-85)를
-   * 문화/여가 메인으로 쓴다. 다만 cream 램프의 실제 색각(hue)이 쇼핑(#8F6300, hue 약
-   * 41°)과 아주 가깝다(cream 램프는 hue 약 38° 로 전 구간 동일) — 6개 카테고리를 이 앱의
-   * "warm-only" 5색 램프 + 무채색 안에서만 고르면 완전히 다른 색각을 6개 다 확보할 수
-   * 없는 구조적 한계다. 대신 채도(쇼핑 100% vs 문화/여가 24%)와 명도를 크게 벌려서
-   * "선명한 머스터드"과 "차분한 브라운/타우프"로 눈에 다르게 읽히게 하고, 아이콘·배지
-   * 배경(--category-culture-bg)도 서로 다르게 둔다. */
-  --category-food: #b85028;
-  --category-food-bg: #fff0e8;
-  --category-life: #2e4632;
-  --category-life-bg: #e7ede7;
-  --category-transport: #547000;
-  --category-transport-bg: #f0f5d9;
-  --category-shopping: #8f6300;
-  --category-shopping-bg: #fff4d6;
+   * 이 앱 팔레트(잘 익은 자두/primary·햇살 과육/secondary·구운 자두/orange·풋자두/green·
+   * 오트 크림/cream·gray, 전부 DESIGN_SYSTEM.md 4장 Full Tint/Shade Scale) 밖의 임의 hex를
+   * 쓰지 않는다 — 이전 값(#B85028/#547000/#8F6300/#59605A)은 램프 표에 없는 손조정
+   * hex였다. 각 카테고리를 서로 다른 램프의 등록된 단계(정확히 tokens.css의 --color-*-N
+   * 값)에 매핑해 6개 중 5개가 각자 다른 램프를 쓰고, 램프별 hue도 25°→38°→46.5°→68°→
+   * 무채색 순으로 겹치지 않게 벌렸다. 빨강(primary)은 지출/CTA 전역 강조색이라 카테고리에
+   * 쓰면 그 의미와 겹쳐서 제외한다.
+   *   식비       --color-orange-7(#774623)     — 흰 배경 7.81:1 / 자기 배경 6.26:1
+   *   생활       --color-primary-7(#6C2220)    — 흰 배경 11.12:1 / 자기 배경(--color-primary-1) 8.16:1
+   *   교통       --color-green-7(#616A15)      — 흰 배경 5.86:1 / 자기 배경 4.97:1
+   *   쇼핑       --color-secondary-85(#7E6A25) — 흰 배경 5.28:1 / 자기 배경 4.97:1
+   *   문화/여가  --color-cream-85(#766548)     — 흰 배경 4.77:1 / 자기 배경 5.64:1 (미변경, 이미 등록된 토큰)
+   *   기타       --color-gray-6(#5E5E5E)       — 흰 배경 6.49:1 / 자기 배경(--color-gray-05) 5.74:1
+   * 전부 텍스트 기준 AA(4.5:1) 이상.
+   *
+   * "생활"은 원래 gray 램프였다가(기타와 같은 무채색이라 칩에서 안 겹치긴 해도 칙칙해
+   * 보인다는 피드백으로) --color-primary-7 로 바꿨다 — 남은 5개 램프(주황/노랑/초록/
+   * 크림/회색)는 이미 다른 카테고리가 하나씩 쓰고 있어서, 어느 걸 골라도 그 카테고리와
+   * 같은 색 계열로 보이는 문제가 있었다(예: orange-6 은 대비는 통과해도 식비와 같은
+   * 주황 계열). 결국 남은 선택지는 "지출/CTA 전역 강조색이라 원래 카테고리에서 뺐던
+   * primary 램프를 아주 어둡게 눌러 쓰는 것"뿐이었다 — primary-7 은 brand-primary
+   * (#B43936, step5)보다 훨씬 어둡고 채도 낮아 "빨강"보다 "짙은 밤색"에 가깝게 보여
+   * 지출 강조색과는 톤이 다르다. */
+  --category-food: var(--color-orange-7);
+  --category-food-bg: var(--color-orange-1);
+  --category-lifestyle: var(--color-primary-7);
+  --category-lifestyle-bg: var(--color-primary-1);
+  /* --category-life 와 이름이 비슷하지만 다른 용도다. --category-life 는 이 카테고리
+   * 6개와 무관하게, 이 앱 전역에서 "수입(income)"이라는 거래 종류를 나타내는 딥그린
+   * 텍스트 색이다(이번 달 탭 수입 카드, 캘린더 요약, 영수증 카드 등 10곳 이상) — 등록
+   * 안 된 손조정 hex #2E4632 대신 밝기가 가장 가까운 --color-green-8 을 쓴다(흰 배경
+   * 9.85:1, 이 색을 쓰는 카드 배경 --color-green-3 위에서도 5.97:1). */
+  --category-life: var(--color-green-8);
+  --category-transport: var(--color-green-7);
+  --category-transport-bg: var(--color-green-1);
+  --category-shopping: var(--color-secondary-85);
+  --category-shopping-bg: var(--color-secondary-1);
   --category-culture: var(--color-cream-85);
   --category-culture-bg: var(--color-cream-2);
-  --category-etc: #59605a;
-  --category-etc-bg: #eceeec;
+  --category-etc: var(--color-gray-6);
+  --category-etc-bg: var(--color-gray-05);
+
+  /* ---------- Color / Category accent (소비 분석 카드 물 채우기 전용) ----------
+   * 위 메인 컬러(예: --category-food = orange-7)는 텍스트/테두리로도 쓰여야 해서 일부러
+   * 어둡게 골랐다 — 그런데 이 어두운 색을 그대로 흰색과 16~32%만 섞어 장식용 "물 채우기"
+   * 배경(.money-spend-grid-card__fill)에 쓰면 5개 카테고리가 전부 비슷비슷한 탁한
+   * 베이지/카키로 뭉개져 잘 안 예쁘고 구분도 안 된다. 이 fill은 텍스트가 아니라 순수
+   * 장식이라 대비 제약이 없으니, 같은 램프의 훨씬 밝고 채도 높은 단계 — DESIGN_SYSTEM.md
+   * 4장 "Secondary Palette"에 이름까지 등록된 Green/Orange/Yellow 단계 — 를 대신 쓴다.
+   * 메인 컬러보다 밝은 값이라 그 위에 얹히는 텍스트(--text-primary/secondary) 대비는
+   * 기존보다 항상 더 좋아지면 좋아졌지 나빠지지 않는다. */
+  --category-food-accent: var(--color-orange-5);
+  --category-lifestyle-accent: var(--color-gray-5);
+  --category-transport-accent: var(--color-green-5);
+  --category-shopping-accent: var(--color-secondary-5);
+  --category-culture-accent: var(--color-cream-5);
+  --category-etc-accent: var(--color-gray-5);
 
   /* ---------- Color / Scale (Figma "컬러" 섹션, node 952:4114) ----------
    * 잘 익은 자두(primary) · 햇살 과육(secondary) · 구운 자두(orange) ·
@@ -205,7 +225,12 @@
   --surface-today: #fefff3;
 
   /* ---------- Color / Border ---------- */
-  --border-warm: #e9ded1;
+  /* 이전 값 #e9ded1은 흰 배경(--surface-base) 대비 1.5:1로 웹 표준 UI 컴포넌트 경계
+   * 기준(3:1) 미달이라 페이지 배경(--surface-page, #fffaf5)과 사실상 구분이 안 됐다
+   * (money.css .money-fixed-next에서 처음 발견돼 그 카드만 --color-gray-4로 국소
+   * 수정했던 문제 — 이번에 전역 토큰 자체를 같은 값으로 통일한다). gray 램프에서
+   * 3:1을 넘는 첫 단계(--color-gray-4, #919191, 흰 배경 대비 3.15:1)로 교체. */
+  --border-warm: var(--color-gray-4);
   --border-widget: #e9dec9;
   --border-glass: #e3d6cc;
   --border-today: rgba(162, 177, 35, 0.5);
