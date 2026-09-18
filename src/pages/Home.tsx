@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { triggerAiFabDemoMove } from '../components/ai/aiFabDemoMove';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -8,12 +8,12 @@ import { DiscoverySection } from '../components/DiscoverySection';
 import { Greeting } from '../components/Greeting';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
+import { HomeBenefitBanner } from '../components/HomeBenefitBanner';
 import { HomeRecommendSettings, emptyRecommendDraft } from '../components/HomeRecommendSettings';
 import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
 import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { MyLifeSection } from '../components/MyLifeSection';
-import { TipBox } from '../components/TipBox';
 import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
@@ -61,6 +61,39 @@ export function Home() {
 
   const navigation = useAppNavigation();
   const sheet = useSheetGesture();
+  const [bottomNavigationVisible, setBottomNavigationVisible] = useState(true);
+
+  /* 시트가 펼쳐지거나 드래그를 시작하면 탭바를 즉시 제거한다.
+   * 닫힐 때는 top 전환이 끝난 뒤에만 다시 렌더링해, 시트가 내려가는 중간에
+   * 탭바가 먼저 튀어나오지 않게 한다. 탭바는 absolute 요소이고 시트 스크롤
+   * padding은 그대로 유지하므로 본문 높이와 스크롤 위치는 변하지 않는다. */
+  useLayoutEffect(() => {
+    if (sheet.state === 'expanded' || sheet.isDragging) {
+      setBottomNavigationVisible(false);
+      return;
+    }
+
+    const sheetElement = sheet.sheetRef.current;
+    if (!sheetElement || bottomNavigationVisible) return;
+
+    const revealBottomNavigation = () => setBottomNavigationVisible(true);
+    const onTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === sheetElement && event.propertyName === 'top') revealBottomNavigation();
+    };
+
+    sheetElement.addEventListener('transitionend', onTransitionEnd);
+
+    /* reduced-motion이거나 브라우저가 transitionend를 발생시키지 않는 경우의 보험. */
+    const transition = window.getComputedStyle(sheetElement);
+    const duration = Number.parseFloat(transition.transitionDuration) * 1000;
+    const delay = Number.parseFloat(transition.transitionDelay) * 1000;
+    const fallback = window.setTimeout(revealBottomNavigation, duration + delay + 50);
+
+    return () => {
+      sheetElement.removeEventListener('transitionend', onTransitionEnd);
+      window.clearTimeout(fallback);
+    };
+  }, [bottomNavigationVisible, sheet.isDragging, sheet.sheetRef, sheet.state]);
   /* 내 생활 위젯 배치 — 위젯 관리 화면(WidgetPage)과 공유하는 전역 상태 */
   const placement = useWidgetPlacement();
 
@@ -137,7 +170,7 @@ export function Home() {
   };
 
   /* 강조할 실제 DOM — 좌표를 하드코딩하지 않고 Coachmark 가 매 단계 실측한다 */
-  const tipBoxRef = useRef<HTMLDivElement>(null);
+  const benefitBannerRef = useRef<HTMLButtonElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const addSlotRef = useRef<HTMLDivElement>(null);
 
@@ -150,9 +183,9 @@ export function Home() {
   const coachmarkSteps: CoachmarkStep[] = useMemo(() => [
     {
       key: 'notice',
-      title: '중요한 알림을 한눈에',
-      body: '생활비, 주거, 혜택 등\n내게 필요한 알림을 바로 확인할 수 있어요.',
-      targetRef: tipBoxRef,
+      title: '나에게 맞는 혜택 찾기',
+      body: '자취 생활에 도움이 되는 지원사업·혜택을\n한 번에 모아 확인할 수 있어요.',
+      targetRef: benefitBannerRef,
       radius: 20,
       sheetState: 'peek',
     },
@@ -192,7 +225,7 @@ export function Home() {
        * 그 이동을 따라가야 해서 계속 재측정이 필요하다(Coachmark.tsx 참고). */
       trackContinuously: true,
     },
-  ], [tipBoxRef, statusRef, addSlotRef]);
+  ], [benefitBannerRef, statusRef, addSlotRef]);
 
   return (
     <div
@@ -205,7 +238,10 @@ export function Home() {
 
       <Greeting name={greetingName(user?.name ?? '')} hero={content.hero} />
 
-      <TipBox tip={content.tips[0]} cardRef={tipBoxRef} />
+      <HomeBenefitBanner
+        onClick={() => navigation?.navigate('benefits')}
+        bannerRef={benefitBannerRef}
+      />
 
       <HomeSheet
         state={sheet.state}
@@ -240,7 +276,7 @@ export function Home() {
         )}
       </HomeSheet>
 
-      <BottomNavigation />
+      {bottomNavigationVisible && <BottomNavigation />}
 
       {levelInfo && (
         <LevelInfoPopover

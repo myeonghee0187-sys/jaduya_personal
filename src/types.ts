@@ -17,14 +17,7 @@ export interface HomeHeroContent {
   sub: string;
 }
 
-/** TipBox 가 보여주는 팁 한 건 */
-export interface HomeTip {
-  title: string;
-  detail: string;
-}
-
 /** persona 별 Home 콘텐츠 묶음 */
 export interface HomePersonaContent {
   hero: HomeHeroContent;
-  tips: HomeTip[];
 }
