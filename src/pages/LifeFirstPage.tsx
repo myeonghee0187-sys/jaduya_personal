@@ -6,11 +6,8 @@ import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CarouselDots } from '../components/CarouselDots';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import Stack from '../components/Stack/Stack';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 /* 집을 보러 갔을 때 확인할 생활 조건 — 마름모 레이더 위 네 버튼을 누르면 설명이 말풍선으로 뜬다. */
@@ -174,8 +171,6 @@ export function LifeFirstPage() {
     bottom: radarAxisPercent(radarScore.storage, 'outward'),
     left: radarAxisPercent(radarScore.nearby, 'inward'),
   };
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const [checkedByStage, setCheckedByStage] =
     useState<Record<ContractStage, string[]>>(INITIAL_CHECKED);
   const [regretTop, setRegretTop] = useState(0);
@@ -246,7 +241,6 @@ export function LifeFirstPage() {
         title="생활"
         backLabel="생활로"
         onBack={() => navigation?.goBack('life')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <CategoryTabs active="first" />
@@ -433,18 +427,6 @@ export function LifeFirstPage() {
       </main>
 
       <BottomNavigation activeTab="life" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

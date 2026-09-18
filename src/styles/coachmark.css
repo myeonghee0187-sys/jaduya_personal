@@ -3,7 +3,7 @@
  * .app(402 × 874, position: relative) 위에 얹는 오버레이라 이 파일 안의 좌표는 전부
  * .app 기준 absolute 다. 강조 영역 크기는 CSS 로 정하지 않는다 — Coachmark.tsx 가 실제
  * 타겟 DOM 을 ref 로 실측해서 top/left/width/height 를 인라인 스타일로 넣는다.
- * 쌓임 순서: 내 메뉴/위젯 추가 등 기존 오버레이(60), 살림 시트(70) 보다도 위(500) —
+ * 쌓임 순서: 기존 Bottom Sheet 오버레이(60), 살림 시트(70) 보다도 위(500) —
  * 코치마크가 떠 있는 동안은 무엇보다 먼저 보여야 한다. */
 
 .coachmark {

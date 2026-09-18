@@ -1,14 +1,11 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SettingsNavigationRow } from '../components/SettingsRow';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon, img } from '../lib/asset';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { PERSONA_PROFILE } from '../data/personaProfile';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 /* 앱 설정에 있던 계정 UI와 이벤트를 분리한 마이페이지 하위 화면이다. */
@@ -21,8 +18,6 @@ interface AccountManagementPageProps {
 export function AccountManagementPage({ onAction }: AccountManagementPageProps) {
   const navigation = useAppNavigation();
   const { user, logout, updateProfile } = useAuth();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const defaultProfileImage = img(PERSONA_PROFILE[user?.persona ?? DEFAULT_PERSONA].profileImage);
   const [name, setName] = useState(user?.name ?? '');
   const [profileImage, setProfileImage] = useState(user?.profileImage ?? defaultProfileImage);
@@ -57,7 +52,6 @@ export function AccountManagementPage({ onAction }: AccountManagementPageProps) 
         title="계정 관리"
         backLabel="마이페이지로"
         onBack={() => navigation?.navigate('my')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="settings-page__scroll">
@@ -136,18 +130,6 @@ export function AccountManagementPage({ onAction }: AccountManagementPageProps) 
       </main>
 
       <BottomNavigation activeTab="my" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

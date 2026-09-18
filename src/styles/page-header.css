@@ -55,8 +55,8 @@
 /* ---------- 헤더 우측 액션 — 모든 헤더의 단일 기준 ----------
  * 40×40 버튼 두 개를 기존 76px 액션 영역의 중심에 배치한다. 두 버튼의 중심 간격은
  * 40px로 고정되며 기존 아이콘 중심축과 좌우 위치를 유지한다.
- * Header(.nav-header) / SubPageHeader(.page-header) / GnbOverlay(.gnb__header) 가
- * 같은 클래스를 쓰므로 페이지 이동·GNB 개폐에도 X 좌표가 움직이지 않는다.
+ * Header(.nav-header) / SubPageHeader(.page-header) 가
+ * 같은 클래스를 쓰므로 페이지 이동에도 X 좌표가 움직이지 않는다.
  * 값은 여기에만 둔다 — 페이지별 CSS 에서 덮어쓰지 않는다. */
 .header-actions {
   margin-left: auto;
@@ -86,37 +86,6 @@
   display: block;
   width: var(--header-icon-svg);
   height: var(--header-icon-svg);
-}
-
-.header-menu-icon {
-  position: absolute;
-  inset: 8px;
-  opacity: 1;
-  transform: rotate(0deg) scale(1);
-  transition:
-    opacity 200ms ease-out,
-    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.header-menu-icon--close {
-  opacity: 0;
-  transform: rotate(-45deg) scale(0.85);
-}
-
-.header-icon-button--menu.is-open .header-menu-icon--hamburger {
-  opacity: 0;
-  transform: rotate(45deg) scale(0.85);
-}
-
-.header-icon-button--menu.is-open .header-menu-icon--close {
-  opacity: 1;
-  transform: rotate(0deg) scale(1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .header-menu-icon {
-    transition: none;
-  }
 }
 
 .filled-bell {

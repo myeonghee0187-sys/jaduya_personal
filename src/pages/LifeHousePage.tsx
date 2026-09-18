@@ -2,14 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView } from 'motion/react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import { RoutineAccordionItem } from '../components/lifehouse/RoutineAccordionItem';
 import { AddRoutineSheet } from '../components/lifehouse/AddRoutineSheet';
 import { IntervalSheet } from '../components/lifehouse/IntervalSheet';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import {
   DEFAULT_ROUTINES,
   HOUSE_TIP,
@@ -45,7 +43,6 @@ const resultAppear = {
 export function LifeHousePage() {
   const navigation = useAppNavigation();
   const reduceMotion = usePrefersReducedMotion();
-  const [gnbOpen, setGnbOpen] = useState(false);
 
   /* ---------- ① 검색 ---------- */
   /* 입력 중인 값(draft)과 실제로 검색한 값(submitted)을 나눈다.
@@ -162,7 +159,6 @@ export function LifeHousePage() {
         title="생활"
         backLabel="생활로"
         onBack={() => navigation?.goBack('life')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <CategoryTabs active="house" />
@@ -349,12 +345,6 @@ export function LifeHousePage() {
       </main>
 
       <BottomNavigation activeTab="life" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={DEFAULT_MENU}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={() => setGnbOpen(false)}
-      />
 
       <AddRoutineSheet
         open={addSheetOpen}

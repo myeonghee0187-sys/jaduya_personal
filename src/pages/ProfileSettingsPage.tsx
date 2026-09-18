@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon } from '../lib/asset';
@@ -30,8 +27,6 @@ const HOME_REDIRECT_MS = 900;
 export function ProfileSettingsPage() {
   const { user } = useAuth();
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   /* 설정값은 계정별로 남긴다 — 로그아웃 전 다른 계정 값과 섞이지 않게 */
   const ownerKey = user?.email ?? 'guest';
   /* 자취 경험·주거 형태의 원본은 persona 프로필이다 — 마이페이지 요약과 같은 값을 본다 */
@@ -123,7 +118,6 @@ export function ProfileSettingsPage() {
         title="자취 프로필"
         backLabel={backLabel}
         onBack={() => navigation?.navigate(returnTo)}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="profile-settings__scroll">
@@ -218,19 +212,6 @@ export function ProfileSettingsPage() {
           설정 저장하기
         </button>
       </div>
-
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

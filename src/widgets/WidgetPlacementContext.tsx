@@ -16,7 +16,7 @@ import type { PlacedWidget, PlacementResult, PlacementState, SlotRef } from '../
 import type { WidgetSize } from '../types';
 
 /* Home '내 생활' 캔버스의 위젯 배치 상태 — Home 화면과 위젯 관리 화면(WidgetPage)이
- * 같은 값을 봐야 해서 화면 위에서 한 번만 만든다(BookmarkProvider/MyMenuProvider와 같은
+ * 같은 값을 봐야 해서 화면 위에서 한 번만 만든다(BookmarkProvider와 같은
  * 패턴 — in-memory, localStorage 없음. 새로고침하면 아래 기본값으로 되돌아간다).
  *
  * 배치 규칙 자체(어디에 몇 개까지, 뭘 빼야 하는지)는 utils/placement.ts 에만 있고

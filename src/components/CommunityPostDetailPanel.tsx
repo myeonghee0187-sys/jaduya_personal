@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { icon, img } from '../lib/asset';
 import { authorBadgeColor } from '../lib/authorBadgeColor';
 import { BellButton } from './BellButton';
-import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
 import { useAuth } from '../auth/AuthContext';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
@@ -216,7 +215,10 @@ export function CommunityPostDetailPanel({
           </div>
           <div className="header-actions">
             <BellButton />
-            <HeaderIconButton iconName="menu" label="게시글 닫기" open onClick={onClose} />
+            {/* 커뮤니티 게시글 상세 전용 닫기 — SubPageHeader 의 X 버튼과 같은 규격 */}
+            <button type="button" className="header-icon-button" aria-label="게시글 닫기" onClick={onClose}>
+              <img src={icon('gnb-close.svg')} alt="" />
+            </button>
           </div>
         </div>
       </div>

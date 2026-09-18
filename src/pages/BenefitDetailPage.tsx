@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { getBenefitById } from '../data/benefits';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 export function BenefitDetailPage() {
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
   const bookmarks = useBookmarks();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const benefit = getBenefitById(navigation?.options.benefitId);
   const returnTo = navigation?.options.returnTo ?? 'benefits-recommend';
@@ -32,14 +27,11 @@ export function BenefitDetailPage() {
           title="혜택·복지"
           backLabel="이전 화면으로"
           onBack={goBack}
-          onMenu={() => setGnbOpen(true)}
         />
         <main className="benefit-detail__empty">
           <h2>혜택 정보를 찾을 수 없어요.</h2>
           <button type="button" onClick={goBack}>목록으로 돌아가기</button>
         </main>
-        <GnbOverlay open={gnbOpen} myMenu={myMenu.myMenu} onClose={() => setGnbOpen(false)} onEditMenu={myMenu.openEdit} />
-        <MyMenuEdit open={myMenu.editOpen} draft={myMenu.draft} onClose={myMenu.closeEdit} onSave={myMenu.saveEdit} />
       </div>
     );
   }
@@ -55,7 +47,6 @@ export function BenefitDetailPage() {
         title="혜택·복지"
         backLabel="혜택 목록으로"
         onBack={goBack}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="benefit-detail__scroll">
@@ -141,8 +132,6 @@ export function BenefitDetailPage() {
       </footer>
 
       <p className="benefit-detail__toast" role="status" aria-live="polite" hidden={!notice}>{notice}</p>
-      <GnbOverlay open={gnbOpen} myMenu={myMenu.myMenu} onClose={() => setGnbOpen(false)} onEditMenu={myMenu.openEdit} />
-      <MyMenuEdit open={myMenu.editOpen} draft={myMenu.draft} onClose={myMenu.closeEdit} onSave={myMenu.saveEdit} />
     </div>
   );
 }

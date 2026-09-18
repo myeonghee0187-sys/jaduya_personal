@@ -9,22 +9,19 @@ import {
   useCommunityCommentCount,
 } from '../community/communitySelectors';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { SavedCard } from '../components/SavedCard';
 import { SAVED_FILTERS, SAVED_CHIP_COLOR } from '../data/savedItems';
 import { resolveCommunityPostImage } from '../data/communityPosts';
 import type { SavedFilter, SavedItem } from '../data/savedItems';
 import { getBenefitById } from '../data/benefits';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /** 나의 활동 1차 탭 — '저장한 정보' 가 기본값이다 */
 const ACTIVITY_TABS = ['저장한 정보', '작성한 글', '댓글'] as const;
 type ActivityTab = (typeof ACTIVITY_TABS)[number];
 
-/* 나의 활동 — 마이페이지 '나의 활동' / GNB 내 메뉴 '저장한 정보' 로 들어오는 하위 화면.
+/* 나의 활동 — 마이페이지 '나의 활동' 으로 들어오는 하위 화면.
  * 1차 탭(저장한 정보 / 작성한 글 / 댓글) 아래에 각 탭의 내용을 둔다.
  * 새 헤더·탭바를 만들지 않고 SubPageHeader / BottomNavigation 을 그대로 쓴다.
  * 탭바는 마이페이지의 하위 화면이므로 '마이' active 를 유지한다.
@@ -42,8 +39,6 @@ export function SavedPage() {
   const isRoutable = useIsCommunityDetailRoutable();
   const getCommentCount = useCommunityCommentCount();
 
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const requestedTab = navigation?.options.tab;
   const [tab, setTab] = useState<ActivityTab>(() =>
     requestedTab && (ACTIVITY_TABS as readonly string[]).includes(requestedTab)
@@ -183,7 +178,6 @@ export function SavedPage() {
         title="나의 활동"
         backLabel="마이페이지로"
         onBack={() => navigation?.navigate('my')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       {/* 1차 탭 — 헤더 바로 아래에 고정한다. 다른 세부 화면과 같은 공통 탭 UI(.dc-tabs)를
@@ -367,8 +361,6 @@ export function SavedPage() {
 
       {/* 마이페이지 하위 화면이라 '마이' active 를 유지한다 */}
       <BottomNavigation activeTab="my" />
-      <GnbOverlay open={gnbOpen} myMenu={myMenu.myMenu} onClose={() => setGnbOpen(false)} onEditMenu={myMenu.openEdit} />
-      <MyMenuEdit open={myMenu.editOpen} draft={myMenu.draft} onClose={myMenu.closeEdit} onSave={myMenu.saveEdit} />
     </div>
   );
 }

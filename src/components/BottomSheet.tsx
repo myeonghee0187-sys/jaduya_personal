@@ -2,14 +2,14 @@ import type { ReactNode } from 'react';
 
 interface BottomSheetProps {
   open: boolean;
-  /** 시트 루트에 붙는 추가 클래스 (.menu-edit / .add-widget) */
+  /** 시트 루트에 붙는 기능별 추가 클래스 */
   className: string;
   labelledBy: string;
   onDimClick: () => void;
   children: ReactNode;
 }
 
-/* 내 메뉴 편집 / 위젯 추가가 공유하는 Bottom Sheet 셸.
+/* 여러 기능에서 공유하는 Bottom Sheet 셸.
  * dim + .bsheet 구조는 css/overlays.css 의 .layer / .layer-dim / .bsheet 그대로. */
 export function BottomSheet({
   open,

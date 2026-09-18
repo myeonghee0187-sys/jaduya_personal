@@ -4,12 +4,9 @@ import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CarouselDots } from '../components/CarouselDots';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { getLivingQuizByPersona } from '../data/livingQuizData';
 import type { LivingQuizData, LivingQuizOption } from '../data/livingQuizData';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { img } from '../lib/asset';
 
 /* 생활 카테고리 4종 — 이미지는 정사각 원본이라 카드 안에서 크롭 위치를 따로 잡는다.
@@ -120,8 +117,6 @@ export function LifePage() {
   const navigation = useAppNavigation();
   const { user } = useAuth();
   const quiz = getLivingQuizByPersona(user?.persona);
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const tipsRef = useRef<HTMLDivElement>(null);
   /* 캐러셀 내부의 앞뒤 이동 — 좌우 버튼이 이걸 부른다 */
   const tipNextRef = useRef<(() => void) | null>(null);
@@ -523,7 +518,6 @@ export function LifePage() {
         title="생활"
         backLabel="홈으로"
         onBack={() => navigation?.goBack('home')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="life__scroll">
@@ -772,18 +766,6 @@ export function LifePage() {
       </main>
 
       <BottomNavigation activeTab="life" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

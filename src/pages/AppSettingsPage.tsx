@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SettingsToggleRow } from '../components/SettingsRow';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 type NotificationSetting = 'schedule' | 'mission' | 'budget' | 'fixedCost' | 'community';
@@ -25,8 +22,6 @@ const INITIAL_NOTIFICATIONS: Record<NotificationSetting, boolean> = {
 
 export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   const setNotification = (key: NotificationSetting, checked: boolean) => {
@@ -39,7 +34,6 @@ export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
         title="앱 설정"
         backLabel="마이페이지로"
         onBack={() => navigation?.navigate('my')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="settings-page__scroll">
@@ -102,18 +96,6 @@ export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
       </main>
 
       <BottomNavigation activeTab="my" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

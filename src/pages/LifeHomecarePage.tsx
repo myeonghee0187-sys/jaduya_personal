@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
 import { ChipGroup } from '../components/homecare/ChipGroup';
@@ -10,7 +9,6 @@ import { GuideTimeline } from '../components/homecare/GuideTimeline';
 import { StepCard } from '../components/homecare/StepCard';
 import { ServiceCard } from '../components/homecare/ServiceCard';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { PROBLEM_TYPES, HOMECARE_CATEGORIES, HOMECARE_GUIDE_SCENARIOS } from '../data/homecareGuide';
 import type { ProblemKey } from '../data/homecareGuide';
 
@@ -43,7 +41,6 @@ const serviceItemVariants = {
 export function LifeHomecarePage() {
   const navigation = useAppNavigation();
   const reduceMotion = usePrefersReducedMotion();
-  const [gnbOpen, setGnbOpen] = useState(false);
   /* Timeline Active Progress 가 기준으로 삼는 실제 스크롤 컨테이너 — 이 페이지는
    * window 가 아니라 .daily-care__scroll 안에서 스크롤된다. */
   const scrollContainerRef = useRef<HTMLElement>(null);
@@ -108,7 +105,6 @@ export function LifeHomecarePage() {
         title="생활"
         backLabel="생활로"
         onBack={() => navigation?.goBack('life')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <CategoryTabs active="homecare" />
@@ -185,12 +181,6 @@ export function LifeHomecarePage() {
       </main>
 
       <BottomNavigation activeTab="life" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={DEFAULT_MENU}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={() => setGnbOpen(false)}
-      />
     </div>
   );
 }

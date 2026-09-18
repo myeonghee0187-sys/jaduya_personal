@@ -5,8 +5,6 @@ import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { useCommunityCommentCount } from '../community/communitySelectors';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityPostDetailPanel } from '../components/CommunityPostDetailPanel';
@@ -19,7 +17,6 @@ import {
   mergeOwnPosts,
   postMatchesKeyword,
 } from '../data/communityPosts';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { img } from '../lib/asset';
 
 /* 레벨은 초보 / 중수 / 고수 3단계.
@@ -31,12 +28,10 @@ const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
  * 게시글은 종류를 나누지 않고 CommunityPostCard 하나로만 그린다. */
 export function CommunityPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
   /* 게시글 상세보기 — 아직 본문(body) 데이터가 있는 게시글만 열린다.
    * 마이페이지 "나의 활동"에서 postId 를 넘겨 들어오면 진입하자마자 그 글을 바로 연다. */
   const [detailPostId, setDetailPostId] = useState<string | null>(() => navigation?.options.postId ?? null);
-  const myMenu = useMyMenu();
   /* 다른 화면에서 탭을 지정해 들어올 수 있다 (전용 화면이 있는 '질문'·'자취 꿀팁'은 제외).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
   const requestedTab = navigation?.options.tab;
@@ -112,7 +107,6 @@ export function CommunityPage() {
         title="커뮤니티"
         backLabel="홈으로"
         onBack={() => navigation?.goBack('home')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="community__scroll">
@@ -283,18 +277,6 @@ export function CommunityPage() {
       </p>
 
       <BottomNavigation activeTab="community" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
       <CommunityPostDetailPanel
         post={allPosts.find((item) => item.id === detailPostId) ?? null}

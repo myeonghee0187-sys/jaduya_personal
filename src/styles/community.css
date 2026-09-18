@@ -1219,7 +1219,7 @@
   cursor: pointer;
 }
 
-/* 뒤로가기 화살표는 SubPageHeader/GnbOverlay와 같은 토큰을 쓴다 — 정사각형으로 늘리면 찌그러진다 */
+/* 뒤로가기 화살표는 SubPageHeader와 같은 토큰을 쓴다 — 정사각형으로 늘리면 찌그러진다 */
 .write-panel__back img {
   width: var(--header-back-w);
   height: var(--header-back-h);

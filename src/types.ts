@@ -1,27 +1,11 @@
-/** Home 위에 상태로만 열리는 레이어 */
-export type LayerName = 'gnb' | 'menuEdit';
-
 /** Bottom Sheet 상태 (home_1 / home_2) */
 export type SheetState = 'peek' | 'expanded';
-
-/** GNB 내 메뉴 바로가기 항목 */
-export interface MenuItem {
-  id: string;
-  name: string;
-  /** assets/icon/ 아래 파일명 */
-  icon: string;
-}
 
 /** 위젯 카드 크기 — Figma 규격 그대로 */
 export type WidgetSize = 'small' | 'medium' | 'large';
 
 /** 위젯이 속한 IA 카테고리 — 위젯 관리 화면의 카테고리 필터 분류 기준 */
 export type WidgetCategory = '생활' | '돈 관리' | '혜택' | '커뮤니티' | '마이';
-
-/** history 에 저장하는 레이어 스택 */
-export interface LayerHistoryState {
-  jaduyaLayers?: LayerName[];
-}
 
 /** Home 상단 인사 영역(Hero 위)의 persona 별 문구 */
 export interface HomeHeroContent {

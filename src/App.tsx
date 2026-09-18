@@ -35,7 +35,6 @@ import { AIChatbot } from './components/ai/AIChatbot';
 import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigation';
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
 import { CommunityPostsProvider } from './community/CommunityPostsContext';
-import { MyMenuProvider } from './menu/MyMenuContext';
 import { WidgetPlacementProvider } from './widgets/WidgetPlacementContext';
 import { NotificationProvider } from './notifications/NotificationContext';
 import { initializeLivingProfileFromOnboarding } from './data/livingProfile';
@@ -155,18 +154,16 @@ export default function App() {
   if (user) {
     return user.onboarded ? (
       <AppNavigationProvider key={user.email}>
-        {/* 커뮤니티·혜택 북마크와 GNB "내 메뉴", Home 위젯 배치는 여러 화면이 같은 값을
+        {/* 커뮤니티·혜택 북마크와 Home 위젯 배치는 여러 화면이 같은 값을
           * 봐야 해서 화면 위에서 한 번만 만든다 */}
         <BookmarkProvider>
           <CommunityPostsProvider>
-            <MyMenuProvider>
-              {/* 헤더 종(읽지 않은 표시)과 알림 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
-              <NotificationProvider>
-                <WidgetPlacementProvider>
-                  <MainPages />
-                </WidgetPlacementProvider>
-              </NotificationProvider>
-            </MyMenuProvider>
+            {/* 헤더 종(읽지 않은 표시)과 알림 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
+            <NotificationProvider>
+              <WidgetPlacementProvider>
+                <MainPages />
+              </WidgetPlacementProvider>
+            </NotificationProvider>
           </CommunityPostsProvider>
         </BookmarkProvider>
       </AppNavigationProvider>
