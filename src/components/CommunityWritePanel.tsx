@@ -17,7 +17,7 @@ import { StatusBar } from './StatusBar';
 const MAX_HASHTAGS = 4;
 
 const LEVEL_OPTIONS = ['초보', '중수', '고수', '전문가'];
-const POST_TYPE_OPTIONS = ['정보', '질문', '후기', '잡담'];
+const POST_TYPE_OPTIONS = ['정보', '질문'];
 const HASHTAG_CATEGORY_OPTIONS = ['고정·관리', '자취·식비', '인테리어', '청소·정리', '생활문제', '기타'];
 
 interface PersonaSamplePost {
@@ -66,7 +66,7 @@ interface CommunityWritePanelProps {
 /* 커뮤니티 '글쓰기' — Figma create_post (1742:7314).
  * GNB 전체메뉴와 같은 방식(hidden + CSS transition)으로 오른쪽에서 슬라이드인한다.
  * 뒤로가기/닫기를 누르면 바로 닫히지 않고, 나가기 확인 다이얼로그를 먼저 띄운다.
- * 등록은 CommunityPostsContext 에 저장돼 전체/질문/자취 꿀팁 목록에 바로 반영되고,
+ * 등록은 CommunityPostsContext 에 저장돼 게시판/자취 꿀팁 목록에 바로 반영되고,
  * 임시저장은 localStorage 에 쌓여 임시목록 버튼 위 빨간 점으로 표시된다. "임시목록"
  * 버튼은 글쓰기와 같은 방식(오른쪽 슬라이드인)으로 CommunityDraftListPanel 을 그 위에
  * 한 겹 더 연다 — 거기서 "수정하기" 를 누르면 그 임시글 내용이 이 폼에 그대로 채워지고

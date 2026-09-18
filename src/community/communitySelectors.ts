@@ -15,7 +15,7 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
   return Array.from(map.values());
 }
 
-/** 화면별로 나뉜 정적 게시글 배열(전체/게시판/자취 꿀팁/지역 후기)을 한 번만 합친다.
+/** 화면별로 나뉜 정적 게시글 배열(게시판/자취 꿀팁/지역 후기)을 한 번만 합친다.
  * 배열마다 id 접두어가 달라 실제로는 겹치지 않지만, 만약을 대비해 id 기준으로 정리한다. */
 const ALL_STATIC_POSTS: CommunityPost[] = dedupeById([
   ...COMMUNITY_POSTS,
@@ -83,7 +83,7 @@ export function useAllCommunityComments(): CommunityCommentEntry[] {
 
 /** 이 게시글 id 를 눌렀을 때 기존 커뮤니티 상세 화면(CommunityPage 의
  * CommunityPostDetailPanel)으로 안전하게 이동할 수 있는지 — 사용자가 새로 쓴 글은
- * 항상 가능하고, 정적 글은 COMMUNITY_POSTS(전체 탭)에 있는 것만 가능하다. */
+ * 항상 가능하고, 정적 글은 COMMUNITY_POSTS(게시판 원본)에 있는 것만 가능하다. */
 export function useIsCommunityDetailRoutable(): (postId: string) => boolean {
   const { userPosts } = useCommunityPosts();
   return useMemo(() => {

@@ -4,7 +4,7 @@ import type { CommunityPost } from '../data/communityPosts';
 import type { LevelValue } from '../data/personaProfile';
 
 /* 사용자가 실제로 남긴 커뮤니티 활동(작성한 글 / 작성한 댓글) — 커뮤니티 화면 전체
- * (전체/질문/자취 꿀팁 목록, 게시글 상세)가 같은 값을 본다.
+ * (게시판/자취 꿀팁 목록, 게시글 상세)가 같은 값을 본다.
  *
  * 게시글·댓글은 "커뮤니티 공개 콘텐츠"라서 작성자와 무관하게 모든 로그인 계정이 같은
  * 값을 봐야 한다 — 그래서 북마크(BookmarkContext)·임시저장(drafts.ts)과 달리 계정별
@@ -79,6 +79,13 @@ function writeList<T>(key: string, list: T[]): void {
   }
 }
 
+/** 개편 전에 작성된 후기·잡담 글은 게시판의 질문 분류로 통합한다. */
+function normalizePostCategory(post: CommunityPost): CommunityPost {
+  return post.category === '후기' || post.category === '잡담'
+    ? { ...post, category: '질문' }
+    : post;
+}
+
 /** 공용 key(newKey)가 아직 한 번도 만들어진 적 없으면(localStorage 에 그 key 자체가 없으면),
  * legacyPrefix 로 시작하는 예전 계정별 key들을 전부 모아 id 기준 중복 제거 후 공용 key에
  * 옮겨 담는다. 이미 공용 key가 있으면(빈 배열이어도) 그 값을 그대로 쓴다 — 매번 다시
@@ -112,7 +119,7 @@ function groupByPostId(comments: OwnComment[]): Record<string, OwnComment[]> {
 
 export function CommunityPostsProvider({ children }: { children: ReactNode }) {
   const [ownPosts, setOwnPosts] = useState<CommunityPost[]>(() =>
-    migrateLegacyPerAccountData<CommunityPost>(POSTS_STORAGE_KEY, LEGACY_POSTS_PREFIX),
+    migrateLegacyPerAccountData<CommunityPost>(POSTS_STORAGE_KEY, LEGACY_POSTS_PREFIX).map(normalizePostCategory),
   );
   const [ownComments, setOwnComments] = useState<OwnComment[]>(() =>
     migrateLegacyPerAccountData<OwnComment>(COMMENTS_STORAGE_KEY, LEGACY_COMMENTS_PREFIX),
@@ -129,7 +136,7 @@ export function CommunityPostsProvider({ children }: { children: ReactNode }) {
 
   /* 최신 글이 맨 앞에 오도록 붙인다 — 정적 목록과 합칠 때(mergeOwnPosts) 이 순서를 그대로 쓴다 */
   const addPost = useCallback((post: CommunityPost) => {
-    setOwnPosts((prev) => [post, ...prev]);
+    setOwnPosts((prev) => [normalizePostCategory(post), ...prev]);
   }, []);
 
   const removePost = useCallback((id: string) => {

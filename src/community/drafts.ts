@@ -27,7 +27,12 @@ export function readDrafts(email: string | null | undefined): WriteDraft[] {
   try {
     const raw = localStorage.getItem(accountKey(DRAFTS_STORAGE_KEY, email));
     const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    /* 개편 전에 저장한 후기·잡담 임시글은 질문 분류로 이어서 편집한다. */
+    return parsed.map((draft: WriteDraft) => ({
+      ...draft,
+      postType: draft.postType === '후기' || draft.postType === '잡담' ? '질문' : draft.postType,
+    }));
   } catch {
     return [];
   }

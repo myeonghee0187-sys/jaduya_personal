@@ -14,36 +14,114 @@ import {
   COMMUNITY_POSTS,
   COMMUNITY_TABS,
   COMMUNITY_TIP_TAB,
+  QUESTION_POSTS,
   mergeOwnPosts,
   postMatchesKeyword,
 } from '../data/communityPosts';
-import { img } from '../lib/asset';
+import { icon } from '../lib/asset';
 
-/* 레벨은 초보 / 중수 / 고수 3단계.
- * 이미 '레벨' 필터라 '자취' 를 반복하지 않고 단계 이름만 보여준다. */
-const LEVEL_FILTERS = ['레벨 전체', '초보', '중수', '고수'] as const;
-const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
+export type CommunityBoardView = '전체' | '인기' | '최신' | '정보' | '질문';
 
-/* 커뮤니티 홈 — Figma community_home (1742:6378).
- * 게시글은 종류를 나누지 않고 CommunityPostCard 하나로만 그린다. */
-export function CommunityPage() {
+interface CommunityPageProps {
+  /** 예전 community-question 진입점은 질문 필터를 선택한 게시판으로 연결한다. */
+  initialBoardView?: CommunityBoardView;
+  /** 하위 진입점에서 뒤로가면 커뮤니티 기본 화면으로 돌아간다. */
+  returnToCommunity?: boolean;
+}
+
+const BOARD_VIEWS: ReadonlyArray<{ id: CommunityBoardView; icon: string }> = [
+  /* 기존 잡담 아이콘을 전체 아이콘으로 재사용한다. */
+  { id: '전체', icon: 'chat.svg' },
+  { id: '인기', icon: 'community-fire.svg' },
+  { id: '최신', icon: 'community-new.svg' },
+  { id: '정보', icon: 'folder.svg' },
+  { id: '질문', icon: 'megaphone.svg' },
+];
+
+const POSTS_PER_PAGE = 10;
+
+function isBoardView(value: string | undefined): value is CommunityBoardView {
+  return BOARD_VIEWS.some((view) => view.id === value);
+}
+
+/** 상대 시간은 분 단위로 바꾸고, 날짜형 데이터는 상대 시간 뒤에서 최신 날짜순으로 정렬한다. */
+function postAgeRank(time: string): number {
+  if (time === '방금 전') return 0;
+  const minutes = time.match(/^(\d+)분 전$/);
+  if (minutes) return Number(minutes[1]);
+  const hours = time.match(/^(\d+)시간 전$/);
+  if (hours) return Number(hours[1]) * 60;
+  if (time === '어제') return 24 * 60;
+  const days = time.match(/^(\d+)일 전$/);
+  if (days) return Number(days[1]) * 24 * 60;
+
+  const dated = Date.parse(time.replace(/\./g, '-'));
+  return Number.isNaN(dated) ? Number.MAX_SAFE_INTEGER : 10_000_000 - Math.floor(dated / 86_400_000);
+}
+
+/* 커뮤니티 기본 화면은 게시판이다. 상단의 전체 탭을 게시판 안으로 옮기고,
+ * 게시판 / 자취 꿀팁 / 지역 후기 세 영역만 메인 탭으로 유지한다. */
+export function CommunityPage({
+  initialBoardView,
+  returnToCommunity = false,
+}: CommunityPageProps = {}) {
   const navigation = useAppNavigation();
-  const [writeOpen, setWriteOpen] = useState(false);
-  /* 게시글 상세보기 — 아직 본문(body) 데이터가 있는 게시글만 열린다.
-   * 마이페이지 "나의 활동"에서 postId 를 넘겨 들어오면 진입하자마자 그 글을 바로 연다. */
-  const [detailPostId, setDetailPostId] = useState<string | null>(() => navigation?.options.postId ?? null);
-  /* 다른 화면에서 탭을 지정해 들어올 수 있다 (전용 화면이 있는 '질문'·'자취 꿀팁'은 제외).
-   * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '전체'로 연다. */
-  const requestedTab = navigation?.options.tab;
-  const [tab, setTab] = useState<string>(() =>
-    requestedTab && (COMMUNITY_TABS as readonly string[]).includes(requestedTab)
-      ? requestedTab
-      : COMMUNITY_TABS[0],
+  const requestedView = navigation?.options.tab;
+  const [boardView, setBoardView] = useState<CommunityBoardView>(() =>
+    initialBoardView ?? (isBoardView(requestedView) ? requestedView : '전체'),
   );
+  const [page, setPage] = useState(1);
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [detailPostId, setDetailPostId] = useState<string | null>(() => navigation?.options.postId ?? null);
   const [keyword, setKeyword] = useState('');
-  const [level, setLevel] = useState<string>(LEVEL_FILTERS[0]);
-  const [sort, setSort] = useState<string>(SORT_FILTERS[0]);
-  const [openFilter, setOpenFilter] = useState<'level' | 'sort' | null>(null);
+  const [liked, setLiked] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const feedRef = useRef<HTMLElement>(null);
+  const bookmarks = useBookmarks();
+  const { ownPosts } = useCommunityPosts();
+  const getCommentCount = useCommunityCommentCount();
+
+  const allBoardPosts = useMemo(
+    () =>
+      mergeOwnPosts([...QUESTION_POSTS, ...COMMUNITY_POSTS], ownPosts).map((post) => ({
+        ...post,
+        comments: getCommentCount(post.id, post.comments),
+      })),
+    [ownPosts, getCommentCount],
+  );
+
+  const filteredPosts = useMemo(() => {
+    let posts = allBoardPosts.filter((post) => postMatchesKeyword(post, keyword));
+
+    if (boardView === '정보' || boardView === '질문') {
+      posts = posts.filter((post) => post.category === boardView);
+    }
+    if (boardView === '인기') {
+      return [...posts].sort((a, b) => b.likes - a.likes);
+    }
+    if (boardView === '최신') {
+      return [...posts].sort((a, b) => postAgeRank(a.time) - postAgeRank(b.time));
+    }
+    return posts;
+  }, [allBoardPosts, boardView, keyword]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+  const visiblePosts = useMemo(
+    () => filteredPosts.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE),
+    [filteredPosts, page],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [boardView, keyword]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount));
+  }, [pageCount]);
+
+  const toggleLike = (id: string) =>
+    setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
+
   const closeDetail = () => {
     if (navigation?.options.returnTo) {
       navigation.goBack('community');
@@ -51,66 +129,41 @@ export function CommunityPage() {
     }
     setDetailPostId(null);
   };
-  /* 저장은 마이페이지와 공유하는 전역 상태, 좋아요는 이 화면 안에서만 쓴다 */
-  const bookmarks = useBookmarks();
-  /* 내가 쓴 글 — 정적 목록 맨 앞에 붙여서 등록하자마자 보이게 한다 */
-  const { ownPosts } = useCommunityPosts();
-  /* 댓글 수는 정적 comments 숫자를 그대로 믿지 않고, 실제 댓글 데이터가 있는
-   * 게시글이면 그 실제 개수(게시글 상세와 같은 기준)로 바꿔서 카드·댓글순 정렬에 쓴다 */
-  const getCommentCount = useCommunityCommentCount();
-  const allPosts = useMemo(
-    () =>
-      mergeOwnPosts(COMMUNITY_POSTS, ownPosts).map((post) => ({
-        ...post,
-        comments: getCommentCount(post.id, post.comments),
-      })),
-    [ownPosts, getCommentCount],
-  );
-  const [liked, setLiked] = useState<string[]>([]);
-  const filterRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
-  const [notice, setNotice] = useState('');
 
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(''), 2400);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  /* 바깥을 누르면 필터를 닫는다 (터치·마우스 공통) */
-  useEffect(() => {
-    if (!openFilter) return;
-    const onOutside = (event: PointerEvent) => {
-      if (!filterRef.current?.contains(event.target as Node)) setOpenFilter(null);
-    };
-    document.addEventListener('pointerdown', onOutside);
-    return () => document.removeEventListener('pointerdown', onOutside);
-  }, [openFilter]);
-
-  const toggleLike = (id: string) =>
-    setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
-
-  /* '최신순' 은 실제 날짜 대신 상대 시간 텍스트라 정렬 기준으로 쓸 수 없다 —
-   * COMMUNITY_POSTS 가 이미 최신순으로 작성돼 있어서 그 순서를 그대로 쓴다. */
-  const visiblePosts = useMemo(() => {
-    const byLevel = level === '레벨 전체' ? allPosts : allPosts.filter((post) => post.level === level);
-    const filtered = byLevel.filter((post) => postMatchesKeyword(post, keyword));
-    if (sort === '인기순') return [...filtered].sort((a, b) => b.likes - a.likes);
-    if (sort === '댓글순') return [...filtered].sort((a, b) => b.comments - a.comments);
-    return filtered;
-  }, [allPosts, level, sort, keyword]);
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      feedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   return (
     <div className="community app">
       <SubPageHeader
         title="커뮤니티"
-        backLabel="홈으로"
-        onBack={() => navigation?.goBack('home')}
+        backLabel={returnToCommunity ? '커뮤니티 홈으로' : '홈으로'}
+        onBack={() => navigation?.goBack(returnToCommunity ? 'community' : 'home')}
       />
 
       <main className="community__scroll">
-        {/* ============ 검색 ============ */}
+        <nav className="community-tabs" aria-label="커뮤니티 분류">
+          {COMMUNITY_TABS.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={`community-tabs__tab${name === COMMUNITY_BOARD_TAB ? ' is-active' : ''}`}
+              aria-current={name === COMMUNITY_BOARD_TAB ? 'page' : undefined}
+              onClick={() => {
+                if (name === COMMUNITY_BOARD_TAB && returnToCommunity) navigation?.navigate('community');
+                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
+                else if (name === '지역 후기') navigation?.navigate('community-region');
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+
         <section className="community-search">
           <div className="community-search__input">
             <input
@@ -118,10 +171,9 @@ export function CommunityPage() {
               type="search"
               value={keyword}
               placeholder="궁금한 자취 이야기를 검색해보세요"
-              aria-label="자취 이야기 검색"
+              aria-label="게시판 검색"
               onChange={(event) => setKeyword(event.target.value)}
             />
-            {/* 지우기·검색은 같은 규격(24px box · 20px glyph · stroke 2)의 아이콘을 쓴다 */}
             {keyword && (
               <button
                 type="button"
@@ -133,153 +185,116 @@ export function CommunityPage() {
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M6 6 18 18M18 6 6 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                  <path d="M6 6 18 18M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
             )}
             <button type="button" className="community-search__icon" aria-label="검색">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M16.5 16.5 21 21"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                <path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
         </section>
 
-        {/* ============ 탭 ============ */}
-        <nav className="community-tabs" aria-label="커뮤니티 분류">
-          {COMMUNITY_TABS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={`community-tabs__tab${name === tab ? ' is-active' : ''}`}
-              aria-current={name === tab ? 'page' : undefined}
-              onClick={() => {
-                if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
-                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
-                else if (name === '지역 후기') navigation?.navigate('community-region');
-                else setTab(name);
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </nav>
-
-        {/* ============ 필터 ============ */}
-        <div className="community-filters community-filters--padded" ref={filterRef}>
-          <div className="community-filter">
-            <button
-              type="button"
-              className="community-filter__button"
-              aria-expanded={openFilter === 'level'}
-              aria-haspopup="listbox"
-              onClick={() => setOpenFilter((open) => (open === 'level' ? null : 'level'))}
-            >
-              {level}
-              <span className="community-filter__button-arrow" aria-hidden="true" />
-            </button>
-            <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'level'}>
-              {LEVEL_FILTERS.map((option) => (
-                <li key={option} role="option" aria-selected={option === level}>
-                  <button
-                    type="button"
-                    className={option === level ? 'is-selected' : undefined}
-                    onClick={() => {
-                      setLevel(option);
-                      setOpenFilter(null);
+        <div className="board-type-filter" role="tablist" aria-label="게시판 분류">
+          {BOARD_VIEWS.map((view) => {
+            const active = view.id === boardView;
+            return (
+              <button
+                key={view.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`board-type-filter__btn${active ? ' is-active' : ''}`}
+                onClick={() => setBoardView(view.id)}
+              >
+                <span className="board-type-filter__icon-stack">
+                  <span
+                    className="board-type-filter__badge"
+                    style={{
+                      maskImage: `url(${icon('jadu_community.svg')})`,
+                      WebkitMaskImage: `url(${icon('jadu_community.svg')})`,
                     }}
-                  >
-                    {option}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="community-filter">
-            <button
-              type="button"
-              className="community-filter__button"
-              aria-expanded={openFilter === 'sort'}
-              aria-haspopup="listbox"
-              onClick={() => setOpenFilter((open) => (open === 'sort' ? null : 'sort'))}
-            >
-              {sort}
-              <span className="community-filter__button-arrow" aria-hidden="true" />
-            </button>
-            <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'sort'}>
-              {SORT_FILTERS.map((option) => (
-                <li key={option} role="option" aria-selected={option === sort}>
-                  <button
-                    type="button"
-                    className={option === sort ? 'is-selected' : undefined}
-                    onClick={() => {
-                      setSort(option);
-                      setOpenFilter(null);
-                    }}
-                  >
-                    {option}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="board-type-filter__glyph"
+                    style={{ maskImage: `url(${icon(view.icon)})`, WebkitMaskImage: `url(${icon(view.icon)})` }}
+                    aria-hidden="true"
+                  />
+                </span>
+                <span className="board-type-filter__label">{view.id}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* ============ 게시글 목록 ============ */}
-        <section className="community-feed">
-          <div className="community-feed__head">
-            <h2>
-              <img src={img('community/section-badge.png')} alt="" />
-              실시간 인기 게시물
-            </h2>
-          </div>
+        <section className="community-feed" ref={feedRef}>
+          {visiblePosts.length === 0 ? (
+            <div className="community-feed__empty">검색 결과가 없어요.</div>
+          ) : (
+            <div className="community-feed__list">
+              {visiblePosts.map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={post}
+                  saved={bookmarks.isSaved(post.id)}
+                  liked={liked.includes(post.id)}
+                  onToggleSave={() => bookmarks.toggle(post.id)}
+                  onToggleLike={() => toggleLike(post.id)}
+                  onOpenDetail={post.body ? () => setDetailPostId(post.id) : undefined}
+                />
+              ))}
+            </div>
+          )}
 
-          <div className="community-feed__list">
-            {visiblePosts.map((post) => (
-              <CommunityPostCard
-                key={post.id}
-                post={post}
-                saved={bookmarks.isSaved(post.id)}
-                liked={liked.includes(post.id)}
-                onToggleSave={() => bookmarks.toggle(post.id)}
-                onToggleLike={() => toggleLike(post.id)}
-                onOpenDetail={post.body ? () => setDetailPostId(post.id) : undefined}
-              />
-            ))}
-          </div>
+          {filteredPosts.length > POSTS_PER_PAGE && (
+            <div className="post-detail__comment-pages" role="navigation" aria-label="게시글 페이지">
+              <button
+                type="button"
+                className="post-detail__comment-page-arrow"
+                aria-label="이전 게시글 페이지"
+                disabled={page === 1}
+                onClick={() => goToPage(Math.max(1, page - 1))}
+              >
+                <img
+                  src={icon('chevron-right-thin.svg')}
+                  alt=""
+                  className="post-detail__comment-page-arrow-icon post-detail__comment-page-arrow-icon--prev"
+                />
+              </button>
+              {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+                <button
+                  key={number}
+                  type="button"
+                  className={`post-detail__comment-page${number === page ? ' is-active' : ''}`}
+                  aria-current={number === page ? 'page' : undefined}
+                  onClick={() => goToPage(number)}
+                >
+                  {number}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="post-detail__comment-page-arrow"
+                aria-label="다음 게시글 페이지"
+                disabled={page === pageCount}
+                onClick={() => goToPage(Math.min(pageCount, page + 1))}
+              >
+                <img src={icon('chevron-right-thin.svg')} alt="" className="post-detail__comment-page-arrow-icon" />
+              </button>
+            </div>
+          )}
         </section>
       </main>
 
-      {/* 글쓰기 — 항상 보이는 단일 버튼. '내가 쓴 글'과의 Speed Dial 토글은 없앴다.
-        * 글쓰기 화면은 아직 없어 route 를 만들지 않고 토스트로 안내한다. */}
       <CommunityWriteFab onClick={() => setWriteOpen(true)} />
-
-      <p className="community-notice" role="status" aria-live="polite" hidden={!notice}>
-        {notice}
-      </p>
-
       <BottomNavigation activeTab="community" />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
       <CommunityPostDetailPanel
-        post={allPosts.find((item) => item.id === detailPostId) ?? null}
+        post={allBoardPosts.find((item) => item.id === detailPostId) ?? null}
         open={detailPostId !== null}
         onClose={closeDetail}
         liked={detailPostId !== null && liked.includes(detailPostId)}
@@ -287,7 +302,6 @@ export function CommunityPage() {
         saved={detailPostId !== null && bookmarks.isSaved(detailPostId)}
         onToggleSave={() => detailPostId && bookmarks.toggle(detailPostId)}
       />
-      {/* 글쓰기 버튼이 기본 자리(바텀네비 바로 위)를 차지해서, 챗봇은 그 위로 올려 시작한다 */}
     </div>
   );
 }

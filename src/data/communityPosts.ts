@@ -7,7 +7,7 @@ export interface CommunityPost {
   id: string;
   /** 해시태그 chip (초록 계열) */
   hashtag: string;
-  /** 분류 chip (베이지 계열) — 정보 / 질문 / 후기 / 잡담 */
+  /** 분류 chip (베이지 계열) — 정보 / 질문 */
   category: string;
   title: string;
   /** 본문 미리보기 — 카드에서 한 줄로 줄임 */
@@ -107,7 +107,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'desk',
     hashtag: '#인테리어',
-    category: '후기',
+    category: '질문',
     title: '다이소 바구니만으로 책상 정리 끝냈어요',
     preview:
       '책상 위에 충전기, 필기구, 영수증이 계속 쌓여서 정신없어 보였는데, 작은 트레이 하나로 정리하니까 확 달라졌어요',
@@ -129,7 +129,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'clean',
     hashtag: '#청소·정리',
-    category: '잡담',
+    category: '질문',
     title: '분명 대청소했는데',
     preview:
       '일주일도 안 돼서 다시 원상복구됐어요. 주말에 몰아서 청소하는 방식 자체가 문제였던 것 같아요',
@@ -186,7 +186,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'level-mid-budget',
     hashtag: '#소비·저축',
-    category: '후기',
+    category: '질문',
     title: '카드 대신 체크카드로 바꾸니 소비가 눈에 보여요',
     preview: '한도 걱정 없이 통장 잔액 안에서만 쓰게 되니까 확실히 줄었어요',
     badge: '💳',
@@ -242,7 +242,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'level-pro-move',
     hashtag: '#집·주거',
-    category: '후기',
+    category: '질문',
     title: '포장이사 견적 비교, 이 순서로 하면 안 밀려요',
     preview: '업체 3곳 동시에 부르지 말고 순차적으로 비교하니까 협상이 됐어요',
     badge: '🚚',
@@ -337,7 +337,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'demo-harin-post-1',
     hashtag: '#청소·정리',
-    category: '후기',
+    category: '질문',
     title: '자취 3년 하면서 진짜 유용했던 생활 습관',
     preview: '매일 5분씩만 투자해서 바꾼 습관인데 확실히 삶의 질이 달라졌어요.',
     body:
@@ -377,7 +377,7 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: 'demo-ayoung-post-1',
     hashtag: '#인테리어',
-    category: '후기',
+    category: '질문',
     title: '투룸 살면서 생각보다 유용했던 수납 방법',
     preview: '반려동물 용품 때문에 짐이 많았는데 이 방법으로 정리했어요.',
     body:
@@ -399,11 +399,11 @@ export const COMMUNITY_POSTS: CommunityPost[] = [
 /** 상단 탭 */
 /** 다른 화면(생활 > 살림의 살림 팁)에서도 이 탭을 지정해 들어오므로 이름을 한 곳에 둔다 */
 export const COMMUNITY_TIP_TAB = '자취 꿀팁';
-/** 예전엔 '질문' 전용 화면이었지만, 정보·질문·후기·잡담을 다 볼 수 있게 넓어져 이름을 바꿨다.
+/** 예전엔 '질문' 전용 화면이었지만, 정보·질문을 함께 볼 수 있게 넓어져 이름을 바꿨다.
  * route 는 그대로 'community-question' 을 쓴다(화면 자체를 새로 만들지 않았다). */
 export const COMMUNITY_BOARD_TAB = '게시판';
 
-export const COMMUNITY_TABS = ['전체', COMMUNITY_BOARD_TAB, COMMUNITY_TIP_TAB, '지역 후기'] as const;
+export const COMMUNITY_TABS = [COMMUNITY_BOARD_TAB, COMMUNITY_TIP_TAB, '지역 후기'] as const;
 
 /* 자취 꿀팁 전용 서브탭 — Figma tip (2257:13827) 의 TipTiles.
  * '자취 꿀팁' 탭에서만 쓰는 카테고리 선택 UI라 다른 탭 데이터와 분리해 둔다. */
