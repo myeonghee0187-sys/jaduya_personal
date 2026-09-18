@@ -185,7 +185,15 @@ export function CommunityQuestionPage() {
                 className={`board-type-filter__btn${active ? ' is-active' : ''}`}
                 onClick={() => setPostTypeFilter(type.id)}
               >
-                <span className="board-type-filter__circle">
+                <span className="board-type-filter__icon-stack">
+                  <span
+                    className="board-type-filter__badge"
+                    style={{
+                      maskImage: `url(${icon('jadu_community.svg')})`,
+                      WebkitMaskImage: `url(${icon('jadu_community.svg')})`,
+                    }}
+                    aria-hidden="true"
+                  />
                   <span
                     className="board-type-filter__glyph"
                     style={{ maskImage: `url(${icon(type.icon)})`, WebkitMaskImage: `url(${icon(type.icon)})` }}

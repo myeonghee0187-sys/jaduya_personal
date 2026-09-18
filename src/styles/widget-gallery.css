@@ -46,7 +46,7 @@
   padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--surface-widget);
+  background: #e7dac7;
   color: var(--text-secondary);
   font-family: var(--font-suit);
   font-weight: var(--font-weight-semibold);
@@ -78,7 +78,7 @@
   align-items: flex-start;
   flex: none;
   box-sizing: border-box;
-  border: 1px solid var(--border-warm);
+  border: 1px solid #c7ae91;
   border-radius: var(--radius-xl);
   background: var(--surface-cream);
   box-shadow: 0 1px 2px 0 rgba(59, 51, 46, 0.04);
@@ -204,11 +204,11 @@
   height: 20px;
 }
 
-.wicon-badge--md.wicon-badge--green { background: rgba(162, 177, 35, 0.12); }
-.wicon-badge--md.wicon-badge--orange { background: rgba(199, 117, 59, 0.12); }
-.wicon-badge--md.wicon-badge--red { background: rgba(180, 57, 54, 0.08); }
-.wicon-badge--md.wicon-badge--rose { background: rgba(195, 97, 94, 0.12); }
-.wicon-badge--md.wicon-badge--yellow { background: rgba(251, 221, 120, 0.25); }
+.wicon-badge--md.wicon-badge--green { background: rgba(162, 177, 35, 0.64); }
+.wicon-badge--md.wicon-badge--orange { background: rgba(210, 117, 52, 0.68); }
+.wicon-badge--md.wicon-badge--red { background: rgba(249, 207, 44, 0.68); }
+.wicon-badge--md.wicon-badge--rose { background: rgba(232, 77, 73, 0.68); }
+.wicon-badge--md.wicon-badge--yellow { background: rgba(221, 187, 143, 0.74); }
 
 .wcard--small .wcard__value {
   margin-top: auto;
