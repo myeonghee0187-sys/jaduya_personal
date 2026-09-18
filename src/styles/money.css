@@ -617,6 +617,11 @@
   text-align: center;
   /* fill 이 아래에서 차오르고, 흔들릴 때 카드 모서리 밖으로 삐져나오지 않게 잘라낸다 */
   overflow: hidden;
+  /* 아래 :hover의 box-shadow(들어올려진 느낌)가 부드럽게 나타났다 사라지게 한다 — 흔들림
+   * (money-spend-wiggle, 550ms)은 마우스가 들어온 순간 한 번만 짧게 재생되고 끝나서,
+   * 그 찰나를 놓치면 "호버해도 아무 반응이 없다"고 느끼기 쉬웠다. 이 그림자는 마우스가
+   * 머무는 동안 계속 떠 있어서 언제 봐도(스크린샷 타이밍과 무관하게) 반응이 보인다. */
+  transition: box-shadow 160ms ease;
 }
 
 /* 카테고리 % 만큼 아래에서부터 차오르는 물 채우기 — AnimatedFillLevel(height, JS)이
@@ -671,6 +676,10 @@
 .money-spend-grid-card--wiggle {
   animation: money-spend-wiggle 550ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
   transform-origin: top center;
+  /* 호버(.money-spend-grid-card:hover)와 같은 그림자를 탭에도 준다 — MoneyPage.tsx 가
+   * 이 클래스를 700ms 뒤에 떼어내므로(handleSpendCardTap), 그 동안 카드가 들뜬 느낌이
+   * 유지되다가 위 transition(box-shadow 160ms)으로 부드럽게 가라앉는다. */
+  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.18);
 }
 
 .money-spend-grid-card--wiggle .money-spend-grid-card__fill {
@@ -707,23 +716,36 @@
   }
 }
 
-/* 웹(마우스) 버전 — 실제 마우스 hover가 있는 환경에서는 탭 없이 올리기만 해도 같은
- * 흔들림·물결을 재생한다. 터치 기기는 (hover: hover) 를 만족하지 않아 탭 때만 흔들린다. */
-@media (hover: hover) and (pointer: fine) {
+/* 웹(마우스) 버전 — 탭 없이 올리기만 해도 같은 흔들림·물결을 재생한다.
+ * (hover: hover) and (pointer: fine) 가드를 예전엔 여기 씌웠는데, 진짜 터치 기기에서
+ * "탭 뒤 hover 가 안 풀리고 눌어붙는" 걸 막으려던 의도였다 — 그런데 크롬 DevTools의
+ * 반응형(디바이스 툴바) 미리보기처럼 "터치 기기로 보고하지만 실제로는 마우스로 조작하는"
+ * 환경에서는 :hover 자체는 정상적으로 매칭되는데(실측: el.matches(':hover') === true)
+ * 이 가드 때문에 스타일만 안 걸려 "어제는 됐는데 오늘은 호버가 안 먹는다"로 보였다.
+ * 탭 인터랙션은 이미 JS(handleSpendCardTap → --wiggle 클래스)가 별도로 처리하고 있어서
+ * 이 :hover 규칙이 실제 터치 기기에서 추가로 걸려도 같은 흔들림이 한 번 더 겹칠 뿐 —
+ * 가드를 없애고 무조건 적용한다. */
+.money-spend-grid-card:hover {
+  animation: money-spend-wiggle 550ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: top center;
+  /* 흔들림은 550ms 뿐이라 그 순간을 못 보면 반응이 없다고 느끼기 쉬웠다 — 마우스가
+   * 머무는 동안 내내 떠 있는 그림자를 같이 줘서 호버 중이라는 걸 계속 보여준다. */
+  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.18);
+}
+
+.money-spend-grid-card:hover .money-spend-grid-card__fill {
+  animation: money-spend-fill-slosh 650ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
   .money-spend-grid-card:hover {
-    animation: money-spend-wiggle 550ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
-    transform-origin: top center;
+    animation: none;
+    /* 흔들림 애니메이션은 꺼도, 그림자는 움직임이 아니라 정적인 강조라 그대로 둔다 —
+     * reduced-motion 사용자도 "호버 중"이라는 피드백 자체는 받아야 한다. */
   }
 
   .money-spend-grid-card:hover .money-spend-grid-card__fill {
-    animation: money-spend-fill-slosh 650ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .money-spend-grid-card:hover,
-    .money-spend-grid-card:hover .money-spend-grid-card__fill {
-      animation: none;
-    }
+    animation: none;
   }
 }
 
@@ -967,72 +989,12 @@
   white-space: nowrap;
 }
 
-/* ---------- 비상금 배너 ---------- */
-/* 텍스트가 짧아 오른쪽에 넓게 비던 자리를 캐릭터가 자연스럽게 채운다 — 소비 인사이트
- * 배너(money-insight-banner)와 같은 방식: 오른쪽 아래로 살짝 걸치게 크게 배치하고,
- * 그만큼 padding-right 로 본문 자리를 비워둔다. */
-.money-fund-banner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  padding: var(--space-md);
-  padding-left: 80px;
-  border: none;
-  border-radius: var(--radius-xl);
-  /* 레퍼런스는 비상금 배너를 초록 계열로 보여준다 — 이 화면의 수입 카드
-   * (.money-flow-card--income)·다른 화면의 수입 열(.money-flow-col--income)과 이미 같이
-   * 쓰고 있는 "풋자두" 램프의 밝은 단계(--color-green-3)를 그대로 재사용한다(새 hex 없음).
-   * 어두운 텍스트(--text-primary/--text-secondary) 대비는 그 카드들과 동일하게 유지된다. */
-  background: var(--color-green-3);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.money-fund-banner__icon-img {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: auto;
-  object-fit: contain;
-  pointer-events: none;
-}
-
-.money-fund-banner__text {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.money-fund-banner__title {
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.money-fund-banner__sub {
-  overflow: hidden;
-  font-family: var(--font-suit);
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* 카드 전체가 이미 버튼이라 "복권 긁어보기" 같은 문구 CTA 없이 화살표 하나로만 클릭
- * 가능함을 알려준다(고정비/내 계좌 미니카드와 같은 절제된 방식). */
-.money-fund-banner__chevron {
-  flex: none;
-  width: 14px;
-  height: 14px;
-}
+/* ---------- 비상금 미니카드 ---------- */
+/* 바로 위 고정비/내 계좌 미니카드와 같은 레이아웃(.money-mini-card)을 그대로 쓴다 — 예전엔
+ * 초록색 배너 + 감성 카피("기분 좋아지는 나의 비상금")뿐이라 실제 금액/진행률이 안 보였는데,
+ * 형제 카드들처럼 제목/라벨/금액/서브로 통일해 정보를 먼저 보여준다. 2칸 그리드(고정비·내
+ * 계좌)와는 별도 섹션이라 .money-mini-card 기본 width(100%)가 그대로 전체 너비가 된다 —
+ * 추가 스타일 없이 클래스만 공유한다. */
 
 /* ==========================================================================
  * 소비 탭 — Figma node 2628:27950 "소비"
@@ -1920,12 +1882,16 @@
   width: 100%;
   margin-top: var(--space-sm);
   padding: var(--space-md);
-  /* --border-warm이 이제 전역에서 --color-gray-4다(tokens.css 참고) — 여기는 두께만
-   * 1px→1.5px로 올려 경계를 확실히 주고, 위 요약 카드(--radius-xl)보다 한 단계 작은
-   * --radius-l 로 "핵심 카드 1개 + 보조 행" 위계를 나눈다. */
-  border: 1.5px solid var(--border-warm);
+  /* --border-warm(#e9ded1)은 흰 배경 대비 1.5:1로 이 카드 하나만큼은 페이지 배경과
+   * 거의 구분이 안 됐다 — 이 토큰을 전역으로 진하게 만들면 앱 전체 카드가 같이
+   * 진해져 버려서("전체 컨텐츠에 보더가 다 들어가있어서 어색하다"), 대신 캘린더
+   * (.flow-calendar)와 같은 방식으로 이 카드만 따뜻한 회갈색 그림자를 둘러 국소로
+   * 해결한다. 위 요약 카드(--radius-xl)보다 한 단계 작은 --radius-l 로 "핵심 카드
+   * 1개 + 보조 행" 위계를 나눈다. */
+  border: none;
   border-radius: var(--radius-l);
   background: var(--surface-base);
+  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.18), 0 0 0 1px rgba(59, 51, 46, 0.06);
   text-align: left;
   cursor: pointer;
 }

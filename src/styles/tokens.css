@@ -225,12 +225,14 @@
   --surface-today: #fefff3;
 
   /* ---------- Color / Border ---------- */
-  /* 이전 값 #e9ded1은 흰 배경(--surface-base) 대비 1.5:1로 웹 표준 UI 컴포넌트 경계
-   * 기준(3:1) 미달이라 페이지 배경(--surface-page, #fffaf5)과 사실상 구분이 안 됐다
-   * (money.css .money-fixed-next에서 처음 발견돼 그 카드만 --color-gray-4로 국소
-   * 수정했던 문제 — 이번에 전역 토큰 자체를 같은 값으로 통일한다). gray 램프에서
-   * 3:1을 넘는 첫 단계(--color-gray-4, #919191, 흰 배경 대비 3.15:1)로 교체. */
-  --border-warm: var(--color-gray-4);
+  /* 한때 3:1 UI 경계 기준을 맞추려고 이 토큰 자체를 --color-gray-4 → --color-cream-7
+   * 순으로 올렸는데, 이 토큰을 쓰는 19개 CSS 파일(위젯 포함, 앱 거의 전체) 카드
+   * 전부가 원래보다 훨씬 진한 테두리를 갖게 돼 "전체 컨텐츠에 보더가 다 들어가있어서
+   * 어색하다"는 문제가 생겼다 — 애초에 대비가 부족했던 건 money.css .money-fixed-next
+   * 카드 하나뿐이었는데 그 국소 문제를 전역 토큰으로 잘못 확장한 것이었다. 원래 값으로
+   * 되돌리고, .money-fixed-next 는 이 토큰에 기대지 않는 자체 그림자로 따로 해결한다
+   * (그 규칙 옆 설명 참고). */
+  --border-warm: #e9ded1;
   --border-widget: #e9dec9;
   --border-glass: #e3d6cc;
   --border-today: rgba(162, 177, 35, 0.5);

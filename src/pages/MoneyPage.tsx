@@ -313,6 +313,10 @@ export function MoneyPage() {
   useEffect(() => {
     window.localStorage.setItem(FUND_STORAGE_KEY, JSON.stringify(fund));
   }, [fund]);
+  /* 이번 달 탭의 비상금 미니카드용 — 목표 대비 진행률/잔여액(고정비 미니카드와 같은 계산 방식) */
+  const fundPercent =
+    fund.targetAmount > 0 ? Math.min(100, Math.max(0, Math.round((fund.currentAmount / fund.targetAmount) * 100))) : 0;
+  const fundRemaining = Math.max(0, fund.targetAmount - fund.currentAmount);
   /* 아직 화면이 없는 링크는 MyPage.tsx 와 같은 방식으로 토스트만 띄운다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
   useEffect(() => {
@@ -822,13 +826,25 @@ export function MoneyPage() {
             </section>
 
             <section className="money-section money-section--tight">
-              <button type="button" className="money-fund-banner money-tappable" onClick={() => setTab('비상금')}>
-                <span className="money-fund-banner__text">
-                  <span className="money-fund-banner__title">비상금</span>
-                  <span className="money-fund-banner__sub">기분 좋아지는 나의 비상금</span>
+              <button
+                type="button"
+                className="money-mini-card money-tappable"
+                onClick={() => setTab('비상금')}
+              >
+                <span className="money-mini-card__head">
+                  <span className="money-mini-card__title-group">
+                    <img className="money-mini-card__title-icon" src={img('saving_money.png')} alt="" />
+                    <span className="money-mini-card__title">비상금</span>
+                  </span>
+                  <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
                 </span>
-                <img className="money-fund-banner__chevron" src={icon('chevron-right-gray.svg')} alt="" />
-                <img className="money-fund-banner__icon-img" src={img('saving_money.png')} alt="" />
+                <span className="money-mini-card__label">지금까지 모은 비상금</span>
+                <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
+                  {amountsHidden ? '₩ -----' : `${fund.currentAmount.toLocaleString()}원`}
+                </span>
+                <span className="money-mini-card__sub">
+                  목표 {fundPercent}% · {fundRemaining.toLocaleString()}원 남음
+                </span>
               </button>
             </section>
           </>
