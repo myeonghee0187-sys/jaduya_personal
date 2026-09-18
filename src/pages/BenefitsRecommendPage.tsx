@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { MOCK_USERS } from '../auth/mockUsers';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BENEFITS, RECOMMENDED_BENEFIT_IDS } from '../data/benefits';
@@ -19,8 +16,6 @@ const AYOUNG_GIVEN_NAME = AYOUNG.name.slice(1);
 
 export function BenefitsRecommendPage() {
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const bookmarks = useBookmarks();
   const [notice, setNotice] = useState('');
 
@@ -36,7 +31,6 @@ export function BenefitsRecommendPage() {
         title="혜택·복지"
         backLabel="혜택·복지 메인으로"
         onBack={() => navigation?.goBack('benefits')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="benefits-recommend__scroll">
@@ -137,18 +131,6 @@ export function BenefitsRecommendPage() {
       </p>
 
       <BottomNavigation activeTab="home" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

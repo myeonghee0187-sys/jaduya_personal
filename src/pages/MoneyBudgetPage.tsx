@@ -3,10 +3,7 @@ import type { FormEvent } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { BottomSheet } from '../components/BottomSheet';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 /* 돈관리 > 예산 설정 — Figma node 2628:28275 "예산" 기준.
@@ -31,8 +28,6 @@ const DAYS_LEFT_IN_MONTH = 10;
 
 export function MoneyBudgetPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const [budget, setBudget] = useState(1_000_000);
   const [justSaved, setJustSaved] = useState(false);
 
@@ -106,7 +101,6 @@ export function MoneyBudgetPage() {
         title="예산 설정"
         backLabel="돈관리로"
         onBack={() => navigation?.navigate('money')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="budget-setup__scroll">
@@ -247,18 +241,6 @@ export function MoneyBudgetPage() {
       </button>
 
       <BottomNavigation activeTab="money" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
 
       <BottomSheet
         open={budgetSheetOpen}

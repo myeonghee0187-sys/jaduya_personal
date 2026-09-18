@@ -1,11 +1,7 @@
-import { useState } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SettingsNavigationRow } from '../components/SettingsRow';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 export type CustomerCenterAction =
@@ -22,8 +18,6 @@ interface CustomerCenterPageProps {
 
 export function CustomerCenterPage({ onItemSelect }: CustomerCenterPageProps) {
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const select = (action: CustomerCenterAction) => () => onItemSelect?.(action);
 
   return (
@@ -32,7 +26,6 @@ export function CustomerCenterPage({ onItemSelect }: CustomerCenterPageProps) {
         title="고객센터"
         backLabel="마이페이지로"
         onBack={() => navigation?.navigate('my')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="settings-page__scroll support-page__scroll">
@@ -77,18 +70,6 @@ export function CustomerCenterPage({ onItemSelect }: CustomerCenterPageProps) {
       </main>
 
       <BottomNavigation activeTab="my" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

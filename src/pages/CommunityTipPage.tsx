@@ -4,8 +4,6 @@ import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
@@ -18,7 +16,6 @@ import {
   mergeOwnPosts,
   postMatchesKeyword,
 } from '../data/communityPosts';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 /* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
@@ -67,9 +64,7 @@ function renderTipLabel(label: string) {
  * 서브탭(TipTiles, Figma tip 2257:13827)을 둔다. */
 export function CommunityTipPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
-  const myMenu = useMyMenu();
   const [category, setCategory] = useState<string>(TIP_CATEGORIES[0].id);
   const bookmarks = useBookmarks();
   const [liked, setLiked] = useState<string[]>([]);
@@ -131,7 +126,6 @@ export function CommunityTipPage() {
         title="커뮤니티"
         backLabel="커뮤니티 홈으로"
         onBack={() => navigation?.goBack('community')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="community__scroll">
@@ -264,18 +258,6 @@ export function CommunityTipPage() {
       </p>
 
       <BottomNavigation activeTab="community" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
     </div>
   );

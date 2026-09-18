@@ -3,8 +3,6 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
@@ -16,7 +14,6 @@ import {
   REGION_POSTS,
   postMatchesKeyword,
 } from '../data/communityPosts';
-import { useMyMenu } from '../menu/MyMenuContext';
 
 /* 커뮤니티 '지역 후기' — Figma local_reviews_v4 (3092:20677).
  * 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을 그대로 쓴다.
@@ -24,9 +21,7 @@ import { useMyMenu } from '../menu/MyMenuContext';
  * 주거별·주변 칩은 실제로 목록을 걸러내고, 범위 설정은 위치 데이터가 없어 시각 동작만 한다. */
 export function CommunityRegionPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
-  const myMenu = useMyMenu();
   const bookmarks = useBookmarks();
   const [liked, setLiked] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -79,7 +74,6 @@ export function CommunityRegionPage() {
         title="커뮤니티"
         backLabel="커뮤니티 홈으로"
         onBack={() => navigation?.goBack('community')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="community__scroll">
@@ -207,18 +201,6 @@ export function CommunityRegionPage() {
       </p>
 
       <BottomNavigation activeTab="community" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
     </div>
   );

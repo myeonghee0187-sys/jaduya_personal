@@ -11,10 +11,8 @@ import { useFridgeIngredients } from '../components/lifeeat/useFridgeIngredients
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
-import { DEFAULT_MENU } from '../data/menuCatalog';
 import { fridgeItemDaysRemaining, localDateString, mostUrgentFridgeItem, recipeUsesIngredient } from '../data/lifeEat';
 import type { FridgeItem, Recipe } from '../data/lifeEat';
 import { icon } from '../lib/asset';
@@ -30,7 +28,6 @@ export function LifeEatPage() {
   const { ingredients, saveFailed, addIngredient, consumeIngredients, updateIngredientDate } =
     useFridgeIngredients(ownerKey);
   const reduceMotion = usePrefersReducedMotion();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [today, setToday] = useState(() => localDateString());
   const now = useMemo(() => new Date(`${today}T12:00:00`), [today]);
   // 소비 확인 중인 행은 제외하고, 실제 활성 재료에서만 다음 선택을 계산한다.
@@ -157,7 +154,7 @@ export function LifeEatPage() {
 
   return (
     <div className="life-eat app">
-      <SubPageHeader title="생활" backLabel="생활로" onBack={() => navigation?.goBack('life')} onMenu={() => setGnbOpen(true)} />
+      <SubPageHeader title="생활" backLabel="생활로" onBack={() => navigation?.goBack('life')} />
       <CategoryTabs active="food" />
 
       <main
@@ -221,7 +218,6 @@ export function LifeEatPage() {
       </main>
 
       <BottomNavigation activeTab="life" />
-      <GnbOverlay open={gnbOpen} myMenu={DEFAULT_MENU} onClose={() => setGnbOpen(false)} onEditMenu={() => setGnbOpen(false)} />
       <p className="le-announcement" role="status">{announcement}</p>
 
       <AddIngredientSheet open={sheetKind === 'add'} onClose={closeSheet} onAdd={(item) => {

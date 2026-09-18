@@ -5,8 +5,6 @@ import { useCommunityPosts } from '../community/CommunityPostsContext';
 import { useCommunityCommentCount } from '../community/communitySelectors';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
@@ -19,7 +17,6 @@ import {
   mergeOwnPosts,
   postMatchesKeyword,
 } from '../data/communityPosts';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon } from '../lib/asset';
 
 const SORT_FILTERS = ['인기순', '최신순', '댓글순'] as const;
@@ -40,9 +37,7 @@ const POST_TYPE_FILTERS = [
  * 예전에 이 화면에만 있던 질문 글도 그대로 보이게 유지한다. */
 export function CommunityQuestionPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [writeOpen, setWriteOpen] = useState(false);
-  const myMenu = useMyMenu();
   const [sort, setSort] = useState<string>(SORT_FILTERS[0]);
   const [postTypeFilter, setPostTypeFilter] = useState<string>('정보');
   const [sortOpen, setSortOpen] = useState(false);
@@ -103,7 +98,6 @@ export function CommunityQuestionPage() {
         title="커뮤니티"
         backLabel="커뮤니티 홈으로"
         onBack={() => navigation?.goBack('community')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="community__scroll">
@@ -260,18 +254,6 @@ export function CommunityQuestionPage() {
       </p>
 
       <BottomNavigation activeTab="community" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
     </div>
   );

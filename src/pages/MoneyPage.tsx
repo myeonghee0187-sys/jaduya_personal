@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
 import { EmergencyRing } from '../components/money/EmergencyRing';
@@ -10,7 +8,6 @@ import { FundAmountSheet } from '../components/money/FundAmountSheet';
 import { IncomeExpenseSection } from '../components/money/IncomeExpenseSection';
 import { useAnimatedPercent } from '../components/money/useAnimatedPercent';
 import { BottomSheet } from '../components/BottomSheet';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 import {
   TOTAL_EXPENSE,
@@ -227,8 +224,6 @@ function AnimatedFillLevel({ percent, className }: { percent: number; className:
  * 보여준다 — 고정비 탭의 "전체보기/더보기"도 아직 상세 route 가 없어 시각 요소로만 둔다. */
 export function MoneyPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   /* 다른 화면에서 시작 탭을 지정해 들어올 수 있다 (예: 알림, 딥링크).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '이번 달'로 연다. */
   const requestedTab = navigation?.options.tab;
@@ -476,7 +471,6 @@ export function MoneyPage() {
         title="돈 관리"
         backLabel="홈으로"
         onBack={() => navigation?.goBack('home')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="money__scroll" ref={scrollRef}>
@@ -1068,18 +1062,6 @@ export function MoneyPage() {
       </p>
 
       <BottomNavigation activeTab="money" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
       <FundAmountSheet
         open={fundSheet !== null}
         mode={fundSheet ?? 'goal'}

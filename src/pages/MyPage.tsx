@@ -4,8 +4,6 @@ import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { AccountSwitchSheet } from '../components/auth/AccountSwitchSheet';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { DEFAULT_PERSONA } from '../data/personaHome';
 import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
@@ -15,7 +13,6 @@ import {
   profileSummary,
   resolveLevel,
 } from '../data/personaProfile';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 
 export type MyPageDestination =
@@ -41,12 +38,10 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
   const profile = PERSONA_PROFILE[persona];
   /* Home stat bar 와 같은 원본에서 계산한다 */
   const level = resolveLevel(profile.level);
-  const [gnbOpen, setGnbOpen] = useState(false);
   /* 계정 전환 진입점 — 예전에는 GNB(하단 탭바) '마이' hover/click 에서 열었지만,
    * 이제는 여기 프로필 영역의 '계정 관리' 버튼에서만 연다. 시트 자체(AccountSwitchSheet)와
    * 데모 로그인/로그아웃 로직은 그대로 재사용하고 진입점만 옮긴다. */
   const [accountSwitchOpen, setAccountSwitchOpen] = useState(false);
-  const myMenu = useMyMenu();
   /* 아직 화면이 없는 항목은 토스트로만 알린다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
   /* 레벨 안내 팝오버 — 자취 미션 화면과 같은 LevelInfoPopover 를 쓴다 */
@@ -81,7 +76,6 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
         title="마이페이지"
         backLabel="홈으로"
         onBack={() => navigation?.navigate('home')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="mypage__scroll">
@@ -242,18 +236,6 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
       <AccountSwitchSheet open={accountSwitchOpen} onClose={() => setAccountSwitchOpen(false)} />
 
       <BottomNavigation activeTab="my" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

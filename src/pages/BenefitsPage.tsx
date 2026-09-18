@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 
 const BENEFIT_CATEGORIES = ['전체', '주거', '생활비', '반려동물', '의료'] as const;
@@ -39,8 +36,6 @@ const BENEFITS = [
 
 export function BenefitsPage() {
   const navigation = useAppNavigation();
-  const myMenu = useMyMenu();
-  const [gnbOpen, setGnbOpen] = useState(false);
   const [category, setCategory] = useState<BenefitCategory>('전체');
   const [bookmarked, setBookmarked] = useState<string[]>(['youth-rent']);
 
@@ -56,7 +51,6 @@ export function BenefitsPage() {
         title="혜택·복지"
         backLabel="홈으로"
         onBack={() => navigation?.goBack('home')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="benefits__scroll">
@@ -176,18 +170,6 @@ export function BenefitsPage() {
       </main>
 
       <BottomNavigation activeTab="home" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

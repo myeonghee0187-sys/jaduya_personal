@@ -5,7 +5,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { Coachmark } from '../components/Coachmark';
 import type { CoachmarkStep } from '../components/Coachmark';
 import { DiscoverySection } from '../components/DiscoverySection';
-import { GnbOverlay } from '../components/GnbOverlay';
 import { Greeting } from '../components/Greeting';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
@@ -14,7 +13,6 @@ import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
 import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { MyLifeSection } from '../components/MyLifeSection';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { TipBox } from '../components/TipBox';
 import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
@@ -22,17 +20,13 @@ import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/persona
 import { useAuth } from '../auth/AuthContext';
 import { getDemoAccountId } from '../auth/mockUsers';
 import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
-import { useLayerStack } from '../hooks/useLayerStack';
 import { useSheetGesture } from '../hooks/useSheetGesture';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useWidgetPlacement } from '../widgets/WidgetPlacementContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
  *   Home
- *    ├─ GNB Open
- *    │   └─ My Menu Edit Bottom Sheet (menu/MyMenuContext — 모든 화면이 공유)
  *    └─ 위젯 추가(+)는 이제 오버레이가 아니라 별도 페이지(위젯 갤러리)로 이동한다.
  *       내 홈 위젯 상태 자체는 widgets/WidgetPlacementContext 가 화면 전환과 무관하게 들고 있다.
  *
@@ -66,10 +60,7 @@ export function Home() {
   } : null));
 
   const navigation = useAppNavigation();
-  const layers = useLayerStack();
   const sheet = useSheetGesture();
-  /* GNB "내 메뉴" 선택 + 편집 시트 — 다른 화면과 공유하는 전역 상태 */
-  const myMenu = useMyMenu();
   /* 내 생활 위젯 배치 — 위젯 관리 화면(WidgetPage)과 공유하는 전역 상태 */
   const placement = useWidgetPlacement();
 
@@ -210,7 +201,7 @@ export function Home() {
     >
       <Hero showFallingLeaves={isDemoAccount} />
 
-      <Header onMenuClick={() => layers.open('gnb')} />
+      <Header />
 
       <Greeting name={greetingName(user?.name ?? '')} hero={content.hero} />
 
@@ -250,20 +241,6 @@ export function Home() {
       </HomeSheet>
 
       <BottomNavigation />
-
-      <GnbOverlay
-        open={layers.isOpen('gnb')}
-        myMenu={myMenu.myMenu}
-        onClose={layers.close}
-        onEditMenu={myMenu.openEdit}
-      />
-
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
 
       {levelInfo && (
         <LevelInfoPopover

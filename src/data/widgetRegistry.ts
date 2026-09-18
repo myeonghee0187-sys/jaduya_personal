@@ -291,8 +291,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   {
     id: 'spend-analysis',
     /* money-spend.svg 도 선(outline) 아이콘이라 채워진(fill) 아이콘들 사이에서 유독 흐렸다.
-     * GNB '내 메뉴' 카탈로그(menuCatalog.ts)가 이미 "지출 내역"→menu-receipt.svg 로 쓰고
-     * 있어서 같은 아이콘을 그대로 재사용한다(새 아이콘을 만들지 않는다). */
+     * 채워진 menu-receipt.svg 를 그대로 재사용한다(새 아이콘을 만들지 않는다). */
     icon: 'menu-receipt.svg',
     category: '돈 관리',
     name: '소비 분석',
@@ -315,8 +314,7 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
   },
   {
     id: 'fixed-expense',
-    /* money-fixed.svg 도 선(outline) 아이콘이었다. GNB '내 메뉴' 카탈로그가 이미
-     * "고정지출"→menu-card.svg 로 쓰고 있어서 그 아이콘을 그대로 재사용한다. */
+    /* money-fixed.svg 도 선(outline) 아이콘이었다. 채워진 menu-card.svg 를 그대로 재사용한다. */
     icon: 'menu-card.svg',
     category: '돈 관리',
     name: '고정지출',

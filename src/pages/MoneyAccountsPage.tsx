@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { icon, img } from '../lib/asset';
 import { ACCOUNTS } from '../data/moneyAccounts';
 
@@ -42,8 +39,6 @@ const CONNECTABLE_BANKS: ConnectableBank[] = [
 
 export function MoneyAccountsPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -58,7 +53,6 @@ export function MoneyAccountsPage() {
         title="금융 관리"
         backLabel="돈관리로"
         onBack={() => navigation?.navigate('money')}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="money-accounts__scroll">
@@ -163,18 +157,6 @@ export function MoneyAccountsPage() {
       </p>
 
       <BottomNavigation activeTab="money" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }

@@ -3402,7 +3402,7 @@ button.fund-card__remaining--tap {
 
 /* ==========================================================================
  * 비상금 목표 수정 / 추가로 모으기 바텀시트 (FundAmountSheet.tsx)
- * 공용 BottomSheet.tsx 셸(.layer / .bsheet) 위에서 menu-edit 와 같은 톤으로 짠다.
+ * 공용 BottomSheet.tsx 셸(.layer / .bsheet) 위에서 기존 시트와 같은 톤으로 짠다.
  * ========================================================================== */
 
 .fund-sheet {

@@ -1,13 +1,9 @@
-import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { GnbOverlay } from '../components/GnbOverlay';
-import { MyMenuEdit } from '../components/MyMenuEdit';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { FilledBell } from '../components/FilledBell';
 import { NOTIFICATION_META } from '../data/notifications';
 import { icon } from '../lib/asset';
-import { useMyMenu } from '../menu/MyMenuContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useNotifications } from '../notifications/NotificationContext';
 
@@ -16,8 +12,6 @@ import { useNotifications } from '../notifications/NotificationContext';
  * 읽음 처리는 화면 진입이 아니라 카드를 눌렀을 때만 일어난다. */
 export function NotificationPage() {
   const navigation = useAppNavigation();
-  const [gnbOpen, setGnbOpen] = useState(false);
-  const myMenu = useMyMenu();
   const { items, markRead } = useNotifications();
 
   /* 종을 누른 화면으로 돌아간다 — 어디서 들어왔는지는 navigate 가 넘겨준다 */
@@ -34,7 +28,6 @@ export function NotificationPage() {
         title="알림"
         backLabel="이전 화면으로"
         onBack={goBack}
-        onMenu={() => setGnbOpen(true)}
       />
 
       <main className="notifications__scroll">
@@ -83,18 +76,6 @@ export function NotificationPage() {
       </main>
 
       <BottomNavigation activeTab="home" />
-      <GnbOverlay
-        open={gnbOpen}
-        myMenu={myMenu.myMenu}
-        onClose={() => setGnbOpen(false)}
-        onEditMenu={myMenu.openEdit}
-      />
-      <MyMenuEdit
-        open={myMenu.editOpen}
-        draft={myMenu.draft}
-        onClose={myMenu.closeEdit}
-        onSave={myMenu.saveEdit}
-      />
     </div>
   );
 }
