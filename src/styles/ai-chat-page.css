@@ -108,7 +108,7 @@
 .ai-chat-page > .status-bar {
   height: 40px;
   padding: 0 var(--screen-margin);
-  background: var(--ai-chip-row-bg);
+  background: var(--brand-secondary);
 }
 
 .ai-chat-page > .status-bar .status-bar__time,
@@ -134,7 +134,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--ai-divider);
   padding: 10px var(--screen-margin);
-  background: var(--ai-chip-row-bg);
+  background: var(--brand-secondary);
 }
 
 .ai-chat-page__header-left {
