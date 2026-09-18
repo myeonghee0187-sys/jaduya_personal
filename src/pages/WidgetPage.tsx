@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RefObject } from 'react';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { PlacementGrid } from '../components/widget/PlacementGrid';
 import { WidgetActionSheet } from '../components/widget/WidgetActionSheet';
-import { WidgetCategoryFilter } from '../components/widget/WidgetCategoryFilter';
+import { WidgetAllSheet } from '../components/widget/WidgetAllSheet';
 import type { CategoryFilter } from '../components/widget/WidgetCategoryFilter';
 import { WidgetGuidePanel } from '../components/widget/WidgetGuidePanel';
 import { PlacementGuideSheet } from '../components/widget/PlacementGuideSheet';
-import { WidgetListCard } from '../components/widget/WidgetListCard';
 import { WidgetRecommendSwiper } from '../components/widget/WidgetRecommendSwiper';
 import { WidgetPreviewModal } from '../components/widget/WidgetPreviewModal';
 import { WidgetToast } from '../components/widget/WidgetToast';
@@ -22,11 +20,13 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { useFlipHeight } from '../hooks/useFlipHeight';
 import type { WidgetSize } from '../types';
 
-/* 위젯 관리 화면 — "내 위젯" 배치 + "추천 위젯" + "전체 위젯"이 한 페이지 안에서
- * 아래로 스크롤하면 이어진다(레퍼런스 그대로 — 별도의 "위젯 추가하기" 페이지로 넘어가지
- * 않는다). 위젯 카드를 누르면 중앙 모달에서 S/M/L을 실제 크기로 비교하고 그 자리에서
- * 추가한다. 공간이 부족하면 화면 이동 없이 그 모달 안에서 바로 "공간 만들기"로 전환된다
- * (WidgetPreviewModal 이 자체 단계를 갖는다 — 별도의 Bottom Sheet 로 빠지지 않는다). */
+/* 위젯 관리 화면 — "내 위젯" 배치 + "추천 위젯"이 한 페이지 안에서 아래로 스크롤하면
+ * 이어진다. "전체 위젯"은 예전엔 이 스크롤의 세 번째 섹션이었는데(스크롤 이동), 지금은
+ * "내 위젯"의 "+"를 눌렀을 때 여는 Bottom Sheet(WidgetAllSheet)다 — 내용(카테고리 필터·
+ * 목록·더보기)은 그대로다. 위젯 카드를 누르면 시트를 닫고 중앙 모달에서 S/M/L을 실제
+ * 크기로 비교하고 그 자리에서 추가한다. 공간이 부족하면 화면 이동 없이 그 모달 안에서
+ * 바로 "공간 만들기"로 전환된다(WidgetPreviewModal 이 자체 단계를 갖는다 — 별도의
+ * Bottom Sheet 로 빠지지 않는다). */
 
 /* Swiper 한 화면에 2장씩 꽉 차 보이므로(WidgetRecommendSwiper) 4개(2페이지)로 맞춘다 */
 const RECOMMEND_LIMIT = 4;
@@ -40,12 +40,12 @@ export function WidgetPage() {
   const navigation = useAppNavigation();
   const { user } = useAuth();
   const placement = useWidgetPlacement();
-  const allWidgetsRef = useRef<HTMLElement>(null);
-  const myWidgetsRef = useRef<HTMLElement>(null);
 
   const [editing, setEditing] = useState(false);
   const [category, setCategory] = useState<CategoryFilter>('전체');
   const [allExpanded, setAllExpanded] = useState(false);
+  /* "전체 위젯" Bottom Sheet — "내 위젯"의 "+"(빈 슬롯/추가 버튼)를 누르면 연다. */
+  const [allSheetOpen, setAllSheetOpen] = useState(false);
   /* "가이드" 버튼을 누르지 않아도 위젯 페이지에 처음 들어왔을 때 이 모달이 자동으로
    * 한 번 뜬다 — 페르소나 상관없이 모든 계정에 적용. Home 의 Coachmark 와 같은
    * "계정당 한 번" 규칙(coachmarkProgress.ts 패턴). */
@@ -103,20 +103,6 @@ export function WidgetPage() {
     setAllExpanded(false);
   };
 
-  /* target.scrollIntoView() 는 조상 체인을 타고 올라가며 "스크롤 가능한 박스"를 전부
-   * 맞추는데, .app 도 overflow:hidden 이라 그 대상에 포함돼 헤더 높이(50px)만큼 .app
-   * 자체가 스크롤되어 헤더가 화면 밖으로 밀려나는 버그가 있었다(요구사항 아님, 발견된
-   * 버그 수정). .wpg-scroll 한 곳의 scrollTop만 직접 계산해서 옮긴다. */
-  const scrollToSection = (ref: RefObject<HTMLElement>) => {
-    const target = ref.current;
-    const container = target?.closest<HTMLElement>('.wpg-scroll');
-    if (!target || !container) return;
-    const offset = target.getBoundingClientRect().top - container.getBoundingClientRect().top;
-    container.scrollTo({ top: container.scrollTop + offset, behavior: 'smooth' });
-  };
-
-  const scrollToAll = () => scrollToSection(allWidgetsRef);
-
   const handleRemove = (ref: SlotRef) => {
     placement.removeAt(ref);
     setToast('위젯을 삭제했어요.');
@@ -148,9 +134,9 @@ export function WidgetPage() {
     setPreviewId(null);
     if (pendingToastRef.current) {
       /* pendingToastRef 는 "공간 만들기 → 완료 화면 → 확인"을 거쳐 실제로 배치가 바뀐
-       * 경우에만 채워진다(그냥 미리보기만 하다 X로 닫으면 비어 있다) — 그 조건에서만
-       * 방금 바뀐 결과를 바로 보여주려고 "내 위젯"으로 스크롤한다. */
-      scrollToSection(myWidgetsRef);
+       * 경우에만 채워진다(그냥 미리보기만 하다 X로 닫으면 비어 있다). "전체 위젯"이
+       * 이제 Bottom Sheet 라 이미 닫혀 있고 "내 위젯"은 늘 화면에 그대로 있어(스크롤
+       * 이동이 없어) 여기서 별도로 스크롤할 필요가 없다. */
       setToast(pendingToastRef.current.message);
       setShowUndo(pendingToastRef.current.undo);
       pendingToastRef.current = null;
@@ -172,7 +158,7 @@ export function WidgetPage() {
       />
 
       <main className="wpg-scroll">
-        <section className="wpg-my" ref={myWidgetsRef}>
+        <section className="wpg-my">
           <div className="wpg-my__head">
             <h2>내 위젯</h2>
             <span className="wpg-my__count">
@@ -195,9 +181,9 @@ export function WidgetPage() {
               state={placement.state}
               editing={editing}
               onTapPlaced={(ref) => setActionTarget(ref)}
-              onTapEmpty={() => scrollToAll()}
+              onTapEmpty={() => setAllSheetOpen(true)}
               onRemove={handleRemove}
-              onAddCta={() => scrollToAll()}
+              onAddCta={() => setAllSheetOpen(true)}
             />
           </div>
         </section>
@@ -214,48 +200,31 @@ export function WidgetPage() {
             <p className="wg-empty">추천할 위젯이 없어요.</p>
           )}
         </section>
-
-        <section className="wpg-all" ref={allWidgetsRef}>
-          <div className="wpg-all__head">
-            <h2>전체 위젯</h2>
-            <p>자두야의 모든 위젯을 둘러보세요.</p>
-          </div>
-
-          <WidgetCategoryFilter value={category} onChange={handleCategoryChange} />
-
-          {filtered.length > 0 ? (
-            <>
-              <div
-                className="wpg-all__list"
-                ref={allListFlip.ref}
-                style={allListFlip.style}
-                onTransitionEnd={allListFlip.onTransitionEnd}
-              >
-                {visibleFiltered.map((def) => (
-                  <WidgetListCard key={def.id} def={def} onSelect={() => setPreviewId(def.id)} />
-                ))}
-              </div>
-              {hasMoreFiltered && (
-                <button
-                  type="button"
-                  className="wpg-all__more"
-                  onClick={() => {
-                    allListFlip.freeze();
-                    setAllExpanded(true);
-                  }}
-                >
-                  더보기
-                  <span aria-hidden="true">▾</span>
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="wg-empty">해당 카테고리에 위젯이 없어요.</p>
-          )}
-        </section>
       </main>
 
       <BottomNavigation activeTab="home" />
+
+      <WidgetAllSheet
+        open={allSheetOpen}
+        category={category}
+        onCategoryChange={handleCategoryChange}
+        visibleWidgets={visibleFiltered}
+        hasMore={hasMoreFiltered}
+        onMore={() => {
+          allListFlip.freeze();
+          setAllExpanded(true);
+        }}
+        onSelect={(id) => {
+          /* 시트를 먼저 닫는다 — WidgetPreviewModal 도 자체 dim 배경이 있어서, 시트를
+           * 열어둔 채 모달을 겹치면 dim 이 두 겹으로 쌓여 배경이 과하게 어두워진다. */
+          setAllSheetOpen(false);
+          setPreviewId(id);
+        }}
+        onClose={() => setAllSheetOpen(false)}
+        listRef={allListFlip.ref}
+        listStyle={allListFlip.style}
+        onListTransitionEnd={allListFlip.onTransitionEnd}
+      />
 
       <WidgetActionSheet
         target={actionWidgetDef && actionDef ? { def: actionWidgetDef, size: actionDef.size } : null}
@@ -263,7 +232,7 @@ export function WidgetPage() {
         onChange={() => {
           if (actionTarget) placement.removeAt(actionTarget);
           setActionTarget(null);
-          scrollToAll();
+          setAllSheetOpen(true);
         }}
         onDelete={() => {
           if (actionTarget) handleRemove(actionTarget);

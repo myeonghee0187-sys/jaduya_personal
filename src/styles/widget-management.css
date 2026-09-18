@@ -2,8 +2,9 @@
  *
  * 값은 전부 tokens.css 토큰만 쓴다. 위젯 카드 자체(.wcard)는 widget-gallery.css 를
  * 그대로 재사용하고, 여기서는 배치 그리드·편집 모드·가이드·목록 카드·모달·시트·토스트
- * 등 이 화면 전용 레이아웃만 다룬다. "내 위젯 → 추천 위젯 → 전체 위젯"이 한 페이지
- * 안에서 이어진다 — 위젯 추가는 더 이상 별도 페이지로 가지 않는다. */
+ * 등 이 화면 전용 레이아웃만 다룬다. "내 위젯 → 추천 위젯"은 한 페이지 안에서 스크롤로
+ * 이어진다 — 별도 페이지로 가지 않는다. "전체 위젯"은 "내 위젯"의 "+"를 누르면 여는
+ * Bottom Sheet(.wpg-all-sheet, WidgetAllSheet.tsx)다. */
 
 .widget-page.app {
   display: flex;
@@ -916,6 +917,64 @@
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-body);
   color: var(--text-secondary);
+}
+
+/* ================= "전체 위젯" Bottom Sheet(WidgetAllSheet) =================
+ * 예전엔 "내 위젯" 아래로 스크롤해서 이어지는 페이지 섹션이었다 — "+"를 누르면 그
+ * 자리로 스크롤만 됐다. 지금은 그 "+"가 이 시트를 연다. 안의 제목(.wpg-all__head)·
+ * 목록(.wpg-all__list, .wpg-list-card)·더보기(.wpg-all__more)는 그대로 재사용하고,
+ * 시트 셸(고정 헤더 + 내부 스크롤 바디)만 menu-edit 와 같은 구조로 새로 짠다 — 위젯이
+ * 많아 "더보기"로 펼치면 목록이 화면보다 길어질 수 있어서다. */
+.wpg-all-sheet {
+  height: min(640px, 82%);
+  padding: 0 var(--screen-margin) max(12px, env(safe-area-inset-bottom));
+  background: var(--surface-page);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.wpg-all-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex: none;
+}
+
+.wpg-all-sheet__header .wpg-all__head {
+  /* 시트 안에서는 헤더 바로 아래가 카테고리 필터라 페이지에 있던 것보다 여백을
+   * 줄인다(--space-xl → --space-sm). */
+  margin-bottom: var(--space-sm);
+}
+
+.wpg-all-sheet__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -2px;
+}
+
+.wpg-all-sheet__close img {
+  width: 20px;
+  height: 20px;
+}
+
+.wpg-all-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: var(--space-lg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.wpg-all-sheet__body::-webkit-scrollbar {
+  display: none;
 }
 
 .wpg-list-card__row {
