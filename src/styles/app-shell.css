@@ -193,7 +193,7 @@ body {
   transform-origin: bottom right;
 }
 
-.tip-box {
+.home-benefit-banner {
   top: auto;
   bottom: 327px; /* 299 + 28 */
   left: var(--screen-margin);
@@ -201,11 +201,18 @@ body {
   width: auto;
 }
 
-.tip-box__inner {
+.home-benefit-banner__button {
   left: 0;
   right: 0;
   width: auto;
   transform: none;
+}
+
+/* 모바일에서는 배너를 left/right로 배치하므로 누르는 순간에도
+ * translateX(-50%)를 다시 적용하지 않는다. 요소가 손가락 아래서 이동하면
+ * pointerup이 요소 밖에서 발생해 배너 일부 영역의 click이 취소될 수 있다. */
+.home-benefit-banner__button:active {
+  transform: scale(0.98);
 }
 
 /* ================= 2. 넓은 화면 = 402 기기 프리뷰 =================
@@ -307,16 +314,20 @@ body {
     bottom: auto;
   }
 
-  .tip-box {
+  .home-benefit-banner {
     left: var(--screen-margin);
     right: auto;
     width: var(--content-width);
   }
 
-  .tip-box__inner {
+  .home-benefit-banner__button {
     left: calc(50% - 2px);
     right: auto;
     width: calc(var(--content-width) - 4px);
     transform: translateX(-50%);
+  }
+
+  .home-benefit-banner__button:active {
+    transform: translateX(-50%) scale(0.98);
   }
 }

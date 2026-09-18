@@ -370,30 +370,30 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-muted);
 }
 
-/* ================= Tip box ================= */
+/* ================= Home benefit banner ================= */
+/* 혜택·복지 페이지로 이동하는 Home CTA 배너.
+ * 컨테이너 크기
+ * (top/height)는 바뀌기 전 위치를 그대로 유지해 다른 레이아웃이 밀리지 않게 한다. */
 
-.tip-box {
+.home-benefit-banner {
   position: absolute;
   left: var(--screen-margin);
   top: 426px;
   z-index: 10;
   width: var(--content-width);
   height: 121px;
-  transition: opacity 200ms ease;
 }
 
-.tip-box[hidden] { display: none; }
-
-.tip-box__inner {
+.home-benefit-banner__button {
   position: absolute;
   left: calc(50% - 2px);
   bottom: 0;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 10px;
   width: calc(var(--content-width) - 4px);
-  padding: 10px 16px 10px 18px;
+  padding: 10px 14px 10px 10px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
   background: rgba(255, 255, 255, 0.5);
@@ -401,21 +401,50 @@ a { text-decoration: none; color: inherit; }
   -webkit-backdrop-filter: blur(7px);
   box-shadow: 0 4px 14px 0 rgba(46, 26, 36, 0.08);
   cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
-.tip-box__icon { width: 28px; height: 28px; flex: none; object-fit: cover; }
+.home-benefit-banner__button:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
 
-.tip-box__label {
+.home-benefit-banner__button:active {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px 0 rgba(46, 26, 36, 0.08);
+  transform: translateX(-50%) scale(0.98);
+}
+
+.home-benefit-banner__button:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.home-benefit-banner__icon-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 1 0 0;
-  min-width: 0;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-05);
 }
 
-.tip-box__text {
+.home-benefit-banner__icon {
+  width: 20px;
+  height: 20px;
+  background-color: var(--brand-primary);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.home-benefit-banner__text {
   margin: 0;
-  flex: 0 1 auto;
+  flex: 1 0 0;
   min-width: 0;
   font-family: var(--font-suit);
   font-size: 14px;
@@ -424,35 +453,11 @@ a { text-decoration: none; color: inherit; }
   letter-spacing: -0.14px;
   color: var(--text-body);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tip-box__info { width: 18px; height: 18px; flex: none; padding: 0; }
-.tip-box__info img { width: 18px; height: 18px; }
-.tip-box__details {
-  position: absolute;
-  left: 83px;
-  /* width 를 고정 283px 로 두면 360px 폭 화면(tip-box 실폭 328px)에서 안내창
-   * 오른쪽 끝이 .tip-box 를 22px, .app 을 넘어서 overflow:hidden 에 잘렸다.
-   * right 로 바꿔 .tip-box(부모) 오른쪽 끝 기준 8px 안쪽까지만 차지하게 하면
-   * 360~402px 어느 폭에서도 항상 부모 안에 들어간다. */
-  right: 8px;
-  top: 0;
-  z-index: 1;
-  padding: 11px 14px 18px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 1.5px rgba(0, 0, 0, .06), 0 6px 9px rgba(0, 0, 0, .14);
-  color: var(--text-muted);
-  font-family: var(--font-suit);
-  font-size: 14px;
-  line-height: 1.4;
-  /* 한글은 기본 word-break 규칙상 단어 중간에서도 줄바꿈될 수 있다 —
-   * keep-all 로 항상 띄어쓰기에서만 끊기게 한다 */
-  word-break: keep-all;
-}
-
-.tip-box__close { width: 24px; height: 24px; flex: none; }
-.tip-box__close img { width: 24px; height: 24px; }
+.home-benefit-banner__arrow { width: 16px; height: 16px; flex: none; }
 
 /* ================= Bottom Sheet ================= */
 
@@ -1739,5 +1744,5 @@ a { text-decoration: none; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .sheet,
   .greeting,
-  .tip-box { transition: none; }
+  .home-benefit-banner__button { transition: none; }
 }
