@@ -321,7 +321,7 @@ export function CommunityPostDetailPanel({
                     onClick={() => setSortOpen((next) => !next)}
                   >
                     {sort}
-                    <img src={icon('community-filter-arrow.svg')} alt="" />
+                    <span className="community-filter__button-arrow" aria-hidden="true" />
                   </button>
                   <ul className="community-filter__list" role="listbox" hidden={!sortOpen}>
                     {(['최신', '인기'] as const).map((option) => (

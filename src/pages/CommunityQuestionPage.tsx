@@ -214,7 +214,7 @@ export function CommunityQuestionPage() {
               onClick={() => setSortOpen((open) => !open)}
             >
               {sort}
-              <img src={icon('community-filter-arrow.svg')} alt="" />
+              <span className="community-filter__button-arrow" aria-hidden="true" />
             </button>
             <ul className="community-filter__list" role="listbox" hidden={!sortOpen}>
               {SORT_FILTERS.map((option) => (

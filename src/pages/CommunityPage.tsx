@@ -20,7 +20,7 @@ import {
   postMatchesKeyword,
 } from '../data/communityPosts';
 import { useMyMenu } from '../menu/MyMenuContext';
-import { icon, img } from '../lib/asset';
+import { img } from '../lib/asset';
 
 /* 레벨은 초보 / 중수 / 고수 3단계.
  * 이미 '레벨' 필터라 '자취' 를 반복하지 않고 단계 이름만 보여준다. */
@@ -199,7 +199,7 @@ export function CommunityPage() {
               onClick={() => setOpenFilter((open) => (open === 'level' ? null : 'level'))}
             >
               {level}
-              <img src={icon('community-filter-arrow.svg')} alt="" />
+              <span className="community-filter__button-arrow" aria-hidden="true" />
             </button>
             <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'level'}>
               {LEVEL_FILTERS.map((option) => (
@@ -228,7 +228,7 @@ export function CommunityPage() {
               onClick={() => setOpenFilter((open) => (open === 'sort' ? null : 'sort'))}
             >
               {sort}
-              <img src={icon('community-filter-arrow.svg')} alt="" />
+              <span className="community-filter__button-arrow" aria-hidden="true" />
             </button>
             <ul className="community-filter__list" role="listbox" hidden={openFilter !== 'sort'}>
               {SORT_FILTERS.map((option) => (

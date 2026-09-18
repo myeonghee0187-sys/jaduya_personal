@@ -427,7 +427,7 @@
 }
 
 .contract-check__list li + li {
-  border-top: 1px solid var(--first-divider);
+  border-top: 1px solid #ccbb9f;
 }
 
 /* 여기는 실제로 누르는 영역이라 버튼처럼 보여도 된다 — 행 전체가 클릭 영역이다 */

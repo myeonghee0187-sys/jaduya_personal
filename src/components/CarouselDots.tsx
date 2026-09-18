@@ -1,4 +1,3 @@
-import { icon } from '../lib/asset';
 import '../styles/carousel-dots.css';
 
 interface CarouselDotsProps {
@@ -21,13 +20,9 @@ export function CarouselDots({ count, activeIndex, className = '' }: CarouselDot
           className={`carousel-dots__dot${dotIndex === index ? ' is-active' : ''}`}
         />
       ))}
-      <img
+      <span
         className="carousel-dots__active"
-        src={icon('jadu_pagenation.svg')}
-        width={20}
-        height={22}
-        alt=""
-        draggable={false}
+        aria-hidden="true"
         style={{ transform: `translateX(${index * 16}px)` }}
       />
     </div>
