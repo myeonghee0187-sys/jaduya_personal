@@ -107,7 +107,7 @@ export function CommunityTipPage() {
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
   /* 내가 쓴 글 중 같은 서브탭 카테고리 + 게시글종류가 "정보"인 것만 정적 목록 맨 앞에 붙인다.
-   * "질문"·"후기"·"잡담"으로 쓴 글은 자취 꿀팁 취지(가르쳐주는 글)에 안 맞아 전체/질문 탭에만
+   * "질문"으로 쓴 글은 자취 꿀팁 취지(가르쳐주는 글)에 안 맞아 게시판에만
    * 보이게 두고 여기서는 제외한다. 검색어는 이 서브탭 안에서 제목·미리보기·해시태그로
    * 한 번 더 좁힌다(카테고리 이름 자체를 검색하면 위 useEffect 가 이미 그 탭으로 옮겨준다). */
   const visiblePosts = useMemo(
@@ -129,6 +129,24 @@ export function CommunityTipPage() {
       />
 
       <main className="community__scroll">
+        {/* ============ 탭 — '게시판' / '지역 후기'는 각자의 화면으로 이동한다 ============ */}
+        <nav className="community-tabs" aria-label="커뮤니티 분류">
+          {COMMUNITY_TABS.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={`community-tabs__tab${name === COMMUNITY_TIP_TAB ? ' is-active' : ''}`}
+              aria-current={name === COMMUNITY_TIP_TAB ? 'page' : undefined}
+              onClick={() => {
+                if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community');
+                else if (name === '지역 후기') navigation?.navigate('community-region');
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+
         {/* ============ 검색 — 커뮤니티 홈과 같은 입력창, 타이틀 문구는 없음 ============ */}
         <section className="community-search">
           <div className="community-search__input">
@@ -173,25 +191,6 @@ export function CommunityTipPage() {
             </button>
           </div>
         </section>
-
-        {/* ============ 탭 — '전체' / '게시판' 은 각자의 화면으로 돌아간다 ============ */}
-        <nav className="community-tabs" aria-label="커뮤니티 분류">
-          {COMMUNITY_TABS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={`community-tabs__tab${name === COMMUNITY_TIP_TAB ? ' is-active' : ''}`}
-              aria-current={name === COMMUNITY_TIP_TAB ? 'page' : undefined}
-              onClick={() => {
-                if (name === '전체') navigation?.navigate('community');
-                else if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
-                else if (name === '지역 후기') navigation?.navigate('community-region');
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </nav>
 
         {/* ============ 자취 꿀팁 전용 서브탭 ============ */}
         <div className="tip-categories" role="tablist" aria-label="자취 꿀팁 카테고리">

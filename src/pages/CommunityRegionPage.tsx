@@ -77,6 +77,24 @@ export function CommunityRegionPage() {
       />
 
       <main className="community__scroll">
+        {/* ============ 탭 — '게시판' / '자취 꿀팁'은 각자의 화면으로 이동한다 ============ */}
+        <nav className="community-tabs" aria-label="커뮤니티 분류">
+          {COMMUNITY_TABS.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={`community-tabs__tab${name === '지역 후기' ? ' is-active' : ''}`}
+              aria-current={name === '지역 후기' ? 'page' : undefined}
+              onClick={() => {
+                if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community');
+                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+
         {/* ============ 검색 — 커뮤니티 홈과 같은 입력창, 타이틀 문구는 없음 ============ */}
         <section className="community-search">
           <div className="community-search__input">
@@ -121,25 +139,6 @@ export function CommunityRegionPage() {
             </button>
           </div>
         </section>
-
-        {/* ============ 탭 — '전체' / '게시판' / '자취 꿀팁' 은 각자의 화면으로 돌아간다 ============ */}
-        <nav className="community-tabs" aria-label="커뮤니티 분류">
-          {COMMUNITY_TABS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={`community-tabs__tab${name === '지역 후기' ? ' is-active' : ''}`}
-              aria-current={name === '지역 후기' ? 'page' : undefined}
-              onClick={() => {
-                if (name === '전체') navigation?.navigate('community');
-                else if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community-question');
-                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </nav>
 
         {/* ============ 필터 — 인기순 등 다른 필터처럼 누르면 패널이 펼쳐진다 ============ */}
         <div className="community-filters community-filters--padded" ref={filterRef}>
