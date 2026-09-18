@@ -37,13 +37,13 @@ interface LeafStyle extends CSSProperties {
 /* 오른쪽 위(약 85~108%, -5~18%)에서 등장해 왼쪽 중단~하단(약 -12~25%, 55~90%)으로
  * 바람을 타듯 대각선(↙)으로 흩날린다. 실제로 화면을 가로지르는 시간은 8~14초지만,
  * --leaf-duration(전체 주기)은 그 2배로 잡는다 — home.css 의 leaf-drift 가 앞 절반만
- * 날아가고 뒤 절반은 쉬기 때문이다(주석 참고). leaf 6장이 각자 다른 duration·delay(서로
+ * 날아가고 뒤 절반은 쉬기 때문이다(주석 참고). 기본 leaf 6장이 각자 다른 duration·delay(서로
  * 1.5~3.5초 차)로 독립적으로 무한 반복하며 서로 다른 위상으로 계속 어긋나기 때문에,
- * 화면이 완전히 비는 순간 없이 대체로 2~4장이 겹쳐 보인다(실측: 쉬는 구간 없이 두면
+ * 기본 밀도에서는 화면이 완전히 비는 순간 없이 대체로 2~4장이 겹쳐 보인다(실측: 쉬는 구간 없이 두면
  * 대부분 6장이 한꺼번에 보여서 낙엽처럼 과해진다 — 절반씩 쉬어야 적당하다). opacity 는
  * 0.22~0.38 로 옅게, 경유점(dx/dy/rotate)은 leaf 마다 다르게 둬서 같은 길을 반복해서
  * 지나가는 것처럼 보이지 않게 했다. */
-const LEAVES: LeafStyle[] = [
+const BASE_LEAVES: LeafStyle[] = [
   {
     '--leaf-start-left': '90%',
     '--leaf-start-top': '2%',
@@ -147,6 +147,19 @@ const LEAVES: LeafStyle[] = [
     '--leaf-r0': '-20deg', '--leaf-r1': '-5deg', '--leaf-r2': '25deg', '--leaf-r3': '60deg', '--leaf-r4': '95deg',
   },
 ];
+
+/* 기본 경로·크기·색은 유지하고 각 잎의 주기를 3등분한 위상으로 복제한다.
+ * 같은 위치에서 동시에 겹치지 않으면서 화면에 보이는 평균 잎 수를 6~12장으로 늘린다. */
+const LEAF_DENSITY_MULTIPLIER = 3;
+const LEAVES: LeafStyle[] = BASE_LEAVES.flatMap((style) => {
+  const duration = Number.parseFloat(style['--leaf-duration']);
+  const delay = Number.parseFloat(style['--leaf-delay']);
+
+  return Array.from({ length: LEAF_DENSITY_MULTIPLIER }, (_, phase) => ({
+    ...style,
+    '--leaf-delay': `${delay - (duration / LEAF_DENSITY_MULTIPLIER) * phase}s`,
+  }));
+});
 
 /** 홈 히어로 안에서만 보이는 가벼운 장식 효과. 입력이나 스크롤에는 관여하지 않는다. */
 export function FallingLeaves() {
