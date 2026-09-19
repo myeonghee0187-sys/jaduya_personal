@@ -44,6 +44,8 @@ export interface OwnComment {
 }
 
 interface CommunityPostsValue {
+  likedPostIds: string[];
+  togglePostLike: (id: string) => void;
   /** 사용자가 작성한 전체 게시글(작성자 무관, 공용) — 기존 화면 코드 호환용 이름 */
   ownPosts: CommunityPost[];
   /** ownPosts 와 같은 배열 — "authorId 로 내 글만 필터링"할 다음 단계(마이페이지)를 위한 이름 */
@@ -118,6 +120,10 @@ function groupByPostId(comments: OwnComment[]): Record<string, OwnComment[]> {
 }
 
 export function CommunityPostsProvider({ children }: { children: ReactNode }) {
+  const [likedPostIds, setLikedPostIds] = useState<string[]>([]);
+  const togglePostLike = useCallback((id: string) => {
+    setLikedPostIds(ids => ids.includes(id) ? ids.filter(value => value !== id) : [...ids, id]);
+  }, []);
   const [ownPosts, setOwnPosts] = useState<CommunityPost[]>(() =>
     migrateLegacyPerAccountData<CommunityPost>(POSTS_STORAGE_KEY, LEGACY_POSTS_PREFIX).map(normalizePostCategory),
   );
@@ -155,6 +161,8 @@ export function CommunityPostsProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CommunityPostsValue>(
     () => ({
+      likedPostIds,
+      togglePostLike,
       ownPosts,
       userPosts: ownPosts,
       addPost,
@@ -164,7 +172,7 @@ export function CommunityPostsProvider({ children }: { children: ReactNode }) {
       addComment,
       removeComment,
     }),
-    [ownPosts, ownComments, addPost, removePost, ownCommentsByPost, addComment, removeComment],
+    [likedPostIds, togglePostLike, ownPosts, ownComments, addPost, removePost, ownCommentsByPost, addComment, removeComment],
   );
 
   return <CommunityPostsContext.Provider value={value}>{children}</CommunityPostsContext.Provider>;
@@ -174,6 +182,8 @@ export function CommunityPostsProvider({ children }: { children: ReactNode }) {
 export function useCommunityPosts(): CommunityPostsValue {
   return (
     useContext(CommunityPostsContext) ?? {
+      likedPostIds: [],
+      togglePostLike: () => {},
       ownPosts: [],
       userPosts: [],
       addPost: () => {},

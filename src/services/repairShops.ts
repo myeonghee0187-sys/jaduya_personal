@@ -1,3 +1,6 @@
+import { geocodeSavedLocation } from '../data/locationSearch';
+import type { SavedLocation } from '../data/userLocation';
+
 export type RepairKind = 'boiler' | 'plumbing' | 'electric' | 'aircon' | 'doorlock' | 'washer' | 'general';
 
 export type RepairSearchLocation = {
@@ -18,13 +21,6 @@ export type RepairShop = {
   lng: number;
   description?: string;
   dataSource: 'prototype';
-};
-
-const DEFAULT_LOCATION: RepairSearchLocation = {
-  label: '서울 광진구',
-  latitude: 37.5385,
-  longitude: 127.0823,
-  isCurrentLocation: false,
 };
 
 const REPAIR_LABELS: Record<RepairKind, { name: string; category: string; description: string }> = {
@@ -51,27 +47,14 @@ const DEMO_PHONE_NUMBERS = [
   '02-4567-8904',
 ] as const;
 
-export async function getPreferredRepairLocation(
-  savedLocation?: Omit<RepairSearchLocation, 'isCurrentLocation'> | null,
-): Promise<RepairSearchLocation> {
-  try {
-    const permission = await navigator.permissions?.query({ name: 'geolocation' });
-    if (permission?.state === 'granted' && navigator.geolocation) {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 });
-      });
-      return {
-        label: savedLocation?.label ?? '현재 위치',
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        isCurrentLocation: true,
-      };
-    }
-  } catch {
-    /* 위치 확인 실패는 저장 지역이나 기본 지역으로 자연스럽게 대체한다. */
+/** AI가 안내한 위치만 사용한다. GPS나 임의 기본 지역으로 대체하지 않는다. */
+export async function getPreferredRepairLocation(selectedLocation: SavedLocation | null): Promise<RepairSearchLocation> {
+  if (!selectedLocation) throw new Error('검색 지역을 선택해주세요.');
+  const location = await geocodeSavedLocation(selectedLocation);
+  if (location.lat === undefined || location.lng === undefined) {
+    throw new Error('지역의 좌표를 확인하지 못했어요. 지역을 다시 선택해주세요.');
   }
-
-  return savedLocation ? { ...savedLocation, isCurrentLocation: false } : DEFAULT_LOCATION;
+  return { label: location.displayName, latitude: location.lat, longitude: location.lng, isCurrentLocation: false };
 }
 
 export async function getDemoRepairShops(

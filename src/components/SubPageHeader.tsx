@@ -1,9 +1,7 @@
-import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
 import { icon } from '../lib/asset';
-import { useAppNavigation } from '../navigation/AppNavigation';
 
 /* 하위 화면 공용 헤더 — 뒤로가기 + 제목 + 알림 (+ 필요한 화면만 닫기).
  * StatusBar / HeaderIconButton 은 기존 공용 컴포넌트를 그대로 쓴다.
@@ -29,22 +27,6 @@ export function SubPageHeader({
   closeLabel = '닫기',
   children,
 }: SubPageHeaderProps) {
-  const navigation = useAppNavigation();
-  /* 이 화면이 떠 있는 동안 `<` 버튼이 하는 일을 시스템 뒤로가기의 동작으로도 등록해 둔다 —
-   * Android 시스템 뒤로가기가 와도 이 onBack 이 그대로 불려서 결과가 통일된다.
-   * 등록/해제를 같은 effect 안에 짝으로 둬야 한다 — 커밋 후 곧바로 등록만 렌더 본문에서
-   * 해 두면, 개발 모드 StrictMode 가 마운트를 검증하려고 이 effect 를 한 번 더 껐다 켜는
-   * 과정에서(정리만 실행되고 등록은 다시 실행되지 않아) 방금 써 둔 값이 사라져 버린다.
-   * token 은 이 SubPageHeader 인스턴스 고유값이다 — 다음 화면이 먼저 등록을 마친 뒤에
-   * 이 화면의 정리가 실행돼도, 자기 token 일 때만 지우므로 다음 화면 값을 실수로
-   * 덮어쓰지 않는다. */
-  const tokenRef = useRef<symbol>();
-  if (!tokenRef.current) tokenRef.current = Symbol('routeBack');
-  useLayoutEffect(() => {
-    const token = tokenRef.current!;
-    navigation?.registerRouteBack(token, onBack);
-    return () => navigation?.unregisterRouteBack(token);
-  }, [navigation, onBack]);
   return (
     <header className="page-header">
       <StatusBar />

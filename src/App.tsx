@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useRef } from 'react';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import type { Location } from 'react-router-dom';
+import { CommunityPostPage } from './pages/CommunityPostPage';
 import { useAuth } from './auth/AuthContext';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
@@ -19,7 +22,6 @@ import { LifeHomecarePage } from './pages/LifeHomecarePage';
 import { LifeHousePage } from './pages/LifeHousePage';
 import { LifeEatPage } from './pages/LifeEatPage';
 import { CommunityPage } from './pages/CommunityPage';
-import { CommunityQuestionPage } from './pages/CommunityQuestionPage';
 import { CommunityTipPage } from './pages/CommunityTipPage';
 import { CommunityRegionPage } from './pages/CommunityRegionPage';
 import { AIChatPage } from './pages/AIChatPage';
@@ -40,143 +42,106 @@ import { NotificationProvider } from './notifications/NotificationContext';
 import { initializeLivingProfileFromOnboarding } from './data/livingProfile';
 import { PERSONA_PROFILE } from './data/personaProfile';
 
-function MainPages() {
+
+function MyRoute() {
   const navigation = useAppNavigation();
-  const page = navigation?.page ?? 'home';
-  const isAIChatOpen = navigation?.isAIChatOpen ?? false;
-  const hasAIChatOpened = navigation?.hasAIChatOpened ?? false;
-  const isHome = page === 'home';
-  return (
-    <>
-      {/* Home을 유지해 왕복 이동 시 위젯과 시트 상태가 초기화되지 않게 한다. */}
-      <div hidden={!isHome} style={isHome ? { display: 'contents' } : undefined}><Home /></div>
-      {/* 마이페이지 '나의 자취 레벨 > 전체보기' → 자취 미션,
-        * '나의 활동 > 전체보기' → 저장한 정보 */}
-      {page === 'my' && (
-        <MyPage
-          onDetailNavigate={(to) => {
-            if (to === 'level') {
-              navigation?.navigate('mission');
-              return true;
-            }
-            if (to === 'living-profile') {
-              navigation?.navigate('living-profile');
-              return true;
-            }
-            if (to === 'activity') {
-              navigation?.navigate('saved');
-              return true;
-            }
-            if (to === 'settings') {
-              navigation?.navigate('settings');
-              return true;
-            }
-            if (to === 'account') {
-              navigation?.navigate('account');
-              return true;
-            }
-            if (to === 'support') {
-              navigation?.navigate('support');
-              return true;
-            }
-            return false;
-          }}
-        />
-      )}
-      {page === 'mission' && <MissionPage />}
-      {page === 'living-profile' && <ProfileSettingsPage />}
-      {page === 'saved' && <SavedPage />}
-      {page === 'life' && <LifePage />}
-      {page === 'money' && <MoneyPage />}
-      {page === 'money-budget' && <MoneyBudgetPage />}
-      {page === 'money-accounts' && <MoneyAccountsPage />}
-      {page === 'widget-gallery' && <WidgetPage />}
-      {page === 'life-first' && <LifeFirstPage />}
-      {page === 'life-homecare' && <LifeHomecarePage />}
-      {page === 'life-house' && <LifeHousePage />}
-      {page === 'life-eat' && <LifeEatPage />}
-      {page === 'community' && <CommunityPage />}
-      {page === 'community-question' && <CommunityQuestionPage />}
-      {page === 'community-tip' && <CommunityTipPage />}
-      {page === 'community-region' && <CommunityRegionPage />}
-      {page === 'benefits' && <BenefitsPage />}
-      {page === 'benefits-recommend' && <BenefitsRecommendPage />}
-      {page === 'benefit-detail' && <BenefitDetailPage />}
-      {page === 'notifications' && <NotificationPage />}
-      {page === 'settings' && <AppSettingsPage />}
-      {page === 'account' && <AccountManagementPage />}
-      {page === 'support' && <CustomerCenterPage />}
-
-      {/* 챗봇은 화면 전용 기능이 아니라 어디서나 같은 버튼이다 — 여기서 한 번만 그린다.
-        * 자두AI 전체 화면에서는 같은 기능이 화면 자체로 열려 있으므로 감춘다
-        * (지우지 않고 감추기만 해야 돌아왔을 때 옮겨 둔 자리가 그대로 남는다).
-        * 커뮤니티는 글쓰기 버튼이 같은 자리에 있어 처음 놓이는 높이만 올려 준다. */}
-      <AIChatbot
-        hidden={page === 'settings' || page === 'support'}
-        disabled={isAIChatOpen}
-        showEntryHint={isHome}
-        initialLift={page.startsWith('community') ? 68 : 0}
-      />
-      {/* 기반 화면은 계속 마운트된 채로 두고 자두AI만 최상단 overlay로 올린다. */}
-      {hasAIChatOpened && (
-        <div hidden={!isAIChatOpen} style={isAIChatOpen ? { display: 'contents' } : undefined}>
-          <AIChatPage />
-        </div>
-      )}
-    </>
-  );
+  return <MyPage onDetailNavigate={(to) => {
+    const target = { level: 'mission', 'living-profile': 'living-profile', activity: 'saved', settings: 'settings', account: 'account', support: 'support' } as const;
+    if (!(to in target)) return false;
+    navigation?.navigate(target[to as keyof typeof target]);
+    return true;
+  }} />;
 }
-
-/* 라우터 라이브러리 없이 인증 상태 + 화면 상태로만 전환한다. */
+function MissingPage() {
+  const navigate = useNavigate();
+  return <div className="app"><button onClick={() => navigate('/')}>홈으로</button><p>페이지를 찾을 수 없어요.</p></div>;
+}
+function RouteChrome() {
+  const navigation = useAppNavigation()!;
+  return <AIChatbot hidden={navigation.page === 'settings' || navigation.page === 'support'}
+    disabled={navigation.isAIChatOpen} showEntryHint={navigation.page === 'home'}
+    initialLift={navigation.page.startsWith('community') ? 68 : 0} />;
+}
+/** Keep mounted views, not a navigation stack. URL/Routes alone select the visible view.
+ * Frozen route contexts prevent hidden pages from receiving another page's options.
+ * DOM retention preserves inputs, filters and nested scroll positions during POP. */
+function MainPages() {
+  const location = useLocation();
+  const retained = useRef(new Map<string, Location>());
+  if (!retained.current.has('/')) retained.current.set('/', { pathname: '/', search: '', hash: '', state: null, key: 'home-shell' });
+  retained.current.set(location.pathname, location);
+  const background: Location | undefined = location.pathname === '/ai' ? location.state?.background : undefined;
+  const backgroundPath = location.pathname === '/ai' ? (background?.pathname ?? '/') : undefined;
+  if (background && !retained.current.has(background.pathname)) retained.current.set(background.pathname, background);
+  return <>
+    {[...retained.current].map(([path, at]) => <div key={path} hidden={path !== location.pathname && path !== backgroundPath}
+      style={{ display: path === location.pathname || path === backgroundPath ? 'contents' : 'none' }}>
+      <Routes location={at}>
+        <Route element={<AppNavigationProvider currentLocation={location}><Outlet /></AppNavigationProvider>}>
+          <Route path="/" element={<Home />} />
+          <Route path="/living" element={<LifePage />} />
+          <Route path="/living/first" element={<LifeFirstPage />} />
+          <Route path="/living/home-care" element={<LifeHomecarePage />} />
+          <Route path="/living/housekeeping" element={<LifeHousePage />} />
+          <Route path="/living/food" element={<LifeEatPage />} />
+          <Route path="/money" element={<MoneyPage />} />
+          <Route path="/money/budget" element={<MoneyBudgetPage />} />
+          <Route path="/money/accounts" element={<MoneyAccountsPage />} />
+          <Route path="/money/benefits" element={<BenefitsPage />} />
+          <Route path="/money/benefits/recommended" element={<BenefitsRecommendPage />} />
+          <Route path="/money/benefits/:id" element={<BenefitDetailPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/community/board" element={path === location.pathname ? <Navigate to="/community" replace /> : null} />
+          <Route path="/community/tips" element={<CommunityTipPage />} />
+          <Route path="/community/reviews" element={<CommunityRegionPage />} />
+          <Route path="/community/post/:id" element={<CommunityPostPage />} />
+          <Route path="/my" element={<MyRoute />} />
+          <Route path="/my/profile" element={<ProfileSettingsPage />} />
+          <Route path="/my/activity" element={<SavedPage />} />
+          <Route path="/my/missions" element={<MissionPage />} />
+          <Route path="/my/settings" element={<AppSettingsPage />} />
+          <Route path="/my/account" element={<AccountManagementPage />} />
+          <Route path="/my/support" element={<CustomerCenterPage />} />
+          <Route path="/widgets" element={<WidgetPage />} />
+          <Route path="/notifications" element={<NotificationPage />} />
+          <Route path="/ai" element={<AIChatPage />} />
+          <Route path="*" element={<MissingPage />} />
+        </Route>
+      </Routes>
+    </div>)}
+    <AppNavigationProvider><RouteChrome /></AppNavigationProvider>
+  </>;
+}
+function safeReturn(value: unknown): string {
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+    && !['/login', '/signup', '/onboarding'].includes(value.split('?')[0]) ? value : '/';
+}
 export default function App() {
   const { user, completeOnboarding } = useAuth();
-  const [view, setView] = useState<'login' | 'signup'>('login');
-  /* 테스트 계정 시트에서 넘어올 때 회원가입 화면을 미리 채울 프로필 */
-  const [signupProfile, setSignupProfile] = useState<SignupTestProfile | undefined>(undefined);
-
-  /* 온보딩 결과를 AuthContext 의 UserPreferences 형태로 옮겨 저장한다.
-   * 저장이 끝나면 onboarded 가 true 가 되어 아래 분기가 Home 으로 넘어간다. */
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAuth = ['/login', '/signup', '/onboarding'].includes(location.pathname);
+  const returnTo = safeReturn(location.state?.returnTo);
   const finishOnboarding = (selection: OnboardingSelection) => {
-    if (user) {
-      initializeLivingProfileFromOnboarding(user.email, PERSONA_PROFILE[user.persona], selection);
-    }
-    completeOnboarding({
-      completedAt: new Date().toISOString(),
-      answers: {
-        interests: selection.interests,
-        stage: selection.stage ? [selection.stage] : [],
-      },
-    });
+    if (user) initializeLivingProfileFromOnboarding(user.email, PERSONA_PROFILE[user.persona], selection);
+    completeOnboarding({ completedAt: new Date().toISOString(), answers: {
+      interests: selection.interests, stage: selection.stage ? [selection.stage] : [],
+    } });
+    navigate(returnTo, { replace: true });
   };
-
-  /* 첫 맞춤 설정을 마치지 않은 신규 가입자만 온보딩으로 보낸다.
-   * 김하린·조아영과 온보딩을 마친 이서준은 onboarded: true 라 바로 Home. */
-  if (user) {
-    return user.onboarded ? (
-      <AppNavigationProvider key={user.email}>
-        {/* 커뮤니티·혜택 북마크와 Home 위젯 배치는 여러 화면이 같은 값을
-          * 봐야 해서 화면 위에서 한 번만 만든다 */}
-        <BookmarkProvider>
-          <CommunityPostsProvider>
-            {/* 헤더 종(읽지 않은 표시)과 알림 화면이 같은 값을 봐야 해서 화면 위에서 한 번만 만든다 */}
-            <NotificationProvider>
-              <WidgetPlacementProvider>
-                <MainPages />
-              </WidgetPlacementProvider>
-            </NotificationProvider>
-          </CommunityPostsProvider>
-        </BookmarkProvider>
-      </AppNavigationProvider>
-    ) : <Onboarding onComplete={finishOnboarding} userName={user.name} />;
+  if (!user) {
+    if (!['/login', '/signup'].includes(location.pathname)) return <Navigate to="/login" replace state={{ returnTo: location.pathname + location.search }} />;
+    return <Routes>
+      <Route path="/login" element={<Login onGoSignup={(profile) => navigate('/signup', { state: { returnTo, signupProfile: profile, appEntry: true } })} />} />
+      <Route path="/signup" element={<Signup onGoLogin={() => navigate('/login', { state: { returnTo, appEntry: true } })} initialProfile={location.state?.signupProfile as SignupTestProfile | undefined} />} />
+    </Routes>;
   }
-  return view === 'login' ? (
-    <Login
-      onGoSignup={(profile) => {
-        setSignupProfile(profile);
-        setView('signup');
-      }}
-    />
-  ) : (
-    <Signup onGoLogin={() => setView('login')} initialProfile={signupProfile} />
-  );
+  if (!user.onboarded) {
+    if (location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace state={{ returnTo: isAuth ? returnTo : location.pathname + location.search }} />;
+    return <Routes><Route path="/onboarding" element={<Onboarding onComplete={finishOnboarding} userName={user.name} />} /></Routes>;
+  }
+  if (isAuth) return <Navigate to={returnTo} replace />;
+  return <BookmarkProvider key={user.email}><CommunityPostsProvider><NotificationProvider><WidgetPlacementProvider>
+    <MainPages />
+  </WidgetPlacementProvider></NotificationProvider></CommunityPostsProvider></BookmarkProvider>;
 }

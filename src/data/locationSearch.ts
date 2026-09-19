@@ -1,4 +1,6 @@
 import type { AILocation } from './aiChatSettings';
+import { normalizeSavedLocation } from './userLocation';
+import type { SavedLocation } from './userLocation';
 
 const ENDPOINT = 'https://nominatim.openstreetmap.org';
 const cache = new Map<string, AILocation[]>();
@@ -32,13 +34,19 @@ function toLocation(result: NominatimResult): AILocation | null {
   return parts.displayName && Number.isFinite(latitude) && Number.isFinite(longitude) ? { ...parts, latitude, longitude } : null;
 }
 
-async function rateLimitedFetch(url: string): Promise<Response> {
+async function rateLimitedFetch(url: string): Promise<unknown> {
   const wait = Math.max(0, 1000 - (Date.now() - lastRequestAt));
   if (wait > 0) await new Promise((resolve) => window.setTimeout(resolve, wait));
   lastRequestAt = Date.now();
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!response.ok) throw new Error('location request failed');
-  return response;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+    if (!response.ok) throw new Error('location request failed');
+    return await response.json();
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export async function searchKoreanLocations(query: string): Promise<AILocation[]> {
@@ -47,8 +55,7 @@ export async function searchKoreanLocations(query: string): Promise<AILocation[]
   const cached = cache.get(normalized);
   if (cached) return cached;
   const params = new URLSearchParams({ q: normalized, format: 'jsonv2', addressdetails: '1', countrycodes: 'kr', 'accept-language': 'ko', limit: '6' });
-  const response = await rateLimitedFetch(`${ENDPOINT}/search?${params}`);
-  const results = (await response.json()) as NominatimResult[];
+  const results = await rateLimitedFetch(`${ENDPOINT}/search?${params}`) as NominatimResult[];
   const seen = new Set<string>();
   const locations = results.map(toLocation).filter((value): value is AILocation => Boolean(value)).filter((value) => !seen.has(value.displayName) && Boolean(seen.add(value.displayName)));
   cache.set(normalized, locations);
@@ -57,8 +64,20 @@ export async function searchKoreanLocations(query: string): Promise<AILocation[]
 
 export async function reverseGeocodeKoreanLocation(latitude: number, longitude: number): Promise<AILocation> {
   const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude), format: 'jsonv2', addressdetails: '1', zoom: '16', 'accept-language': 'ko' });
-  const response = await rateLimitedFetch(`${ENDPOINT}/reverse?${params}`);
-  const location = toLocation((await response.json()) as NominatimResult);
+  const result = await rateLimitedFetch(`${ENDPOINT}/reverse?${params}`) as NominatimResult;
+  const location = toLocation(result);
   if (!location) throw new Error('location not found');
-  return location;
+  return { ...location, latitude, longitude };
+}
+
+/** 직접 입력한 이름은 검색 실패에도 유지하며, 기존 좌표는 재조회하지 않는다. */
+export async function geocodeSavedLocation(value: SavedLocation): Promise<SavedLocation> {
+  const location = normalizeSavedLocation(value) ?? { displayName: value.displayName.trim() };
+  if (!location.displayName || (location.lat !== undefined && location.lng !== undefined)) return location;
+  try {
+    const [result] = await searchKoreanLocations(location.displayName);
+    return result ? { displayName: location.displayName, lat: result.latitude, lng: result.longitude } : location;
+  } catch {
+    return location;
+  }
 }

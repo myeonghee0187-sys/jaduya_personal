@@ -158,7 +158,7 @@ export function CommunityWritePanel({ open, onClose }: CommunityWritePanelProps)
   /* 시스템 뒤로가기는 `<`/X 버튼과 같은 동작(requestClose)을 한다 — 작성 중이면 먼저
    * 나가기 확인을 띄운다. 확인 다이얼로그가 떠 있는 동안 뒤로가기가 오면 그 다이얼로그부터
    * 닫는다(=취소, 패널에 남는다) — 쌓인 순서대로 오버레이가 먼저 닫히는 것과 같은 규칙이다. */
-  useDismissOnBack(open, requestClose);
+  useDismissOnBack(open, requestClose, confirmOpen);
   useDismissOnBack(confirmOpen, cancelClose);
 
   /* '#' 로 구간을 나눠 한 번에 여러 태그를 추가한다 — "#예시 #예시2" 처럼 연속으로 써도

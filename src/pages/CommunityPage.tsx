@@ -7,7 +7,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
-import { CommunityPostDetailPanel } from '../components/CommunityPostDetailPanel';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
 import {
   COMMUNITY_BOARD_TAB,
@@ -67,18 +66,14 @@ export function CommunityPage({
 }: CommunityPageProps = {}) {
   const navigation = useAppNavigation();
   const requestedView = navigation?.options.tab;
-  const [boardView, setBoardView] = useState<CommunityBoardView>(() =>
-    initialBoardView ?? (isBoardView(requestedView) ? requestedView : '전체'),
-  );
+  const boardView = isBoardView(requestedView) ? requestedView : initialBoardView ?? '전체';
   const [page, setPage] = useState(1);
   const [writeOpen, setWriteOpen] = useState(false);
-  const [detailPostId, setDetailPostId] = useState<string | null>(() => navigation?.options.postId ?? null);
   const [keyword, setKeyword] = useState('');
-  const [liked, setLiked] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const feedRef = useRef<HTMLElement>(null);
   const bookmarks = useBookmarks();
-  const { ownPosts } = useCommunityPosts();
+  const { ownPosts, likedPostIds: liked, togglePostLike: toggleLike } = useCommunityPosts();
   const getCommentCount = useCommunityCommentCount();
 
   const allBoardPosts = useMemo(
@@ -119,17 +114,6 @@ export function CommunityPage({
     setPage((current) => Math.min(current, pageCount));
   }, [pageCount]);
 
-  const toggleLike = (id: string) =>
-    setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
-
-  const closeDetail = () => {
-    if (navigation?.options.returnTo) {
-      navigation.goBack('community');
-      return;
-    }
-    setDetailPostId(null);
-  };
-
   const goToPage = (nextPage: number) => {
     setPage(nextPage);
     window.requestAnimationFrame(() => {
@@ -154,9 +138,7 @@ export function CommunityPage({
               className={`community-tabs__tab${name === COMMUNITY_BOARD_TAB ? ' is-active' : ''}`}
               aria-current={name === COMMUNITY_BOARD_TAB ? 'page' : undefined}
               onClick={() => {
-                /* 이 세 탭은 하단 탭바처럼 나란한 형제 화면이다 — navigate() 로 매번 쌓으면
-                 * 탭을 오갈수록 시스템 뒤로가기를 그만큼 더 눌러야 커뮤니티를 벗어나게
-                 * 되므로, 탭 전환 전용(navigateTab)으로 지금 쌓인 단계를 이 탭으로 대체한다. */
+                /* 형제 화면 이동도 URL history에 push한다. */
                 if (name === COMMUNITY_BOARD_TAB && returnToCommunity) navigation?.navigateTab('community');
                 else if (name === COMMUNITY_TIP_TAB) navigation?.navigateTab('community-tip');
                 else if (name === '지역 후기') navigation?.navigateTab('community-region');
@@ -211,7 +193,8 @@ export function CommunityPage({
                 role="tab"
                 aria-selected={active}
                 className={`board-type-filter__btn${active ? ' is-active' : ''}`}
-                onClick={() => setBoardView(view.id)}
+                onClick={() => navigation?.navigate(view.id === '질문' ? 'community-question' : 'community',
+                  view.id === '전체' || view.id === '질문' ? {} : { tab: view.id })}
               >
                 <span className="board-type-filter__icon-stack">
                   <span
@@ -247,7 +230,7 @@ export function CommunityPage({
                   liked={liked.includes(post.id)}
                   onToggleSave={() => bookmarks.toggle(post.id)}
                   onToggleLike={() => toggleLike(post.id)}
-                  onOpenDetail={post.body ? () => setDetailPostId(post.id) : undefined}
+                  onOpenDetail={post.body ? () => navigation?.navigate('community', { postId: post.id }) : undefined}
                 />
               ))}
             </div>
@@ -296,15 +279,7 @@ export function CommunityPage({
       <CommunityWriteFab onClick={() => setWriteOpen(true)} />
       <BottomNavigation activeTab="community" />
       <CommunityWritePanel open={writeOpen} onClose={() => setWriteOpen(false)} />
-      <CommunityPostDetailPanel
-        post={allBoardPosts.find((item) => item.id === detailPostId) ?? null}
-        open={detailPostId !== null}
-        onClose={closeDetail}
-        liked={detailPostId !== null && liked.includes(detailPostId)}
-        onToggleLike={() => detailPostId && toggleLike(detailPostId)}
-        saved={detailPostId !== null && bookmarks.isSaved(detailPostId)}
-        onToggleSave={() => detailPostId && bookmarks.toggle(detailPostId)}
-      />
+
     </div>
   );
 }
