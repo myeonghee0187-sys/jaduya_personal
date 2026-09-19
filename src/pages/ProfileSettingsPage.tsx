@@ -107,7 +107,7 @@ export function ProfileSettingsPage() {
     }
     setToast('맞춤 설정 완료!\n나에게 맞는 추천을 준비했어요.');
     homeRedirectRef.current = window.setTimeout(
-      () => navigation?.navigate('home'),
+      () => navigation?.goBack('home'),
       HOME_REDIRECT_MS,
     );
   };
@@ -117,7 +117,7 @@ export function ProfileSettingsPage() {
       <SubPageHeader
         title="자취 프로필"
         backLabel={backLabel}
-        onBack={() => navigation?.navigate(returnTo)}
+        onBack={() => navigation?.goBack(returnTo)}
       />
 
       <main className="profile-settings__scroll">

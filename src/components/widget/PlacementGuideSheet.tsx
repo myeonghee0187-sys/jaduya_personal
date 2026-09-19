@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { icon } from '../../lib/asset';
+import { useDismissOnBack } from '../../navigation/useDismissOnBack';
 
 interface PlacementGuideSheetProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface PlacementGuideSheetProps {
  * 하는" 액션이 아니라 그냥 읽고 닫는 정보 안내라 하단 고정 대신 중앙에 띄운다. */
 export function PlacementGuideSheet({ open, onClose }: PlacementGuideSheetProps) {
   const titleId = useId();
+  useDismissOnBack(open, onClose);
 
   return (
     <div className="layer wpg-guide-modal-layer" hidden={!open}>

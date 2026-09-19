@@ -25,7 +25,7 @@ export function CustomerCenterPage({ onItemSelect }: CustomerCenterPageProps) {
       <SubPageHeader
         title="고객센터"
         backLabel="마이페이지로"
-        onBack={() => navigation?.navigate('my')}
+        onBack={() => navigation?.goBack('my')}
       />
 
       <main className="settings-page__scroll support-page__scroll">

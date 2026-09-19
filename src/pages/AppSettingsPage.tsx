@@ -33,7 +33,7 @@ export function AppSettingsPage({ onAction }: AppSettingsPageProps) {
       <SubPageHeader
         title="앱 설정"
         backLabel="마이페이지로"
-        onBack={() => navigation?.navigate('my')}
+        onBack={() => navigation?.goBack('my')}
       />
 
       <main className="settings-page__scroll">

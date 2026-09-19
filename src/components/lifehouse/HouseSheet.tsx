@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { usePrefersReducedMotion } from '../homecare/usePrefersReducedMotion';
 import { icon } from '../../lib/asset';
+import { useDismissOnBack } from '../../navigation/useDismissOnBack';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -29,6 +30,8 @@ export function HouseSheet({ open, title, titleId, onClose, children }: HouseShe
   const reduceMotion = usePrefersReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  /* 열려 있는 동안 뒤로가기 한 단계를 가져간다 — 시스템 뒤로가기가 오면 이 시트부터 닫는다. */
+  useDismissOnBack(open, onClose);
 
   useEffect(() => {
     if (!open) return;

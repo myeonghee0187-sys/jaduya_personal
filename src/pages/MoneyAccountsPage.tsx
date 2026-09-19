@@ -52,7 +52,7 @@ export function MoneyAccountsPage() {
       <SubPageHeader
         title="금융 관리"
         backLabel="돈관리로"
-        onBack={() => navigation?.navigate('money')}
+        onBack={() => navigation?.goBack('money')}
       />
 
       <main className="money-accounts__scroll">

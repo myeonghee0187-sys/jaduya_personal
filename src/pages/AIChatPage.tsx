@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent, ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { useDismissOnBack } from '../navigation/useDismissOnBack';
 import { StatusBar } from '../components/StatusBar';
 import { LeafletRepairMap } from '../components/ai/LeafletRepairMap';
 import { aiFabRef } from '../components/ai/aiFabRef';
@@ -1848,6 +1849,10 @@ export function AIChatPage() {
       navigation?.closeAIChat();
     }
   };
+
+  /* 자두AI는 화면 위에 얹히는 오버레이라 시스템 뒤로가기가 오면 밑에 있던 화면으로
+   * 넘어가기 전에 자두AI부터(닫기 버튼과 같은 애니메이션으로) 닫는다. */
+  useDismissOnBack(navigation?.isAIChatOpen ?? false, closeChat);
 
   const setFromCurrentLocation = () => {
     setLocationNotice('');

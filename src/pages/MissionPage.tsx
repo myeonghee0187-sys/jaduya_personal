@@ -81,7 +81,7 @@ export function MissionPage({ onOpenMission }: MissionPageProps) {
       <SubPageHeader
         title="자취 미션"
         backLabel="마이페이지로"
-        onBack={() => navigation?.navigate('my')}
+        onBack={() => navigation?.goBack('my')}
       />
 
       <main className="mission__scroll">
