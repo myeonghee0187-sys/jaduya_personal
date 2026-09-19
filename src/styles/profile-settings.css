@@ -163,6 +163,104 @@
   color: var(--brand-primary);
 }
 
+.profile-settings__location {
+  padding: var(--card-padding-m);
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
+  color: var(--text-secondary);
+  font: 400 12px/1.4 var(--font-suit);
+}
+
+.profile-settings__location-heading,
+.profile-settings__location-heading strong {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.profile-settings__location-heading {
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.profile-settings__location-heading strong {
+  font: 600 14px/1.4 var(--font-suit);
+  color: var(--text-primary);
+}
+
+.profile-settings__location-heading img {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-settings__location p {
+  margin: var(--space-xs) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-settings__location-body {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-warm);
+}
+
+.profile-settings__location-body label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-settings__location-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.profile-settings__location-controls input {
+  flex: 1 1 160px;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-gray-4);
+  border-radius: var(--radius-s);
+  background: var(--surface-cream);
+  color: var(--text-primary);
+  font: 400 14px/1.4 var(--font-suit);
+}
+
+.profile-settings__location-controls input::placeholder {
+  color: var(--text-muted);
+}
+
+.profile-settings__location-controls button {
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-gray-4);
+  border-radius: var(--radius-s);
+  background: var(--surface-cream);
+  color: var(--brand-primary);
+  font: 600 12px/1.4 var(--font-suit);
+  cursor: pointer;
+}
+
+.profile-settings__location-controls button:disabled {
+  color: var(--text-muted);
+  cursor: wait;
+}
+
+.profile-settings__location :is(input, button, a):focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.profile-settings__location-body a {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  color: var(--text-muted);
+}
+
 /* ---------- 관심 분야 탭(가로 스크롤 pill) ---------- *
  * 관심 분야는 더 이상 사용자가 고르고 저장하는 값이 아니라 관심 주제를 탐색하기 위한
  * 탭이다 — 6개를 한 화면 폭에 욱여넣지 않고 콘텐츠 너비 기반 pill로 가로 스크롤한다

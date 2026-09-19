@@ -24,6 +24,8 @@ import type { AIPersonaPrompt } from '../data/aiPersonaPrompts';
 import { HOUSING_TYPES, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { loadAIChatSettings, saveAIChatSettings } from '../data/aiChatSettings';
 import type { AILocation } from '../data/aiChatSettings';
+import { fromAILocation, resolveUserLocation } from '../data/userLocation';
+import type { SavedLocation } from '../data/userLocation';
 import { markPendingMoveInChecklistReturn, consumePendingMoveInChecklistReturn } from '../data/moveInChecklistReturn';
 import { reverseGeocodeKoreanLocation, searchKoreanLocations } from '../data/locationSearch';
 import { PERSONA_PROFILE } from '../data/personaProfile';
@@ -385,7 +387,7 @@ function getScenarioReply(message: string, conversation: AIConversationContext, 
     return {
       content: locationStep.message,
       ctas: locationStep.ctas,
-      conversation: nextScenarioContext(conversation, 'location-confirm', 'repairKind', repairKind),
+      conversation: nextScenarioContext(conversation, user.location ? 'search' : 'location-confirm', 'repairKind', repairKind),
     };
   }
 
@@ -749,14 +751,15 @@ export function AIChatPage() {
   const [aiView, setAiView] = useState<'home' | 'chat' | 'settings'>('home');
   const storedAISettings = loadAIChatSettings(user?.email ?? 'guest');
   const [contractType, setContractType] = useState(storedAISettings.contractType);
-  const [aiLocation, setAiLocation] = useState<AILocation | null>(storedAISettings.location);
+  const [aiLocation, setAiLocation] = useState<SavedLocation | null>(null);
   const [contractTypeDraft, setContractTypeDraft] = useState(storedAISettings.contractType);
-  const [locationDraft, setLocationDraft] = useState<AILocation | null>(storedAISettings.location);
+  const [locationDraft, setLocationDraft] = useState<SavedLocation | null>(null);
   const [locationSearchOpen, setLocationSearchOpen] = useState(false);
   const [locationQuery, setLocationQuery] = useState('');
   const [locationResults, setLocationResults] = useState<AILocation[]>([]);
   const [locationNotice, setLocationNotice] = useState('');
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const locationLookupRef = useRef(0);
   const [isRepairLocationModalOpen, setIsRepairLocationModalOpen] = useState(false);
   /* 이 지역 검색 모달은 수리업체 지역 설정과 pre-move-check 의 "새 집 주소" 확인 둘 다에서
    * 쓴다 — 입력/검색/선택 UI는 그대로 재사용하고, 확인 버튼을 눌렀을 때의 동작(수리 검색
@@ -813,9 +816,19 @@ export function AIChatPage() {
   const personaProfile = PERSONA_PROFILE[user?.persona ?? 'beginner'];
   const livingProfile = loadLivingProfile(user?.email ?? 'guest', personaProfile);
   const housingValue = livingProfile.housing ?? housingDraft;
-  const effectiveLocation = aiLocation?.displayName ?? profileLocation;
-  const repairMapAreaName = aiLocation?.sigungu || aiLocation?.dong || effectiveLocation || '설정 지역';
-  const locationSummaryName = aiLocation ? ([aiLocation.sigungu, aiLocation.dong].filter(Boolean).join(' ') || aiLocation.displayName) : undefined;
+  const resolvedLocation = resolveUserLocation(livingProfile, aiLocation,
+    fromAILocation(storedAISettings.location) ?? (profileLocation ? { displayName: profileLocation } : null));
+  const effectiveLocation = resolvedLocation?.displayName;
+  const [repairTarget, setRepairTarget] = useState<SavedLocation | null>(null);
+  useEffect(() => {
+    setAiLocation(null);
+    setLocationDraft(null);
+    setRepairTarget(null);
+    setIsLocationLoading(false);
+    return () => { locationLookupRef.current += 1; };
+  }, [user?.email]);
+  const repairMapAreaName = repairTarget?.displayName ?? effectiveLocation ?? '설정 지역';
+  const locationSummaryName = effectiveLocation;
   const userChips = [contractType, housingValue, locationSummaryName].filter((chip): chip is string => Boolean(chip));
   const profileContext: ScenarioUserContext = {
     name: user?.name,
@@ -878,9 +891,11 @@ export function AIChatPage() {
   };
 
   const openAISettings = () => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
     setHousingDraft(livingProfile.housing ?? '원룸');
     setContractTypeDraft(contractType);
-    setLocationDraft(aiLocation);
+    setLocationDraft(resolvedLocation);
     setLocationSearchOpen(false);
     setLocationQuery('');
     setLocationResults([]);
@@ -888,11 +903,12 @@ export function AIChatPage() {
     setAiView('settings');
   };
 
-  const startRepairSearch = (location: string, source: 'saved' | 'new') => {
+  const startRepairSearch = (location: string, source: 'saved' | 'new', selected = resolvedLocation, announce = true) => {
+    setRepairTarget(selected ?? { displayName: location });
     if (conversation.flowId === 'repair-search') {
       setConversation((current) => ({ ...current, stage: 'search' }));
     }
-    appendAssistantMessage(
+    if (announce) appendAssistantMessage(
       source === 'saved'
         ? `설정된 '${location}' 기준으로 찾아볼게요.`
         : `설정해주신 '${location}' 기준으로 찾아볼게요.`,
@@ -913,8 +929,10 @@ export function AIChatPage() {
   };
 
   const openRepairLocationModal = () => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
     setLocationModalPurpose('repair');
-    setLocationDraft(aiLocation);
+    setLocationDraft(resolvedLocation);
     setLocationQuery('');
     setLocationResults([]);
     setLocationNotice('');
@@ -923,8 +941,10 @@ export function AIChatPage() {
 
   /* pre-move-check "주소 입력하기 / 주소 변경하기" — 같은 모달을 새 집 주소 확인 목적으로 연다. */
   const openMoveInAddressModal = () => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
     setLocationModalPurpose('move-in-address');
-    setLocationDraft(aiLocation);
+    setLocationDraft(resolvedLocation);
     setLocationQuery('');
     setLocationResults([]);
     setLocationNotice('');
@@ -932,8 +952,10 @@ export function AIChatPage() {
   };
 
   const closeRepairLocationModal = () => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
     setIsRepairLocationModalOpen(false);
-    setLocationDraft(aiLocation);
+    setLocationDraft(resolvedLocation);
     setLocationQuery('');
     setLocationResults([]);
     setLocationNotice('');
@@ -941,21 +963,19 @@ export function AIChatPage() {
 
   const saveRepairLocation = () => {
     if (!locationDraft) return;
-    saveAIChatSettings(user?.email ?? 'guest', { contractType, location: locationDraft });
     setAiLocation(locationDraft);
     setIsRepairLocationModalOpen(false);
     setLocationQuery('');
     setLocationResults([]);
     setLocationNotice('');
-    startRepairSearch(locationDraft.displayName, 'new');
+    startRepairSearch(locationDraft.displayName, 'new', locationDraft);
   };
 
   /* pre-move-check 에서 새 주소를 고르고 "설정하기"를 눌렀을 때 — 수리 검색과 달리 검색을
-   * 시작하지 않고, 같은 위치 저장소(AIChatSettings.location)에 저장한 뒤 conversation을
+   * 시작하지 않고, 해당 대화의 임시 위치로 적용한 뒤 conversation을
    * address-confirm 단계로 이어간다. */
   const saveMoveInAddress = () => {
     if (!locationDraft) return;
-    saveAIChatSettings(user?.email ?? 'guest', { contractType, location: locationDraft });
     setAiLocation(locationDraft);
     setIsRepairLocationModalOpen(false);
     setLocationQuery('');
@@ -1556,6 +1576,9 @@ export function AIChatPage() {
           },
         ]);
       }
+      if (scenarioReply?.conversation.flowId === 'repair-search' && scenarioReply.conversation.stage === 'search' && effectiveLocation) {
+        startRepairSearch(effectiveLocation, 'saved', resolvedLocation, false);
+      }
       setIsTerminalResult(
         scenarioReply?.conversation.stage === 'result'
         || reply?.diagnosis?.stage === 'result'
@@ -1604,6 +1627,10 @@ export function AIChatPage() {
   };
 
   const resetConversation = () => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
+    setAiLocation(null);
+    setRepairTarget(null);
     if (responseTimerRef.current !== null) {
       window.clearTimeout(responseTimerRef.current);
       responseTimerRef.current = null;
@@ -1645,6 +1672,10 @@ export function AIChatPage() {
   };
 
   const openSavedConversation = (saved: SavedConversation) => {
+    locationLookupRef.current += 1;
+    setIsLocationLoading(false);
+    setAiLocation(null);
+    setRepairTarget(null);
     conversationIdRef.current = saved.id;
     messageIdRef.current = Math.max(0, ...saved.messages.map((message) => message.id));
     setMessages(saved.messages);
@@ -1766,11 +1797,7 @@ export function AIChatPage() {
     repairSearchAbortRef.current = controller;
     setRepairRequestState('loading');
 
-    void getPreferredRepairLocation(aiLocation ? {
-      label: aiLocation.displayName,
-      latitude: aiLocation.latitude,
-      longitude: aiLocation.longitude,
-    } : null).then(async (location) => {
+    void getPreferredRepairLocation(repairTarget).then(async (location) => {
       if (controller.signal.aborted) return;
       setRepairSearchLocation(location);
       const shops = await getDemoRepairShops(location, repairKindFor(diagnosis, conversation.flowId, conversation.answers), controller.signal);
@@ -1782,7 +1809,7 @@ export function AIChatPage() {
     });
 
     return () => controller.abort();
-  }, [isRepairMapOpen, repairSearchAttempt]);
+  }, [isRepairMapOpen, repairSearchAttempt, repairTarget]);
 
   useEffect(() => {
     if (!isRepairMapOpen || !repairAnimationDone) return;
@@ -1855,6 +1882,7 @@ export function AIChatPage() {
   /* AI 전체 화면은 /ai route 하나만 사용하며 별도 overlay guard를 만들지 않는다. */
 
   const setFromCurrentLocation = () => {
+    const request = ++locationLookupRef.current;
     setLocationNotice('');
     setLocationSearchOpen(false);
     setLocationResults([]);
@@ -1865,15 +1893,18 @@ export function AIChatPage() {
     setIsLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        if (request !== locationLookupRef.current) return;
         void reverseGeocodeKoreanLocation(coords.latitude, coords.longitude)
           .then((nextLocation) => {
-            setLocationDraft(nextLocation);
+            if (request !== locationLookupRef.current) return;
+            setLocationDraft(fromAILocation(nextLocation));
             setLocationNotice(`${nextLocation.displayName}(으)로 설정했어요. 저장하기를 눌러 적용해주세요.`);
           })
-          .catch(() => setLocationNotice('현재 지역을 확인하지 못했어요. 지역을 직접 검색해주세요.'))
-          .finally(() => setIsLocationLoading(false));
+          .catch(() => { if (request === locationLookupRef.current) setLocationNotice('현재 지역을 확인하지 못했어요. 지역을 직접 검색해주세요.'); })
+          .finally(() => { if (request === locationLookupRef.current) setIsLocationLoading(false); });
       },
       () => {
+        if (request !== locationLookupRef.current) return;
         setIsLocationLoading(false);
         setLocationNotice('위치 권한을 허용하거나 지역을 직접 검색해주세요.');
       },
@@ -1884,16 +1915,18 @@ export function AIChatPage() {
   const submitLocationSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!locationQuery.trim() || isLocationLoading) return;
+    const request = ++locationLookupRef.current;
     setIsLocationLoading(true);
     setLocationNotice('');
     setLocationResults([]);
     void searchKoreanLocations(locationQuery)
       .then((results) => {
+        if (request !== locationLookupRef.current) return;
         setLocationResults(results);
         if (results.length === 0) setLocationNotice('검색 결과가 없어요. 동, 구 또는 주소를 다시 입력해주세요.');
       })
-      .catch(() => setLocationNotice('지역을 검색하지 못했어요. 잠시 후 다시 시도해주세요.'))
-      .finally(() => setIsLocationLoading(false));
+      .catch(() => { if (request === locationLookupRef.current) setLocationNotice('지역을 검색하지 못했어요. 잠시 후 다시 시도해주세요.'); })
+      .finally(() => { if (request === locationLookupRef.current) setIsLocationLoading(false); });
   };
 
   /* AI는 별도 drawer가 아니라, 현재 보이는 앱 shell 안에 렌더링하는 전체 화면이다. */
@@ -1905,7 +1938,7 @@ export function AIChatPage() {
   if (aiView === 'settings') {
     const saveSettings = () => {
       saveLivingProfile(user?.email ?? 'guest', { ...livingProfile, housing: housingDraft as typeof HOUSING_TYPES[number] });
-      saveAIChatSettings(user?.email ?? 'guest', { contractType: contractTypeDraft, location: locationDraft });
+      saveAIChatSettings(user?.email ?? 'guest', { ...storedAISettings, contractType: contractTypeDraft });
       setContractType(contractTypeDraft); setAiLocation(locationDraft);
       setAiView('home');
     };
@@ -1926,7 +1959,7 @@ export function AIChatPage() {
           {locationNotice && <p className="ai-chat-page__location-notice" role="status">{locationNotice}</p>}
         </section>
       </main><button className="ai-chat-page__settings-save" onClick={saveSettings}>저장하기</button>
-      {locationSearchOpen && <div className="ai-chat-page__location-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationSearchOpen(false); }}><section className="ai-chat-page__location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-search-title"><div className="ai-chat-page__location-sheet-handle" /><header><h2 id="location-search-title">지역 검색</h2><button type="button" aria-label="지역 검색 닫기" onClick={() => setLocationSearchOpen(false)}><img src={icon('sheet-close.svg')} alt="" /></button></header><form onSubmit={submitLocationSearch}><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="동, 구, 주소를 검색해보세요" aria-label="지역 검색어" autoFocus /><button type="submit" aria-label="지역 검색 실행" disabled={!locationQuery.trim() || isLocationLoading}><img src={icon('community-search.svg')} alt="" /></button></form>{locationResults.length > 0 && <ul>{locationResults.map((result) => <li key={`${result.latitude}-${result.longitude}`}><button type="button" onClick={() => { setLocationDraft(result); setLocationSearchOpen(false); setLocationResults([]); setLocationNotice(`${result.displayName}(으)로 선택했어요. 저장하기를 눌러 적용해주세요.`); }}>{result.displayName}</button></li>)}</ul>}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></section></div>}
+      {locationSearchOpen && <div className="ai-chat-page__location-sheet-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationSearchOpen(false); }}><section className="ai-chat-page__location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-search-title"><div className="ai-chat-page__location-sheet-handle" /><header><h2 id="location-search-title">지역 검색</h2><button type="button" aria-label="지역 검색 닫기" onClick={() => setLocationSearchOpen(false)}><img src={icon('sheet-close.svg')} alt="" /></button></header><form onSubmit={submitLocationSearch}><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="동, 구, 주소를 검색해보세요" aria-label="지역 검색어" autoFocus /><button type="submit" aria-label="지역 검색 실행" disabled={!locationQuery.trim() || isLocationLoading}><img src={icon('community-search.svg')} alt="" /></button></form>{locationResults.length > 0 && <ul>{locationResults.map((result) => <li key={`${result.latitude}-${result.longitude}`}><button type="button" onClick={() => { setLocationDraft(fromAILocation(result)); setLocationSearchOpen(false); setLocationResults([]); setLocationNotice(`${result.displayName}(으)로 선택했어요. 저장하기를 눌러 적용해주세요.`); }}>{result.displayName}</button></li>)}</ul>}<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></section></div>}
     </div>);
   }
 
@@ -2331,7 +2364,7 @@ export function AIChatPage() {
                       type="button"
                       aria-pressed={locationDraft?.displayName === result.displayName}
                       onClick={() => {
-                        setLocationDraft(result);
+                        setLocationDraft(fromAILocation(result));
                         setLocationQuery(result.displayName);
                         setLocationNotice(`${result.displayName}(으)로 선택했어요.`);
                       }}

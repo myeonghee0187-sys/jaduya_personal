@@ -93,11 +93,8 @@ export function repairSearchLocationStep(location?: string): { message: string; 
     };
   }
   return {
-    message: `현재 설정된 지역을 기준으로 찾아볼까요?\n\n현재 지역: ${location}`,
-    ctas: [
-      { label: '이 지역에서 찾기', action: 'search-repair-current-location', recommended: true },
-      { label: '지역 변경', action: 'change-repair-search-location' },
-    ],
+    message: `${location} 기준으로 주변 수리업체를 찾아볼게요.`,
+    ctas: [],
   };
 }
 

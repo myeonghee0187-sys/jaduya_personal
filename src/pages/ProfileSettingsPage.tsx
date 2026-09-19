@@ -7,6 +7,8 @@ import { PERSONA_PROFILE } from '../data/personaProfile';
 import { icon } from '../lib/asset';
 import { InterestPicker } from '../components/InterestPicker';
 import { RecommendInfoAccordion } from '../components/RecommendInfoAccordion';
+import { SettingsToggle } from '../components/SettingsRow';
+import { geocodeSavedLocation, reverseGeocodeKoreanLocation } from '../data/locationSearch';
 import {
   HOUSING_TYPES,
   LIVING_EXPERIENCES,
@@ -33,9 +35,70 @@ export function ProfileSettingsPage() {
   /* 저장된 값이 있으면 그대로 불러오고, 없을 때만 persona 기본값으로 시작한다.
    * 계정을 바꾸면 ownerKey 가 바뀌어 그 계정 값으로 다시 읽는다. */
   const [profile, setProfile] = useState(() => loadLivingProfile(ownerKey, persona));
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationNotice, setLocationNotice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const locationRequest = useRef(0);
+  const locationTimer = useRef<number | undefined>(undefined);
+  const cancelLocationRequest = () => {
+    locationRequest.current += 1;
+    window.clearTimeout(locationTimer.current);
+  };
   useEffect(() => {
     setProfile(loadLivingProfile(ownerKey, persona));
+    setLocationLoading(false);
+    setLocationNotice('');
+    setSaving(false);
+    return cancelLocationRequest;
   }, [ownerKey, persona]);
+
+  const loadCurrentLocation = () => {
+    if (!profile.useLocation || locationLoading) return;
+    if (!navigator.geolocation) {
+      setLocationNotice('이 브라우저에서는 위치를 불러올 수 없어요. 지역을 직접 입력해주세요.');
+      return;
+    }
+    cancelLocationRequest();
+    const request = locationRequest.current;
+    setLocationLoading(true);
+    setLocationNotice('현재 위치를 확인하고 있어요.');
+    const finish = (message: string) => {
+      if (request !== locationRequest.current) return;
+      cancelLocationRequest();
+      setLocationLoading(false);
+      setLocationNotice(message);
+    };
+    // 좌표 조회뿐 아니라 지역명 변환이 지연될 때도 다시 시도할 수 있게 한다.
+    locationTimer.current = window.setTimeout(
+      () => finish('위치 확인이 지연되고 있어요. 다시 시도하거나 지역을 직접 입력해주세요.'),
+      20000,
+    );
+    try {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          if (request !== locationRequest.current) return;
+          void reverseGeocodeKoreanLocation(coords.latitude, coords.longitude)
+            .then((result) => {
+              if (request !== locationRequest.current) return;
+              setProfile((prev) => ({ ...prev, location: result.displayName,
+                locationData: { displayName: result.displayName, lat: coords.latitude, lng: coords.longitude } }));
+              finish('현재 위치를 불러왔어요. 설정 저장하기를 눌러 적용해주세요.');
+            })
+            .catch(() => finish('지역명을 불러오지 못했어요. 지역을 직접 입력해주세요.'));
+        },
+        (error) => finish(error.code === 1
+          ? '위치 권한이 허용되지 않았어요. 지역을 직접 입력하거나 브라우저 설정에서 권한을 허용해주세요.'
+          : error.code === 3
+            ? '위치 확인 시간이 초과됐어요. 다시 시도하거나 지역을 직접 입력해주세요.'
+            : '현재 위치를 확인할 수 없어요. 다시 시도하거나 지역을 직접 입력해주세요.'),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      );
+    } catch {
+      finish('현재 위치를 확인할 수 없어요. 지역을 직접 입력해주세요.');
+    }
+  };
 
   /* 들어온 경로에 따라 뒤로가기 목적지가 다르다.
    * 마이페이지 메뉴로 들어오면 마이페이지(기본), 홈 '추천 설정'으로 들어오면 홈. */
@@ -88,11 +151,24 @@ export function ProfileSettingsPage() {
   /* 홈에서 들어온 경우에만 저장 후 자동으로 홈으로 돌려보낸다.
    * 저장(동기)이 끝난 뒤에 이동하므로 홈은 항상 방금 저장한 값을 읽는다.
    * 실패하면 이동하지 않고 그 자리에 머문다. */
-  const handleSave = () => {
-    if (!saveLivingProfile(ownerKey, profile)) {
+  const handleSave = async () => {
+    if (saving || locationLoading) return;
+    setSaving(true);
+    const request = locationRequest.current;
+    const locationData = profile.useLocation && profile.location.trim()
+      ? await geocodeSavedLocation(profile.locationData ?? { displayName: profile.location })
+      : profile.locationData;
+    if (request !== locationRequest.current) {
+      setSaving(false);
+      return;
+    }
+    const savedProfile = { ...profileRef.current, locationPreferenceSet: true, locationData };
+    setSaving(false);
+    if (!saveLivingProfile(ownerKey, savedProfile)) {
       setToast('설정을 저장하지 못했어요.');
       return;
     }
+    setProfile(savedProfile);
     if (returnTo !== 'home') {
       setToast('설정이 저장되었어요.');
       return;
@@ -166,6 +242,48 @@ export function ProfileSettingsPage() {
               ))}
             </div>
           </div>
+          <div className="profile-settings__location">
+            <div className="profile-settings__location-heading">
+              <strong><img src={icon('profile-location.svg')} alt="" />위치 정보 사용</strong>
+              <SettingsToggle
+                label="위치 정보 사용"
+                checked={profile.useLocation}
+                onChange={(useLocation) => {
+                  cancelLocationRequest();
+                  setLocationLoading(false);
+                  setLocationNotice('');
+                  setProfile((prev) => ({ ...prev, useLocation }));
+                }}
+              />
+            </div>
+            <p>지역 기반 생활 정보, 혜택, 주변 정보 추천에 활용돼요.</p>
+            {profile.useLocation && (
+              <div className="profile-settings__location-body">
+                <label htmlFor="living-location">위치 정보</label>
+                <div className="profile-settings__location-controls">
+                  <input
+                    id="living-location"
+                    value={profile.location}
+                    placeholder="예: 서울특별시 광진구"
+                    aria-describedby="living-location-hint"
+                    onChange={(event) => {
+                      cancelLocationRequest();
+                      setLocationLoading(false);
+                      setLocationNotice('');
+                      setProfile((prev) => ({ ...prev, location: event.target.value,
+                        locationData: { displayName: event.target.value } }));
+                    }}
+                  />
+                  <button type="button" disabled={locationLoading} onClick={loadCurrentLocation}>
+                    {locationLoading ? '불러오는 중…' : '현재 위치로 불러오기'}
+                  </button>
+                </div>
+                <p id="living-location-hint">입력하신 지역은 맞춤 추천, 주변 정보, 혜택 안내 등에 활용돼요.</p>
+                <p role="status" hidden={!locationNotice}>{locationNotice}</p>
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ② 맞춤 추천 설정 — 분야를 고르면 그 분야의 주제가 아래에 나온다 */}
@@ -194,8 +312,8 @@ export function ProfileSettingsPage() {
 
       {/* 저장 후에도 화면을 벗어나지 않는다 — 이어서 더 고를 수 있게 */}
       <div className="profile-settings__footer">
-        <button type="button" className="profile-settings__save" onClick={handleSave}>
-          설정 저장하기
+        <button type="button" className="profile-settings__save" disabled={saving || locationLoading} onClick={handleSave}>
+          {saving ? '설정 저장 중…' : '설정 저장하기'}
         </button>
       </div>
     </div>

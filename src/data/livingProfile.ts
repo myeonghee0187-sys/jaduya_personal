@@ -7,6 +7,9 @@
  * loadLivingProfile(ownerKey) 만 읽으면 된다.
  */
 
+import { normalizeSavedLocation } from './userLocation';
+import type { SavedLocation } from './userLocation';
+
 const STORAGE_PREFIX = 'jaduya.livingProfile.';
 
 /** ownerKey(대부분 이메일)를 한 형태로 통일한다 — 호출하는 화면마다 trim/lowercase 를
@@ -72,6 +75,11 @@ export function interestTopicHint(category: InterestCategory): string {
 const ONBOARDING_SEED_CATEGORY_LIMIT = 2;
 
 export interface LivingProfilePreferences {
+  useLocation: boolean;
+  location: string;
+  locationData?: SavedLocation;
+  /** 기존 계정의 설정 부재와 사용자가 명시한 OFF를 구분한다. */
+  locationPreferenceSet?: boolean;
   experience: LivingExperience | null;
   housing: HousingType | null;
   /** 분야별 관심 주제 — 분야는 저장되는 선택값이 아니라 이 주제들을 탐색하는 탭이라,
@@ -99,6 +107,9 @@ export function createDefaultLivingProfile(
   return {
     experience: base.experience ?? null,
     housing: base.housing ?? null,
+    useLocation: false,
+    location: '',
+    locationPreferenceSet: false,
     topics: emptyTopics(),
   };
 }
@@ -146,9 +157,15 @@ export function loadLivingProfile(
       if (!Array.isArray(list)) continue;
       topics[category] = INTEREST_TOPICS[category].filter((topic) => list.includes(topic));
     }
+    const locationData = normalizeSavedLocation(stored.locationData)
+      ?? normalizeSavedLocation({ displayName: stored.location });
     return {
       experience: pick(stored.experience, LIVING_EXPERIENCES),
       housing: pick(stored.housing, HOUSING_TYPES),
+      useLocation: stored.useLocation === true,
+      location: locationData?.displayName ?? '',
+      ...(locationData ? { locationData } : {}),
+      locationPreferenceSet: stored.locationPreferenceSet ?? (typeof stored.useLocation === 'boolean'),
       topics,
     };
   } catch {
@@ -171,7 +188,13 @@ export function toggleInterestTopic(
 
 export function saveLivingProfile(ownerKey: string, preferences: LivingProfilePreferences): boolean {
   try {
-    localStorage.setItem(STORAGE_PREFIX + normalizeOwnerKey(ownerKey), JSON.stringify(preferences));
+    const locationData = normalizeSavedLocation(preferences.locationData)
+      ?? normalizeSavedLocation({ displayName: preferences.location });
+    localStorage.setItem(STORAGE_PREFIX + normalizeOwnerKey(ownerKey), JSON.stringify({
+      ...preferences,
+      location: locationData?.displayName ?? '',
+      locationData: locationData ?? undefined,
+    }));
     return true;
   } catch {
     return false;
