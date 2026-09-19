@@ -11,7 +11,6 @@ import { COMMUNITY_COMMENTS } from '../data/communityComments';
 import type { CommunityComment } from '../data/communityComments';
 import { LEVEL_STAGES, PERSONA_PROFILE } from '../data/personaProfile';
 import type { LevelValue } from '../data/personaProfile';
-import { useDismissOnBack } from '../navigation/useDismissOnBack';
 
 interface CommunityPostDetailPanelProps {
   post: CommunityPost | null;
@@ -83,9 +82,7 @@ export function CommunityPostDetailPanel({
   onToggleSave,
 }: CommunityPostDetailPanelProps) {
   const { user } = useAuth();
-  /* 열려 있는 동안 뒤로가기 한 단계를 가져간다 — 시스템 뒤로가기가 오면 이 상세부터 닫는다.
-   * onClose(=closeDetail)는 딥링크로 들어왔을 때의 returnTo 복귀 로직도 그대로 갖고 있다. */
-  useDismissOnBack(open, onClose);
+  /* 상세는 독립 route이며 onClose는 Router의 Back을 사용한다. */
   const [page, setPage] = useState(1);
   const [draft, setDraft] = useState('');
   /** 항상 인기 탭으로 시작한다 */

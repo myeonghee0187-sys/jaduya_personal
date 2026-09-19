@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import '../../styles/ai-chatbot.css';
 import { AIChatbotButton } from './AIChatbotButton';
@@ -47,7 +48,7 @@ export function AIChatbot({
   showEntryHint = false,
 }: AIChatbotProps) {
   const navigation = useAppNavigation();
-  const page = navigation?.page;
+  const { pathname } = useLocation();
 
   /* 버튼이 담길 고정 host — 한 번만 만들고 계속 재사용한다 */
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -70,7 +71,7 @@ export function AIChatbot({
     /* 새 화면의 헤더·탭바·금지 영역을 다시 재서 필요하면 비켜 준다
      * (커뮤니티 글쓰기 버튼과 겹친 채로 들어오는 경우) */
     settleRef.current?.();
-  }, [page]);
+  }, [pathname]);
 
   /* 누른 자리에서 화면이 펼쳐지는 전환. 재생할 수 없는 상황이면 바로 이동한다. */
   const openChat = (button: HTMLButtonElement | null) => {

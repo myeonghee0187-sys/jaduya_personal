@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { icon } from '../lib/asset';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { pageUrl } from '../navigation/routes';
 
 type TabId = 'life' | 'money' | 'home' | 'community' | 'my';
 interface BottomNavigationProps {
@@ -27,6 +28,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     ['home', '홈', 'nav-home.svg'], ['community', '커뮤니티', 'nav-community.svg'], ['my', '마이', 'nav-my.svg'],
   ];
   const selectTab = (tab: TabId, event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (activeTab === undefined) setSelectedTab(tab);
     onTabChange?.(tab);
@@ -40,7 +42,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
         {tabs.map(([id, label, asset]) => {
           const isActive = currentTab === id;
           const item = (
-            <a className={`tab-item${id === 'home' ? ' tab-item--home' : ''}${isActive ? ' is-active' : ''}`} href="#" aria-current={isActive ? 'page' : undefined} onClick={(event) => selectTab(id, event)}>
+            <a className={`tab-item${id === 'home' ? ' tab-item--home' : ''}${isActive ? ' is-active' : ''}`} href={pageUrl(id)} aria-current={isActive ? 'page' : undefined} onClick={(event) => selectTab(id, event)}>
               {/* active 홈은 마스코트를 탭 안에서 라벨 바로 위에 쓴다 */}
               <img
                 className={`tab-item__icon${id === 'home' ? ' tab-item__icon--home' : ''}${

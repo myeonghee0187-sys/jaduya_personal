@@ -1,17 +1,15 @@
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { IPhoneFrame } from '../components/IPhoneFrame';
 import { SplashScreen } from '../components/SplashScreen';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
-import { Login } from './Login';
-import { Signup } from './Signup';
 import { useAuth } from '../auth/AuthContext';
 import { getDemoAccountId, TEST_ACCOUNTS } from '../auth/mockUsers';
 import type { MockAccount, Persona } from '../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
 import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
-import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { icon, img } from '../lib/asset';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -77,26 +75,27 @@ export function LoginShowcase() {
   const isDesktop = useIsDesktop();
   const reduceMotion = usePrefersReducedMotion();
   const { user, loginDemo, logout, demoSignedUp } = useAuth();
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [signupPrefillProfile, setSignupPrefillProfile] = useState<SignupTestProfile | undefined>(undefined);
+
 
   const activeAccount = TEST_ACCOUNTS[selectedIndex] ?? TEST_ACCOUNTS[0];
   /* 이서준은 데모 가입을 마치기 전까지 로그인 대상이 아니라 항상 회원가입 플로우로 보낸다 */
   const isPendingSignupAccount = activeAccount.email === DEMO_SIGNUP_EMAIL && !demoSignedUp;
   const isCurrentAccount = user?.email === activeAccount.email;
 
-  /* App 을 다시 마운트해 폰 목업을 Home 부터 보여준다 —
-   * 계정별 진행 상태는 localStorage 에 있어 remount 로 사라지지 않는다.
-   * (App.tsx 는 이미 user.email 로 AppNavigationProvider 를 remount 한다) */
-  const [appKey, setAppKey] = useState(0);
-  const showHome = () => setAppKey((key) => key + 1);
+  /* 데모 진입도 Router의 홈 경로를 사용한다. 계정별 저장 데이터는 유지한다. */
+  const showHome = () => {
+    // A protected deep link waiting at login is restored by App's auth guard.
+    if (!user && location.pathname === '/login') return;
+    navigate('/');
+  };
 
   /* 가입 전 이서준 — 로그인시키지 않고 회원가입 화면으로 보낸다 */
   const goSignupAsSeojun = () => {
     if (user) logout();
-    setSignupPrefillProfile(SIGNUP_TEST_PROFILES.seojunDemo);
-    setAuthView('signup');
+    navigate('/signup', { state: { returnTo: location.state?.returnTo, signupProfile: SIGNUP_TEST_PROFILES.seojunDemo } });
   };
 
   /* 메인 CTA — 최초 시작 / 다른 계정으로 변경 / 현재 계정 계속 보기 모두
@@ -117,8 +116,7 @@ export function LoginShowcase() {
    * 같은 계정으로 다시 들어갈 수 없다. */
   const handleStartOver = () => {
     if (user) logout();
-    setSignupPrefillProfile(undefined);
-    setAuthView('login');
+    navigate('/login');
   };
 
   /* 실제 모바일 기기 폭 — 프레임/Demo Account 없이 앱을 그대로 전체화면으로 보여준다.
@@ -187,37 +185,7 @@ export function LoginShowcase() {
         <IPhoneFrame>
           {/* 스플래시는 목업 화면 안에서 재생된다 (.iphone-frame__screen 기준) */}
           <SplashScreen />
-          {user ? (
-            /* key 를 올리면 App 이 다시 마운트되어 Home 부터 보인다(진행 상태는 localStorage
-             * 유지) — remount 자체는 순간적이라, 오른쪽 프로필 카드 전환과 같은 톤(fade +
-             * 살짝 scale, 같은 EASE·시간)으로 감싸서 계정을 바꿀 때 화면이 "팝" 하고 튀지
-             * 않고 자연스럽게 넘어가 보이게 한다. */
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={appKey}
-                className="login-showcase__app-transition"
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
-                transition={{ duration: reduceMotion ? 0 : 0.22, ease: EASE }}
-              >
-                <App />
-              </motion.div>
-            </AnimatePresence>
-          ) : authView === 'login' ? (
-            <Login
-              onGoSignup={(profile) => {
-                setSignupPrefillProfile(profile);
-                setAuthView('signup');
-              }}
-            />
-          ) : (
-            <Signup
-              key={signupPrefillProfile?.email ?? 'default'}
-              onGoLogin={() => setAuthView('login')}
-              initialProfile={signupPrefillProfile}
-            />
-          )}
+          <div className="login-showcase__app-transition"><App /></div>
         </IPhoneFrame>
 
         {/* 로그인 여부와 무관하게 항상 보여준다 — 로그인 후에도 탭으로 다른 계정

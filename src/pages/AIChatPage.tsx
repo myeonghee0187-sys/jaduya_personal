@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import type { AnimationEvent, ChangeEvent, FormEvent, PointerEvent, ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { useDismissOnBack } from '../navigation/useDismissOnBack';
 import { StatusBar } from '../components/StatusBar';
 import { LeafletRepairMap } from '../components/ai/LeafletRepairMap';
 import { aiFabRef } from '../components/ai/aiFabRef';
@@ -777,6 +776,13 @@ export function AIChatPage() {
   const [isBuildingInfoOpen, setIsBuildingInfoOpen] = useState(false);
   const [housingDraft, setHousingDraft] = useState('원룸');
   const [closeState, setCloseState] = useState<'open' | 'closing-left' | 'closing-right'>('open');
+  const [appShell, setAppShell] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setAppShell(navigation?.active ? getVisibleAppShell() : null);
+  }, [navigation?.active]);
+  useEffect(() => {
+    if (navigation?.active) setCloseState('open');
+  }, [navigation?.active]);
   const pageRef = useRef<HTMLDivElement>(null);
   const draftInputRef = useRef<HTMLTextAreaElement>(null);
   const messageIdRef = useRef(0);
@@ -1068,14 +1074,12 @@ export function AIChatPage() {
         );
         return;
       case 'open-move-in-checklist':
-        /* life-first 에서 뒤로가기를 누르면(AppNavigation.goBack 의 reopenAIChat) 자두AI가
+        /* life-first 에서 Router Back으로 돌아오면 자두AI가
          * 다시 열린다 — 이 신호로 그때 한 번만 대화를 이어서 시작한다(중복 방지). */
         markPendingMoveInChecklistReturn();
-        navigation?.closeAIChat();
         navigation?.navigate('life-first', { returnTo: navigation.page, reopenAIChat: true });
         return;
       case 'open-life-homecare':
-        navigation?.closeAIChat();
         navigation?.navigate('life-homecare');
         return;
       case 'search-repair-current-location':
@@ -1126,7 +1130,6 @@ export function AIChatPage() {
         openRepairLocationModal();
         return;
       case '맞춤 혜택 전체 보기':
-        navigation?.closeAIChat();
         navigation?.navigate('benefits-recommend', {
           returnTo: navigation.page,
           reopenAIChat: true,
@@ -1198,7 +1201,6 @@ export function AIChatPage() {
   };
 
   const openBenefitRecommendations = () => {
-    navigation?.closeAIChat();
     navigation?.navigate('benefits-recommend', {
       returnTo: navigation.page,
       reopenAIChat: true,
@@ -1652,11 +1654,11 @@ export function AIChatPage() {
     setAiView('chat');
   };
 
-  /* life-first 체크리스트를 보고 "자두AI로 돌아가기"로 다시 열렸을 때만(마운트당 한 번),
+  /* life-first 체크리스트를 보고 "자두AI로 돌아가기"로 다시 활성화됐을 때만,
    * 나가기 전 conversation(계속 자동 저장되던 가장 최근 snapshot)을 그대로 복원하고
    * 이어서 진행할지 물어본다 — messages/flowId/stage/answers 를 새로 만들지 않고 그대로 쓴다. */
   useEffect(() => {
-    if (!consumePendingMoveInChecklistReturn()) return;
+    if (!navigation?.active || !consumePendingMoveInChecklistReturn()) return;
     const latest = history[0];
     if (!latest || latest.conversation.flowId !== 'pre-move-check') return;
     openSavedConversation(latest);
@@ -1664,9 +1666,9 @@ export function AIChatPage() {
       '체크리스트 확인하셨네요!\n그럼 전입신고 준비도 이어서 해볼까요?',
       [{ label: '전입신고 준비하기', action: 'start-registration-prep', recommended: true }],
     );
-    // 이 효과는 "자두AI가 방금 다시 열렸다"는 마운트 시점 한 번만 확인하면 된다.
+    // route가 다시 활성화될 때만 이어서 진행할 안내를 확인한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [navigation?.active]);
 
   const startNewConversation = () => {
     const preservedCurrentConversation = persistConversationSnapshot(messages, conversation, diagnosis);
@@ -1850,9 +1852,7 @@ export function AIChatPage() {
     }
   };
 
-  /* 자두AI는 화면 위에 얹히는 오버레이라 시스템 뒤로가기가 오면 밑에 있던 화면으로
-   * 넘어가기 전에 자두AI부터(닫기 버튼과 같은 애니메이션으로) 닫는다. */
-  useDismissOnBack(navigation?.isAIChatOpen ?? false, closeChat);
+  /* AI 전체 화면은 /ai route 하나만 사용하며 별도 overlay guard를 만들지 않는다. */
 
   const setFromCurrentLocation = () => {
     setLocationNotice('');
@@ -1898,7 +1898,7 @@ export function AIChatPage() {
 
   /* AI는 별도 drawer가 아니라, 현재 보이는 앱 shell 안에 렌더링하는 전체 화면이다. */
   const renderInAppShell = (content: ReactNode) => {
-    const appShell = getVisibleAppShell();
+    if (!navigation?.active) return null;
     return appShell ? createPortal(content, appShell) : content;
   };
 
@@ -2566,7 +2566,6 @@ export function AIChatPage() {
               className="ai-chat-page__building-community-cta"
               onClick={() => {
                 setIsBuildingInfoOpen(false);
-                navigation?.closeAIChat();
                 navigation?.navigate('community-region', {
                   returnTo: navigation.page,
                   reopenAIChat: true,

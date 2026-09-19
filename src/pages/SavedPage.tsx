@@ -40,11 +40,10 @@ export function SavedPage() {
   const getCommentCount = useCommunityCommentCount();
 
   const requestedTab = navigation?.options.tab;
-  const [tab, setTab] = useState<ActivityTab>(() =>
+  const tab: ActivityTab =
     requestedTab && (ACTIVITY_TABS as readonly string[]).includes(requestedTab)
       ? requestedTab as ActivityTab
-      : '저장한 정보',
-  );
+      : '저장한 정보';
   const [filter, setFilter] = useState<SavedFilter>('전체');
   const [filterOpen, setFilterOpen] = useState(false);
   /** 방금 저장 해제한 항목 — 토스트의 "되돌리기"가 다시 저장할 때 쓴다 */
@@ -190,7 +189,7 @@ export function SavedPage() {
             role="tab"
             aria-selected={tab === name}
             className={`dc-tabs__tab${tab === name ? ' is-active' : ''}`}
-            onClick={() => setTab(name)}
+            onClick={() => navigation?.navigate('saved', { tab: name })}
           >
             {name}
           </button>

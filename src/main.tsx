@@ -1,3 +1,5 @@
+import { BrowserRouter } from 'react-router-dom';
+import { OverlayBackProvider } from './navigation/OverlayBack';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LoginShowcase } from './pages/LoginShowcase';
@@ -59,9 +61,9 @@ if (!container) throw new Error('#root 를 찾을 수 없습니다.');
  * 실제 Login/Signup 화면을 그대로 보여주고, Demo Account 패널만 모바일에서 숨긴다. */
 createRoot(container).render(
   <StrictMode>
-    <AuthProvider>
+    <BrowserRouter><OverlayBackProvider><AuthProvider>
       <LoginShowcase />
       <SpeedInsights />
-    </AuthProvider>
+    </AuthProvider></OverlayBackProvider></BrowserRouter>
   </StrictMode>,
 );
