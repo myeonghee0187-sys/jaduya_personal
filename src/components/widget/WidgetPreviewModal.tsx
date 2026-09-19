@@ -10,6 +10,7 @@ import type { WidgetDef } from '../../data/widgetRegistry';
 import { findWidgetSlot, getPlacedAt, slotRefEquals } from '../../utils/placement';
 import type { PlacementConflict, PlacementState, SlotRef } from '../../utils/placement';
 import type { WidgetSize } from '../../types';
+import { useDismissOnBack } from '../../navigation/useDismissOnBack';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -113,6 +114,10 @@ export function WidgetPreviewModal({
     observer.observe(stage);
     return () => observer.disconnect();
   }, [size, def?.id, step]);
+
+  /* 열려 있는 동안(def !== null) 뒤로가기 한 단계를 가져간다 — 시스템 뒤로가기가 오면
+   * 이 모달부터 닫는다. 다른 훅들처럼 이른 return(!def) 보다 먼저 호출해서 훅 순서를 지킨다. */
+  useDismissOnBack(def !== null, onClose);
 
   if (!def) return null;
 

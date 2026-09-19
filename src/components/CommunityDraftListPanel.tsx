@@ -2,6 +2,7 @@ import { icon } from '../lib/asset';
 import type { WriteDraft } from '../community/drafts';
 import { BellButton } from './BellButton';
 import { StatusBar } from './StatusBar';
+import { useDismissOnBack } from '../navigation/useDismissOnBack';
 
 interface CommunityDraftListPanelProps {
   open: boolean;
@@ -23,6 +24,7 @@ function formatSavedAt(iso: string): string {
  * 글쓰기 패널과 같은 방식(GNB 식 오른쪽 슬라이드인)으로 그 위에 한 겹 더 뜬다.
  * "수정하기" 는 목록만 닫고, 실제로 글쓰기 폼에 값을 채우는 건 CommunityWritePanel 이 한다. */
 export function CommunityDraftListPanel({ open, drafts, onClose, onEdit, onDelete }: CommunityDraftListPanelProps) {
+  useDismissOnBack(open, onClose);
   return (
     <section className="layer draft-list-panel" hidden={!open} aria-label="임시저장 목록">
       <div className="draft-list-panel__header">

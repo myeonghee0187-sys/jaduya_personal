@@ -86,8 +86,9 @@ export function CommunityRegionPage() {
               className={`community-tabs__tab${name === '지역 후기' ? ' is-active' : ''}`}
               aria-current={name === '지역 후기' ? 'page' : undefined}
               onClick={() => {
-                if (name === COMMUNITY_BOARD_TAB) navigation?.navigate('community');
-                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
+                /* 형제 탭 전환은 history 를 쌓지 않는다 — CommunityPage 와 같은 이유. */
+                if (name === COMMUNITY_BOARD_TAB) navigation?.navigateTab('community');
+                else if (name === COMMUNITY_TIP_TAB) navigation?.navigateTab('community-tip');
               }}
             >
               {name}

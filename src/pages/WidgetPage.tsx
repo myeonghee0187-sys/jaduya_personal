@@ -152,8 +152,8 @@ export function WidgetPage() {
       <SubPageHeader
         title="위젯"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
-        onClose={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
+        onClose={() => navigation?.goBack('home')}
         closeLabel="홈으로"
       />
 

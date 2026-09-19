@@ -154,9 +154,12 @@ export function CommunityPage({
               className={`community-tabs__tab${name === COMMUNITY_BOARD_TAB ? ' is-active' : ''}`}
               aria-current={name === COMMUNITY_BOARD_TAB ? 'page' : undefined}
               onClick={() => {
-                if (name === COMMUNITY_BOARD_TAB && returnToCommunity) navigation?.navigate('community');
-                else if (name === COMMUNITY_TIP_TAB) navigation?.navigate('community-tip');
-                else if (name === '지역 후기') navigation?.navigate('community-region');
+                /* 이 세 탭은 하단 탭바처럼 나란한 형제 화면이다 — navigate() 로 매번 쌓으면
+                 * 탭을 오갈수록 시스템 뒤로가기를 그만큼 더 눌러야 커뮤니티를 벗어나게
+                 * 되므로, 탭 전환 전용(navigateTab)으로 지금 쌓인 단계를 이 탭으로 대체한다. */
+                if (name === COMMUNITY_BOARD_TAB && returnToCommunity) navigation?.navigateTab('community');
+                else if (name === COMMUNITY_TIP_TAB) navigation?.navigateTab('community-tip');
+                else if (name === '지역 후기') navigation?.navigateTab('community-region');
               }}
             >
               {name}

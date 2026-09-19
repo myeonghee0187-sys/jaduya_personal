@@ -100,7 +100,7 @@ export function MoneyBudgetPage() {
       <SubPageHeader
         title="예산 설정"
         backLabel="돈관리로"
-        onBack={() => navigation?.navigate('money')}
+        onBack={() => navigation?.goBack('money')}
       />
 
       <main className="budget-setup__scroll">

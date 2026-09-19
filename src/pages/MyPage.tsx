@@ -75,7 +75,7 @@ export function MyPage({ onDetailNavigate }: MyPageProps) {
       <SubPageHeader
         title="마이페이지"
         backLabel="홈으로"
-        onBack={() => navigation?.navigate('home')}
+        onBack={() => navigation?.goBack('home')}
       />
 
       <main className="mypage__scroll">

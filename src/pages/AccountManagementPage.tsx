@@ -51,7 +51,7 @@ export function AccountManagementPage({ onAction }: AccountManagementPageProps) 
       <SubPageHeader
         title="계정 관리"
         backLabel="마이페이지로"
-        onBack={() => navigation?.navigate('my')}
+        onBack={() => navigation?.goBack('my')}
       />
 
       <main className="settings-page__scroll">

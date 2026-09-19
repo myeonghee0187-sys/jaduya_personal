@@ -177,7 +177,7 @@ export function SavedPage() {
       <SubPageHeader
         title="나의 활동"
         backLabel="마이페이지로"
-        onBack={() => navigation?.navigate('my')}
+        onBack={() => navigation?.goBack('my')}
       />
 
       {/* 1차 탭 — 헤더 바로 아래에 고정한다. 다른 세부 화면과 같은 공통 탭 UI(.dc-tabs)를

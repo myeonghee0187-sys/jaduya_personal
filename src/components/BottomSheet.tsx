@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useDismissOnBack } from '../navigation/useDismissOnBack';
 
 interface BottomSheetProps {
   open: boolean;
@@ -18,6 +19,9 @@ export function BottomSheet({
   onDimClick,
   children,
 }: BottomSheetProps) {
+  /* 열려 있는 동안 뒤로가기 한 단계를 가져간다 — 시스템 뒤로가기가 오면 화면을 벗어나기
+   * 전에 이 시트부터 닫는다(onDimClick과 동일한 닫기 동작). */
+  useDismissOnBack(open, onDimClick);
   return (
     <div className="layer layer--sheet" hidden={!open}>
       <button type="button" className="layer-dim" aria-label="닫기" onClick={onDimClick} />
