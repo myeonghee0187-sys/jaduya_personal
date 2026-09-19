@@ -1,0 +1,138 @@
+/* JADUYA — 홈 광고 상세 바텀시트
+ *
+ * 셸(.layer / .bsheet / .bsheet__grip)은 overlays.css 의 공용 스타일을 그대로 쓰고,
+ * 여기에는 이 시트 안쪽만 둔다. 바깥 모양(둥근 윗모서리·좌우 여백)은 auth.css 의
+ * .test-account 와 같은 값이다. */
+
+.ad-sheet {
+  background: #fffdfb;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  padding: 0 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+
+.ad-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px 0 var(--space-sm);
+}
+
+.ad-sheet__label {
+  font-family: var(--font-suit);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.4;
+  color: var(--text-ad-label);
+}
+
+.ad-sheet__badge {
+  font-family: var(--font-asta);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-ad-label);
+}
+
+.ad-sheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0 -6px 0 auto;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.ad-sheet__close img {
+  width: 13px;
+  height: 13px;
+}
+
+/* 같은 시트 이미지를 홈 카드보다 크게 — 크기는 width 로만 정한다(AdIcon 이 정사각형을 유지) */
+.ad-sheet__art {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) 0;
+  border-radius: var(--radius-l);
+  background: var(--surface-widget);
+}
+
+.ad-sheet__icon {
+  width: 132px;
+}
+
+.ad-sheet__title {
+  margin: var(--space-md) 0 var(--space-2xs);
+  font-family: var(--font-a2z);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-black);
+}
+
+.ad-sheet__detail {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-body);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.ad-sheet__facts {
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border-warm);
+}
+
+.ad-sheet__fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-warm);
+  font-family: var(--font-suit);
+  font-size: var(--font-size-body);
+}
+
+.ad-sheet__fact dt {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.ad-sheet__fact dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.ad-sheet__benefit {
+  font-family: var(--font-a2z);
+  font-weight: 600;
+}
+
+.ad-sheet__cta {
+  width: 100%;
+  height: 48px;
+  margin-top: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  font-family: var(--font-suit);
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.ad-sheet__note {
+  margin: var(--space-xs) 0 0;
+  text-align: center;
+  font-family: var(--font-suit);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
