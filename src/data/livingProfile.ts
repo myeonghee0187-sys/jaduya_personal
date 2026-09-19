@@ -65,18 +65,19 @@ export function interestTopicHint(category: InterestCategory): string {
   return `${category}에서 어떤 정보가 궁금하세요?`;
 }
 
-/** 관심 분야로 고를 수 있는 최대 개수 — 이 이상은 '+ 관심 분야 추가'가 사라진다 */
-export const MAX_INTEREST_CATEGORIES = 2;
+/** 온보딩이 초기값을 심어줄 때만 쓰는 상한 — 관심 분야 자체는 더 이상 사용자가 고르고
+ * 저장하는 값이 아니라(관심 주제를 탐색하는 탭일 뿐) 개수 제한이 없다. 다만 온보딩에서
+ * 뽑아온 여러 관심사를 전부 다 분야에 욱여넣지 않고 기존과 같은 폭(2개)만 초기값으로
+ * 심어, 그 이상은 사용자가 직접 탭을 넘겨 고르게 한다(initializeLivingProfileFromOnboarding 전용). */
+const ONBOARDING_SEED_CATEGORY_LIMIT = 2;
 
 export interface LivingProfilePreferences {
   experience: LivingExperience | null;
   housing: HousingType | null;
-  /** 관심 분야 — 최대 MAX_INTEREST_CATEGORIES(2)개, 고른 순서 그대로 담는다
-   * (배열의 첫 항목이 처음 고른 분야다 — 탭 순서·홈 추천의 기준 분야로 쓴다).
-   * 아직 하나도 안 골랐으면 빈 배열. */
-  categories: InterestCategory[];
-  /** 분야별 관심 주제 — 분야를 바꿔도(혹은 두 번째 분야를 추가해도) 각자 독립적으로
-   * 유지된다(분야마다 복수 선택) */
+  /** 분야별 관심 주제 — 분야는 저장되는 선택값이 아니라 이 주제들을 탐색하는 탭이라,
+   * 어떤 분야를 "골랐는지"는 따로 저장하지 않는다. 탭을 넘나들어도(분야를 바꿔도) 각
+   * 분야의 선택은 서로 독립적으로 유지된다(분야마다 복수 선택). 사용자가 실제로 저장하는
+   * 값은 이 topics 뿐이다 — 전체 선택 개수는 모든 분야의 배열 길이를 합친 값이다. */
   topics: Record<InterestCategory, string[]>;
 }
 
@@ -98,7 +99,6 @@ export function createDefaultLivingProfile(
   return {
     experience: base.experience ?? null,
     housing: base.housing ?? null,
-    categories: [],
     topics: emptyTopics(),
   };
 }
@@ -133,14 +133,12 @@ export function loadLivingProfile(
       }
     }
     if (!raw) return fallback;
-    const stored = JSON.parse(raw) as Partial<LivingProfilePreferences> & {
-      /* 관심 분야가 단일 선택(문자열 하나)이던 시절의 키 — 이미 저장된 값을 버리지 않고
-       * 배열의 첫 항목으로 이어받는다 */
-      category?: unknown;
-      /* 그보다도 더 예전, 복수 선택이던 시절의 키 — 유효한 값만 앞에서부터 받는다 */
-      activeCategory?: unknown;
-      selectedCategories?: unknown;
-    };
+    /* 관심 분야를 사용자 선택값으로 저장하던 시절의 키(categories/category/
+     * selectedCategories)는 더 이상 읽지 않는다 — 관심 분야는 이제 관심 주제를 탐색하는
+     * 탭일 뿐이라 저장할 필요가 없다. 다만 그 시절에도 topics 는 분야별로 독립 저장돼
+     * 있었고(분야를 빼도 topics 는 지우지 않았다), 아래에서 6개 분야 전부의 topics 를
+     * categories 값과 무관하게 그대로 읽으므로 기존에 고른 관심 주제는 그대로 이어진다. */
+    const stored = JSON.parse(raw) as Partial<LivingProfilePreferences>;
     const storedTopics = (stored.topics ?? {}) as Record<string, unknown>;
     const topics = emptyTopics();
     for (const category of INTEREST_CATEGORIES) {
@@ -148,54 +146,14 @@ export function loadLivingProfile(
       if (!Array.isArray(list)) continue;
       topics[category] = INTEREST_TOPICS[category].filter((topic) => list.includes(topic));
     }
-    /* categories(신규) → category(단일 선택 시절) → selectedCategories(그 이전) 순으로
-     * 첫 번째로 유효하게 읽히는 형태를 쓴다. 중복은 제거하고 최대 개수로 자른다. */
-    const categoriesSource: unknown = Array.isArray(stored.categories)
-      ? stored.categories
-      : stored.category !== undefined
-        ? [stored.category]
-        : (stored.selectedCategories ?? []);
-    const categories: InterestCategory[] = [];
-    if (Array.isArray(categoriesSource)) {
-      for (const value of categoriesSource) {
-        const category = pick(value, INTEREST_CATEGORIES);
-        if (category && !categories.includes(category)) categories.push(category);
-        if (categories.length >= MAX_INTEREST_CATEGORIES) break;
-      }
-    }
     return {
       experience: pick(stored.experience, LIVING_EXPERIENCES),
       housing: pick(stored.housing, HOUSING_TYPES),
-      categories,
       topics,
     };
   } catch {
     return fallback;
   }
-}
-
-/** 아직 없는 분야면 골라진 순서 뒤에 추가한다 — 이미 있거나 이미 최대치(2개)면
- * 그대로 둔다(불변). 홈 시트·마이페이지 두 곳이 관심 분야를 고르는 로직을 각자
- * 복붙하지 않고 여기 하나만 쓴다. */
-export function addInterestCategory(
-  categories: InterestCategory[],
-  category: InterestCategory,
-): InterestCategory[] {
-  if (categories.includes(category) || categories.length >= MAX_INTEREST_CATEGORIES) return categories;
-  return [...categories, category];
-}
-
-/** 두 번째로 추가한 분야를 뺀다(불변) — 관심 분야는 항상 최소 1개를 유지해야 하므로
- * 1개만 남았을 때는 그대로 둔다(첫 분야는 이 함수로 빼지 않는다 — 호출부인
- * InterestPicker 도 첫 분야에는 제거 버튼을 두지 않는다). 주제 선택값(topics)은
- * 건드리지 않는다 — 같은 분야를 나중에 다시 추가하면 이전에 고른 주제가 그대로
- * 돌아온다. */
-export function removeInterestCategory(
-  categories: InterestCategory[],
-  category: InterestCategory,
-): InterestCategory[] {
-  if (categories.length <= 1) return categories;
-  return categories.filter((item) => item !== category);
 }
 
 /** 특정 분야의 관심 주제 하나를 켜고 끈다(불변) — 다른 분야의 선택에는 영향이 없다. */
@@ -259,30 +217,34 @@ const ONBOARDING_STAGE_TOPICS: Readonly<Record<string, Record<InterestCategory, 
 };
 
 /** 저장된 추천 설정이 없을 때만 온보딩 선택으로 최소 초기값을 만든다.
- * categories가 하나라도 있으면 사용자가 이미 저장한 값으로 보고 절대 덮어쓰지 않는다. */
+ * 관심 주제를 하나라도 고른 적이 있으면 사용자가 이미 저장한 값으로 보고 절대
+ * 덮어쓰지 않는다(더 이상 categories 로 판단하지 않는다 — 그 값은 저장되지 않는다). */
 export function initializeLivingProfileFromOnboarding(
   ownerKey: string,
   base: Partial<Pick<LivingProfilePreferences, 'experience' | 'housing'>>,
   onboarding: OnboardingRecommendationInput | null | undefined,
 ): LivingProfilePreferences {
   const current = loadLivingProfile(ownerKey, base);
-  if (current.categories.length > 0 || !onboarding) return current;
+  const hasAnyTopic = INTEREST_CATEGORIES.some((category) => current.topics[category].length > 0);
+  if (hasAnyTopic || !onboarding) return current;
 
-  const categories: InterestCategory[] = [];
+  /* 온보딩의 넓은 관심 분야를 몇 개의 분야로 연결해 그 분야의 주제만 초기값으로
+   * 심는다 — 나머지 분야는 사용자가 직접 탭을 넘겨 고르면 된다. */
+  const seedCategories: InterestCategory[] = [];
   for (const interest of onboarding.interests) {
     const category = ONBOARDING_INTEREST_CATEGORY[interest];
-    if (category && !categories.includes(category)) categories.push(category);
-    if (categories.length >= MAX_INTEREST_CATEGORIES) break;
+    if (category && !seedCategories.includes(category)) seedCategories.push(category);
+    if (seedCategories.length >= ONBOARDING_SEED_CATEGORY_LIMIT) break;
   }
-  if (categories.length === 0) return current;
+  if (seedCategories.length === 0) return current;
 
   const stageTopics = ONBOARDING_STAGE_TOPICS[onboarding.stage];
   const topics = { ...current.topics };
-  for (const category of categories) {
+  for (const category of seedCategories) {
     topics[category] = [...(stageTopics?.[category] ?? INTEREST_TOPICS[category].slice(0, 1))];
   }
 
-  const initialized = { ...current, categories, topics };
+  const initialized = { ...current, topics };
   saveLivingProfile(ownerKey, initialized);
   return initialized;
 }
@@ -299,10 +261,10 @@ export function clearLivingProfile(ownerKey: string): void {
   }
 }
 
-/** 홈 개인화용 — 처음 고른(기준) 관심 분야의 관심 주제 목록. 분야를 아직 안 골랐으면 빈 배열.
- * 두 번째 분야를 추가해도 이 함수가 다루는 홈 개인화 기준은 바뀌지 않는다(첫 분야 그대로). */
+/** 홈 개인화용 — 사용자가 고른 관심 주제 전체(모든 분야를 합친 목록). 관심 분야는 탭일
+ * 뿐 저장되지 않으므로 특정 분야를 기준으로 삼지 않고, 전체 주제를 분야(INTEREST_CATEGORIES
+ * 순서) → 주제(INTEREST_TOPICS 순서) 순으로 이어붙인다. 하나도 안 골랐으면 빈 배열. */
 export function getSelectedInterestTopics(ownerKey: string): string[] {
-  const { categories, topics } = loadLivingProfile(ownerKey);
-  const category = categories[0];
-  return category ? topics[category] : [];
+  const { topics } = loadLivingProfile(ownerKey);
+  return INTEREST_CATEGORIES.flatMap((category) => topics[category]);
 }

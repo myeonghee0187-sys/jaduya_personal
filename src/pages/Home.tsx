@@ -53,7 +53,7 @@ export function Home() {
    * (data/livingProfile.ts) — 계정을 바꾸면 다른 계정 값과 섞이지 않는다 */
   const ownerKey = user?.email ?? 'guest';
   /* 온보딩 선택은 추천 설정이 비어 있는 최초 1회에만 초기값으로 옮긴다.
-   * 사용자가 추천 설정에서 저장한 뒤에는 categories가 존재하므로 다시 덮어쓰지 않는다. */
+   * 사용자가 추천 설정에서 관심 주제를 하나라도 저장한 뒤에는 다시 덮어쓰지 않는다. */
   useState(() => initializeLivingProfileFromOnboarding(ownerKey, personaProfile, user?.preferences ? {
     interests: user.preferences.answers.interests ?? [],
     stage: user.preferences.answers.stage?.[0] ?? '',
@@ -130,7 +130,7 @@ export function Home() {
    * 이전에 이 화면에서 저장하지 않고 나간 값이 남아있지 않도록 한다. */
   const openRecommendSetup = () => {
     const saved = loadLivingProfile(ownerKey, personaProfile);
-    setRecommendDraft({ categories: saved.categories, topics: saved.topics });
+    setRecommendDraft({ topics: saved.topics });
     showSheetView('recommend');
   };
 
@@ -139,11 +139,11 @@ export function Home() {
     showSheetView('home');
   };
 
-  /* 설정 저장하기 — draft 의 관심 분야·주제만 livingProfile 에 반영한다.
+  /* 설정 저장하기 — draft 의 관심 주제만 livingProfile 에 반영한다.
    * 자취 경험·주거 형태 등 이 화면이 다루지 않는 값은 그대로 둔다. */
   const saveRecommendSetup = (draft: RecommendDraft) => {
     const saved = loadLivingProfile(ownerKey, personaProfile);
-    saveLivingProfile(ownerKey, { ...saved, categories: draft.categories, topics: draft.topics });
+    saveLivingProfile(ownerKey, { ...saved, topics: draft.topics });
     setRecommendDraft(draft);
     closeRecommendSetup();
   };

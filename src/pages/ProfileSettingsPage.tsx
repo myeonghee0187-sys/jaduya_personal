@@ -10,9 +10,7 @@ import { RecommendInfoAccordion } from '../components/RecommendInfoAccordion';
 import {
   HOUSING_TYPES,
   LIVING_EXPERIENCES,
-  addInterestCategory,
   loadLivingProfile,
-  removeInterestCategory,
   saveLivingProfile,
   toggleInterestTopic,
 } from '../data/livingProfile';
@@ -81,15 +79,9 @@ export function ProfileSettingsPage() {
   const pickHousing = (value: HousingType) =>
     setProfile((prev) => (prev.housing === value ? prev : { ...prev, housing: value }));
 
-  /* 관심 분야·주제를 고르는 로직은 InterestPicker(선택 UI) 와 짝을 이루는
-   * data/livingProfile.ts 의 공용 헬퍼를 그대로 쓴다 — 홈 시트(HomeRecommendSettings)와
-   * 같은 함수라 복붙된 로직이 따로 없다. */
-  const selectCategory = (category: InterestCategory) =>
-    setProfile((prev) => ({ ...prev, categories: addInterestCategory(prev.categories, category) }));
-
-  const removeCategory = (category: InterestCategory) =>
-    setProfile((prev) => ({ ...prev, categories: removeInterestCategory(prev.categories, category) }));
-
+  /* 관심 주제를 고르는 로직은 InterestPicker(선택 UI) 와 짝을 이루는 data/livingProfile.ts
+   * 의 공용 헬퍼를 그대로 쓴다 — 홈 시트(HomeRecommendSettings)와 같은 함수라 복붙된
+   * 로직이 따로 없다. */
   const toggleTopic = (category: InterestCategory, topic: string) =>
     setProfile((prev) => ({ ...prev, topics: toggleInterestTopic(prev.topics, category, topic) }));
 
@@ -190,13 +182,7 @@ export function ProfileSettingsPage() {
             <p>선택한 관심사에 맞춰 홈에서 정보를 추천해드려요.</p>
           </header>
 
-          <InterestPicker
-            categories={profile.categories}
-            topics={profile.topics}
-            onSelectCategory={selectCategory}
-            onRemoveCategory={removeCategory}
-            onToggleTopic={toggleTopic}
-          />
+          <InterestPicker topics={profile.topics} onToggleTopic={toggleTopic} />
         </section>
 
         <RecommendInfoAccordion />
