@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { AdDetailSheet } from '../components/AdDetailSheet';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { triggerAiFabDemoMove } from '../components/ai/aiFabDemoMove';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -14,6 +15,7 @@ import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
 import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { MyLifeSection } from '../components/MyLifeSection';
+import type { AdContent } from '../data/adContents';
 import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
@@ -108,6 +110,11 @@ export function Home() {
   /* 한 번이라도 설정 View 를 다녀왔는지 — 돌아올 때만 전환 효과를 준다.
    * (첫 진입에서 시트 콘텐츠가 괜히 움직여 보이지 않게) */
   const cameBackRef = useRef(false);
+  /* 광고 상세 바텀시트 — 홈 화면 전체를 덮어야 해서 스크롤 영역 안(DiscoverySection)이 아니라
+   * 여기서 연다. 닫는 동안 내용이 사라지지 않게 열림 여부와 마지막 광고를 따로 든다. */
+  const [adDetail, setAdDetail] = useState<{ ad: AdContent | null; open: boolean }>({ ad: null, open: false });
+  const openAd = (ad: AdContent) => setAdDetail({ ad, open: true });
+  const closeAd = () => setAdDetail((current) => ({ ...current, open: false }));
 
   const openLevelInfo = (anchorElement: HTMLElement) => {
     const anchor = levelInfoAnchor(anchorElement);
@@ -265,7 +272,7 @@ export function Home() {
               statusRef={statusRef}
               addSlotRef={addSlotRef}
             />
-            <DiscoverySection onOpenRecommendSetup={openRecommendSetup} />
+            <DiscoverySection onOpenRecommendSetup={openRecommendSetup} onOpenAd={openAd} />
           </div>
         ) : (
           <HomeRecommendSettings
@@ -289,6 +296,8 @@ export function Home() {
           onClose={() => setLevelInfo(null)}
         />
       )}
+
+      <AdDetailSheet ad={adDetail.ad} open={adDetail.open} onClose={closeAd} />
 
       {coachmarkOpen && (
         <Coachmark

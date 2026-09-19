@@ -9,7 +9,10 @@ import { getRecommendationImagePath } from '../data/recommendationImages';
 import { useSeoulDays } from '../hooks/useSeoulToday';
 import type { SeoulDay } from '../hooks/useSeoulToday';
 import { useCardCarousel } from '../hooks/useCardCarousel';
-import { icon, img } from '../lib/asset';
+import { selectDiscoveryAds } from '../data/adContents';
+import type { AdContent } from '../data/adContents';
+import { icon } from '../lib/asset';
+import { AdIcon } from './AdIcon';
 
 /* 페이지(3카드 세트) 단위 wrapper 사이 간격 — CSS(.discovery-page__track 의
  * --discovery-page-gap)와 아래 translateX 계산이 이 값 하나만 같이 쓴다(중복 하드코딩
@@ -25,6 +28,9 @@ interface DiscoverySectionProps {
   /* 맞춤 추천 카드의 '설정하기' · 헤더의 '추천 설정' 공통 진입점 —
    * 페이지를 옮기지 않고 홈 시트 안의 맞춤 추천 설정 View 만 연다. */
   onOpenRecommendSetup?: () => void;
+  /* 광고 카드 탭 — 상세 바텀시트는 홈 화면 전체를 덮어야 해서(스크롤 영역 안에 갇히면
+   * 안 된다) 여기서 열지 않고 Home 이 연다. */
+  onOpenAd?: (ad: AdContent) => void;
 }
 
 interface DiscoveryPageProps {
@@ -32,20 +38,23 @@ interface DiscoveryPageProps {
   day: SeoulDay;
   /** 이 페이지의 맞춤 팁 — 아직 추천 설정 전이면 null(설정 CTA 를 대신 보여준다) */
   tip: RecommendationTip | null;
+  /** 이 페이지의 광고 — 팁과는 따로 고른다(data/adContents.ts) */
+  ad: AdContent;
   onOpenRecommendSetup?: () => void;
+  onOpenAd?: (ad: AdContent) => void;
 }
 
-/** "자두가 알려드려요"의 3카드 세트(오늘부터 3일 중 하루 / 오늘의 장보기 / 자두의 맞춤 팁)
- * 한 장. 페이지 캐러셀의 슬라이드 하나가 곧 이 컴포넌트 하나다 — 왼쪽 아래(오늘의 장보기)는
- * 페이지마다 내용이 똑같지만, 왼쪽 위 날짜 카드는 페이지의 날짜를 그대로 따라간다. 페이지
- * 자체가 통째로 넘어가는 슬라이드 단위라 각 페이지마다 새로 그린다(카드만 따로 바뀌고
- * 나머지가 고정된 것처럼 보이면 안 된다).
+/** "자두가 알려드려요"의 3카드 세트(오늘부터 3일 중 하루 / 자두 PICK 광고 / 자두의 맞춤 팁)
+ * 한 장. 페이지 캐러셀의 슬라이드 하나가 곧 이 컴포넌트 하나다 — 왼쪽 아래 광고 카드는
+ * 사용자의 관심 주제에 따라 페이지마다 다르고, 왼쪽 위 날짜 카드는 페이지의 날짜를 그대로
+ * 따라간다. 페이지 자체가 통째로 넘어가는 슬라이드 단위라 각 페이지마다 새로 그린다(카드만
+ * 따로 바뀌고 나머지가 고정된 것처럼 보이면 안 된다).
  *
  * 날짜 카드 자체는 더 이상 자기 안에서 좌우로 끌리지 않는다 — 이 영역 위에서 잡고 움직여도
  * discovery-page__viewport(부모, 3카드 전체 페이지 전환)가 그 제스처를 받아야 하기
  * 때문이다. `.today-card__track`은 페이지당 날짜 하나만 담아 그 자체로 넘길 내용이
  * 없고(overflow: hidden), 페이지가 넘어갈 때 부모가 다음 날짜의 카드로 통째로 바꿔친다. */
-function DiscoveryPage({ day, tip, onOpenRecommendSetup }: DiscoveryPageProps) {
+function DiscoveryPage({ day, tip, ad, onOpenRecommendSetup, onOpenAd }: DiscoveryPageProps) {
   /* 36개 관심 주제 모두 이미지가 있어 정상 데이터라면 항상 값이 있지만, 혹시 못
    * 찾아도(mismatch) null 이라 아래에서 이미지 없이 텍스트만 안전하게 보여준다. */
   const imagePath = tip ? getRecommendationImagePath(tip.imageKey) : null;
@@ -67,28 +76,38 @@ function DiscoveryPage({ day, tip, onOpenRecommendSetup }: DiscoveryPageProps) {
           </div>
         </article>
 
-        <article className="info-card info-card--sale">
-          <div className="info-card__top">
-            <div className="info-card__label-row">
-              <p className="info-card__label">오늘의 장보기</p>
+        {/* 요약만 보여주는 광고 카드 — 카드 전체가 버튼이라 누르면 상세 바텀시트가 열린다.
+         * 기간·광고주·CTA 는 카드에 두지 않는다(상세에서만 쓴다). 버튼 안이라 p/div 대신 span 이다. */}
+        <button
+          type="button"
+          className="info-card info-card--sale info-card--ad"
+          aria-label={`광고 ${ad.headline}, ${ad.sub}, ${ad.benefitLabel} ${ad.benefitValue}. 자세히 보기`}
+          onClick={() => onOpenAd?.(ad)}
+        >
+          <span className="info-card__top">
+            <span className="info-card__label-row">
+              <span className="info-card__label">자두 PICK</span>
               <span className="info-card__ad">AD</span>
-            </div>
-            <div className="info-card__tit">
-              <p className="info-card__headline">이마트 세일</p>
-              <p className="info-card__period">9.3 – 9.5</p>
-            </div>
-          </div>
-          <div className="info-card__foot">
-            <p className="info-card__foot-label">신선식품</p>
-            <p className="info-card__foot-value">최대 30%</p>
-          </div>
-        </article>
+            </span>
+            <span className="info-card__tit">
+              <span className="info-card__headline">{ad.headline}</span>
+              <span className="info-card__period">{ad.sub}</span>
+            </span>
+          </span>
+          <span className="info-card__foot">
+            <span className="info-card__foot-label">{ad.benefitLabel}</span>
+            <span className="info-card__foot-value">{ad.benefitValue}</span>
+          </span>
+        </button>
 
-        {/* 장보기 일러스트는 카드 밖(컬럼 기준)에 배치된다 — Figma 동일.
-         * 컬럼 기준으로 앵커링해 컬럼이 좁아져도 옆 날씨 카드 쪽으로 번지지 않는다. */}
-        <div className="info-card__art info-card__art--basket" aria-hidden="true">
-          <img src={img('discovery-sprite.png')} alt="" />
-        </div>
+        {/* 광고 이미지는 카드 밖(컬럼 기준)에 배치된다 — 컬럼 기준으로 앵커링해 컬럼이 좁아져도
+         * 옆 맞춤 팁 카드 쪽으로 번지지 않는다. 클릭은 pointer-events:none 으로 아래 카드에 전달된다. */}
+        <AdIcon
+          className="info-card__art info-card__art--ad"
+          sheet={ad.imageSheet}
+          position={ad.imagePosition}
+          label={ad.adCategory}
+        />
       </div>
 
       {/* 카드 껍데기(.info-card--weather, 167×235 고정)는 설정 전후가 같다 —
@@ -134,7 +153,7 @@ function DiscoveryPage({ day, tip, onOpenRecommendSetup }: DiscoveryPageProps) {
 }
 
 /** ③ 자두의 발견 — 정적 콘텐츠 + 추천 설정 진입점 */
-export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps = {}) {
+export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySectionProps = {}) {
   const { user } = useAuth();
   /* 오늘부터 +3일 — 한국 시간 기준 'MM.DD 요일' + 그 날의 꿀팁
    * (자정이 지나면 네 날짜가 함께 하루씩 밀린다). "자두가 알려드려요"의 페이지 수는
@@ -168,10 +187,14 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
    * 09.18→다시 첫 후보 순으로 돌아간다. 아직 추천 설정 전이면(분야 0개) 모든
    * 페이지가 설정 CTA(tip: null)를 보여준다. 정상 데이터라면 항상 찾지만, 혹시 못 찾는
    * topic 이 있어도(mismatch) null 로 걸러내 화면이 깨지지 않게 한다. */
+  /* 광고 4개는 팁과 별개로 같은 저장값(관심 주제)에서 따로 고른다 — 팁과 같은 주제가 우연히
+   * 맞을 수는 있어도 일부러 맞추지 않는다. 항상 페이지 수(4)만큼 나온다(data/adContents.ts). */
+  const ads = selectDiscoveryAds(livingProfile.topics);
+
   const pages = days.map((day, index) => {
     const candidate = candidateTopics.length > 0 ? candidateTopics[index % candidateTopics.length] : null;
     const tip = candidate ? (RECOMMENDATION_TIPS[candidate.category][candidate.topic] ?? null) : null;
-    return { key: day.date, day, tip };
+    return { key: day.date, day, tip, ad: ads[index % ads.length] };
   });
 
   /* 페이지 넘기기 — 3카드 세트 전체가 하나의 슬라이드로 통째로 좌우 이동한다(카드 하나씩
@@ -280,7 +303,7 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
                 } as CSSProperties
               }
             >
-              {pages.map(({ key, day, tip }, index) => {
+              {pages.map(({ key, day, tip, ad }, index) => {
                 const isActive = index === pageCarousel.index;
                 return (
                   <div
@@ -289,7 +312,13 @@ export function DiscoverySection({ onOpenRecommendSetup }: DiscoverySectionProps
                     }`}
                     key={key}
                   >
-                    <DiscoveryPage day={day} tip={tip} onOpenRecommendSetup={onOpenRecommendSetup} />
+                    <DiscoveryPage
+                      day={day}
+                      tip={tip}
+                      ad={ad}
+                      onOpenRecommendSetup={onOpenRecommendSetup}
+                      onOpenAd={onOpenAd}
+                    />
                   </div>
                 );
               })}

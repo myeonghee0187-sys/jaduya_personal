@@ -1267,6 +1267,32 @@ a { text-decoration: none; color: inherit; }
   padding: var(--card-padding-m);
 }
 
+/* "자두 PICK" 광고 카드 — 카드 전체가 누르는 버튼이다(상세 바텀시트를 연다). 껍데기·크기는
+ * 위 .info-card / .info-card--sale 그대로이고, 버튼 기본 모양만 지운다. 안쪽 글은 버튼 안이라
+ * p 가 아니라 span 이라 블록으로 되돌린다. */
+.info-card--ad {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-card--ad:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.info-card--ad .info-card__top { width: 100%; }
+
+.info-card--ad :is(
+  .info-card__label,
+  .info-card__headline,
+  .info-card__period,
+  .info-card__foot-label,
+  .info-card__foot-value
+) { display: block; }
+
 .info-card--weather {
   /* 예전에는 width:165px 고정이라, 좁은 화면에서 왼쪽 discovery__col 만 눌리고 이쪽은
    * 그대로였다 — discovery__col 과 같은 flex:1 1 50% 로 맞춰 두 컬럼이 같은 비율로
@@ -1333,7 +1359,15 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-black);
 }
 
-.info-card--sale .info-card__headline { width: 94px; }
+/* 예전에는 "이마트 세일"(5자)에 맞춰 94px 로 고정이었다 — 광고 헤드라인이 최대 8자 안팎이라
+ * 카드 안쪽 폭 전체를 쓰게 풀었다(카드 크기는 그대로). 두 줄이 되면 카드 높이가 모자라 한 줄로
+ * 고정하고, 402px·360px 에서는 전부 들어간다 — 320px 처럼 아주 좁을 때만 말줄임이 생긴다. */
+.info-card--sale .info-card__headline {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .info-card__period {
   margin: 0;
@@ -1545,27 +1579,22 @@ a { text-decoration: none; color: inherit; }
 
 .info-card__art { position: absolute; overflow: hidden; pointer-events: none; }
 
-/* discovery__row(전체 342px) 기준 right:177px 고정 오프셋이었던 것을 discovery__col
- * (오늘 날짜 + 오늘의 장보기 카드를 담은 왼쪽 컬럼) 기준으로 바꿨다. 342px 기준 컬럼 폭이
- * 169px 이었고 이미지 오른쪽 끝(row 기준 165px)이 컬럼 오른쪽 끝보다 4px 안쪽이었던
- * 관계를 그대로 옮긴 값이 right:4px 다 — 컬럼이 좁아져도 옆 날씨 카드 영역으로는 절대
- * 번지지 않고, 컬럼 자체 폭 안에서만 오늘의 장보기 카드 위로 겹쳐 보인다(Figma 의도한
- * "카드 밖으로 살짝 삐져나오는" 정도의 겹침이 유지된다). */
-.info-card__art--basket {
-  right: 4px;
+/* 광고 카드 이미지(discovery__col — 날짜 카드 + 광고 카드를 담은 왼쪽 컬럼 — 기준).
+ * 컬럼 기준으로 앵커링해 컬럼이 좁아져도 옆 맞춤 팁 카드 영역으로는 번지지 않고 광고 카드
+ * 위에만 겹친다. 크기는 width 만 정한다 — 높이는 AdIcon 의 aspect-ratio 가 정사각형으로 맞춘다
+ * (2×2 시트의 한 칸을 그대로 보여주는 sprite 라 정사각형이어야 한다). */
+.info-card__art--ad {
+  right: 10px;
   bottom: 14px;
-  width: 88px;
-  height: 108px;
-  opacity: 0.8;
+  width: 72px;
 }
 
-.info-card__art--basket img {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 184.84%;
-  height: 100%;
-  max-width: none;
+/* 320px 처럼 카드가 131px 까지 줄어드는 폭에서는 아이콘이 혜택 글자를 덮지 않게 줄인다 */
+@media (max-width: 340px) {
+  .info-card__art--ad {
+    right: 6px;
+    width: 52px;
+  }
 }
 
 .info-card__art--umbrella {
