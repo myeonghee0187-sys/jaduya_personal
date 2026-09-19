@@ -69,7 +69,7 @@ export function AdDetailSheet({ ad, open, onClose }: AdDetailSheetProps) {
             {ad.cta}
           </button>
           <p className="ad-sheet__note" role="status">
-            {ctaPressed ? '데모 화면이라 실제 페이지로 이동하지 않아요.' : '포트폴리오용 가상 광고예요.'}
+            {ctaPressed ? '포트폴리오용 데모 광고예요' : '가상 광고 콘텐츠예요'}
           </p>
         </>
       )}
