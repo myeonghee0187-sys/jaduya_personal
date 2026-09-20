@@ -1,7 +1,14 @@
 /* 2×2 위젯 카드 (WidgetAsset) — Figma 위젯 섹션 4056:20332 의 card.
  * 색은 Figma 값: 배경 #fff8f2 · 테두리 Primary/3 #d28886 · pill rgba(180,57,54,.14) · 글자 #1c1917.
- * 크기는 홈 2×2 = 셀 2개(79.5) + 간격(8) × 셀 2개(86) + 간격(8). */
+ * 기본 크기는 여전히 Figma 원본(167 × 180 = 홈 2×2 = 셀 2개(79.5) + 간격(8) × 셀 2개(86) + 간격(8))이며,
+ * 메뉴 관리의 위젯 픽커(.menu-asset)는 이 크기 그대로 미리보기로 쓴다.
+ * 홈 '내 메뉴'(.menu-slot .widget-asset, home.css)에서만 width/height 를 100% 로 덮어써
+ * 실제 2×2 Slot 크기에 맞춰 카드 자체가 줄어든다 — 그때도 내부 padding·gap·아이콘·글자 크기가
+ * 함께 줄어들도록, 카드 자신을 컨테이너 쿼리 기준으로 삼아(container-type) 안쪽 값들을 전부
+ * cqw(카드 자기 폭의 1%)로 표현한다. 카드가 167px 그대로일 때는 cqw 값이 원래 px 값과
+ * 정확히 같아서(예: 18px = 18/167 = 10.778cqw) 위젯 픽커의 기존 모습은 그대로 유지된다. */
 .widget-asset {
+  container-type: inline-size;
   box-sizing: border-box;
   display: flex;
   flex: none;
@@ -9,7 +16,7 @@
   justify-content: space-between;
   width: 167px;
   height: 180px;
-  padding: 18px;
+  padding: 10.778cqw; /* 18px */
   overflow: hidden;
   border: 1px solid #d28886;
   border-radius: var(--radius-m);
@@ -29,16 +36,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 3.593cqw; /* 6px */
   min-width: 0;
 }
 
 .widget-asset__pill {
-  padding: 3px 7px;
+  padding: 1.796cqw 4.192cqw; /* 3px 7px */
   border-radius: var(--radius-pill);
   background: rgba(180, 57, 54, 0.14);
   color: var(--brand-primary);
-  font: 600 9px/1.2 var(--font-suit);
+  font: 600 5.389cqw/1.2 var(--font-suit); /* 9px */
   white-space: nowrap;
 }
 
@@ -47,11 +54,11 @@
   align-items: center;
   gap: 1px;
   color: var(--brand-primary);
-  font: 600 9px/1.2 var(--font-suit);
+  font: 600 5.389cqw/1.2 var(--font-suit); /* 9px */
   white-space: nowrap;
 }
 
-.widget-asset__action img { width: 10px; height: 10px; }
+.widget-asset__action img { width: 5.988cqw; height: 5.988cqw; } /* 10px */
 
 /* 그림 — 링 svg 는 stroke 여백(-4.63%)만큼 박스 밖으로 나온다 */
 .widget-asset__art {
@@ -80,34 +87,34 @@
 .widget-asset__checklist {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 54px;
+  gap: 3.593cqw; /* 6px */
+  width: 32.335cqw; /* 54px */
 }
 
-.widget-asset__check-row { display: flex; align-items: center; gap: 6px; }
-.widget-asset__check-row img { flex: none; width: 7px; height: 7px; }
-.widget-asset__check-row i { display: block; height: 4px; border-radius: 2px; }
+.widget-asset__check-row { display: flex; align-items: center; gap: 3.593cqw; } /* 6px */
+.widget-asset__check-row img { flex: none; width: 4.192cqw; height: 4.192cqw; } /* 7px */
+.widget-asset__check-row i { display: block; height: 2.395cqw; border-radius: 1.198cqw; } /* 4px / 2px */
 
-.widget-asset__bottom { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.widget-asset__bottom { display: flex; flex-direction: column; gap: 2.395cqw; min-width: 0; } /* 4px */
 
 .widget-asset__caption {
-  font: 600 14px/1.3 var(--font-suit);
+  font: 600 8.383cqw/1.3 var(--font-suit); /* 14px */
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
-.widget-asset__caption-row { display: flex; align-items: flex-end; gap: 4px; }
-.widget-asset__caption--sm { font-size: 13px; }
+.widget-asset__caption-row { display: flex; align-items: flex-end; gap: 2.395cqw; } /* 4px */
+.widget-asset__caption--sm { font-size: 7.784cqw; } /* 13px */
 
-.widget-asset__value-row { display: flex; align-items: flex-end; gap: 4px; }
+.widget-asset__value-row { display: flex; align-items: flex-end; gap: 2.395cqw; } /* 4px */
 
 .widget-asset__value {
-  font: 600 var(--asset-value, 32px)/1 var(--font-suit);
+  font: 600 var(--asset-value, 19.162cqw)/1 var(--font-suit); /* 32px */
   white-space: pre-line;
 }
 
 /* 커뮤니티 — 두 줄 제목형 value (18px Bold) */
 .widget-asset--title .widget-asset__value { font-weight: 700; line-height: 1.2; }
 
-.widget-asset__lead { font: 600 24px/1 var(--font-suit); }
-.widget-asset__suffix { font: 600 28px/1 var(--font-suit); }
+.widget-asset__lead { font: 600 14.371cqw/1 var(--font-suit); } /* 24px */
+.widget-asset__suffix { font: 600 16.766cqw/1 var(--font-suit); } /* 28px */

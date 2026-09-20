@@ -1055,8 +1055,13 @@ a { text-decoration: none; color: inherit; }
 .menu-grid {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 86px);
+  /* 열 너비(--menu-cell-w)는 .app(app-shell.css)에서 --content-width 비율로 계산해
+   * 메뉴 관리 화면의 MY 메뉴(.menu-manage__selected)와 공유한다. 행 높이는 1×1 카드
+   * 비율(79.5 × 86)만 이 화면에서 곱해서 구하므로, 화면 폭이 줄면 열·행이 함께
+   * 비례해서 작아진다 — 어느 쪽도 고정 px 가 아니다. */
+  --menu-cell-h: calc(var(--menu-cell-w) * 86 / 79.5);
+  grid-template-columns: repeat(4, var(--menu-cell-w));
+  grid-template-rows: repeat(2, var(--menu-cell-h));
   gap: var(--widget-gap);
   width: var(--content-width);
   margin: 0;
@@ -1091,7 +1096,7 @@ a { text-decoration: none; color: inherit; }
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 86px;
+  height: 100%;
   padding: 0;
   border: 1px dashed var(--color-gray-3);
   border-radius: var(--radius-m);
@@ -1153,7 +1158,7 @@ a { text-decoration: none; color: inherit; }
   justify-content: space-between;
   align-items: flex-start;
   width: 100%;
-  height: 86px;
+  height: 100%;
   padding: 12px 12px 12px 9px;
   border: 1px solid var(--menu-slot-border);
   border-radius: var(--radius-m);
@@ -1178,7 +1183,16 @@ a { text-decoration: none; color: inherit; }
 /* transform 레이어를 나눈다 — 자리 이동(FLIP)·드래그 이동은 li(.menu-slot), 흔들림은 그 안의
  * .menu-slot__wiggle, 드래그 확대는 안쪽 .menu-widget. 서로 덮어쓰지 않아 움찔거리지 않는다.
  * 흔들림 위상(--menu-wiggle)은 위젯마다 고정이라 순서가 바뀌어도 다시 시작하지 않는다. */
-.menu-slot__wiggle { display: block; }
+.menu-slot__wiggle { display: block; height: 100%; }
+
+/* 2×2 위젯(WidgetAsset)은 원래 Figma 카드 그대로 167 × 180 고정 px 인데, 여기서는
+ * 자리(.menu-slot)가 차지한 2열 × 2행 만큼만 채우도록 폭·높이를 넘겨받는다 — 위젯
+ * 픽커(menu-manage.css 의 .menu-asset)처럼 카드 자체를 미리보기로 보여주는 곳은
+ * 이 규칙의 영향을 받지 않는다(선택자가 .menu-slot 안에서만 적용된다). */
+.menu-slot .widget-asset {
+  width: 100%;
+  height: 100%;
+}
 
 .menu-grid.is-editing .menu-slot__wiggle {
   animation: menu-wiggle 0.26s ease-in-out infinite alternate;
@@ -1196,8 +1210,10 @@ a { text-decoration: none; color: inherit; }
 .menu-slot.is-dragging { z-index: 3; opacity: 0.92; will-change: transform; }
 
 .menu-slot.is-dragging.is-preview-2x2 {
-  width: 167px;
-  height: 180px;
+  /* 2열 × 2행(칸 2개 + 간격 1개)만큼 — .menu-grid 의 --menu-cell-w/--menu-cell-h 를
+   * 그대로 물려받아 계산하므로 화면 폭이 줄어도 실제 2×2 칸 크기와 항상 일치한다. */
+  width: calc(var(--menu-cell-w) * 2 + var(--widget-gap));
+  height: calc(var(--menu-cell-h) * 2 + var(--widget-gap));
   transition: width 180ms ease-out, height 180ms ease-out;
 }
 

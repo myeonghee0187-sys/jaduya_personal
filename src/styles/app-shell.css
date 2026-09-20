@@ -102,6 +102,11 @@ body {
   --widget-small-w: calc(
     (var(--content-width) - var(--widget-add-w) - var(--widget-gap) * 2) / 2
   );
+  /* 내 메뉴(홈) / MY 메뉴(메뉴 관리)가 공유하는 4열 Slot 폭 — 402px 기준 79.5px 이던 값을
+   * --content-width 비율로 다시 계산한다. 두 화면 모두 이 값 하나로 열 너비를 정하므로
+   * 같은 Grid 비율을 그대로 재사용한다(각 행 높이는 사용하는 쪽에서 이 폭에 자기 카드
+   * 비율만 곱해서 구한다 — home.css 의 --menu-cell-h, menu-manage.css 의 --mm-cell-h). */
+  --menu-cell-w: calc((var(--content-width) - var(--widget-gap) * 3) / 4);
 }
 
 /* ---------- 402px 고정 폭 제거 ---------- */

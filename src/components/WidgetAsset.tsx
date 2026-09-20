@@ -8,6 +8,9 @@ import '../styles/widget-asset.css';
  *   .widget-asset__bottom  caption + 큰 value
  * 그림은 전부 Figma 에서 내려받은 원본 에셋(public/assets/icon/wc-*)이다. */
 
+/* 체크리스트 도트 4줄의 막대 길이 — checklist 자신의 폭(54px) 대비 %로 표현해,
+ * 카드가 줄어들며 .widget-asset__checklist 자체가 작아져도 같은 비율을 유지한다. */
+const CHECKLIST_WIDTH = 54;
 const CHECKLIST_ROWS = [
   { dot: 'wc-checklist-dot-1.svg', width: 30, alpha: 0.55 },
   { dot: 'wc-checklist-dot-2.svg', width: 27, alpha: 0.55 },
@@ -15,11 +18,18 @@ const CHECKLIST_ROWS = [
   { dot: 'wc-checklist-dot-4.svg', width: 14, alpha: 0.1 },
 ] as const;
 
-function Layer({ layer }: { layer: CardLayer }) {
+/** 카드 자기 폭(167px) 대비 cqw — .widget-asset 의 container-type: inline-size 기준. */
+const CARD_BASE_WIDTH = 167;
+const cqw = (px: number) => `${(px / CARD_BASE_WIDTH) * 100}cqw`;
+
+function Layer({ layer, artSize }: { layer: CardLayer; artSize: number }) {
   if (layer.box) {
     const [x, y, size] = layer.box;
+    /* art 박스(.widget-asset__art) 자신의 크기 대비 %로 두면, art 자체가 cqw 로
+     * 줄어들 때 이 레이어도 같은 비율로 따라 줄어든다. */
+    const pct = (value: number) => `${(value / artSize) * 100}%`;
     return (
-      <span className="widget-asset__layer widget-asset__layer--box" style={{ left: x, top: y, width: size, height: size }}>
+      <span className="widget-asset__layer widget-asset__layer--box" style={{ left: pct(x), top: pct(y), width: pct(size), height: pct(size) }}>
         <img src={icon(layer.file)} alt="" className={layer.crop ? 'is-crop' : undefined} />
       </span>
     );
@@ -34,15 +44,15 @@ function Visual({ visual }: { visual: CardVisual }) {
         {CHECKLIST_ROWS.map((row) => (
           <span className="widget-asset__check-row" key={row.dot}>
             <img src={icon(row.dot)} alt="" />
-            <i style={{ width: row.width, background: `rgba(180, 57, 54, ${row.alpha})` }} />
+            <i style={{ width: `${(row.width / CHECKLIST_WIDTH) * 100}%`, background: `rgba(180, 57, 54, ${row.alpha})` }} />
           </span>
         ))}
       </span>
     );
   }
   return (
-    <span className="widget-asset__art" style={{ width: visual.size, height: visual.size }} aria-hidden="true">
-      {visual.layers.map((layer) => <Layer key={layer.file} layer={layer} />)}
+    <span className="widget-asset__art" style={{ width: cqw(visual.size), height: cqw(visual.size) }} aria-hidden="true">
+      {visual.layers.map((layer) => <Layer key={layer.file} layer={layer} artSize={visual.size} />)}
     </span>
   );
 }
@@ -61,7 +71,7 @@ export function WidgetAsset({ asset, className }: WidgetAssetProps) {
       className={classes}
       data-widget-asset={asset.id}
       data-figma-node={asset.figmaNodeId}
-      style={{ '--asset-value': `${valueSize}px` } as CSSProperties}
+      style={{ '--asset-value': cqw(valueSize) } as CSSProperties}
     >
       <div className="widget-asset__top">
         <Visual visual={visual} />
