@@ -7,6 +7,7 @@ import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
+import { CommunitySearchDropdown, CommunitySearchToggleButton } from '../components/CommunitySearchDropdown';
 import {
   COMMUNITY_BOARD_TAB,
   COMMUNITY_TABS,
@@ -69,7 +70,7 @@ export function CommunityTipPage() {
   const bookmarks = useBookmarks();
   const [liked, setLiked] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const { ownPosts } = useCommunityPosts();
   /* 검색어가 서브탭 카테고리 이름(예: "인테리어")과 정확히 일치하면 그 서브탭으로
@@ -126,9 +127,18 @@ export function CommunityTipPage() {
         title="커뮤니티"
         backLabel="커뮤니티 홈으로"
         onBack={() => navigation?.goBack('community')}
+        preserveBellPlacement
+        actions={(
+          <CommunitySearchToggleButton
+            open={searchOpen}
+            controls="community-tip-search"
+            onToggle={() => setSearchOpen((open) => !open)}
+          />
+        )}
       />
 
       <main className="community__scroll">
+        <div className="community-search-anchor">
         {/* ============ 탭 — '게시판' / '지역 후기'는 각자의 화면으로 이동한다 ============ */}
         <nav className="community-tabs" aria-label="커뮤니티 분류">
           {COMMUNITY_TABS.map((name) => (
@@ -148,50 +158,16 @@ export function CommunityTipPage() {
           ))}
         </nav>
 
-        {/* ============ 검색 — 커뮤니티 홈과 같은 입력창, 타이틀 문구는 없음 ============ */}
-        <section className="community-search">
-          <div className="community-search__input">
-            <input
-              ref={searchRef}
-              type="search"
-              value={keyword}
-              placeholder="다른 자취러들의 꿀팁을 찾아보세요"
-              aria-label="자취 꿀팁 검색"
-              onChange={(event) => setKeyword(event.target.value)}
-            />
-            {keyword && (
-              <button
-                type="button"
-                className="community-search__icon"
-                aria-label="검색어 지우기"
-                onClick={() => {
-                  setKeyword('');
-                  searchRef.current?.focus();
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M6 6 18 18M18 6 6 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            )}
-            <button type="button" className="community-search__icon" aria-label="검색">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                <path
-                  d="M16.5 16.5 21 21"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-        </section>
+        <CommunitySearchDropdown
+          id="community-tip-search"
+          open={searchOpen}
+          value={keyword}
+          placeholder="다른 자취러들의 꿀팁을 찾아보세요"
+          label="자취 꿀팁 검색"
+          onChange={setKeyword}
+          onClose={() => setSearchOpen(false)}
+        />
+        </div>
 
         {/* ============ 자취 꿀팁 전용 서브탭 ============ */}
         <div className="tip-categories" role="tablist" aria-label="자취 꿀팁 카테고리">

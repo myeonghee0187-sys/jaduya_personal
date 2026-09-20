@@ -14,7 +14,7 @@ export function CommunityPostPage() {
   const { likedPostIds, togglePostLike } = useCommunityPosts();
   const close = () => navigation?.goBack('community');
   if (!post || !post.body) return <div className="community app">
-    <SubPageHeader title="커뮤니티" backLabel="커뮤니티로" onBack={close} />
+    <SubPageHeader title="커뮤니티" backLabel="커뮤니티로" onBack={close} preserveBellPlacement />
     <main className="community__scroll"><p>게시글을 찾을 수 없어요.</p></main>
   </div>;
   return <div className="community app"><CommunityPostDetailPanel post={post} open onClose={close}

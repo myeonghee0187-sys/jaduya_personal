@@ -24,11 +24,10 @@ const ALL_STATIC_POSTS: CommunityPost[] = dedupeById([
   ...REGION_POSTS,
 ]);
 
-/** CommunityPage(홈 탭)가 실제로 상세 화면을 열 수 있는 게시글 id — COMMUNITY_POSTS
- * (+ 사용자가 새로 쓴 글)만 해당한다. 게시판/자취 꿀팁/지역 후기 전용 정적 글은 그 화면
- * 자체에 아직 상세 진입 기능이 없어서(기존 앱의 제한이라 이번 작업에서 새로 만들지
- * 않는다), 저장한 정보에서 그런 글을 눌렀을 때는 상세로 보내는 대신 안내만 띄운다. */
-const ROUTABLE_STATIC_POST_IDS = new Set(COMMUNITY_POSTS.map((post) => post.id));
+/** 실제 상세 본문이 있는 정적 게시글만 상세 route로 연결한다. */
+const ROUTABLE_STATIC_POST_IDS = new Set(
+  ALL_STATIC_POSTS.filter((post) => Boolean(post.body)).map((post) => post.id),
+);
 
 /** 마이페이지 댓글 탭 등에서 쓰는 공통 댓글 모양 — 정적 mock 댓글(CommunityComment)과
  * 사용자가 쓴 댓글(OwnComment)은 필드가 조금씩 달라서(avatar/avatarImage, time/createdAt)

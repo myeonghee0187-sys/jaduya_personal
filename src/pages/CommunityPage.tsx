@@ -8,6 +8,7 @@ import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
 import { CommunityWritePanel } from '../components/CommunityWritePanel';
+import { CommunitySearchDropdown, CommunitySearchToggleButton } from '../components/CommunitySearchDropdown';
 import {
   COMMUNITY_BOARD_TAB,
   COMMUNITY_POSTS,
@@ -38,6 +39,21 @@ const BOARD_VIEWS: ReadonlyArray<{ id: CommunityBoardView; icon: string }> = [
 ];
 
 const POSTS_PER_PAGE = 10;
+const COMMUNITY_RECENT_SEARCHES_KEY = 'jaduya:community:recent-searches';
+const POPULAR_COMMUNITY_SEARCHES = ['관리비', '인테리어', '식비'] as const;
+
+function loadRecentSearches(): string[] {
+  try {
+    const saved = window.sessionStorage.getItem(COMMUNITY_RECENT_SEARCHES_KEY);
+    if (!saved) return [];
+
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((term): term is string => typeof term === 'string' && term.trim().length > 0).slice(0, 3);
+  } catch {
+    return [];
+  }
+}
 
 function isBoardView(value: string | undefined): value is CommunityBoardView {
   return BOARD_VIEWS.some((view) => view.id === value);
@@ -70,7 +86,8 @@ export function CommunityPage({
   const [page, setPage] = useState(1);
   const [writeOpen, setWriteOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(loadRecentSearches);
   const feedRef = useRef<HTMLElement>(null);
   const bookmarks = useBookmarks();
   const { ownPosts, likedPostIds: liked, togglePostLike: toggleLike } = useCommunityPosts();
@@ -121,15 +138,58 @@ export function CommunityPage({
     });
   };
 
+  const submitSearch = (term: string, saveToRecent: boolean) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    setKeyword(trimmed);
+    if (!saveToRecent) return;
+
+    setRecentSearches((current) => {
+      const next = [trimmed, ...current.filter((savedTerm) => savedTerm !== trimmed)].slice(0, 3);
+      try {
+        window.sessionStorage.setItem(COMMUNITY_RECENT_SEARCHES_KEY, JSON.stringify(next));
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 검색 기능은 그대로 동작한다.
+      }
+      return next;
+    });
+  };
+
+  const removeRecentSearch = (term: string) => {
+    setRecentSearches((current) => {
+      const next = current.filter((savedTerm) => savedTerm !== term);
+      try {
+        if (next.length > 0) {
+          window.sessionStorage.setItem(COMMUNITY_RECENT_SEARCHES_KEY, JSON.stringify(next));
+        } else {
+          window.sessionStorage.removeItem(COMMUNITY_RECENT_SEARCHES_KEY);
+        }
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 삭제 결과는 현재 화면에 반영한다.
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="community app">
       <SubPageHeader
         title="커뮤니티"
-        backLabel={returnToCommunity ? '커뮤니티 홈으로' : '홈으로'}
-        onBack={() => navigation?.goBack(returnToCommunity ? 'community' : 'home')}
+        backLabel="홈으로"
+        onBack={() => navigation?.navigate('home')}
+        preserveBellPlacement
+        actions={(
+          <CommunitySearchToggleButton
+            open={searchOpen}
+            controls="community-board-search"
+            onToggle={() => setSearchOpen((open) => !open)}
+          />
+        )}
       />
 
       <main className="community__scroll">
+        <div className="community-search-anchor">
         <nav className="community-tabs" aria-label="커뮤니티 분류">
           {COMMUNITY_TABS.map((name) => (
             <button
@@ -149,39 +209,20 @@ export function CommunityPage({
           ))}
         </nav>
 
-        <section className="community-search">
-          <div className="community-search__input">
-            <input
-              ref={searchRef}
-              type="search"
-              value={keyword}
-              placeholder="궁금한 자취 이야기를 검색해보세요"
-              aria-label="게시판 검색"
-              onChange={(event) => setKeyword(event.target.value)}
-            />
-            {keyword && (
-              <button
-                type="button"
-                className="community-search__icon"
-                aria-label="검색어 지우기"
-                onClick={() => {
-                  setKeyword('');
-                  searchRef.current?.focus();
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 6 18 18M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
-            <button type="button" className="community-search__icon" aria-label="검색">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                <path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </section>
+        <CommunitySearchDropdown
+          id="community-board-search"
+          open={searchOpen}
+          value={keyword}
+          placeholder="궁금한 자취 이야기를 검색해보세요"
+          label="게시판 검색"
+          onChange={setKeyword}
+          onClose={() => setSearchOpen(false)}
+          recentSearches={recentSearches}
+          popularSearches={POPULAR_COMMUNITY_SEARCHES}
+          onSearch={submitSearch}
+          onRemoveRecentSearch={removeRecentSearch}
+        />
+        </div>
 
         <div className="board-type-filter" role="tablist" aria-label="게시판 분류">
           {BOARD_VIEWS.map((view) => {

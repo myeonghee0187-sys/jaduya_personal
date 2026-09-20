@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { icon, img } from '../lib/asset';
 import { authorBadgeColor } from '../lib/authorBadgeColor';
 import { BellButton } from './BellButton';
@@ -99,30 +100,29 @@ export function CommunityPostDetailPanel({
   /** 페이지 번호 줄(post-detail__comment-pages) — 번호·화살표를 눌렀을 때 이 줄의 화면상
    * 위치를 그대로 유지하기 위한 기준점으로 쓴다. */
   const commentPagesRef = useRef<HTMLDivElement>(null);
-  /** 번호·화살표 클릭 직전, 페이지 번호 줄의 화면상 y좌표 — 페이지가 바뀌어 댓글 목록
-   * 높이가 달라져도 이 줄만은 같은 자리에 있는 것처럼 보이도록 다음 layout effect에서
-   * 스크롤을 보정하는 데 쓴다. null 이면(등록 후 이동 등 다른 경로) 보정하지 않는다. */
-  const pageScrollAnchorRef = useRef<number | null>(null);
-
   const goToPage = (updater: number | ((current: number) => number)) => {
-    pageScrollAnchorRef.current = commentPagesRef.current?.getBoundingClientRect().top ?? null;
-    setPage(updater);
-  };
+    const nextPage = typeof updater === 'function' ? updater(page) : updater;
+    if (nextPage === page) return;
 
-  /* 페이지 번호 줄의 화면상 위치를 고정된 것처럼 보이게 하는 보정 — 브라우저가 그리기
-   * 전에(useLayoutEffect) 새 위치와 클릭 직전 위치의 차이만큼 스크롤을 옮겨서, 번호 줄은
-   * 제자리에 있고 그 위 댓글 목록만 바뀐 것처럼 보이게 한다. position:sticky 처럼 항상
-   * 고정된 게 아니라 페이지 전환 순간에만 동작 — 평소 스크롤은 그대로 자연스럽게 움직인다. */
-  useLayoutEffect(() => {
-    const anchorTop = pageScrollAnchorRef.current;
-    pageScrollAnchorRef.current = null;
-    if (anchorTop === null) return;
     const pagesEl = commentPagesRef.current;
     const scrollEl = pagesEl?.closest('.post-detail__scroll');
-    if (!pagesEl || !scrollEl) return;
-    const delta = pagesEl.getBoundingClientRect().top - anchorTop;
-    if (delta !== 0) scrollEl.scrollTop += delta;
-  }, [page]);
+    if (!pagesEl || !scrollEl) {
+      setPage(nextPage);
+      return;
+    }
+
+    const anchorTop = pagesEl.getBoundingClientRect().top;
+    /* 댓글 DOM을 즉시 교체한 뒤 같은 프레임에서 페이지 번호의 이동량만큼 내부 스크롤을
+     * 보정한다. 특히 2 → 1에서 긴 1페이지의 위쪽으로 화면이 끌려가지 않게 한다. */
+    flushSync(() => setPage(nextPage));
+
+    const preservePageControls = () => {
+      const delta = pagesEl.getBoundingClientRect().top - anchorTop;
+      if (delta !== 0) scrollEl.scrollTop += delta;
+    };
+    preservePageControls();
+    window.requestAnimationFrame(preservePageControls);
+  };
 
   /* 다른 글을 열면 입력창·페이지·정렬 상태는 그 글의 새 상태로 시작한다 (내가 쓴 댓글은 글별로 남는다) */
   useEffect(() => {
