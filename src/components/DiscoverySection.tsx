@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { INTEREST_CATEGORIES, INTEREST_TOPICS, loadLivingProfile } from '../data/livingProfile';
 import type { InterestCategory } from '../data/livingProfile';
@@ -8,16 +8,22 @@ import type { RecommendationTip } from '../data/recommendationTips';
 import { getRecommendationImagePath } from '../data/recommendationImages';
 import { useSeoulDays } from '../hooks/useSeoulToday';
 import type { SeoulDay } from '../hooks/useSeoulToday';
-import { useCardCarousel } from '../hooks/useCardCarousel';
 import { selectDiscoveryAds } from '../data/adContents';
 import type { AdContent } from '../data/adContents';
 import { icon } from '../lib/asset';
 import { AdIcon } from './AdIcon';
 
-/* 페이지(3카드 세트) 단위 wrapper 사이 간격 — CSS(.discovery-page__track 의
- * --discovery-page-gap)와 아래 translateX 계산이 이 값 하나만 같이 쓴다(중복 하드코딩
- * 금지). 카드 내부 레이아웃이나 카드 사이 간격과는 무관하다. */
-const DISCOVERY_PAGE_GAP_PX = 4;
+const DISCOVERY_AUTO_ADVANCE_MS = 4500;
+const DISCOVERY_SWIPE_THRESHOLD_PX = 45;
+
+type DiscoveryTransitionPhase = 'idle' | 'prepare' | 'dragging' | 'moving' | 'reverting';
+
+interface DiscoveryGesture {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  axis: 'none' | 'x' | 'y';
+}
 
 /* 페이지네이션 이전/다음 화살표 — 기존 chevron 아이콘 파일을 mask 로 그려 색을 CSS(color)에 맡긴다.
  * 이전(‹)은 같은 아이콘을 좌우 반전한다. */
@@ -196,64 +202,145 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
     return { key: day.date, day, tip, ad: ads[index % ads.length] };
   });
 
-  /* 페이지 넘기기 — 3카드 세트 전체가 하나의 슬라이드로 통째로 좌우 이동한다(카드 하나씩
-   * 따로 움직이지 않는다). count 는 pages.length(=날짜 개수) 그대로다. */
-  const pageCarousel = useCardCarousel({ count: pages.length });
+  /* 현재 페이지와 이동 목표를 분리한다. activeIndex는 transition 종료 시에만 바뀌므로
+   * 페이지네이션이 카드보다 먼저 바뀌지 않고, DOM 재정렬 없이 두 장만 함께 움직인다. */
   const canPage = pages.length > 1;
-  /* 이전(‹)은 01에서 막힌다(그 앞 페이지가 없다는 뜻이라 비활성 처리) — goTo(index-1)로만
-   * 옮긴다. 다음(›)은 반대로 04에서도 계속 활성 상태로 두고 goNext()(무한 순환, 이미
-   * swipe 가 쓰는 것과 같은 함수)를 그대로 써서 04 → 01 로 끊김 없이 돈다. */
-  const isFirstPage = pageCarousel.index === 0;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [paginationIndex, setPaginationIndex] = useState(0);
+  const [targetIndex, setTargetIndex] = useState<number | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [transitionPhase, setTransitionPhase] = useState<DiscoveryTransitionPhase>('idle');
+  const [dragOffset, setDragOffset] = useState(0);
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [pointerPaused, setPointerPaused] = useState(false);
+  const [progressCycle, setProgressCycle] = useState(0);
+  const autoAdvancePaused = hoverPaused || pointerPaused;
+  const gestureRef = useRef<DiscoveryGesture | null>(null);
+  const transitionFrameRef = useRef<number>();
+  const isFirstPage = activeIndex === 0;
 
-  /* 첫 노출 때만 실제 페이지를 바꾸지 않는 짧은 swipe affordance를 보여준다. 섹션이
-   * viewport에 들어온 뒤 1초를 기다리며, reduced-motion 환경과 사용자가 먼저 조작한
-   * 경우에는 실행하지 않는다. */
-  const sectionRef = useRef<HTMLElement>(null);
-  const hintTimerRef = useRef<number>();
-  const hintHandledRef = useRef(false);
-  const [isSwipeHinting, setIsSwipeHinting] = useState(false);
+  const wrapIndex = useCallback((index: number) => (
+    pages.length > 0 ? ((index % pages.length) + pages.length) % pages.length : 0
+  ), [pages.length]);
 
-  const cancelSwipeHint = () => {
-    hintHandledRef.current = true;
-    window.clearTimeout(hintTimerRef.current);
-    setIsSwipeHinting(false);
-  };
+  const beginTransition = useCallback((nextIndex: number, nextDirection: 1 | -1) => {
+    if (!canPage || transitionPhase !== 'idle') return;
+    const wrappedIndex = wrapIndex(nextIndex);
+    if (wrappedIndex === activeIndex) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setActiveIndex(wrappedIndex);
+      setPaginationIndex(wrappedIndex);
+      return;
+    }
+    setTargetIndex(wrappedIndex);
+    setPaginationIndex(wrappedIndex);
+    setDirection(nextDirection);
+    setTransitionPhase('prepare');
+    window.cancelAnimationFrame(transitionFrameRef.current ?? 0);
+    transitionFrameRef.current = window.requestAnimationFrame(() => {
+      transitionFrameRef.current = window.requestAnimationFrame(() => setTransitionPhase('moving'));
+    });
+  }, [activeIndex, canPage, transitionPhase, wrapIndex]);
 
+  useEffect(() => () => window.cancelAnimationFrame(transitionFrameRef.current ?? 0), []);
+
+  /* 한 페이지를 4.5초 보여준 뒤 항상 다음 장을 왼쪽 방향으로 넘긴다. */
   useEffect(() => {
-    if (!canPage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const section = sectionRef.current;
-    if (!section) return;
+    if (!canPage || autoAdvancePaused || transitionPhase !== 'idle') return;
+    const timer = window.setTimeout(
+      () => beginTransition(activeIndex + 1, 1),
+      DISCOVERY_AUTO_ADVANCE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, autoAdvancePaused, beginTransition, canPage, progressCycle, transitionPhase]);
 
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting || hintHandledRef.current) return;
-      hintHandledRef.current = true;
-      observer.disconnect();
-      hintTimerRef.current = window.setTimeout(() => setIsSwipeHinting(true), 1000);
-    }, { threshold: 0.35 });
-
-    observer.observe(section);
-    return () => {
-      observer.disconnect();
-      window.clearTimeout(hintTimerRef.current);
-    };
-  }, [canPage]);
+  const restartProgress = () => setProgressCycle((cycle) => cycle + 1);
 
   const handlePrevClick = () => {
-    cancelSwipeHint();
-    pageCarousel.goTo(pageCarousel.index - 1);
+    setProgressCycle((cycle) => cycle + 1);
+    beginTransition(activeIndex - 1, -1);
   };
   const handleNextClick = () => {
-    cancelSwipeHint();
-    pageCarousel.goNext();
+    setProgressCycle((cycle) => cycle + 1);
+    beginTransition(activeIndex + 1, 1);
   };
   const handleTabClick = (index: number) => {
-    if (index === pageCarousel.index) return;
-    cancelSwipeHint();
-    pageCarousel.goTo(index);
+    setProgressCycle((cycle) => cycle + 1);
+    if (index === activeIndex) return;
+    beginTransition(index, index > activeIndex ? 1 : -1);
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!canPage || transitionPhase !== 'idle') return;
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      axis: 'none',
+    };
+    setPointerPaused(true);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.axis === 'y') return;
+    const dx = event.clientX - gesture.startX;
+    const dy = event.clientY - gesture.startY;
+    if (gesture.axis === 'none') {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) <= Math.abs(dy) * 1.4) {
+        gesture.axis = 'y';
+        return;
+      }
+      gesture.axis = 'x';
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* optional */ }
+    }
+    event.preventDefault();
+    const nextDirection: 1 | -1 = dx < 0 ? 1 : -1;
+    setDirection(nextDirection);
+    const nextIndex = wrapIndex(activeIndex + nextDirection);
+    setTargetIndex(nextIndex);
+    setPaginationIndex(nextIndex);
+    setTransitionPhase('dragging');
+    setDragOffset(dx);
+  };
+
+  const finishPointerGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    gestureRef.current = null;
+    setPointerPaused(false);
+    restartProgress();
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.axis !== 'x') return;
+    const dx = event.clientX - gesture.startX;
+    const nextDirection: 1 | -1 = dx < 0 ? 1 : -1;
+    setDirection(nextDirection);
+    setTargetIndex(wrapIndex(activeIndex + nextDirection));
+    setDragOffset(0);
+    if (Math.abs(dx) >= DISCOVERY_SWIPE_THRESHOLD_PX
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setActiveIndex(wrapIndex(activeIndex + nextDirection));
+      setPaginationIndex(wrapIndex(activeIndex + nextDirection));
+      setTargetIndex(null);
+      setTransitionPhase('idle');
+    } else {
+      setTransitionPhase(Math.abs(dx) >= DISCOVERY_SWIPE_THRESHOLD_PX ? 'moving' : 'reverting');
+    }
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch { /* optional */ }
+  };
+
+  const finishSlideTransition = () => {
+    if (transitionPhase === 'moving' && targetIndex !== null) setActiveIndex(targetIndex);
+    if (transitionPhase === 'reverting') setPaginationIndex(activeIndex);
+    if (transitionPhase !== 'moving' && transitionPhase !== 'reverting') return;
+    setTargetIndex(null);
+    setDragOffset(0);
+    setTransitionPhase('idle');
   };
 
   return (
-    <section className="discovery" ref={sectionRef} onPointerDownCapture={cancelSwipeHint}>
+    <section className={`discovery${autoAdvancePaused ? ' is-auto-paused' : ''}`}>
       <div className="discovery__top">
         <h2>자두가 알려드려요</h2>
         {/* 카드 안 '설정하기'와 같은 진입점이다 — 페이지를 옮기지 않고
@@ -284,7 +371,7 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
           <span className="discovery__page-chevron-icon discovery__page-chevron-icon--prev" style={CHEVRON_STYLE} aria-hidden="true" />
         </button>
         {pages.map(({ key, day }, index) => {
-          const isActive = index === pageCarousel.index;
+          const isActive = index === paginationIndex;
           return (
             <Fragment key={key}>
               <button
@@ -298,7 +385,9 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
                 {String(index + 1).padStart(2, '0')}
               </button>
               <span
+                key={`${key}-${isActive ? progressCycle : 'idle'}`}
                 className={`discovery__page-line${isActive ? ' is-active' : ''}`}
+                style={{ '--discovery-progress-duration': `${DISCOVERY_AUTO_ADVANCE_MS}ms` } as CSSProperties}
                 aria-hidden="true"
               />
             </Fragment>
@@ -318,32 +407,59 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
         {/* 실제로 슬라이드를 자르는 overflow:hidden 은 안쪽 viewport 만 갖는다 —
           * 페이지 전환(3카드 전체 슬라이드)과 카드 폭·gap·padding 은 이전과 완전히 같다. */}
         <div className="discovery-page__carousel">
-          <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
-            <div
-              className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}${
-                isSwipeHinting ? ' is-hinting' : ''
-              }`}
-              onAnimationEnd={() => setIsSwipeHinting(false)}
-              style={
-                {
-                  '--discovery-page-gap': `${DISCOVERY_PAGE_GAP_PX}px`,
-                  transform: `translateX(calc(${-pageCarousel.index * 100}% - ${pageCarousel.index * DISCOVERY_PAGE_GAP_PX}px + ${pageCarousel.dragOffset}px))`,
-                } as CSSProperties
-              }
-            >
-              {pages.map(({ key, day, tip, ad }) => {
-                return (
-                  <div className="discovery-page__slide" key={key}>
-                    <DiscoveryPage
-                      day={day}
-                      tip={tip}
-                      ad={ad}
-                      onOpenRecommendSetup={onOpenRecommendSetup}
-                      onOpenAd={onOpenAd}
-                    />
-                  </div>
-                );
-              })}
+          <div
+            className="discovery-page__viewport"
+            onMouseEnter={() => setHoverPaused(true)}
+            onMouseLeave={() => {
+              setHoverPaused(false);
+              restartProgress();
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={finishPointerGesture}
+            onPointerCancel={finishPointerGesture}
+          >
+            <div className={`discovery-page__track is-${transitionPhase}`}>
+              <div
+                className="discovery-page__slide discovery-page__slide--current"
+                onTransitionEnd={(event) => {
+                  if (event.target === event.currentTarget && event.propertyName === 'transform') {
+                    finishSlideTransition();
+                  }
+                }}
+                style={{
+                  '--discovery-current-x': transitionPhase === 'dragging'
+                    ? `${dragOffset}px`
+                    : transitionPhase === 'moving'
+                      ? `${-direction * 100}%`
+                      : '0%',
+                } as CSSProperties}
+              >
+                <DiscoveryPage
+                  {...pages[activeIndex]}
+                  onOpenRecommendSetup={onOpenRecommendSetup}
+                  onOpenAd={onOpenAd}
+                />
+              </div>
+              {targetIndex !== null && (
+                <div
+                  className="discovery-page__slide discovery-page__slide--target"
+                  aria-hidden={transitionPhase === 'prepare' || transitionPhase === 'dragging'}
+                  style={{
+                    '--discovery-target-x': transitionPhase === 'moving'
+                      ? '0%'
+                      : transitionPhase === 'dragging'
+                        ? `calc(${direction * 100}% + ${dragOffset}px)`
+                        : `${direction * 100}%`,
+                  } as CSSProperties}
+                >
+                  <DiscoveryPage
+                    {...pages[targetIndex]}
+                    onOpenRecommendSetup={onOpenRecommendSetup}
+                    onOpenAd={onOpenAd}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

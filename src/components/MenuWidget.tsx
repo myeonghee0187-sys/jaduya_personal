@@ -1,7 +1,10 @@
 import type { CSSProperties } from 'react';
 import { GlyphIcon } from './GlyphIcon';
-import { MENU_WIDGET_DEFS, slotColorOf } from '../data/menuWidgets';
-import type { MenuWidgetItem } from '../data/menuWidgets';
+import { WidgetAsset } from './WidgetAsset';
+import { MENU_CATALOG } from '../data/menuCatalog';
+import { MENU_WIDGET_ASSETS } from '../data/menuWidgetAssets';
+import { slotColorOf } from '../data/menuWidgets';
+import type { SelectedMenuWidget } from '../data/menuWidgets';
 
 /** 위젯 아이콘 도형의 긴 변(px) — 모든 위젯 공통. 카드(79.5×86)에서 라벨과 겹치지 않는 크기. */
 const MENU_WIDGET_ICON_SIZE = 26;
@@ -24,37 +27,62 @@ function wigglePhase(id: string): number {
 }
 
 interface MenuWidgetSlotProps {
-  item: MenuWidgetItem;
-  /** 화면에 그려진 자리(1부터). 드래그 중에는 order 가 아니라 이 값으로 색이 정해진다. */
-  position: number;
+  item: SelectedMenuWidget;
+  /** 실제 4×2 Grid 시작 칸(1~8). 1×1의 border/icon/accent는 이 값만 따른다. */
+  slotIndex: number;
+  row: number;
+  col: number;
+  span: 1 | 2;
   editing: boolean;
   dragging: boolean;
-  onOpen: (item: MenuWidgetItem) => void;
+  previewAssetId?: string;
+  onOpen: (item: SelectedMenuWidget) => void;
   onRemove: (id: string) => void;
 }
 
-export function MenuWidgetSlot({ item, position, editing, dragging, onOpen, onRemove }: MenuWidgetSlotProps) {
-  const def = MENU_WIDGET_DEFS[item.type];
+export function MenuWidgetSlot({ item, slotIndex, row, col, span, editing, dragging, previewAssetId, onOpen, onRemove }: MenuWidgetSlotProps) {
+  const menu = MENU_CATALOG.flatMap((section) => section.items).find((entry) => entry.id === item.menuId);
+  const asset = item.size === '2x2' ? MENU_WIDGET_ASSETS.find((entry) => entry.id === item.assetId) : null;
+  const previewAsset = previewAssetId ? MENU_WIDGET_ASSETS.find((entry) => entry.id === previewAssetId) : null;
+  if (!menu || (item.size === '2x2' && !asset)) return null;
+
+  const slotStyle = {
+    '--menu-wiggle': wigglePhase(item.assetId),
+    gridColumn: `${col + 1} / span ${span}`,
+    gridRow: `${row + 1} / span ${span}`,
+  } as CSSProperties;
 
   return (
     <li
-      className={`menu-slot menu-slot--${slotColorOf(position)}${dragging ? ' is-dragging' : ''}`}
-      data-widget-id={item.id}
+      className={`menu-slot menu-slot--${slotColorOf(slotIndex)}${dragging ? ' is-dragging' : ''}${previewAsset ? ' is-preview-2x2' : ''}`}
+      data-widget-id={item.assetId}
       data-order={item.order}
-      style={{ '--menu-wiggle': wigglePhase(item.id) } as CSSProperties}
+      data-slot={slotIndex}
+      style={slotStyle}
     >
       <span className="menu-slot__wiggle">
-        <button type="button" className="menu-widget" data-size={item.size} onClick={() => onOpen(item)}>
-          <span className="menu-widget__label">{def.label}</span>
-          <GlyphIcon file={def.icon} size={MENU_WIDGET_ICON_SIZE} className="menu-widget__icon" />
-        </button>
+        {(previewAsset ?? asset) ? (
+          <button
+            type="button"
+            aria-label={`${menu.label} 열기`}
+            onClick={() => onOpen(item)}
+            style={{ display: 'block', width: '100%', padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
+          >
+            <WidgetAsset asset={(previewAsset ?? asset)!} />
+          </button>
+        ) : (
+          <button type="button" className="menu-widget" data-size={item.size} onClick={() => onOpen(item)}>
+            <span className="menu-widget__label">{menu.label}</span>
+            <GlyphIcon file={menu.icon} size={MENU_WIDGET_ICON_SIZE} className="menu-widget__icon" />
+          </button>
+        )}
       </span>
       {editing && (
         <button
           type="button"
           className="menu-slot__remove"
-          aria-label={`${def.label} 삭제`}
-          onClick={() => onRemove(item.id)}
+          aria-label={`${menu.label} 삭제`}
+          onClick={() => onRemove(item.assetId)}
         />
       )}
     </li>

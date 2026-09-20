@@ -421,8 +421,8 @@
  * 로 감싸 z-index로 위에 둔다. */
 .login-showcase__tab-highlight {
   position: absolute;
-  inset: 0;
-  border-radius: 14px;
+  inset: -1px;
+  border-radius: inherit;
   background: var(--brand-primary);
 }
 
