@@ -23,6 +23,9 @@ export type AppPage =
   | 'money'
   | 'money-budget'
   | 'money-accounts'
+  | 'money-fixed'
+  | 'money-expense'
+  | 'money-fund'
   | 'widget-gallery'
   | 'notifications';
 
@@ -59,6 +62,7 @@ export const PAGE_PATHS: Record<AppPage, string> = {
   benefits: '/money/benefits', 'benefits-recommend': '/money/benefits/recommended',
   'benefit-detail': '/money/benefits/:id', 'ai-chat': '/ai', money: '/money',
   'money-budget': '/money/budget', 'money-accounts': '/money/accounts',
+  'money-fixed': '/money/fixed', 'money-expense': '/money/expense', 'money-fund': '/money/fund',
   'widget-gallery': '/widgets', notifications: '/notifications',
 };
 export function pageUrl(page: AppPage, options: NavigateOptions = {}): string {

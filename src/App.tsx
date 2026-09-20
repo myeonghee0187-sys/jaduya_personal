@@ -87,6 +87,9 @@ function MainPages() {
           <Route path="/money" element={<MoneyPage />} />
           <Route path="/money/budget" element={<MoneyBudgetPage />} />
           <Route path="/money/accounts" element={<MoneyAccountsPage />} />
+          <Route path="/money/fixed" element={<MoneyPage screen="fixed" />} />
+          <Route path="/money/expense" element={<MoneyPage screen="expense" />} />
+          <Route path="/money/fund" element={<MoneyPage screen="fund" />} />
           <Route path="/money/benefits" element={<BenefitsPage />} />
           <Route path="/money/benefits/recommended" element={<BenefitsRecommendPage />} />
           <Route path="/money/benefits/:id" element={<BenefitDetailPage />} />

@@ -6,10 +6,9 @@ import { SplashScreen } from '../components/SplashScreen';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import App from '../App';
 import { useAuth } from '../auth/AuthContext';
-import { getDemoAccountId, TEST_ACCOUNTS } from '../auth/mockUsers';
+import { TEST_ACCOUNTS } from '../auth/mockUsers';
 import type { MockAccount, Persona } from '../auth/mockUsers';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
-import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import { icon, img } from '../lib/asset';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -74,7 +73,7 @@ const ACCOUNT_BLURBS: Record<string, string> = {
 export function LoginShowcase() {
   const isDesktop = useIsDesktop();
   const reduceMotion = usePrefersReducedMotion();
-  const { user, loginDemo, logout, demoSignedUp } = useAuth();
+  const { user, logout, demoSignedUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -92,23 +91,30 @@ export function LoginShowcase() {
     navigate('/');
   };
 
-  /* 가입 전 이서준 — 로그인시키지 않고 회원가입 화면으로 보낸다 */
+  /* 가입 전 이서준 — 로그인시키지 않고, 폰 안의 로그인 화면을 주 버튼이 "회원가입"인 상태로 보여준다 */
   const goSignupAsSeojun = () => {
     if (user) logout();
-    navigate('/signup', { state: { returnTo: location.state?.returnTo, signupProfile: SIGNUP_TEST_PROFILES.seojunDemo } });
+    navigate('/login', { state: { returnTo: location.state?.returnTo, signupCta: true } });
   };
 
   /* 메인 CTA — 최초 시작 / 다른 계정으로 변경 / 현재 계정 계속 보기 모두
    * "이 계정을 currentUser 로 두고 Home 을 본다" 라는 같은 동작이다.
    * 변경·계속 보기는 그 계정의 진행 상태를 그대로 둔다(지우지 않는다). */
   const handleUseAccount = (account: MockAccount) => {
-    if (isPendingSignupAccount) {
+    if (account.email === DEMO_SIGNUP_EMAIL) {
       goSignupAsSeojun();
       return;
     }
-    const personaId = getDemoAccountId(account.email);
-    if (user?.email !== account.email && personaId) loginDemo(personaId);
-    showHome();
+    if (user?.email === account.email) {
+      showHome();
+      return;
+    }
+    /* 김하린·조아영 — 바로 로그인시키지 않고 폰 안 로그인 화면에 이메일/비밀번호를 채워둔다.
+     * 사용자가 "로그인" 버튼을 눌러야 들어간다. */
+    if (user) logout();
+    navigate('/login', {
+      state: { returnTo: location.state?.returnTo, prefill: { email: account.email, password: account.password } },
+    });
   };
 
   /* 보조 CTA — 데모 계정에서 빠져나와 원래 로그인 화면을 보여준다.

@@ -1,25 +1,24 @@
-import { useEffect, useRef, useState, type ComponentProps, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { useAuth } from '../auth/AuthContext';
+import { greetingName } from '../data/personaHome';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { StatementPeek } from '../components/StatementPeek';
+import { SpendingHistory } from '../components/money/SpendingHistory';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
-import { EmergencyRing } from '../components/money/EmergencyRing';
 import { FundAmountSheet } from '../components/money/FundAmountSheet';
-import { IncomeExpenseSection } from '../components/money/IncomeExpenseSection';
-import { useAnimatedPercent } from '../components/money/useAnimatedPercent';
 import { BottomSheet } from '../components/BottomSheet';
 import { icon, img } from '../lib/asset';
 import {
-  TOTAL_EXPENSE,
-  TOTAL_PREV_EXPENSE,
-  TOTAL_INCOME,
-  TOTAL_PREV_INCOME,
   TODAY_DAY,
   CATEGORY_META,
-  CATEGORY_TOTALS,
-  CATEGORY_PERCENTAGES,
-  TOP_CATEGORY,
-  dayFlowTotals,
+  allTransactionsSorted,
+  CONSUME_DIFF,
+  EXPENSE_TRANSACTIONS,
+  CONSUME_CHANGE_PERCENT,
+  TOTAL_EXPENSE,
+  TRANSFER_TRANSACTIONS,
 } from '../data/moneyTransactions';
 import {
   FIXED_CATEGORY_OPTIONS,
@@ -28,29 +27,125 @@ import {
   FIXED_ITEM_IMAGE,
   FIXED_ITEM_IMAGE_BY_NAME,
   FIXED_EXPENSES,
-  FIXED_MONTHLY_TOTAL,
-  FIXED_PAID_TOTAL,
-  FIXED_REMAINING_TOTAL,
-  FIXED_PAID_PERCENT,
+  NEXT_CARD_PAYMENT,
 } from '../data/moneyFixed';
 import type { FixedExpenseItem } from '../data/moneyFixed';
-import { ACCOUNTS, TOTAL_BALANCE } from '../data/moneyAccounts';
+import { ACCOUNTS, CARDS, LOANS } from '../data/moneyAccounts';
+import { BENEFITS, RECOMMENDED_BENEFIT_IDS } from '../data/benefits';
 
-/* 돈 관리 상단 탭 — Figma IA 그대로 4개. 이제 4개 모두 실제 화면이 있다.
- * "거래" → "수입·지출"로 이름을 바꾸고 내용도 캘린더/목록 두 보기로 전부 바꿨다
- * (IncomeExpenseSection.tsx — 레퍼런스 그대로). */
+/* 돈 관리 화면 안 탭 — 이번 달 / 수입·지출 / 고정비 / 비상금. 수입·지출·고정비·비상금은 예산 설정처럼 새 화면(route:
+ * /money/expense, /money/fixed, /money/fund)으로 열린다. 수입·지출 화면은 내용을 비워 두었다. */
 const TABS = ['이번 달', '수입·지출', '고정비', '비상금'] as const;
 /* 고정비 탭의 카테고리 필터 — '전체' + 데이터 원본(moneyFixed.ts)의 카테고리 그대로 */
 const FIXED_CATEGORY_FILTERS = ['전체', ...FIXED_CATEGORY_OPTIONS] as const;
 type Tab = (typeof TABS)[number];
-const TAB_HAS_SCREEN: Record<Tab, boolean> = { '이번 달': true, '수입·지출': true, 고정비: true, 비상금: true };
 
-/* 이번 달 요약 — 예산에서 이번 달 소비(TOTAL_EXPENSE, moneyTransactions.ts 단일 원본)를 뺀
- * 값이다. 전에는 SPENDABLE 을 따로 하드코딩해서 "예산 - 사용"과 안 맞았다(동일 데이터
- * 정합 위반) — 계산값으로 바꾼다. */
-const BUDGET = 1_000_000;
-const SPENDABLE = BUDGET - TOTAL_EXPENSE;
-const BUDGET_USED_PERCENT = Math.round((TOTAL_EXPENSE / BUDGET) * 1000) / 10;
+/* 예산 카드 패널 — 생활통장은 내 계좌(moneyAccounts.ts) 첫 번째 계좌, 최근 내역은 이번 달
+ * 거래 원본(moneyTransactions.ts)의 가장 최근 거래다(동일 데이터 정합). */
+const LIVING_ACCOUNT = ACCOUNTS[0];
+/* 예산 카드의 최근 내역 — 소비 4건 + 이체 2건(오늘까지 지난 것만)을 날짜 최신순으로 섞는다. 둘 다 거래 원본
+ * (moneyTransactions.ts)에서 그대로 가져온다(동일 데이터 정합). */
+const RECENT_FLOWS = [
+  ...allTransactionsSorted()
+    .slice(0, 4)
+    .map((tx) => {
+      const meta = CATEGORY_META.find((c) => c.key === tx.category);
+      return {
+        id: tx.id,
+        day: tx.day,
+        title: `최근 ${tx.merchant}에서 썼어요`,
+        amount: tx.amount,
+        icon: meta?.icon ?? 'money-cat-culture.svg',
+        bg: meta?.bg ?? 'var(--color-gray-05)',
+      };
+    }),
+  ...[...TRANSFER_TRANSACTIONS]
+    .filter((tx) => tx.day <= TODAY_DAY)
+    .sort((a, b) => b.day - a.day)
+    .slice(0, 2)
+    .map((tx) => ({
+      id: tx.id,
+      day: tx.day,
+      title: `최근 이체 · ${tx.label}`,
+      amount: tx.amount,
+      icon: 'money-balance.svg',
+      bg: 'var(--color-primary-05)',
+    })),
+].sort((a, b) => b.day - a.day);
+
+/* 대출 금액 표기 — 1억원 / 500만원 / 1억 2,000만원 처럼 큰 단위로 줄여서 보여준다. */
+function formatLoanAmount(amount: number): string {
+  const eok = Math.floor(amount / 100_000_000);
+  const man = Math.round((amount % 100_000_000) / 10_000);
+  if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만원`;
+  if (eok > 0) return `${eok}억원`;
+  return `${man.toLocaleString()}만원`;
+}
+
+/* 결제 예정 배너 — 오늘(TODAY_DAY) 이후 가장 가까운 고정비. 이번 달에 남은 게 없으면 다음 달
+ * 첫 결제일을 보여준다(동일 데이터 정합 — 항목별 day 에서 그대로 계산). */
+const NEXT_FIXED_PAYMENT = (() => {
+  const byDay = [...FIXED_EXPENSES].sort((a, b) => a.day - b.day);
+  const upcoming = byDay.find((item) => item.day > TODAY_DAY);
+  if (upcoming) return { item: upcoming, days: upcoming.day - TODAY_DAY };
+  return { item: byDay[0], days: 30 - TODAY_DAY + byDay[0].day };
+})();
+
+
+/* 알림 배너 — 혜택 알림. 혜택 원본(data/benefits.ts)에서 마감일·금액·일치 조건을 그대로 가져온다.
+ * 배너 제목은 한 줄에 들어가야 해서 혜택별 짧은 이름만 여기서 따로 둔다(표시용). */
+const BENEFIT_SHORT_TITLE: Record<string, string> = {
+  'seongnam-pet-medical': '반려동물 진료비',
+  'gyeonggi-youth-points': '청년 복지포인트',
+};
+
+/* 혜택 배너 슬라이드의 캐릭터 이미지 — 추천은 체크리스트, 진료비는 아이디어(꿀팁), 청년 복지포인트는
+ * 엄지척(조건 일치) 캐릭터. assets/img/ 기준. */
+const BENEFIT_RECOMMEND_ART = '02money-insight-badge.png';
+const BENEFIT_ART: Record<string, string> = {
+  'seongnam-pet-medical': '02money-fund-guide-badge.png',
+  'gyeonggi-youth-points': '02money-budget-character.png',
+};
+
+/* 아이콘 메뉴 — 바로가기 목록. 수입·지출 / 고정비 / 비상금은 화면 안 탭으로, 예산·계좌·혜택은 해당 화면으로
+ * 이동한다. 수입은 캘린더, 지출은 목록 보기로 연다. 기본 5개가 보이고, 맨 앞 "+"에서 바꿀 수 있다. */
+interface MoneyMenuItem {
+  key: string;
+  label: string;
+  /** assets/img/ 기준 이미지 */
+  image?: string;
+  /** assets/icon/ 기준 아이콘 — image 대신 쓴다 */
+  icon?: string;
+  /** 같은 화면 안 탭으로 이동 */
+  tab?: Tab;
+  view?: 'calendar' | 'list';
+  /** 다른 화면으로 이동 */
+  go?: 'money-budget' | 'money-accounts' | 'money-fixed' | 'money-fund' | 'money-expense' | 'benefits-recommend';
+}
+
+const MONEY_MENU_POOL: MoneyMenuItem[] = [
+  { key: 'income', label: '수입', image: 'money-flow-income-badge.png', go: 'money-expense' },
+  { key: 'expense', label: '지출', image: 'money-flow-expense-badge.png', go: 'money-expense' },
+  { key: 'fixed', label: '고정비', image: FIXED_ITEM_IMAGE.rent ?? 'money-fixed-category-icons.png', go: 'money-fixed' },
+  { key: 'fund', label: '비상금', image: 'money-fund-guide-badge.png', go: 'money-fund' },
+  { key: 'budget', label: '예산 설정', image: 'money-budget-character.png', go: 'money-budget' },
+  { key: 'accounts', label: '내 계좌', image: 'jaduya_custom_recommendation_36/money_management/saving_money.png', go: 'money-accounts' },
+  { key: 'benefit', label: '혜택', icon: 'ai-avatar.svg', go: 'benefits-recommend' },
+];
+const DEFAULT_MENU_KEYS = ['income', 'expense', 'fixed', 'fund', 'budget'];
+const MENU_STORAGE_KEY = 'money-menu-keys';
+
+interface MoneyBanner {
+  id: string;
+  label: string;
+  main: string;
+  aria: string;
+  /** assets/img/ 기준 이미지 */
+  image?: string;
+  /** assets/icon/ 기준 아이콘 — image 대신 쓴다 */
+  icon?: string;
+  onView?: () => void;
+}
 
 /* 비상금 탭 초기값 — 실제 서비스라면 서버에서 받아올 값. 여기서는 다른 탭과 같은 방식으로
  * 정적 목업을 기본값으로 두고, 사용자가 시트에서 바꾼 값은 localStorage 에 저장해
@@ -116,132 +211,95 @@ function loadFundState(): EmergencyFundState {
  * 원본에서 계산해 온다 — 이번 달 소비 총액(TOTAL_EXPENSE)도 카테고리 합계의 합과 항상 같다
  * (CLAUDE.md 13. 동일 데이터 정합). ---------- */
 
-/* "이번 달" 탭 상단의 월 선택 드롭다운 — 실데이터가 있는 달은 9월 하나뿐이라 나머지는
- * 선택할 수 없게 "준비 중"으로 비활성화한다(다른 화면의 월 선택과 같은 원칙). */
-const MONTH_OPTIONS = ['9월', '8월', '7월'] as const;
 
-/* 이번 달 수입·지출 — 요일 스트립(레퍼런스). 오늘(TODAY_DAY)이 속한 7일 구간을 기본으로
- * 보여준다 — 소비 탭 주별 흐름(moneyTransactions.ts WEEK_RANGES)과 같은 규칙(1~7, 8~14,
- * 15~21…)으로 나눠서, TODAY_DAY=20일 땐 9/15~9/21 구간이 된다. 화살표로 9월 안의 다른
- * 주(1~30일)를 오갈 수 있다 — 실데이터가 있는 달이 9월뿐이라 그 범위 밖으로는 못 넘어간다. */
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
-const DEFAULT_WEEK_START = Math.floor((TODAY_DAY - 1) / 7) * 7 + 1;
-
-/* "이번 달" 탭의 소비 분석 미리보기 — 소비 탭과 같은 원본(CATEGORY_META/CATEGORY_TOTALS/
- * CATEGORY_PERCENTAGES, moneyTransactions.ts)에서 그대로 가져온다(동일 데이터 정합).
- * 금액이 큰 4개 카테고리만 각자 보여주고 나머지는 "기타" 한 줄로 합친다 — 합계·비율
- * 모두 원본 값의 합이라 전체 카드(842,000원)와 항상 맞는다. */
-const SPEND_ANALYSIS_TOP_COUNT = 4;
-const SORTED_CATEGORIES = [...CATEGORY_META].sort((a, b) => CATEGORY_TOTALS[b.key] - CATEGORY_TOTALS[a.key]);
-const SPEND_ANALYSIS_TOP = SORTED_CATEGORIES.slice(0, SPEND_ANALYSIS_TOP_COUNT);
-const SPEND_ANALYSIS_REST = SORTED_CATEGORIES.slice(SPEND_ANALYSIS_TOP_COUNT);
-const SPEND_ANALYSIS_REST_TOTAL = SPEND_ANALYSIS_REST.reduce((sum, c) => sum + CATEGORY_TOTALS[c.key], 0);
-const SPEND_ANALYSIS_REST_PERCENT = SPEND_ANALYSIS_REST.reduce((sum, c) => sum + CATEGORY_PERCENTAGES[c.key], 0);
-const SPEND_ANALYSIS_ROWS = [
-  ...SPEND_ANALYSIS_TOP.map((c) => ({
-    key: c.key as string,
-    /* '생활' → '주거·생활' — 이 미리보기 그리드에서만 쓰는 표기다(카테고리 원본 라벨은
-     * 소비 탭 등 다른 화면에서 계속 '생활'로 쓰이니 원본 자체를 바꾸지 않는다). */
-    label: c.key === 'life' ? '주거·생활' : c.label,
-    icon: c.icon,
-    color: c.color,
-    bg: c.bg,
-    accent: c.accent,
-    amount: CATEGORY_TOTALS[c.key],
-    percent: CATEGORY_PERCENTAGES[c.key],
-  })),
-  ...(SPEND_ANALYSIS_REST.length > 0
-    ? [
-        {
-          key: 'etc-merged',
-          label: '기타',
-          icon: 'money-cat-culture.svg',
-          /* '생활' 4위 밖으로 밀려나면 '기타'로 합쳐지는 나머지 묶음 — 카테고리 전용
-           * 토큰(tokens.css "Color / Category")의 기타 색을 그대로 쓴다. 예전엔 문화/여가와
-           * 같은 회색(#a39f9a)이 겹쳐서 도넛 차트 두 구간이 붙어 보였는데, 지금은 카테고리마다
-           * 색이 전부 달라 이 문제가 생기지 않는다. */
-          color: 'var(--category-etc)',
-          bg: 'var(--category-etc-bg)',
-          accent: 'var(--category-etc-accent)',
-          amount: SPEND_ANALYSIS_REST_TOTAL,
-          percent: SPEND_ANALYSIS_REST_PERCENT,
-        },
-      ]
-    : []),
-];
-
-/* "소비 인사이트" 배너 — 가장 많이 쓴 카테고리(TOP_CATEGORY)의 지난달 대비 증감.
- * 카테고리 데이터 원본(CATEGORY_META.prevAmount)에서 그대로 계산한다. */
-const TOP_CATEGORY_DIFF = CATEGORY_TOTALS[TOP_CATEGORY.key] - TOP_CATEGORY.prevAmount;
-
-/* "이번 달 수입·지출" 카드 아래 "지난달보다 ~원 많아요/줄었어요" 비교 문구 — 지출은
- * 소비 탭 디지털 영수증(CONSUME_DIFF)과 같은 원본(TOTAL_PREV_EXPENSE)에서, 수입은 같은
- * 성격의 지난달 기준값(TOTAL_PREV_INCOME)에서 그대로 계산한다. */
-const INCOME_DIFF = TOTAL_INCOME - TOTAL_PREV_INCOME;
-const EXPENSE_DIFF = TOTAL_PREV_EXPENSE - TOTAL_EXPENSE;
-
-
-/* 예산/소비 분석/고정비 진행률 바 — 비상금 탭의 count-up(useAnimatedPercent)과 같은 방식으로
- * 0에서 값까지 차오르게 한다. 텍스트(퍼센트)와 바(fill 너비)가 같은 값을 각자 애니메이션하니
- * 살짝 다른 인스턴스로 계산되지만 같은 프레임에서 시작해 사실상 완전히 같이 움직인다. */
-function AnimatedPercentText({ percent }: { percent: number }) {
-  return <>{Math.round(useAnimatedPercent(percent))}%</>;
-}
-
-interface AnimatedProgressFillProps {
-  percent: number;
-  className: string;
-  /** 지출이 예산을 넘어서는 등 percent 가 100을 넘을 수 있는 바만 너비를 100%로 잘라낸다 */
-  clamp?: boolean;
-  background?: string;
-}
-
-function AnimatedProgressFill({ percent, className, clamp = false, background }: AnimatedProgressFillProps) {
-  const display = useAnimatedPercent(percent);
-  const width = clamp ? Math.min(100, display) : display;
-  return <span className={className} style={{ width: `${width}%`, ...(background ? { background } : {}) }} />;
-}
-
-/* 고정비 탭 지출 완료 링 — useAnimatedPercent 주석이 "돈관리의 다른 진행률 바(예산, 소비
- * 분석, 고정비)에도 그대로 재사용한다"고 이미 명시하는데, EmergencyRing 이 원형(레퍼런스)
- * 으로 되돌아오면서 정적인 percent 를 그대로 받아 애니메이션이 빠져 있었다 — 예산 진행률
- * 바·소비 분석 카드와 똑같이 0에서 차오르도록 여기서 감싼다. */
-function AnimatedEmergencyRing({ percent, ...rest }: ComponentProps<typeof EmergencyRing>) {
-  const display = useAnimatedPercent(percent);
-  return <EmergencyRing {...rest} percent={display} />;
-}
-
-/* 소비 분석 카드 5개 각자의 % 만큼 아래에서부터 차오르는 물 채워지는 바 — 세로판 AnimatedProgressFill.
- * 카드 흔들림(--wiggle)이 걸리면 이 fill 도 같이 물결치도록 money.css 에서 별도 keyframe 을 건다. */
-function AnimatedFillLevel({ percent, className }: { percent: number; className: string }) {
-  const display = useAnimatedPercent(percent);
-  return <span className={className} style={{ height: `${Math.min(100, display)}%` }} />;
+/* 마우스로도 옆으로 끌어 넘길 수 있게 한다 — 터치는 브라우저 기본 스와이프로 되지만, 데스크톱 브라우저의
+ * 마우스는 가로 스크롤 영역을 끌어도 안 움직인다. 끌고 나서 손을 뗄 때 생기는 클릭은 막아 타일이
+ * 잘못 눌리지 않게 한다. deps 가 바뀌면(탭 전환 등으로 요소가 새로 만들어질 때) 다시 붙인다. */
+function useDragScroll(ref: { current: HTMLElement | null }, deps: unknown[]) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let down = false;
+    let moved = false;
+    let startX = 0;
+    let startLeft = 0;
+    const onDown = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' || event.button !== 0) return;
+      down = true;
+      moved = false;
+      startX = event.clientX;
+      startLeft = el.scrollLeft;
+    };
+    const onMove = (event: PointerEvent) => {
+      if (!down) return;
+      const dx = event.clientX - startX;
+      if (!moved && Math.abs(dx) > 5) {
+        moved = true;
+        el.classList.add('is-dragging');
+      }
+      if (moved) el.scrollLeft = startLeft - dx;
+    };
+    const blockClick = (event: MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+    };
+    const onUp = () => {
+      if (!down) return;
+      down = false;
+      el.classList.remove('is-dragging');
+      if (moved) {
+        el.addEventListener('click', blockClick, { capture: true, once: true });
+        window.setTimeout(() => el.removeEventListener('click', blockClick, true), 0);
+      }
+    };
+    el.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }
 
 /* 돈 관리 — 탭바 '돈관리' 로 들어오는 메인 화면(이번 달 탭).
  * 목적: "이번 달을 무리 없이 살아갈 수 있는가?" 를 한눈에 보여준다(CLAUDE.md 8. Money Rules).
  * 상세 고정비 결제 일정은 여기서 반복하지 않고 "이번 달 예정된 지출" 미리보기 3개 + "더보기"로만
  * 보여준다 — 고정비 탭의 "전체보기/더보기"도 아직 상세 route 가 없어 시각 요소로만 둔다. */
-export function MoneyPage() {
+interface MoneyPageProps {
+  /** 고정비·비상금은 돈관리 안 탭이 아니라 예산 설정처럼 새 화면(route)으로 열린다 — 그때 어느 화면인지 */
+  screen?: 'fixed' | 'fund' | 'expense';
+}
+
+export function MoneyPage({ screen }: MoneyPageProps = {}) {
   const navigation = useAppNavigation();
+  /* 생활통장 이름 — 로그인한 계정 이름에서 성을 뺀 이름 + "님의 생활통장"(예: 이하린 → 하린님의 생활통장) */
+  const { user } = useAuth();
+  const accountOwner = user?.name ? greetingName(user.name) : '';
   /* 다른 화면에서 시작 탭을 지정해 들어올 수 있다 (예: 알림, 딥링크).
    * 넘어온 값이 실제 탭일 때만 쓰고, 아니면 기존처럼 '이번 달'로 연다. */
   const requestedTab = navigation?.options.tab;
+  /* 고정비·비상금 화면 — route(/money/fixed, /money/fund)로 열리거나, 예전 링크(?tab=고정비 / 비상금)로 들어와도 같은 화면 */
+  const activeScreen: 'fixed' | 'fund' | 'expense' | undefined =
+    screen ??
+    (requestedTab === '고정비' ? 'fixed' : requestedTab === '비상금' ? 'fund' : requestedTab === '수입·지출' ? 'expense' : undefined);
   const [tab, setTab] = useState<Tab>(() =>
-    requestedTab && (TABS as readonly string[]).includes(requestedTab) ? (requestedTab as Tab) : TABS[0],
+    activeScreen === 'fixed'
+      ? '고정비'
+      : activeScreen === 'fund'
+        ? '비상금'
+        : activeScreen === 'expense'
+          ? '수입·지출'
+          : requestedTab && (TABS as readonly string[]).includes(requestedTab)
+          ? (requestedTab as Tab)
+          : TABS[0],
   );
-  /* "소비 분석 전체 보기"처럼 수입·지출 탭에 목록 보기로 바로 들어가고 싶을 때만 'list'로
-   * 바꿔서 setTab 과 같이 호출한다 — 상단 탭 바를 직접 눌러 들어올 때(selectTab)는
-   * 항상 캘린더 보기 기본값으로 되돌린다. */
-  const [incomeExpenseInitialView, setIncomeExpenseInitialView] = useState<'calendar' | 'list'>('calendar');
-  const selectTab = (next: Tab) => {
-    setIncomeExpenseInitialView('calendar');
-    setTab(next);
-  };
-  const goToIncomeExpenseList = () => {
-    setIncomeExpenseInitialView('list');
-    setTab('수입·지출');
-  };
+  /* 수입·지출 화면은 예산 설정처럼 새 화면(route)으로 연다. */
+  const goToIncomeExpenseList = () => navigation?.navigate('money-expense');
   /* 탭은 페이지 이동이 아니라 같은 화면 안에서 콘텐츠만 바뀌는 거라, 스크롤 컨테이너가
    * 그대로 재사용돼 이전 탭에서 내려간 위치가 다음 탭에도 이어진다 — 탭이 바뀔 때마다 맨 위로 올린다. */
   const scrollRef = useRef<HTMLElement>(null);
@@ -253,41 +311,52 @@ export function MoneyPage() {
    * 공개 상태이고, 눈 아이콘을 누르면 전부 "₩ -----" 로 바뀐다(추세 %는 절대 금액이 아니라 계속 보여준다). */
   const [amountsHidden, setAmountsHidden] = useState(false);
   const showAmount = (n: number) => (amountsHidden ? '₩ -----' : `${n.toLocaleString()}원`);
-  /* 소비 분석 카드(5개) 탭 피드백 — 문패처럼 위쪽을 축으로 흔들린다. 같은 카드를 다시 눌러도
-   * 애니메이션이 처음부터 다시 재생되도록, 카드 React key에 이 카운터를 섞어 눌릴 때마다
-   * 새로 마운트시킨다(CSS만으로는 재생 중인 animation을 같은 클래스로 재시작할 수 없다).
-   * --wiggle 이 붙어 있는 동안은 money.css 의 평상시 물결(money-spend-fill-idle)보다
-   * 더 센 출렁임이 우선하도록 덮어 쓴다 — 그래서 재생이 끝나면(700ms) 다시 null 로 돌려
-   * --wiggle 을 떼어내야 평상시 물결이 이어서 보인다(안 떼면 계속 덮인 채로 멈춰 있다). */
-  const [spendCardWiggle, setSpendCardWiggle] = useState<{ key: string; n: number } | null>(null);
-  const spendWiggleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleSpendCardTap = (key: string) => {
-    setSpendCardWiggle((prev) => ({ key, n: prev?.key === key ? prev.n + 1 : 1 }));
-    if (spendWiggleTimer.current) clearTimeout(spendWiggleTimer.current);
-    spendWiggleTimer.current = setTimeout(() => setSpendCardWiggle(null), 700);
+  /* 상단 예산 카드 접기 — 접으면 금액만 남기고 예산·사용·진행률·예산 설정은 접는다.
+   * 마지막 상태를 기억해 다시 열어도 유지한다(저장소가 막힌 환경이면 매번 펼침으로 시작). */
+  const [budgetCollapsed, setBudgetCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('money-budget-collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  /* 알림 배너 닫기 — 이 화면에 있는 동안만 기억한다. 하나를 닫으면 다음 순서의 다른 알림이
+   * 이어서 나오고, 돈관리에 다시 들어오면(화면이 새로 열리면) 처음부터 다시 보여준다. */
+  const [dismissedBannerIds, setDismissedBannerIds] = useState<string[]>([]);
+  const dismissBanner = (id: string) => {
+    setDismissedBannerIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
-  useEffect(() => () => {
-    if (spendWiggleTimer.current) clearTimeout(spendWiggleTimer.current);
-  }, []);
-  /* "이번 달" 탭의 월 선택 드롭다운 — 수입·지출 탭의 정렬 드롭다운(flow-sort)과 같은 방식으로
+  /* 최근 거래 캐러셀 — 스크롤 위치로 현재 슬라이드를 구해 아래 점을 맞춘다. */
+  const recentTrackRef = useRef<HTMLDivElement>(null);
+  const [recentIndex, setRecentIndex] = useState(0);
+  const handleRecentScroll = () => {
+    const track = recentTrackRef.current;
+    if (!track || track.clientWidth === 0) return;
+    setRecentIndex(Math.round(track.scrollLeft / track.clientWidth));
+  };
+  const toggleBudgetCollapsed = () => {
+    setBudgetCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('money-budget-collapsed', next ? '1' : '0');
+      } catch {
+        /* 저장 실패는 무시 — 이번 세션에서만 유지된다 */
+      }
+      return next;
+    });
+  };
+  /* 예산 카드의 더보기 메뉴 — 수입·지출 탭의 정렬 드롭다운(flow-sort)과 같은 방식으로
    * 바깥을 누르면 닫는다. */
-  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
-  const monthMenuRef = useRef<HTMLDivElement>(null);
+  const [budgetMenuOpen, setBudgetMenuOpen] = useState(false);
+  const budgetMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!monthMenuOpen) return;
+    if (!budgetMenuOpen) return;
     const onOutside = (event: PointerEvent) => {
-      if (!monthMenuRef.current?.contains(event.target as Node)) setMonthMenuOpen(false);
+      if (!budgetMenuRef.current?.contains(event.target as Node)) setBudgetMenuOpen(false);
     };
     document.addEventListener('pointerdown', onOutside);
     return () => document.removeEventListener('pointerdown', onOutside);
-  }, [monthMenuOpen]);
-  /* "이번 달" 탭의 요일 스트립 — 화살표로 9월 안의 다른 7일 구간을 오간다. */
-  const [weekStart, setWeekStart] = useState(DEFAULT_WEEK_START);
-  const weekDays = Array.from({ length: 7 }, (_, i) => weekStart + i).filter((day) => day >= 1 && day <= 30);
-  const isFirstWeek = weekStart <= 1;
-  const isLastWeek = weekStart + 7 > 30;
-  const goPrevWeek = () => setWeekStart((prev) => Math.max(1, prev - 7));
-  const goNextWeek = () => setWeekStart((prev) => (prev + 7 <= 30 ? prev + 7 : prev));
+  }, [budgetMenuOpen]);
   /* 고정비 탭 — 리스트 UI. 정적 목록(FIXED_EXPENSES)에 사용자가 추가한 항목을 합쳐서 보여준다.
    * 토글(자동결제 on/off)은 항목별 override 로 관리하고, 없으면 데이터의 기본값(enabled)을 쓴다. */
   const [fixedAddSheetOpen, setFixedAddSheetOpen] = useState(false);
@@ -308,10 +377,102 @@ export function MoneyPage() {
   useEffect(() => {
     window.localStorage.setItem(FUND_STORAGE_KEY, JSON.stringify(fund));
   }, [fund]);
-  /* 이번 달 탭의 비상금 미니카드용 — 목표 대비 진행률/잔여액(고정비 미니카드와 같은 계산 방식) */
-  const fundPercent =
-    fund.targetAmount > 0 ? Math.min(100, Math.max(0, Math.round((fund.currentAmount / fund.targetAmount) * 100))) : 0;
-  const fundRemaining = Math.max(0, fund.targetAmount - fund.currentAmount);
+  /* 알림 배너 목록 — 순서대로 하나씩 보여준다. 문구는 전부 다른 화면과 같은 원본에서 계산한다
+   * (결제일: 고정비 / 지출 비교: 소비 원본 / 비상금: 비상금 상태). */
+  const fundPercentForBanner =
+    fund.targetAmount > 0 ? Math.min(100, Math.round((fund.currentAmount / fund.targetAmount) * 100)) : 0;
+  const fundRemainingForBanner = Math.max(0, fund.targetAmount - fund.currentAmount);
+  const hiddenAmount = '₩ -----';
+  const banners: MoneyBanner[] = [
+    {
+      id: `payment-${NEXT_FIXED_PAYMENT.item.key}`,
+      label: `${NEXT_FIXED_PAYMENT.days === 1 ? '내일' : `${NEXT_FIXED_PAYMENT.days}일 뒤`} ${NEXT_FIXED_PAYMENT.item.label}`,
+      main: `${amountsHidden ? hiddenAmount : `${NEXT_FIXED_PAYMENT.item.amount.toLocaleString()}원`} 결제 예정`,
+      aria: '결제 예정 안내',
+      image: FIXED_ITEM_IMAGE[NEXT_FIXED_PAYMENT.item.key] ?? 'money-flow-icons.png',
+      onView: () => navigation?.navigate('money-fixed'),
+    },
+    {
+      id: 'spend-compare',
+      label: `지출 ${CONSUME_CHANGE_PERCENT}% ${CONSUME_DIFF >= 0 ? '감소' : '증가'}`,
+      main: `${amountsHidden ? hiddenAmount : `${Math.abs(CONSUME_DIFF).toLocaleString()}원`} ${CONSUME_DIFF >= 0 ? '아꼈어요' : '더 나갔어요'}`,
+      aria: '지출 비교 안내',
+      image: 'money-flow-expense-badge.png',
+      onView: goToIncomeExpenseList,
+    },
+    {
+      id: 'fund-goal',
+      label: `비상금 ${fundPercentForBanner}% 달성`,
+      main: `${amountsHidden ? hiddenAmount : `${fundRemainingForBanner.toLocaleString()}원`} 남았어요`,
+      aria: '비상금 안내',
+      image: 'money-fund-guide-badge.png',
+      onView: () => navigation?.navigate('money-fund'),
+    },
+  ];
+  /* 최근 7일(오늘 포함) 거래 건수 — 요약 묶음 버튼에 쓴다 */
+  const weekTransactionCount = EXPENSE_TRANSACTIONS.filter((tx) => tx.day > TODAY_DAY - 7).length;
+  const activeBanner = banners.find((banner) => !dismissedBannerIds.includes(banner.id));
+  /* 혜택 배너 슬라이드 — 알림 3개(혜택 추천 / 진료비 / 청년 복지포인트). 내용은 혜택 원본에서 계산한다. */
+  const benefitSlides = [
+    {
+      id: 'benefit-recommend',
+      image: BENEFIT_RECOMMEND_ART,
+      lines: [`내 조건에 맞는 혜택 ${RECOMMENDED_BENEFIT_IDS.length}개`] as readonly string[],
+      onView: () => navigation?.navigate('benefits-recommend', { returnTo: 'money' }),
+    },
+    ...BENEFITS.map((benefit) => {
+      const dday = benefit.deadline.match(/D-\d+/)?.[0];
+      const maxAmount = benefit.amountLabel === '최대' ? Number(benefit.amount.replace(/\D/g, '')) : 0;
+      return {
+        id: `benefit-${benefit.id}`,
+        image: BENEFIT_ART[benefit.id] ?? BENEFIT_RECOMMEND_ART,
+        lines: (maxAmount > 0
+          ? [
+              BENEFIT_SHORT_TITLE[benefit.id] ?? benefit.title,
+              `최대 ${formatLoanAmount(maxAmount)}${dday ? ` · ${dday}` : ''}`,
+            ]
+          : [`${BENEFIT_SHORT_TITLE[benefit.id] ?? benefit.title} · 조건 ${benefit.matchCount}개 일치`]) as readonly string[],
+        onView: () => navigation?.navigate('benefit-detail', { benefitId: benefit.id, returnTo: 'money' }),
+      };
+    }),
+  ];
+  /* 혜택 배너 — 스크롤 위치로 현재 슬라이드를 구하고, 재생 중이면 4초마다 다음 슬라이드로 넘긴다
+   * (모션 감소 설정이면 자동으로 넘기지 않는다). */
+  const promoTrackRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
+  useDragScroll(promoTrackRef, [tab]);
+  useDragScroll(menuRef, [tab]);
+  useDragScroll(recentTrackRef, [tab]);
+  /* 예산 카드의 최근 거래 캐러셀 — 4초마다 다음 거래로 자동으로 넘어간다(카드를 접었거나 모션 감소
+   * 설정이면 넘기지 않는다). 마지막 다음은 처음으로 돌아간다. */
+  useEffect(() => {
+    if (budgetCollapsed || RECENT_FLOWS.length < 2) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      const track = recentTrackRef.current;
+      if (!track || track.clientWidth === 0) return;
+      const next = (Math.round(track.scrollLeft / track.clientWidth) + 1) % RECENT_FLOWS.length;
+      track.scrollTo({ left: next * track.clientWidth, behavior: 'smooth' });
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [budgetCollapsed, tab]);
+  const [promoIndex, setPromoIndex] = useState(0);
+  const handlePromoScroll = () => {
+    const track = promoTrackRef.current;
+    if (!track || track.clientWidth === 0) return;
+    setPromoIndex(Math.round(track.scrollLeft / track.clientWidth));
+  };
+  useEffect(() => {
+    if (benefitSlides.length < 2) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      const track = promoTrackRef.current;
+      if (!track) return;
+      const next = (Math.round(track.scrollLeft / track.clientWidth) + 1) % benefitSlides.length;
+      track.scrollTo({ left: next * track.clientWidth, behavior: 'smooth' });
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [benefitSlides.length]);
   /* 아직 화면이 없는 링크는 MyPage.tsx 와 같은 방식으로 토스트만 띄운다 — 없는 route 를 만들지 않는다 */
   const [notice, setNotice] = useState('');
   useEffect(() => {
@@ -465,415 +626,517 @@ export function MoneyPage() {
     resetFixedAddForm();
   };
 
+  /* 아이콘 메뉴 — 보이는 바로가기(저장해서 유지)와 편집 시트 */
+  const [menuKeys, setMenuKeys] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(MENU_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed)) {
+        const valid = MONEY_MENU_POOL.map((item) => item.key).filter((key) => parsed.includes(key));
+        if (valid.length > 0) return valid;
+      }
+    } catch {
+      /* 저장소를 못 읽으면 기본 5개로 시작한다 */
+    }
+    return DEFAULT_MENU_KEYS;
+  });
+  const [menuSheetOpen, setMenuSheetOpen] = useState(false);
+  /* 계좌 묶음 — 하단 링크로 같은 자리에서 계좌 / 대출 / 카드 목록을 바꿔 보여준다 */
+  const [assetTab, setAssetTab] = useState<'accounts' | 'loans' | 'cards'>('accounts');
+  const toggleMenuKey = (key: string) => {
+    setMenuKeys((prev) => {
+      /* 최소 1개는 남긴다. 순서는 항상 목록(MONEY_MENU_POOL) 순서를 따른다. */
+      const wanted = prev.includes(key) ? (prev.length > 1 ? prev.filter((k) => k !== key) : prev) : [...prev, key];
+      const next = MONEY_MENU_POOL.map((item) => item.key).filter((k) => wanted.includes(k));
+      try {
+        localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* 저장 실패는 무시 — 이번 세션에서만 유지된다 */
+      }
+      return next;
+    });
+  };
+  const menuImageOf = (item: MoneyMenuItem) => (item.icon ? icon(item.icon) : img(item.image ?? ''));
+  const pressMenuItem = (item: MoneyMenuItem, active: boolean) => {
+    if (item.go) {
+      navigation?.navigate(item.go, item.go === 'benefits-recommend' ? { returnTo: 'money' } : undefined);
+      return;
+    }
+    if (active) {
+      setTab('이번 달');
+      return;
+    }
+    setTab(item.tab ?? '이번 달');
+  };
+  /* 아이콘 메뉴(레퍼런스) — 맨 앞 "+"로 바로가기를 추가·삭제하고, 옆으로 밀어 넘긴다. 지금 보고 있는 화면의
+   * 메뉴를 다시 누르면 이번 달로 돌아온다. 이번 달에서는 예산 카드 아래에, 다른 화면에서는 맨 위에 둔다. */
+  const renderMoneyMenu = (below = false) => (
+    <nav ref={menuRef} className={`money-menu${below ? ' money-menu--below' : ''}`} aria-label="돈 관리 메뉴">
+      <button
+        type="button"
+        className="money-menu__item money-menu__item--add money-tappable"
+        aria-label="바로가기 추가"
+        onClick={() => setMenuSheetOpen(true)}
+      >
+        <span className="money-menu__tile">
+          <img src={icon('plus-add.svg')} alt="" />
+        </span>
+      </button>
+      {MONEY_MENU_POOL.filter((item) => menuKeys.includes(item.key)).map((item) => {
+        const active = !item.go && tab === item.tab;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            className={`money-menu__item money-tappable${active ? ' is-active' : ''}`}
+            aria-pressed={item.go ? undefined : active}
+            onClick={() => pressMenuItem(item, active)}
+          >
+            <span className="money-menu__tile">
+              <img src={menuImageOf(item)} alt="" />
+            </span>
+            <span className="money-menu__label">{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="money app">
       <SubPageHeader
-        title="돈 관리"
-        backLabel="홈으로"
-        onBack={() => navigation?.goBack('home')}
+        title={
+          activeScreen === 'fixed'
+            ? '고정비'
+            : activeScreen === 'fund'
+              ? '비상금'
+              : activeScreen === 'expense'
+                ? '수입·지출'
+                : '돈 관리'
+        }
+        backLabel={activeScreen ? '돈관리로' : '홈으로'}
+        onBack={() => navigation?.goBack(activeScreen ? 'money' : 'home')}
       />
 
-      <main className="money__scroll" ref={scrollRef}>
-        <div className="money__tabs-row">
-          <div className="money__tabs" role="tablist" aria-label="돈 관리 구분">
-            {TABS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="tab"
-                aria-selected={tab === item}
-                className={`money__tab${tab === item ? ' is-active' : ''}`}
-                /* 화면이 없는 탭(고정비/비상금)은 누를 수만 있고 내용은 안 바뀐다 */
-                onClick={TAB_HAS_SCREEN[item] ? () => selectTab(item) : undefined}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-
-        </div>
+      <main
+        className={`money__scroll${tab === '이번 달' ? ' money__scroll--peek' : ''}${tab === '수입·지출' ? ' money__scroll--fill' : ''}`}
+        ref={scrollRef}
+      >
+        {tab !== '이번 달' && !activeScreen && renderMoneyMenu()}
 
         {tab === '이번 달' && (
           <>
+            {/* 알림 배너(레퍼런스) — 위에서부터 하나씩 보여주고, 오른쪽 ×로 닫으면 다음 알림이
+             * 이어서 나온다. 문구는 고정비·소비·비상금 원본에서 그대로 가져온다. */}
+            {activeBanner && (
+              <section key={activeBanner.id} className="money-banner" aria-label={activeBanner.aria}>
+                <span className="money-banner__icon" aria-hidden="true">
+                  <img src={activeBanner.icon ? icon(activeBanner.icon) : img(activeBanner.image ?? '')} alt="" />
+                </span>
+                <div className="money-banner__text">
+                  <p className="money-banner__title">{activeBanner.label}</p>
+                  <p className="money-banner__sub">{activeBanner.main}</p>
+                </div>
+                {activeBanner.onView && (
+                  <button
+                    type="button"
+                    className="money-banner__btn money-tappable"
+                    onClick={activeBanner.onView}
+                  >
+                    보기
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="money-banner__close"
+                  aria-label={`${activeBanner.aria} 닫기`}
+                  onClick={() => dismissBanner(activeBanner.id)}
+                >
+                  <img src={icon('close-sm.svg')} alt="" />
+                </button>
+              </section>
+            )}
+
+            {/* 예산 카드(레퍼런스) — 빨간색은 위쪽 제목 줄에만 보이고, 흰 패널이 카드 전체 폭으로
+             * 그 위에 겹쳐 올라온다(패널 위쪽 모서리 뒤로만 빨간색이 비친다). 오른쪽 위 알약형
+             * 토글로 접으면 계좌명·금액만 남는다. 마지막 접힘 상태는 저장해 유지한다. */}
             <section className="money-budget">
-              {/* 월 선택 — 예전엔 카드 위에 혼자 뜬 줄이라 위치가 애매했다. 어느 달을
-               * 보고 있는지가 곧 이 카드가 보여주는 값을 정하니, 그 값을 담은 카드의
-               * 제목 줄로 옮겼다 — 제목보다 먼저(왼쪽) 와야 "무엇의 9월인지"가 아니라
-               * "9월의 무엇인지" 순서로 읽혀서, 월 선택이 이 줄 전체를 스코프하는
-               * 컨트롤이라는 게 먼저 눈에 들어온다. 실데이터가 있는 달은 9월 하나뿐이라
-               * 나머지는 "준비 중"으로 비활성화한다. */}
-              <div className="money-budget__head">
-                <div className="money-budget__head-lead">
-                  <div className="money-month-dropdown" ref={monthMenuRef}>
+              <div className="money-budget__top">
+                <h2 className="money-budget__heading">예산</h2>
+                <button
+                  type="button"
+                  className="money-budget__toggle"
+                  aria-label={budgetCollapsed ? '예산 펼치기' : '예산 접기'}
+                  aria-expanded={!budgetCollapsed}
+                  aria-controls="money-budget-detail"
+                  onClick={toggleBudgetCollapsed}
+                >
+                  <img
+                    src={icon('chevron-down-thin.svg')}
+                    alt=""
+                    className={budgetCollapsed ? '' : 'is-open'}
+                  />
+                </button>
+              </div>
+
+              <div className={`money-budget__panel${budgetCollapsed ? ' is-collapsed' : ''}`}>
+                <div className="money-budget__panel-head">
+                  <span className="money-budget__account">
+                    {accountOwner ? (
+                      <>
+                        <span className="money-budget__owner">{accountOwner}</span>님의 생활통장
+                      </>
+                    ) : (
+                      '내 생활통장'
+                    )}
+                  </span>
+                  <div className="money-budget__menu-wrap" ref={budgetMenuRef}>
                     <button
                       type="button"
-                      className="money-budget__month-btn"
-                      aria-haspopup="listbox"
-                      aria-expanded={monthMenuOpen}
-                      onClick={() => setMonthMenuOpen((open) => !open)}
+                      className="money-budget__kebab"
+                      aria-label="더보기"
+                      aria-haspopup="menu"
+                      aria-expanded={budgetMenuOpen}
+                      onClick={() => setBudgetMenuOpen((open) => !open)}
                     >
-                      {MONTH_OPTIONS[0]}
-                      <img
-                        src={icon('chevron-down-thin.svg')}
-                        alt=""
-                        className={monthMenuOpen ? 'is-open' : ''}
-                      />
+                      <span />
+                      <span />
+                      <span />
                     </button>
-                    {monthMenuOpen && (
-                      <div className="money-month-menu" role="listbox" aria-label="월 선택">
-                        {MONTH_OPTIONS.map((label, index) => {
-                          const selected = index === 0;
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              role="option"
-                              aria-selected={selected}
-                              disabled={!selected}
-                              className={`money-month-menu__item${selected ? ' is-active' : ''}`}
-                              onClick={() => setMonthMenuOpen(false)}
-                            >
-                              {label}
-                              {!selected && <span className="money-month-menu__soon">준비 중</span>}
-                            </button>
-                          );
-                        })}
+                    {budgetMenuOpen && (
+                      <div className="money-budget__menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="money-budget__menu-item"
+                          onClick={() => {
+                            setAmountsHidden((v) => !v);
+                            setBudgetMenuOpen(false);
+                          }}
+                        >
+                          {amountsHidden ? '금액 보기' : '금액 가리기'}
+                        </button>
                       </div>
                     )}
                   </div>
-                  <span className="money-budget__title">이번 달 쓸 수 있는 돈</span>
                 </div>
-                <button
-                  type="button"
-                  className="money-budget__eye"
-                  aria-label={amountsHidden ? '금액 표시' : '금액 가리기'}
-                  onClick={() => setAmountsHidden((v) => !v)}
+
+                <p key={String(amountsHidden)} className="money-budget__amount budget-setup__pulse">
+                  {showAmount(LIVING_ACCOUNT.balance)}
+                </p>
+
+                {/* 접으면 핵심 정보(계좌명·금액)만 남기고 버튼·최근 내역이 위로 말려 사라진다. */}
+                <div
+                  id="money-budget-detail"
+                  className={`money-budget__detail${budgetCollapsed ? ' is-collapsed' : ''}`}
+                  aria-hidden={budgetCollapsed}
                 >
-                  <img src={icon(amountsHidden ? 'eye-slash.svg' : 'eye.svg')} alt="" />
-                </button>
-              </div>
-              <p key={String(amountsHidden)} className="money-budget__amount budget-setup__pulse">
-                {showAmount(SPENDABLE)}
-              </p>
-
-              {/* 예산/사용 금액은 눈 아이콘으로 가리지만, 진행률(%)은 절대 금액이 아니라
-               * 추세 문구와 같은 원칙으로 계속 보여준다. */}
-              <div className="money-budget__meta">
-                <span className="money-budget__meta-text">
-                  예산 {BUDGET.toLocaleString()}원 · 사용{' '}
-                  {amountsHidden ? '-----' : `${TOTAL_EXPENSE.toLocaleString()}원`}
-                </span>
-                <span className="money-budget__meta-percent">
-                  <AnimatedPercentText percent={BUDGET_USED_PERCENT} />
-                </span>
-              </div>
-              <div className="money-budget__progress-track">
-                <AnimatedProgressFill percent={BUDGET_USED_PERCENT} className="money-budget__progress-fill" clamp />
-              </div>
-
-              <button
-                type="button"
-                className="money-budget__setting-btn money-tappable"
-                onClick={() => navigation?.navigate('money-budget')}
-              >
-                예산 설정
-                <img src={icon('chevron-right-gray.svg')} alt="" />
-              </button>
-            </section>
-
-            <section className="money-section">
-              <div className="money-section__head">
-                <h2 className="money-section__title">이번 달 수입·지출</h2>
-                <button
-                  type="button"
-                  className="money-section__more"
-                  onClick={() => selectTab('수입·지출')}
-                >
-                  전체 보기
-                  <img src={icon('chevron-right-gray.svg')} alt="" />
-                </button>
-              </div>
-              <div className="money-flow-cards">
-                <div className="money-flow-card money-flow-card--income">
-                  <span className="money-flow-card__title-row">
-                    {/* 풋자두 배경 위에서 장식 스티커(icon-badge.png) 대신 --category-life
-                     * 단색 아이콘을 쓴다 — 래스터 이미지는 CSS 로 색을 바꿀 수 없어, 배경과
-                     * 무관하게 항상 같은 톤인 스티커로는 "아이콘도 딥그린" 요구를 못 맞춘다. */}
-                    <svg
-                      className="money-flow-card__title-icon"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M10 16V4M10 4L5 9M10 4l5 5"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span className="money-flow-card__title">이번 달 수입</span>
-                  </span>
-                  <span
-                    key={String(amountsHidden)}
-                    className="money-flow-card__value money-flow-card__value--income budget-setup__pulse"
-                  >
-                    {amountsHidden ? '₩ -----' : `+${TOTAL_INCOME.toLocaleString()}원`}
-                  </span>
-                  <span className="money-flow-card__sub">
-                    지난달보다 {Math.abs(INCOME_DIFF).toLocaleString()}원 {INCOME_DIFF >= 0 ? '많아요!' : '적어요!'}
-                  </span>
-                </div>
-                <div className="money-flow-card money-flow-card--expense">
-                  <span className="money-flow-card__title-row">
-                    <svg
-                      className="money-flow-card__title-icon"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M10 4V16M10 16L5 11M10 16l5-5"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span className="money-flow-card__title">이번 달 지출</span>
-                  </span>
-                  <span
-                    key={String(amountsHidden)}
-                    className="money-flow-card__value money-flow-card__value--expense budget-setup__pulse"
-                  >
-                    {amountsHidden ? '₩ -----' : `-${TOTAL_EXPENSE.toLocaleString()}원`}
-                  </span>
-                  <span className="money-flow-card__sub">
-                    지난달보다 {Math.abs(EXPENSE_DIFF).toLocaleString()}원 {EXPENSE_DIFF >= 0 ? '줄었어요!' : '늘었어요!'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="money-week-strip">
-                <button
-                  type="button"
-                  className="money-week-strip__arrow"
-                  aria-label="이전 주"
-                  disabled={isFirstWeek}
-                  onClick={goPrevWeek}
-                >
-                  <img src={icon('chevron-right-gray.svg')} alt="" className="is-prev" />
-                </button>
-                <div className="money-week-strip__grid">
-                  {weekDays.map((day) => {
-                    const totals = dayFlowTotals(day);
-                    return (
-                      <div
-                        key={day}
-                        className={`money-week-strip__day${day === TODAY_DAY ? ' is-today' : ''}`}
+                  <div className="money-budget__detail-inner">
+                    <div className="money-budget__buttons">
+                      <button
+                        type="button"
+                        className="money-budget__btn money-tappable"
+                        onClick={() => navigation?.navigate('money-budget')}
                       >
-                        <span className="money-week-strip__weekday">
-                          {WEEKDAY_LABELS[new Date(2026, 8, day).getDay()]}
-                        </span>
-                        <span className="money-week-strip__date">{day}</span>
-                        {totals.income > 0 && (
-                          <span className="money-week-strip__amount money-week-strip__amount--income">
-                            +{totals.income.toLocaleString()}
-                          </span>
-                        )}
-                        {totals.expense > 0 && (
-                          <span className="money-week-strip__amount money-week-strip__amount--expense">
-                            -{totals.expense.toLocaleString()}
-                          </span>
-                        )}
+                        예산 설정
+                      </button>
+                      <button
+                        type="button"
+                        className="money-budget__btn money-tappable"
+                        onClick={() => navigation?.navigate('money-accounts')}
+                      >
+                        이체하기
+                      </button>
+                    </div>
+
+                    {/* 최근 거래 캐러셀 — 옆으로 넘기면 아래 점이 따라 바뀐다. */}
+                    <div className="money-budget__recent-wrap">
+                      <div
+                        className="money-budget__recent-track"
+                        ref={recentTrackRef}
+                        onScroll={handleRecentScroll}
+                      >
+                        {RECENT_FLOWS.map((flow) => (
+                          <button
+                            key={flow.id}
+                            type="button"
+                            className="money-budget__recent"
+                            onClick={goToIncomeExpenseList}
+                          >
+                            <span className="money-budget__recent-icon" style={{ background: flow.bg }}>
+                              <img src={icon(flow.icon)} alt="" />
+                            </span>
+                            <span className="money-budget__recent-text">
+                              <span className="money-budget__recent-label">{flow.title}</span>
+                              <span className="money-budget__recent-amount">
+                                {amountsHidden ? '₩ -----' : `${flow.amount.toLocaleString()}원`}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
                       </div>
-                    );
-                  })}
+                      <div className="money-budget__dots" aria-hidden="true">
+                        {RECENT_FLOWS.map((flow, i) => (
+                          <span
+                            key={flow.id}
+                            className={`money-budget__dot${i === recentIndex ? ' is-active' : ''}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="money-week-strip__arrow"
-                  aria-label="다음 주"
-                  disabled={isLastWeek}
-                  onClick={goNextWeek}
-                >
-                  <img src={icon('chevron-right-gray.svg')} alt="" />
-                </button>
               </div>
             </section>
 
-            <section className="money-section">
-              <div className="money-section__head">
-                <h2 className="money-section__title">소비 분석</h2>
-                <button
-                  type="button"
-                  className="money-section__more"
-                  onClick={goToIncomeExpenseList}
-                >
-                  전체 보기
-                  <img src={icon('chevron-right-gray.svg')} alt="" />
-                </button>
+            {renderMoneyMenu(true)}
+
+            {/* 혜택 배너(레퍼런스) — 큰 문구 두 줄 + 오른쪽 캐릭터, 왼쪽 아래에 일시정지 버튼과 진행 점.
+             * 옆으로 넘기거나 자동으로 넘어가고(4초), 내용은 혜택 원본(data/benefits.ts)에서 가져온다. */}
+            <section className="money-promo" aria-label="혜택 안내">
+              <div className="money-promo__track" ref={promoTrackRef} onScroll={handlePromoScroll}>
+                {benefitSlides.map((slide) => (
+                  <button key={slide.id} type="button" className="money-promo__slide" onClick={slide.onView}>
+                    <span className="money-promo__text">
+                      {slide.lines.map((line) => (
+                        <span key={line} className="money-promo__line">{line}</span>
+                      ))}
+                    </span>
+                    <img className="money-promo__art" src={img(slide.image)} alt="" />
+                  </button>
+                ))}
               </div>
-              <div className="money-spend-grid">
-                {SPEND_ANALYSIS_ROWS.map((row) => {
-                  const wiggleN = spendCardWiggle?.key === row.key ? spendCardWiggle.n : 0;
-                  return (
+              <div className="money-promo__controls">
+                <div className="money-promo__dots" aria-hidden="true">
+                  {benefitSlides.map((slide, i) => (
+                    <span key={slide.id} className={`money-promo__dot${i === promoIndex ? ' is-active' : ''}`} />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 내 자산(레퍼런스) — 세 묶음: ① 계좌 목록 + 하단 바로가기 ② 이번 달 쓴 돈 / 나갈 카드값 요약
+             * ③ 비상금 상태 + 하단 바로가기. 숫자는 계좌·거래·고정비·비상금 원본에서 그대로 계산한다. */}
+            <section className="money-assets" aria-label="내 자산">
+              <div className="money-asset-card">
+                <ul className="money-asset-list money-asset-body money-asset-body--tall">
+                  {assetTab === 'accounts' &&
+                    ACCOUNTS.map((account, index) => (
+                      <li key={account.id} className="money-asset-row">
+                        <span className="money-asset-row__logo">
+                          <img src={img(account.logo)} alt="" />
+                        </span>
+                        <span className="money-asset-row__text">
+                          <span className="money-asset-row__amount">{showAmount(account.balance)}</span>
+                          <span className="money-asset-row__sub">
+                            {account.bank} {account.type}
+                            {index === 0 && (
+                              <>
+                                <span className="money-asset-row__dot" aria-hidden="true">·</span>
+                                <span className="money-asset-row__primary">주계좌</span>
+                              </>
+                            )}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="money-asset-row__btn money-tappable"
+                          onClick={() => setNotice('송금 화면은 준비 중이에요.')}
+                        >
+                          송금
+                        </button>
+                      </li>
+                    ))}
+                  {assetTab === 'loans' &&
+                    LOANS.map((loan) => (
+                      <li key={loan.id} className="money-asset-row">
+                        <span className="money-asset-row__text">
+                          <span className="money-asset-row__amount">
+                            {amountsHidden ? '₩ -----' : formatLoanAmount(loan.amount)}
+                            <span className="money-asset-row__dot" aria-hidden="true">·</span>
+                            {loan.rate}%
+                          </span>
+                          <span className="money-asset-row__sub">
+                            <strong>{loan.kind}</strong> {loan.bank}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="money-asset-row__btn money-tappable"
+                          onClick={() => setNotice('대출 내역 화면은 준비 중이에요.')}
+                        >
+                          내역
+                        </button>
+                      </li>
+                    ))}
+                  {assetTab === 'cards' &&
+                    CARDS.map((card) => (
+                      <li key={card.id} className="money-asset-row">
+                        <span className="money-asset-row__card" aria-hidden="true">
+                          {card.issuer.replace('카드', '')}
+                        </span>
+                        <span className="money-asset-row__text">
+                          <span className="money-asset-row__amount">{showAmount(card.amount)}</span>
+                          <span className="money-asset-row__sub">
+                            {card.issuer} {card.tail} · {card.note}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="money-asset-row__btn money-tappable"
+                          onClick={() => navigation?.navigate('money-fixed')}
+                        >
+                          내역
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+                <div className="money-asset-foot">
+                  <div className="money-asset-foot__links" role="group" aria-label="자산 종류">
+                    {(
+                      [
+                        ['accounts', '계좌'],
+                        ['loans', '대출'],
+                        ['cards', '카드'],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={assetTab === key ? 'is-active' : undefined}
+                        aria-pressed={assetTab === key}
+                        onClick={() => setAssetTab(key)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="money-asset-foot__more"
+                    onClick={() => navigation?.navigate('money-accounts')}
+                  >
+                    모두보기
+                  </button>
+                </div>
+              </div>
+
+              <div className="money-asset-card">
+                <ul className="money-asset-list money-asset-body">
+                  <li className="money-asset-row">
+                    <span className="money-asset-row__text">
+                      <span className="money-asset-row__amount">{showAmount(TOTAL_EXPENSE)}</span>
+                      <span className="money-asset-row__sub">9월에 쓴 돈</span>
+                    </span>
                     <button
                       type="button"
-                      key={`${row.key}-${wiggleN}`}
-                      className={`money-spend-grid-card money-tappable${wiggleN > 0 ? ' money-spend-grid-card--wiggle' : ''}`}
-                      style={{ '--spend-fill-color': row.accent } as CSSProperties}
-                      onClick={() => handleSpendCardTap(row.key)}
+                      className="money-asset-row__btn money-asset-row__btn--tint money-tappable"
+                      onClick={goToIncomeExpenseList}
                     >
-                      <AnimatedFillLevel percent={row.percent} className="money-spend-grid-card__fill" />
-                      <span className="money-spend-grid-card__icon" style={{ background: row.bg }}>
-                        <img src={icon(row.icon)} alt="" />
-                      </span>
-                      <span className="money-spend-grid-card__label">{row.label}</span>
-                      <span className="money-spend-grid-card__amount">
-                        {amountsHidden ? '-----' : `${row.amount.toLocaleString()}원`}
-                      </span>
-                      <span className="money-spend-grid-card__percent">
-                        <AnimatedPercentText percent={row.percent} />
-                      </span>
+                      이번 주 {weekTransactionCount}건
                     </button>
-                  );
-                })}
+                  </li>
+                  {NEXT_CARD_PAYMENT && (
+                    <li className="money-asset-row">
+                      <span className="money-asset-row__text">
+                        <span className="money-asset-row__amount">{showAmount(NEXT_CARD_PAYMENT.amount)}</span>
+                        <span className="money-asset-row__sub">{NEXT_CARD_PAYMENT.days}일 뒤 나갈 카드값</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="money-asset-row__btn money-tappable"
+                        onClick={() => navigation?.navigate('money-fixed')}
+                      >
+                        내역
+                      </button>
+                    </li>
+                  )}
+                </ul>
               </div>
 
-              <button
-                type="button"
-                className="money-insight-banner money-tappable"
-                style={{ '--insight-accent': TOP_CATEGORY.color } as CSSProperties}
-                onClick={() => navigation?.navigate('benefits', { returnTo: 'money' })}
-              >
-                <span className="money-insight-banner__text">
-                  <span className="money-insight-banner__title">
-                    {TOP_CATEGORY.label}가{' '}
-                    {TOP_CATEGORY_DIFF === 0
-                      ? '지난달과 비슷해요.'
-                      : `평소보다 ${Math.abs(TOP_CATEGORY_DIFF).toLocaleString()}원 더 ${TOP_CATEGORY_DIFF > 0 ? '늘었어요.' : '줄었어요.'}`}
-                  </span>
-                  <span className="money-insight-banner__sub">
-                    이번 달 {TOP_CATEGORY.label} 지출이 가장 많아요.
-                  </span>
-                </span>
-                <span className="money-insight-banner__icon">
-                  <img src={img('02money-insight-badge.png')} alt="" />
-                </span>
-              </button>
-            </section>
-
-            <section className="money-section money-section--tight">
-              <div className="money-mini-cards">
-                <button
-                  type="button"
-                  className="money-mini-card money-mini-card--fixed money-tappable"
-                  onClick={() => setTab('고정비')}
-                >
-                  <span className="money-mini-card__head">
-                    <span className="money-mini-card__title-group">
-                      <img
-                        className="money-mini-card__title-icon"
-                        src={img('jaduya_custom_recommendation_36/money_management/icon-badge-2.png')}
-                        alt=""
-                      />
-                      <span className="money-mini-card__title">고정비</span>
-                    </span>
-                    <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
-                  </span>
-                  <span className="money-mini-card__label">이번 달 예정 금액</span>
-                  <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
-                    {amountsHidden ? '₩ -----' : `${FIXED_MONTHLY_TOTAL.toLocaleString()}원`}
-                  </span>
-                  <span className="money-mini-card__sub">
-                    {FIXED_EXPENSES.slice(0, 3)
-                      .map((item) => item.label)
-                      .join(' · ')}{' '}
-                    등
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="money-mini-card money-mini-card--accounts money-tappable"
-                  onClick={() => navigation?.navigate('money-accounts')}
-                >
-                  <span className="money-mini-card__head">
-                    <span className="money-mini-card__title-group">
-                      <img
-                        className="money-mini-card__title-icon"
-                        src={img('jaduya_custom_recommendation_36/money_management/icon-badge-3.png')}
-                        alt=""
-                      />
-                      <span className="money-mini-card__title">내 계좌</span>
-                    </span>
-                    <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
-                  </span>
-                  <span className="money-mini-card__label">총 잔액</span>
-                  <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
-                    {amountsHidden ? '₩ -----' : `${TOTAL_BALANCE.toLocaleString()}원`}
-                  </span>
-                  <span className="money-mini-card__sub">{ACCOUNTS.length}개 계좌</span>
-                </button>
+              <div className="money-asset-card">
+                <div className="money-asset-body money-asset-head">
+                  <h3 className="money-asset-head__title">내 신용점수</h3>
+                  <span className="money-asset-head__badge">변동 감지</span>
+                </div>
+                <div className="money-asset-foot money-asset-foot--even">
+                  <div className="money-asset-foot__links money-asset-foot__links--even">
+                    <button type="button" onClick={() => setNotice('계좌개설 화면은 준비 중이에요.')}>계좌개설</button>
+                    <button type="button" onClick={() => setNotice('카드발급 화면은 준비 중이에요.')}>카드발급</button>
+                    <button type="button" onClick={() => setNotice('대출받기 화면은 준비 중이에요.')}>대출받기</button>
+                  </div>
+                </div>
               </div>
-            </section>
-
-            <section className="money-section money-section--tight">
-              <button
-                type="button"
-                className="money-mini-card money-tappable"
-                onClick={() => setTab('비상금')}
-              >
-                <span className="money-mini-card__head">
-                  <span className="money-mini-card__title-group">
-                    <img className="money-mini-card__title-icon" src={img('saving_money.png')} alt="" />
-                    <span className="money-mini-card__title">비상금</span>
-                  </span>
-                  <img className="money-mini-card__chevron" src={icon('chevron-right-gray.svg')} alt="" />
-                </span>
-                <span className="money-mini-card__label">지금까지 모은 비상금</span>
-                <span key={String(amountsHidden)} className="money-mini-card__value budget-setup__pulse">
-                  {amountsHidden ? '₩ -----' : `${fund.currentAmount.toLocaleString()}원`}
-                </span>
-                <span className="money-mini-card__sub">
-                  목표 {fundPercent}% · {fundRemaining.toLocaleString()}원 남음
-                </span>
-              </button>
             </section>
           </>
         )}
 
-        {tab === '수입·지출' && (
-          <IncomeExpenseSection onNotice={setNotice} initialView={incomeExpenseInitialView} />
-        )}
+        {/* 수입·지출 화면(/money/expense) — 결제 예정 시트의 카드 아래 내용(월 이동 · 소비 분류 · 달력 · 이용 내역)을 그대로 쓴다. */}
+        {tab === '수입·지출' && <SpendingHistory variant="full" className="spending-history--page" />}
 
         {tab === '고정비' && (
           <>
-            {/* 이번 달 고정비 요약 카드(레퍼런스) — 총액을 헤드라인으로, 지출/남은 금액을
-             * 서브텍스트 한 줄로, 진행률은 오른쪽 도넛 링(EmergencyRing — 비상금 탭과 같은
-             * 컴포넌트)으로 보여준다. 막대 진행률(B안) 대신 레퍼런스의 원형 구성으로 되돌린다. */}
-            <section className="money-fixed-summary">
-              <div className="money-fixed-summary__stat">
-                <p className="money-fixed-summary__label">이번 달 고정비</p>
-                <p className="money-fixed-summary__amount">{FIXED_MONTHLY_TOTAL.toLocaleString()}원</p>
-                <p className="money-fixed-summary__total">
-                  지출 {FIXED_PAID_TOTAL.toLocaleString()}원 · 남은 {FIXED_REMAINING_TOTAL.toLocaleString()}원
-                </p>
-              </div>
-              <div className="money-fixed-summary__ring">
-                <AnimatedEmergencyRing
-                  percent={FIXED_PAID_PERCENT}
-                  size={92}
-                  stroke={9}
-                  trackColor="var(--color-primary-2)"
-                  progressColor="var(--color-gray-0)"
-                  valueColor="var(--color-gray-0)"
-                  valueSize={18}
-                  valueFontFamily="var(--font-asta)"
-                />
-                <span className="money-fixed-summary__ring-label">지출 완료</span>
-              </div>
+            {/* 9월 고정비 한눈에(레퍼런스) — 지출 건수 + 총액, 카테고리별 결제일 목록, 자동결제 수단 안내 배너.
+             * 숫자는 고정비 원본(등록한 항목 포함)에서 그대로 계산한다. 이미 지난 결제일은 옅게, 남은 결제일은 D-day 로 보여준다. */}
+            <section className="fixed-overview" aria-label="고정비 한눈에">
+              <p className="fixed-overview__count">지출 {allFixedItems.length}건</p>
+              <p className="fixed-overview__total">
+                {allFixedItems.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}원
+              </p>
+
+              {FIXED_CATEGORY_OPTIONS.map((category) => {
+                /* 기본 고정비 7건(월세~헬스장)은 목록에서 숨기고, 사용자가 추가한 항목만 보여준다 (데이터·합계는 그대로) */
+                const items = addedFixedItems.filter((item) => item.category === category).sort((a, b) => a.day - b.day);
+                if (items.length === 0) return null;
+                return (
+                  <div key={category} className="fixed-overview__group">
+                    <ul aria-label={category}>
+                      {items.map((item) => {
+                        const paid = item.day <= TODAY_DAY;
+                        return (
+                          <li key={item.key}>
+                            <button
+                              type="button"
+                              className={`fixed-overview__row money-tappable${paid ? ' is-paid' : ''}`}
+                              onClick={() => setFixedDetailKey(item.key)}
+                            >
+                              <span
+                                className={`money-fixed-row__icon${findFixedItemImage(item) ? ' money-fixed-row__icon--plain' : ''}`}
+                              >
+                                {renderFixedIcon(item)}
+                              </span>
+                              <span className="fixed-overview__info">
+                                <span className="fixed-overview__name">{item.label}</span>
+                                <span className="fixed-overview__sub">
+                                  {item.amount.toLocaleString()}원
+                                  <span className="fixed-overview__dot" aria-hidden="true">
+                                    ·
+                                  </span>
+                                  {item.method}
+                                </span>
+                              </span>
+                              <span className="fixed-overview__when">
+                                <span className="fixed-overview__day">{item.day}일</span>
+                                {!paid && <span className="fixed-overview__dday">D-{item.day - TODAY_DAY}</span>}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+
+              <button
+                type="button"
+                className="fixed-overview__notice money-tappable"
+                onClick={() => setNotice('자동결제 수단 변경은 준비 중이에요.')}
+              >
+                <img src={icon('menu-card.svg')} alt="" />
+                <span>자동결제 수단 바꾸고 싶다면?</span>
+                <img src={icon('chevron-right-gray.svg')} alt="" />
+              </button>
             </section>
 
             {nextFixedItem && (
@@ -1057,6 +1320,9 @@ export function MoneyPage() {
       </main>
 
       {/* 스크롤 끝이 아니라 탭바 바로 위에 띄워, 누른 자리에서 바로 보이게 한다 (MyPage.tsx 와 동일 패턴) */}
+      {/* 결제 예정 카드(레퍼런스) — 이번 달 화면 아래쪽에 살짝 보이고, 누르면 바텀시트로 올라온다 */}
+      <StatementPeek visible={tab === '이번 달' && !activeScreen} onViewFixed={() => navigation?.navigate('money-fixed')} />
+
       <p className="money__notice" role="status" aria-live="polite" hidden={!notice}>
         {notice}
       </p>
@@ -1080,6 +1346,53 @@ export function MoneyPage() {
           }
         }}
       />
+      <BottomSheet
+        open={menuSheetOpen}
+        className="fixed-add-sheet menu-edit-sheet"
+        labelledBy="menu-edit-sheet-title"
+        onDimClick={() => setMenuSheetOpen(false)}
+      >
+        <div className="bsheet__grip">
+          <span />
+        </div>
+        <div className="fixed-add-sheet__header">
+          <h2 className="fixed-add-sheet__title" id="menu-edit-sheet-title">
+            바로가기 편집
+          </h2>
+          <button
+            type="button"
+            className="fixed-add-sheet__close"
+            aria-label="닫기"
+            onClick={() => setMenuSheetOpen(false)}
+          >
+            <img src={icon('sheet-close.svg')} alt="" />
+          </button>
+        </div>
+        <ul className="menu-edit-sheet__list">
+          {MONEY_MENU_POOL.map((item) => {
+            const selected = menuKeys.includes(item.key);
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  className={`menu-edit-sheet__row${selected ? ' is-selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => toggleMenuKey(item.key)}
+                >
+                  <span className="menu-edit-sheet__icon">
+                    <img src={menuImageOf(item)} alt="" />
+                  </span>
+                  <span className="menu-edit-sheet__label">{item.label}</span>
+                  <span className="menu-edit-sheet__check" aria-hidden="true">
+                    {selected ? '✓' : ''}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </BottomSheet>
+
       <BottomSheet
         open={fixedAddSheetOpen}
         className="fixed-add-sheet"
