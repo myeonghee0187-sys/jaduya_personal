@@ -15,26 +15,18 @@ const TOTAL_STEPS = 4;
 interface ChoiceOption { label: string; desc: string; icon: string }
 
 const interestOptions: ChoiceOption[] = [
-  { label: '자취 준비', desc: '집 구하기, 이사, 체크리스트', icon: 'interest-home.png' },
-  { label: '음식 · 장보기', desc: '맛집, 장보기, 간단 요리', icon: 'interest-food.png' },
-  { label: '생활 꿀팁', desc: '자취 생활 노하우', icon: 'interest-tip.png' },
-  { label: '돈 관리', desc: '지출 관리, 절약 방법', icon: 'interest-money.png' },
-  { label: '인테리어', desc: '공간 꾸미기, 가구 추천', icon: 'interest-interior.png' },
-  { label: '동네 · 커뮤니티', desc: '주변 소식, 사람들', icon: 'interest-community.png' },
+  { label: '자취 준비', desc: '집 구하기, 이사, 체크리스트', icon: 'image 341.png' },
+  { label: '음식 · 장보기', desc: '맛집, 장보기, 간단 요리', icon: 'image 342.png' },
+  { label: '생활 꿀팁', desc: '자취 생활 노하우', icon: 'image 343.png' },
+  { label: '돈 관리', desc: '지출 관리, 절약 방법', icon: 'image 344.png' },
+  { label: '인테리어', desc: '공간 꾸미기, 가구 추천', icon: 'image 345.png' },
+  { label: '동네 · 커뮤니티', desc: '주변 소식, 사람들', icon: 'image 346.png' },
 ];
 
-/* 관심 정보 카드와 같은 아이콘을 요약 리스트(선택한 정보)에서 작게 다시 쓴다 —
- * 시트에 별도로 마련된 "리스트용" crop 이 있어 그걸 쓴다(list-*.png). */
-const summaryIconOverride: Record<string, string> = {
-  '생활 꿀팁': 'list-tip.png',
-  '자취 준비': 'list-home.png',
-  '자취 준비 중': 'list-suitcase.png',
-};
-
 const stageOptions: ChoiceOption[] = [
-  { label: '자취 준비 중', desc: '곧 자취를 시작할 예정이에요.', icon: 'stage-suitcase.png' },
-  { label: '자취를 막 시작했어요', desc: '이제 막 혼자 살기 시작했어요.', icon: 'stage-house.png' },
-  { label: '자취에 조금 익숙해졌어요', desc: '혼자 사는 게 이제는 익숙해요.', icon: 'stage-plant.png' },
+  { label: '자취 준비 중', desc: '곧 자취를 시작할 예정이에요.', icon: 'image 347.png' },
+  { label: '자취를 막 시작했어요', desc: '이제 막 혼자 살기 시작했어요.', icon: 'image 348.png' },
+  { label: '자취에 조금 익숙해졌어요', desc: '혼자 사는 게 이제는 익숙해요.', icon: 'image 349.png' },
 ];
 
 export function Onboarding({ onComplete, userName }: OnboardingProps) {
@@ -220,7 +212,7 @@ export function Onboarding({ onComplete, userName }: OnboardingProps) {
               </div>
               {summaryItems.map((item) => (
                 <div key={item.label} className="onboarding__summary-row">
-                  <img className="onboarding__choice-icon onboarding__choice-icon--summary" src={img(`onboarding/${summaryIconOverride[item.label] ?? item.icon}`)} alt="" />
+                  <img className="onboarding__choice-icon onboarding__choice-icon--summary" src={img(`onboarding/${item.icon}`)} alt="" />
                   <span>{item.label}</span>
                 </div>
               ))}

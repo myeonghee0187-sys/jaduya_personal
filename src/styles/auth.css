@@ -161,6 +161,48 @@
   width: 100%;
 }
 
+/* 아이콘/토글이 들어간 입력창 — 아이콘·토글은 입력창 안쪽에 겹쳐 놓는다 */
+.auth-field__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-field__input--leading {
+  padding-left: 46px;
+}
+
+.auth-field__input--trailing {
+  padding-right: 48px;
+}
+
+.auth-field__leading {
+  position: absolute;
+  left: 16px;
+  display: flex;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.auth-field__trailing {
+  position: absolute;
+  right: 6px;
+  display: flex;
+}
+
+.auth-field__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
 .auth-field__input::placeholder {
   color: var(--text-muted);
   opacity: 1;
@@ -220,6 +262,13 @@
 
 .auth-button:active {
   filter: brightness(0.94);
+}
+
+/* 로그인 화면 — 비활성이어도 회색이 아니라 옅은 브랜드 레드로 보여 준다(레퍼런스) */
+.auth__body--login .auth-button:disabled {
+  border: none;
+  background: color-mix(in srgb, var(--brand-primary) 88%, #fff);
+  color: #fff;
 }
 
 .auth-button:disabled {
@@ -524,4 +573,185 @@
   font-size: 12px;
   line-height: 1.4;
   color: var(--brand-primary);
+}
+
+/* ---------- 로그인 인트로 (레퍼런스) ---------- */
+.auth-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-height: 132px;
+}
+
+.auth-hero__text {
+  padding-bottom: 8px;
+}
+
+.auth-hero__title {
+  margin: 0 0 10px;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+  color: #2f2621;
+}
+
+.auth-hero__desc {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #6b5c53;
+}
+
+.auth-hero__mascot {
+  flex: none;
+  width: 124px;
+  height: auto;
+  margin-right: -6px;
+}
+
+/* 오른쪽 위 손글씨 인사 */
+.auth-hero__greeting {
+  position: absolute;
+  top: -6px;
+  right: 6px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: center;
+  color: #7a4a3a;
+  transform: rotate(-12deg);
+}
+
+/* ---------- 로그인 데모 계정 배너 ---------- */
+.auth-demo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border: 1px solid #f6dcd6;
+  border-radius: 16px;
+  background: #fdeeea;
+}
+
+.auth-demo__intro {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-width: 0;
+  padding-right: 24px; /* › 버튼 자리 */
+}
+
+.auth-demo__copy {
+  display: contents;
+}
+
+/* 플라스크는 제목·설명 두 줄 높이를 차지한다 */
+.auth-demo__flask {
+  grid-row: 1 / 3;
+  color: var(--brand-primary);
+}
+
+.auth-demo__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--brand-primary);
+  white-space: nowrap;
+}
+
+.auth-demo__desc {
+  grid-column: 2;
+  margin: 0;
+  white-space: nowrap;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #7a6a62;
+}
+
+.auth-demo__people {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-demo__person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.auth-demo__avatar {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff3d6;
+}
+
+.auth-demo__name {
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #2f2621;
+}
+
+.auth-demo__role {
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 1.3;
+  color: #7a6a62;
+  white-space: nowrap;
+}
+
+.auth-demo__more {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.auth-demo__more img {
+  width: 14px;
+  height: 14px;
+}
+
+/* 데모 계정 배너는 모바일 전용 — 웹·태블릿(768px 이상)은 옆 데모 패널(LoginShowcase)이 같은 역할을 한다 */
+@media (min-width: 768px) {
+  .auth-demo {
+    display: none;
+  }
 }

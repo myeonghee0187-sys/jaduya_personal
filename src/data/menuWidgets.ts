@@ -59,9 +59,9 @@ interface MenuWidgetDef {
 export const MENU_WIDGET_DEFS: Record<MenuWidgetType, MenuWidgetDef> = {
   FirstHome: { label: '첫자취', icon: 'menu-truck.svg', page: 'life-first' },
   HomeCare: { label: '홈케어', icon: 'menu-broom.svg', page: 'life-homecare' },
-  RecentExpense: { label: '최근지출', icon: 'menu-receipt.svg', page: 'money', options: { tab: '수입·지출' } },
-  FixedExpense: { label: '고정비', icon: 'menu-calendar.svg', page: 'money', options: { tab: '고정비' } },
-  EmergencyFund: { label: '비상금', icon: 'menu-wallet.svg', page: 'money', options: { tab: '비상금' } },
+  RecentExpense: { label: '최근지출', icon: 'menu-receipt.svg', page: 'money-expense' },
+  FixedExpense: { label: '고정비', icon: 'menu-calendar.svg', page: 'money-fixed' },
+  EmergencyFund: { label: '비상금', icon: 'menu-wallet.svg', page: 'money-fund' },
   LivingTip: { label: '자취꿀팁', icon: 'menu-tip.svg', page: 'community-tip' },
   LocalReview: { label: '지역후기', icon: 'menu-location.svg', page: 'community-region' },
   WritePost: { label: '글쓰기', icon: 'community-pencil.svg', page: 'community' },
