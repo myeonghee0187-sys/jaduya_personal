@@ -68,6 +68,11 @@
   height: var(--header-icon-btn);
 }
 
+/* 커뮤니티를 제외한 공용 헤더는 알림 버튼의 오른쪽 끝을 콘텐츠 경계에 맞춘다. */
+.header-actions--bell-last {
+  justify-content: flex-end;
+}
+
 .header-icon-button {
   position: relative;
   display: grid;

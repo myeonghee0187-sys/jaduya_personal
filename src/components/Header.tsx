@@ -20,7 +20,7 @@ export function Header({ showActions = true }: HeaderProps) {
           <span className="nav-header__name">자두야</span>
         </button>
         {showActions && (
-          <div className="header-actions">
+          <div className="header-actions header-actions--bell-last">
             <HeaderIconButton iconName="bell" label="알림" />
           </div>
         )}

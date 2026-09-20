@@ -18,6 +18,22 @@ export interface CommunityComment {
 
 /** 게시글 id → 댓글 목록. 아직 상세보기(post.body)가 있는 게시글에만 채워둔다. */
 export const COMMUNITY_COMMENTS: Record<string, CommunityComment[]> = {
+  'question-fee': [
+    { id: 'question-fee-1', author: '겨울절약중', avatar: '🧣', level: 3, body: '보일러를 껐다 켜는 것보다 외출 모드가 낫다는 말이 정말 맞나 봐요', time: '20분 전', likes: 12 },
+    { id: 'question-fee-2', author: '원룸생활러', avatar: '🏠', level: 2, body: '계량기 숫자를 직접 확인하는 습관은 생각 못 했어요. 이번 주부터 해볼게요', time: '35분 전', likes: 8 },
+    { id: 'question-fee-3', author: '따뜻한양말', avatar: '🧦', level: 4, body: '문풍지 붙이고 커튼만 잘 쳐도 방 온도가 확실히 오래 유지돼요', time: '1시간 전', likes: 19 },
+    { id: 'question-fee-4', author: '자취초보', avatar: '🌱', level: 1, body: '온수 온도는 어느 정도로 맞추셨는지 궁금해요', time: '1시간 전', likes: 4 },
+    { id: 'question-fee-5', author: '관리비체크', avatar: '🧾', level: 3, body: '저도 고지서 항목별로 비교해보니 온수가 제일 많이 줄었더라고요', time: '2시간 전', likes: 15 },
+    { id: 'question-fee-6', author: '보일러지킴이', avatar: '🔥', level: 5, body: '외출이 짧을 때는 설정 온도를 낮춰 유지하는 것도 도움이 됐어요', time: '2시간 전', likes: 24 },
+    { id: 'question-fee-7', author: '절약새싹', avatar: '🍀', level: 1, body: '한꺼번에 다 하려다 포기했는데 하나씩 시작하라는 말이 좋네요', time: '3시간 전', likes: 5 },
+    { id: 'question-fee-8', author: '햇살원룸', avatar: '☀️', level: 2, body: '낮에 커튼 열어두는 것만으로도 난방 켜는 시간이 늦어져요', time: '4시간 전', likes: 10 },
+    { id: 'question-fee-9', author: '가스비무서워', avatar: '😮', level: 2, body: '샤워 시간을 줄이는 게 제일 어렵지만 효과는 확실할 것 같아요', time: '5시간 전', likes: 7 },
+    { id: 'question-fee-10', author: '알뜰자취생', avatar: '💰', level: 4, body: '저는 보일러 예약 기능도 같이 쓰는데 지난달보다 2만 원 줄었어요', time: '6시간 전', likes: 18 },
+    { id: 'question-fee-11', author: '생활비연구소', avatar: '📊', level: 5, body: '사용량을 매주 기록하면 갑자기 많이 쓴 날의 원인을 찾기 편해요', time: '7시간 전', likes: 21 },
+    { id: 'question-fee-12', author: '첫겨울자취', avatar: '🐣', level: 1, body: '첫 자취라 난방비 걱정됐는데 구체적으로 정리해주셔서 감사해요', time: '8시간 전', likes: 3 },
+    { id: 'question-fee-13', author: '포근한집', avatar: '🪴', level: 3, body: '두꺼운 실내화랑 무릎담요도 체감 온도 올리는 데 꽤 도움됐어요', time: '어제', likes: 11 },
+    { id: 'question-fee-14', author: '절약습관', avatar: '✅', level: 4, body: '작은 습관으로 3만 원이면 정말 크네요. 저장해두고 따라 해볼게요', time: '어제', likes: 16 },
+  ],
   desk: [
     { id: 'desk-1', author: '정리요정', avatar: '🌱', level: 4, body: '트레이 하나로 이렇게 달라진다니 바로 따라해봐야겠어요', time: '2시간 전', likes: 14 },
     { id: 'desk-2', author: '책상은깨끗해', avatar: '🏠', level: 2, body: '저도 충전 케이블 때문에 늘 엉켜있었는데 팁 감사해요', time: '3시간 전', likes: 6 },

@@ -17,6 +17,10 @@ interface SubPageHeaderProps {
   closeLabel?: string;
   /** 제목 오른쪽에 덧붙일 요소가 필요할 때 */
   children?: ReactNode;
+  /** 알림 버튼 바로 뒤에 배치할 화면 전용 헤더 액션 */
+  actions?: ReactNode;
+  /** 커뮤니티 화면처럼 알림 버튼의 기존 위치와 액션 순서를 유지한다. */
+  preserveBellPlacement?: boolean;
 }
 
 export function SubPageHeader({
@@ -26,7 +30,11 @@ export function SubPageHeader({
   onClose,
   closeLabel = '닫기',
   children,
+  actions,
+  preserveBellPlacement = false,
 }: SubPageHeaderProps) {
+  const keepBellPlacement = preserveBellPlacement || Boolean(actions);
+
   return (
     <header className="page-header">
       <StatusBar />
@@ -36,14 +44,26 @@ export function SubPageHeader({
         </button>
         <h1>{title}</h1>
         {children && <div className="page-header__extra">{children}</div>}
-        <div className="header-actions">
-          <HeaderIconButton iconName="bell" label="알림" />
-          {onClose && (
-            /* 공용 HeaderIconButton 은 알림 종 전용이라(글쓰기 패널과 같은 이유로)
-             * 여기서만 따로 그린다 — 크기·자리는 같은 header-icon-button 클래스를 쓴다. */
-            <button type="button" className="header-icon-button" aria-label={closeLabel} onClick={onClose}>
-              <img src={icon('gnb-close.svg')} alt="" />
-            </button>
+        <div className={`header-actions${keepBellPlacement ? '' : ' header-actions--bell-last'}`}>
+          {keepBellPlacement ? (
+            <>
+              <HeaderIconButton iconName="bell" label="알림" />
+              {actions}
+              {onClose && (
+                <button type="button" className="header-icon-button" aria-label={closeLabel} onClick={onClose}>
+                  <img src={icon('gnb-close.svg')} alt="" />
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {onClose && (
+                <button type="button" className="header-icon-button" aria-label={closeLabel} onClick={onClose}>
+                  <img src={icon('gnb-close.svg')} alt="" />
+                </button>
+              )}
+              <HeaderIconButton iconName="bell" label="알림" />
+            </>
           )}
         </div>
       </div>

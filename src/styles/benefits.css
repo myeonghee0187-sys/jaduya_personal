@@ -118,42 +118,51 @@
 
 .benefits-tabs {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  padding: 0 2px 8px;
-  overflow: hidden;
-  border-bottom: 1px solid #e9e4df;
+  border-bottom: 1px solid var(--border-warm);
 }
 
 .benefits-tabs__item {
   position: relative;
-  flex: none;
-  padding: 0 0 5px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 6px 14px;
   border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  font: 700 15px/1.4 var(--font-suit);
-  letter-spacing: -0.3px;
+  background: none;
+  color: #737373;
+  font: 400 14px/16px var(--font-suit);
+  text-align: center;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.benefits-tabs__item::after {
+.benefits-tabs__item.is-active {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.benefits-tabs__item.is-active::after {
+  content: '';
   position: absolute;
   right: 0;
   bottom: 0;
   left: 0;
   height: 2px;
-  background: transparent;
-  content: '';
-}
-
-.benefits-tabs__item.is-active {
-  color: var(--brand-primary);
-}
-
-.benefits-tabs__item.is-active::after {
+  border-radius: 2px;
   background: var(--brand-primary);
+  animation: benefits-tab-indicator 200ms ease;
+}
+
+@keyframes benefits-tab-indicator {
+  from {
+    transform: scaleX(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
 .benefits-chips {
@@ -171,7 +180,7 @@
   align-items: center;
   justify-content: center;
   min-height: 24px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 0;
   border-radius: var(--radius-pill);
   background: #f6f0e6;
@@ -189,8 +198,10 @@
 }
 
 .benefits-chip--region img {
+  /* chevron-down.svg 원본 비율(10.6827 : 6.466) 그대로 — 정사각형으로 강제하면
+   * 화살표가 세로로 눌려 보인다 (saved__sort-button img 와 같은 비율). */
   width: 11.2px;
-  height: 11.2px;
+  height: 6.78px;
   filter: brightness(0);
 }
 
@@ -401,8 +412,10 @@
 }
 
 .benefit-card__detail img {
-  width: 13.44px;
-  height: 13.44px;
+  /* chevron-right-sm.svg 원본 비율(5.29037 : 8.74037) 그대로 — 정사각형으로 강제하면
+   * 화살표가 가로로 눌려 보인다 (mypage__links button img 와 같은 비율). */
+  width: 7px;
+  height: 11px;
   filter: brightness(0) saturate(100%) invert(12%) sepia(34%) saturate(1261%) hue-rotate(347deg) brightness(92%);
 }
 
