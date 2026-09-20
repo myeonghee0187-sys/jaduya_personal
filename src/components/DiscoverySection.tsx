@@ -19,10 +19,9 @@ import { AdIcon } from './AdIcon';
  * 금지). 카드 내부 레이아웃이나 카드 사이 간격과는 무관하다. */
 const DISCOVERY_PAGE_GAP_PX = 4;
 
-/* 페이지네이션 클릭(탭/화살표)으로 넘어갈 때만 붙는 진입 애니메이션 지속 시간 —
- * home.css 의 discovery-slide-enter-* 키프레임(300ms)과 반드시 같이 맞춘다. 살짝
- * 여유(20ms)를 둬서 클래스가 애니메이션보다 먼저 떨어져 나가 중간에 끊기지 않게 한다. */
-const CLICK_NAV_ANIMATION_MS = 320;
+/* 페이지네이션 이전/다음 화살표 — 기존 chevron 아이콘 파일을 mask 로 그려 색을 CSS(color)에 맡긴다.
+ * 이전(‹)은 같은 아이콘을 좌우 반전한다. */
+const CHEVRON_STYLE = { '--chevron-src': `url(${icon('chevron-right-thin.svg')})` } as CSSProperties;
 
 interface DiscoverySectionProps {
   /* 맞춤 추천 카드의 '설정하기' · 헤더의 '추천 설정' 공통 진입점 —
@@ -206,39 +205,67 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
    * swipe 가 쓰는 것과 같은 함수)를 그대로 써서 04 → 01 로 끊김 없이 돈다. */
   const isFirstPage = pageCarousel.index === 0;
 
-  /* 페이지네이션(탭/화살표) 클릭으로 넘어갈 때만 켜는 진입 애니메이션 방향 — 스와이프는
-   * 이미 트랙이 손가락을 따라 자연스럽게 넘어가므로 건드리지 않는다(이 값이 null 이면
-   * 트랙도 원래 320ms 슬라이드 transition 을 그대로 쓰고, 슬라이드에도 진입 클래스를
-   * 붙이지 않는다 — 즉 스와이프 결과는 지금과 완전히 동일하게 보인다).
-   * setClickNavDirection 과 pageCarousel.goTo/goNext 호출을 한 이벤트 핸들러(triggerClickNav)
-   * 안에서 같이 하므로 React 가 같은 커밋으로 묶어, index 가 바뀌는 바로 그 렌더에서부터
-   * 정확한 방향이 반영된다(effect 로 한 박자 늦게 따라잡을 필요가 없다). */
-  const [clickNavDirection, setClickNavDirection] = useState<'next' | 'prev' | null>(null);
-  const clickNavTimeoutRef = useRef<number>();
+  /* 첫 노출 때만 실제 페이지를 바꾸지 않는 짧은 swipe affordance를 보여준다. 섹션이
+   * viewport에 들어온 뒤 1초를 기다리며, reduced-motion 환경과 사용자가 먼저 조작한
+   * 경우에는 실행하지 않는다. */
+  const sectionRef = useRef<HTMLElement>(null);
+  const hintTimerRef = useRef<number>();
+  const hintHandledRef = useRef(false);
+  const [isSwipeHinting, setIsSwipeHinting] = useState(false);
 
-  useEffect(() => () => window.clearTimeout(clickNavTimeoutRef.current), []);
-
-  const triggerClickNav = (direction: 'next' | 'prev', navigate: () => void) => {
-    navigate();
-    setClickNavDirection(direction);
-    window.clearTimeout(clickNavTimeoutRef.current);
-    clickNavTimeoutRef.current = window.setTimeout(() => setClickNavDirection(null), CLICK_NAV_ANIMATION_MS);
+  const cancelSwipeHint = () => {
+    hintHandledRef.current = true;
+    window.clearTimeout(hintTimerRef.current);
+    setIsSwipeHinting(false);
   };
 
-  const handlePrevClick = () => triggerClickNav('prev', () => pageCarousel.goTo(pageCarousel.index - 1));
-  const handleNextClick = () => triggerClickNav('next', pageCarousel.goNext);
+  useEffect(() => {
+    if (!canPage || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || hintHandledRef.current) return;
+      hintHandledRef.current = true;
+      observer.disconnect();
+      hintTimerRef.current = window.setTimeout(() => setIsSwipeHinting(true), 1000);
+    }, { threshold: 0.35 });
+
+    observer.observe(section);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(hintTimerRef.current);
+    };
+  }, [canPage]);
+
+  const handlePrevClick = () => {
+    cancelSwipeHint();
+    pageCarousel.goTo(pageCarousel.index - 1);
+  };
+  const handleNextClick = () => {
+    cancelSwipeHint();
+    pageCarousel.goNext();
+  };
   const handleTabClick = (index: number) => {
     if (index === pageCarousel.index) return;
-    triggerClickNav(index > pageCarousel.index ? 'next' : 'prev', () => pageCarousel.goTo(index));
+    cancelSwipeHint();
+    pageCarousel.goTo(index);
   };
 
   return (
-    <section className="discovery">
+    <section className="discovery" ref={sectionRef} onPointerDownCapture={cancelSwipeHint}>
       <div className="discovery__top">
         <h2>자두가 알려드려요</h2>
         {/* 카드 안 '설정하기'와 같은 진입점이다 — 페이지를 옮기지 않고
           * 홈 시트 안의 맞춤 추천 설정 View 를 연다. */}
         <button type="button" className="discovery__settings" onClick={onOpenRecommendSetup}>
+          <span className="home-action-button__icon">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M2 4.5h7M12.5 4.5H14M2 11.5h1.5M7 11.5h7" />
+              <circle cx="10.75" cy="4.5" r="1.75" />
+              <circle cx="5.25" cy="11.5" r="1.75" />
+            </svg>
+          </span>
           추천 설정
         </button>
       </div>
@@ -254,7 +281,7 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
           disabled={isFirstPage}
           onClick={handlePrevClick}
         >
-          <span aria-hidden="true">‹</span>
+          <span className="discovery__page-chevron-icon discovery__page-chevron-icon--prev" style={CHEVRON_STYLE} aria-hidden="true" />
         </button>
         {pages.map(({ key, day }, index) => {
           const isActive = index === pageCarousel.index;
@@ -283,7 +310,7 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
           aria-label="다음 페이지"
           onClick={handleNextClick}
         >
-          <span aria-hidden="true">›</span>
+          <span className="discovery__page-chevron-icon" style={CHEVRON_STYLE} aria-hidden="true" />
         </button>
       </div>
 
@@ -294,8 +321,9 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
           <div className="discovery-page__viewport" {...(canPage ? pageCarousel.viewportHandlers : {})}>
             <div
               className={`discovery-page__track${pageCarousel.isDragging ? ' is-dragging' : ''}${
-                clickNavDirection ? ' is-instant' : ''
+                isSwipeHinting ? ' is-hinting' : ''
               }`}
+              onAnimationEnd={() => setIsSwipeHinting(false)}
               style={
                 {
                   '--discovery-page-gap': `${DISCOVERY_PAGE_GAP_PX}px`,
@@ -303,15 +331,9 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
                 } as CSSProperties
               }
             >
-              {pages.map(({ key, day, tip, ad }, index) => {
-                const isActive = index === pageCarousel.index;
+              {pages.map(({ key, day, tip, ad }) => {
                 return (
-                  <div
-                    className={`discovery-page__slide${
-                      isActive && clickNavDirection ? ` is-entering-${clickNavDirection}` : ''
-                    }`}
-                    key={key}
-                  >
+                  <div className="discovery-page__slide" key={key}>
                     <DiscoveryPage
                       day={day}
                       tip={tip}

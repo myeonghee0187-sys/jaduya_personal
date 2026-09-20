@@ -186,6 +186,13 @@ export function toggleInterestTopic(
   };
 }
 
+/** 분야 탭은 유지하고 저장 대상인 주제 선택만 모두 비운 새 객체를 만든다. */
+export function clearInterestTopics(): Record<InterestCategory, string[]> {
+  return Object.fromEntries(
+    INTEREST_CATEGORIES.map((category) => [category, [] as string[]]),
+  ) as Record<InterestCategory, string[]>;
+}
+
 export function saveLivingProfile(ownerKey: string, preferences: LivingProfilePreferences): boolean {
   try {
     const locationData = normalizeSavedLocation(preferences.locationData)

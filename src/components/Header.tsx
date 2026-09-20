@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { icon } from '../lib/asset';
 import { HeaderIconButton } from './HeaderIconButton';
 import { StatusBar } from './StatusBar';
@@ -8,14 +9,16 @@ interface HeaderProps {
 }
 
 export function Header({ showActions = true }: HeaderProps) {
+  const navigate = useNavigate();
+
   return (
     <header className="header">
       <StatusBar />
       <div className="nav-header">
-        <div className="nav-header__brand">
+        <button type="button" className="nav-header__brand" aria-label="자두야 홈으로" onClick={() => navigate('/')}>
           <img className="nav-header__logo" src={icon('logo-mark.svg')} alt="" />
           <span className="nav-header__name">자두야</span>
-        </div>
+        </button>
         {showActions && (
           <div className="header-actions">
             <HeaderIconButton iconName="bell" label="알림" />

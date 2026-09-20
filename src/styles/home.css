@@ -48,18 +48,20 @@ a { text-decoration: none; color: inherit; }
   overflow: hidden;
   background: var(--surface-page);
 
-  /* Bottom Sheet 상태 값 */
+  /* Bottom Sheet 상태 값 — 히어로 영역 높이 등이 쓰는 값이다. 시트 자체는 이 값으로 top 을
+   * 바꾸지 않고 --sheet-top-expanded 에 고정한 채 transform 으로만 움직인다(.sheet 참고). */
   --sheet-top: 575px;          /* home_1 : peek */
-  --sheet-pad-top: 40px;
-  --sheet-section-gap: 40px;
-  --my-life-gap: 20px;
+  --sheet-top-expanded: 113px; /* home_2 : expanded — 시트가 놓이는 고정 위치 */
+
+  /* 시트 안 여백·간격은 peek/expanded 로 바뀌지 않는다. 상태마다 값이 달랐을 때는 시트를 놓는
+   * 순간(상태 커밋) 내 메뉴 제목·위젯·아래 섹션이 한꺼번에 위아래로 튀었다(home_2 기준 값). */
+  --sheet-pad-top: 18px;
+  --sheet-section-gap: 50px;
+  --my-life-gap: 16px;
 }
 
 .app[data-sheet-state="expanded"] {
   --sheet-top: 113px;          /* home_2 : expanded */
-  --sheet-pad-top: 18px;
-  --sheet-section-gap: 50px;
-  --my-life-gap: 16px;
 }
 
 /* Home 은 상단이 항상 Hero 하늘색(screen-background.png 맨 위 픽셀)이다 — iOS Safari 가
@@ -290,11 +292,25 @@ a { text-decoration: none; color: inherit; }
   padding: 0 var(--screen-margin);
 }
 
+/* 로고 + 이름은 홈으로 돌아가는 버튼이다 — 버튼 기본 스타일만 걷어내 모양은 그대로 둔다 */
 .nav-header__brand {
   display: flex;
   align-items: center;
   gap: var(--space-2xs);
   height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-header__brand:active { opacity: 0.7; }
+
+.nav-header__brand:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-s);
 }
 
 .nav-header__logo { width: 44px; height: 24.556px; }
@@ -459,12 +475,113 @@ a { text-decoration: none; color: inherit; }
 
 .home-benefit-banner__arrow { width: 16px; height: 16px; flex: none; }
 
+/* 펼친 HomeSheet의 하단 Dock — BottomNavigation(.tab-bar)이 있던 자리를 그대로 대신한다(브라우저
+ * viewport 가 아니라 .home.app 기준 하단 고정). 별도의 떠 있는 카드가 아니라 하단 영역 자체이므로
+ * 그림자 없이 위쪽 구분선과 아주 옅은 배경 차이로만 위 콘텐츠와 나눈다.
+ * 배경은 화면 맨 아래까지 붙이고(bottom: 0, 띄우지 않는다), 안쪽 콘텐츠만 위·아래 padding 으로
+ * 숨 쉴 공간을 둔다 — 높이는 고정값이 아니라 padding 을 포함한 콘텐츠 높이(하단은 safe-area 가산). */
+.home-benefit-banner.home-benefit-banner--fixed {
+  position: absolute;
+  top: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  /* 기본 배너의 고정 height(121px)를 이어받지 않고 padding 포함 콘텐츠 높이로 */
+  height: auto;
+  padding: 12px var(--screen-margin) calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-warm);
+  background: var(--surface-subtle);
+}
+
+/* 3영역: 혜택 아이콘 / 제목+설명 / 확인하기 버튼 */
+.home-benefit-dock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.home-benefit-dock .home-benefit-banner__icon-badge {
+  width: 40px;
+  height: 40px;
+}
+
+.home-benefit-dock .home-benefit-banner__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.home-benefit-dock__text {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.home-benefit-dock__title,
+.home-benefit-dock__desc {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-suit);
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.home-benefit-dock__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.15px;
+  color: var(--text-body);
+}
+
+.home-benefit-dock__desc {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.home-benefit-dock__cta {
+  flex: none;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--brand-primary);
+  color: #fff;
+  font: 600 13px/1 var(--font-suit);
+  letter-spacing: -0.13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.home-benefit-dock:active .home-benefit-dock__cta { opacity: 0.9; }
+
+.home-benefit-dock__cta:focus:not(:focus-visible) { outline: none; }
+
+.home-benefit-dock__cta:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
 /* ================= Bottom Sheet ================= */
 
+/* 시트는 top 이 아니라 transform 으로만 움직인다.
+ * top 을 매 프레임 바꾸면 시트 높이와 안쪽 레이아웃이 프레임마다 다시 계산되고, 소수점 위치에서
+ * 요소마다 다르게 반올림돼 내 메뉴 위젯이 1~2px 씩 움찔거렸다. 여기서는 top 을 펼친 위치에
+ * 고정하고(높이도 고정), peek 는 그 자리에서 (자기 높이 - 299px) 만큼 내려 둔다 —
+ * translateY 의 % 는 시트 자신의 높이 기준이라 299px(peek 로 보이는 높이)만 남는다. */
 .sheet {
   position: absolute;
   left: 0;
-  top: var(--sheet-top);
+  top: var(--sheet-top-expanded);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -474,13 +591,18 @@ a { text-decoration: none; color: inherit; }
   border-radius: 22px 22px 0 0;
   background: var(--surface-page);
   box-shadow: 0 -5px 6.8px 0 rgba(0, 0, 0, 0.05);
-  transition: top 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform: translateY(0);
+  will-change: transform;
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
 }
+
+.app[data-sheet-state="peek"] .sheet { transform: translateY(calc(100% - 299px)); }
 
 .app.is-dragging .sheet { transition: none; }
 
 .sheet__handle-wrap {
   position: relative;
+  z-index: 3;
   flex: none;
   width: 100%;
   height: 30px;
@@ -524,6 +646,45 @@ a { text-decoration: none; color: inherit; }
 }
 
 .sheet__scroll::-webkit-scrollbar { display: none; }
+
+/* HomeSheet 안에서만 열리는 설정 패널. 별도 sheet shell이나 handle을 만들지 않고
+ * 기존 Home 콘텐츠와 scrollTop을 그대로 둔 채 scroll viewport 위만 덮는다. */
+.recommend-panel {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-page);
+  transition: transform 220ms ease-out;
+  animation: recommend-panel-in 220ms ease-out both;
+}
+
+.recommend-panel.is-closing {
+  animation: recommend-panel-out 220ms ease-in both;
+}
+
+@keyframes recommend-panel-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes recommend-panel-out {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.recommend-panel__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 46px var(--screen-margin) calc(var(--tab-bar-h) + 12px);
+  scrollbar-width: none;
+}
+
+.recommend-panel__scroll::-webkit-scrollbar { display: none; }
 
 .app[data-sheet-state="peek"] .sheet__scroll { overflow: hidden; }
 
@@ -578,40 +739,46 @@ a { text-decoration: none; color: inherit; }
 .recommend-setup__top {
   display: flex;
   align-items: center;
-  /* SubPageHeader(.page-header__nav)와 같은 뒤로가기-제목 간격 규칙을 쓴다 */
+  justify-content: space-between;
   gap: var(--space-sm);
 }
 
-.recommend-setup__back {
-  /* 가로 폭·왼쪽 시작 위치 모두 이 프로젝트의 다른 뒤로가기 버튼(SubPageHeader 의
-   * .page-header__back 등, 같은 gnb-back.svg 를 쓴다)과 동일한 규칙을 그대로
-   * 재사용한다 — width 를 height(28px)와 같은 값으로 고정하면 정사각형이 되어
-   * 아이콘보다 버튼이 과하게 넓어진다. margin-left 를 따로 주지 않아 버튼 왼쪽 끝이
-   * 화면 여백(--screen-margin)에 그대로 맞는다. 세로(28px)는 제목과의 클릭 정렬을
-   * 위해 그대로 둔다. */
+.recommend-setup__close {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* width: 24px; */
-  height: 28px;
+  width: 40px;
+  height: 40px;
+  margin: -6px -8px -6px 0;
   padding: 0;
   border: 0;
-  background: none;
+  background: transparent;
+  color: var(--text-primary);
   cursor: pointer;
+  transition: opacity 150ms ease, transform 100ms ease;
 }
 
-.recommend-setup__back img {
-  /* width: 18px; */
-  height: 18px;
+.recommend-setup__close img {
+  width: 22px;
+  height: 22px;
 }
 
-.recommend-setup__back:focus:not(:focus-visible) { outline: none; }
+.recommend-setup__close:active {
+  opacity: 0.65;
+  transform: scale(0.94);
+}
 
-.recommend-setup__back:focus-visible {
+.recommend-setup__close:focus:not(:focus-visible) { outline: none; }
+
+.recommend-setup__close:focus-visible {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
   border-radius: var(--radius-s);
+}
+
+@media (hover: hover) {
+  .recommend-setup__close:hover { opacity: 0.72; }
 }
 
 /* 자두가 알려드려요(.discovery__top h2)와 같은 제목 위계를 쓴다 */
@@ -619,12 +786,6 @@ a { text-decoration: none; color: inherit; }
   margin: 0;
   font: 600 18px/1 var(--font-a2z);
   color: #0c0c0c;
-}
-
-.recommend-setup__lead {
-  margin: -16px 0 0;
-  font: 400 12px/1.4 var(--font-suit);
-  color: #78716c;
 }
 
 /* 관심 주제는 분야를 고른 뒤에 나타난다 — 높이를 접었다 펴는 대신
@@ -691,81 +852,259 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-heading-alt);
 }
 
-/* 제목 옆 "+"는 클릭 가능한 버튼이 아니라 장식용 텍스트다 —
- * 실제 위젯 추가는 아래 module-card--add(점선 박스)가 담당한다. */
-.section-header__plus { width: 12px; height: 12px; }
-
-.section-header__status {
+/* 편집 버튼 — 44px 터치 영역 안에 작은 배지 형태로 표시한다.
+ * 기존 파란색은 테두리와 아이콘·텍스트의 포인트로 유지하고 배경만 부드럽게 낮춘다. */
+.section-header__edit {
   display: flex;
   align-items: center;
-  gap: 5px;
-}
-
-.stat-bar {
-  position: relative;
-  height: 36px;
-}
-
-.stat-bar__bar {
-  position: absolute;
-  top: 9px;
-  display: flex;
-  align-items: center;
-  height: 22px;
-  border-radius: 5px;
-  background: #fff;
-  font-family: var(--font-asta);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-badge);
-}
-
-.stat-bar__badge { position: absolute; object-fit: contain; }
-
-.stat-bar--love {
-  width: 73px;
-  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.11));
-  display: none;
-}
-.stat-bar--love .stat-bar__bar { left: 16px; right: 0; padding-left: 18px; }
-.stat-bar--love .stat-bar__badge { left: 0; top: 5px; width: 34px; height: 31px; }
-
-.stat-bar--level {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: auto;
-  height: 32px;
-  margin: 0;
+  justify-content: flex-end;
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  margin: -4px 0;
   padding: 0;
   border: 0;
   background: transparent;
-  color: inherit;
   cursor: pointer;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.11));
-}
-.stat-bar--level:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 3px;
-  border-radius: 8px;
-}
-.stat-bar--level .stat-bar__bar {
-  position: static;
-  height: 27px;
-  padding: 0 10px 0 28px;
-  font-size: 13px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.stat-bar--level .stat-bar__badge {
-  position: relative;
-  left: 28%;
-  flex: none;
-  width: 30px;
-  height: 30px;
 }
 
-/* ---- Personal Widget Canvas (342 × 194) ---- */
+.section-header__edit .fill_box {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #2495dc;
+  border-radius: var(--radius-pill);
+  background: rgba(36, 149, 220, 0.1);
+  color: #176b9e;
+  font: 600 13px/1 var(--font-suit);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  --glyph-color: #176b9e;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 100ms ease;
+}
+
+/* GlyphIcon(components/GlyphIcon.tsx) 공통 — 도형 영역만 잘라 mask 로 그리고 색은 --glyph-color 로 받는다 */
+.glyph-icon {
+  position: relative;
+  display: block;
+  flex: none;
+  /* mask의 측정 경계 밖으로 번지는 가장자리 안티앨리어싱 픽셀을 자르지 않는다. */
+  overflow: visible;
+}
+
+.glyph-icon__mask {
+  position: absolute;
+  background: var(--glyph-color, currentColor);
+  -webkit-mask: var(--glyph-src) center / contain no-repeat;
+  mask: var(--glyph-src) center / contain no-repeat;
+}
+
+/* 홈 헤더 action 공통 아이콘 안전영역 — 실제 15px 도형은 18px 박스 중앙에 놓여
+ * SVG viewBox나 glyph crop 방식과 무관하게 상하좌우가 잘리지 않는다. */
+.home-action-button__icon {
+  display: inline-flex;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+  line-height: 0;
+}
+
+.home-action-button__icon > svg {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.section-header__edit .home-action-button__icon .glyph-icon {
+  transform: translateY(-0.25px);
+}
+
+@media (hover: hover) {
+  .section-header__edit:hover .fill_box {
+    background: rgba(36, 149, 220, 0.14);
+  }
+}
+
+.section-header__edit:active .fill_box {
+  background: rgba(36, 149, 220, 0.18);
+  opacity: 0.82;
+  transform: scale(0.97);
+}
+
+.section-header__edit:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: -2px; }
+
+/* ---- 내 메뉴: 1×1 위젯 그리드 ----
+ * 4열 × 간격 8px = 342px. 컴포넌트는 Figma Widget/1x1(79.5 × 86) — 셀(.menu-slot)이
+ * 자리를, 그 안의 .menu-widget 이 위젯을 맡는다. 색은 위젯 type 이 아니라 자리(order)로
+ * 정해지므로 .menu-slot--N 이 컬러 변수를 정하고 위젯은 그 값을 물려받기만 한다.
+ * 컬러 8종은 홈 "내 메뉴" 확정 팔레트이며 tokens.css 의 기존 컬러만 쓴다. */
+.menu-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--widget-gap);
+  width: var(--content-width);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-slot {
+  position: relative;
+  --menu-slot-border: color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  --menu-slot-icon: var(--brand-primary);
+  --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 8%, var(--surface-base));
+  min-width: 0;
+}
+
+/* border·icon은 기존 슬롯 팔레트를 유지하고, 같은 색을 surface에 소량 섞은 배경만
+ * 슬롯별로 미세하게 달리해 Figma처럼 부드러운 8색 리듬을 만든다. */
+.menu-slot--1 { --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 8%, var(--surface-base)); }
+.menu-slot--2 { --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 5%, var(--surface-base)); }
+.menu-slot--3 {
+  --menu-slot-border: var(--color-secondary-6);
+  --menu-slot-icon: var(--color-secondary-6);
+  --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 10%, var(--surface-base));
+}
+.menu-slot--4 {
+  --menu-slot-border: var(--color-orange-3);
+  --menu-slot-icon: var(--brand-orange);
+  --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 8%, var(--surface-base));
+}
+.menu-slot--5 { --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 11%, var(--surface-base)); }
+.menu-slot--6 { --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 6%, var(--surface-base)); }
+.menu-slot--7 {
+  --menu-slot-border: var(--color-cream-6);
+  --menu-slot-icon: var(--color-cream-7);
+  --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 10%, var(--surface-base));
+}
+.menu-slot--8 {
+  --menu-slot-border: var(--brand-green);
+  --menu-slot-icon: var(--brand-green);
+  --menu-slot-bg: color-mix(in srgb, var(--menu-slot-icon) 8%, var(--surface-base));
+}
+
+.menu-widget {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  height: 86px;
+  padding: 12px 12px 12px 9px;
+  border: 1px solid var(--menu-slot-border);
+  border-radius: var(--radius-m);
+  background: var(--menu-slot-bg);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease-out, border-color 0.2s;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.menu-widget:active { transform: scale(0.97); }
+
+.menu-widget__icon .glyph-icon__mask { transition: background-color 0.2s; }
+
+/* ---- 내 메뉴 편집 모드 ----
+ * 위젯 크기·4열 배치는 그대로, 아주 약한 흔들림으로 편집 중임을 알린다.
+ * 편집 중에는 손가락 끌기가 화면 스크롤로 넘어가지 않게 touch-action 을 끈다. */
+.menu-grid.is-editing .menu-slot { touch-action: none; }
+
+/* transform 레이어를 나눈다 — 자리 이동(FLIP)·드래그 이동은 li(.menu-slot), 흔들림은 그 안의
+ * .menu-slot__wiggle, 드래그 확대는 안쪽 .menu-widget. 서로 덮어쓰지 않아 움찔거리지 않는다.
+ * 흔들림 위상(--menu-wiggle)은 위젯마다 고정이라 순서가 바뀌어도 다시 시작하지 않는다. */
+.menu-slot__wiggle { display: block; }
+
+.menu-grid.is-editing .menu-slot__wiggle {
+  animation: menu-wiggle 0.26s ease-in-out infinite alternate;
+  animation-delay: calc(var(--menu-wiggle, 0) * -0.05s);
+}
+
+.menu-grid.is-editing .menu-widget { cursor: grab; }
+
+@keyframes menu-wiggle {
+  from { transform: rotate(-0.7deg); }
+  to { transform: rotate(0.7deg); }
+}
+
+/* 잡고 있는 위젯 — 살짝 커지고 떠오른다. 흔들림은 그대로 두고 확대·그림자만 안쪽 카드에 준다. */
+.menu-slot.is-dragging { z-index: 3; will-change: transform; }
+
+.menu-slot.is-dragging .menu-widget {
+  cursor: grabbing;
+  transform: scale(1.06);
+  box-shadow: 0 8px 18px rgba(33, 25, 20, 0.18);
+}
+
+/* 삭제(-) 버튼 — 위젯 좌상단 모서리에 얹는다(레이아웃에 자리를 차지하지 않는다).
+ * 보이는 원은 20px, 누를 수 있는 영역은 28px. */
+.menu-slot__remove {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-slot__remove::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.menu-slot__remove::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 9px;
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.menu-slot__remove:active::before { opacity: 0.8; }
+
+.menu-slot__remove:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 1px; border-radius: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-grid.is-editing .menu-slot__wiggle { animation: none; }
+}
+
+.menu-widget:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.menu-widget__label {
+  font: 600 14px/18px var(--font-suit);
+  color: var(--text-nav);
+  white-space: nowrap;
+}
+
+/* 아이콘은 도형 기준 26px(GlyphIcon)로 우측 하단에 붙이고, 색은 자리 컬러(--menu-slot-icon)에 맡긴다 */
+.menu-widget__icon {
+  align-self: flex-end;
+  --glyph-color: var(--menu-slot-icon);
+}
+
+/* ---- (구) Personal Widget Canvas (342 × 194) — 위젯 관리 화면이 아직 같은 규칙을 쓴다 ---- */
 
 .module-grid {
   display: flex;
@@ -1004,14 +1343,14 @@ a { text-decoration: none; color: inherit; }
   background: #fffcf9;
 }
 
-/* 제목 왼쪽 · 추천 설정 링크 오른쪽 — 아래 숫자 페이지네이션과 간격을 8px 로 따로
- * 주기 위해 discovery 의 공통 gap 대신 이 줄 자체에 margin-bottom 을 둔다. */
+/* 제목 왼쪽 · 추천 설정 링크 오른쪽의 독립된 헤더 행 — 아래 숫자 페이지네이션과
+ * 시각적으로 분리되도록 discovery 의 공통 gap 대신 이 줄에 여백을 둔다. */
 .discovery__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xs);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .discovery__top h2 {
@@ -1024,20 +1363,36 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap;
 }
 
-/* 섹션 제목 위계를 넘지 않는 보조 링크 — 마이페이지 '전체보기'와 같은 무게로 둔다 */
+/* 내 메뉴 '편집' 배지와 같은 32px 버튼 규격. 아래 카드의 Green 팔레트로 연결한다. */
 .discovery__settings {
   flex: none;
-  border: 0;
-  padding: 4px 0 4px 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  font: 500 13px/1.3 var(--font-suit);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(149, 163, 32, 0.72);
+  border-radius: var(--radius-pill);
+  background: var(--color-green-05);
+  color: var(--color-green-7);
+  font: 600 13px/1 var(--font-suit);
+  letter-spacing: -0.01em;
   white-space: nowrap;
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 100ms ease;
+}
+
+@media (hover: hover) {
+  .discovery__settings:hover {
+    background: var(--color-green-1);
+  }
 }
 
 .discovery__settings:active {
-  opacity: 0.7;
+  background: var(--color-green-15);
+  opacity: 0.82;
+  transform: scale(0.97);
 }
 
 .discovery__settings:focus:not(:focus-visible) {
@@ -1045,21 +1400,20 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__settings:focus-visible {
-  outline: 2px solid var(--brand-primary);
+  outline: 2px solid var(--color-green-7);
   outline-offset: 2px;
-  border-radius: var(--radius-s);
 }
 
 /* 헤더 아래, 카드 시작 전에 놓는 얇은 숫자형 페이지네이션 — 각 숫자마다 자기 바로 뒤에
  * trailing line 을 하나씩 달고 있고(마지막 04 뒤도 예외 없이 포함), 그 숫자가 활성일 때만
- * width 가 커지며 빨간 선이 보인다. 비활성 숫자의 line 은 width 0 이라 숫자끼리 원래(밑줄
+ * width 가 커지며 Green 선이 보인다. 비활성 숫자의 line 은 width 0 이라 숫자끼리 원래(밑줄
  * 버전)처럼 붙어 있다 — DOM 은 그대로 두고 width·색만 transition 으로 바꿔서, 다른 span 으로
  * "옮겨 붙는" 것처럼 순간이동하지 않고 넓어졌다 좁아지는 게 자연스럽게 이어져 보인다.
  * 3카드 슬라이드·swipe 와 같은 pageCarousel.index 를 그대로 쓴다. */
 .discovery__pagination {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
   width: 100%;
   margin-bottom: 10px;
@@ -1068,8 +1422,12 @@ a { text-decoration: none; color: inherit; }
 .discovery__page-item {
   display: flex;
   align-items: center;
-  padding: 3px 0;
+  justify-content: center;
+  width: auto;
+  height: 26px;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
   appearance: none;
   background: transparent;
   cursor: pointer;
@@ -1080,8 +1438,11 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__page-item.is-active {
-  color: var(--brand-primary);
-  font-weight: 600;
+  width: 26px;
+  padding: 4px;
+  background: #718c2b;
+  color: #fff;
+  font-weight: 700;
 }
 
 .discovery__page-item:focus:not(:focus-visible) {
@@ -1089,7 +1450,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__page-item:focus-visible {
-  outline: 2px solid var(--brand-primary);
+  outline: 2px solid var(--color-green-7);
   outline-offset: 2px;
   border-radius: var(--radius-s);
 }
@@ -1098,7 +1459,7 @@ a { text-decoration: none; color: inherit; }
   display: block;
   flex-shrink: 0;
   width: 0;
-  height: 1.5px;
+  height: 2.5px;
   border-radius: 1px;
   background: transparent;
   transition:
@@ -1108,11 +1469,11 @@ a { text-decoration: none; color: inherit; }
 
 .discovery__page-line.is-active {
   width: 28px;
-  background: var(--brand-primary);
+  background: var(--brand-green);
 }
 
 /* 페이지네이션 줄 양 끝의 이전/다음 — 카드 옆 원형 화살표가 아니라 숫자 옆에 붙는
- * 작은 아이콘이다(배경·테두리·그림자 없음, 숫자보다 한 톤 진한 primary 색만 쓴다). */
+ * 작은 아이콘이다(배경·테두리·그림자 없이 카드와 같은 Green 계열을 쓴다). */
 .discovery__page-chevron {
   display: flex;
   align-items: center;
@@ -1121,10 +1482,20 @@ a { text-decoration: none; color: inherit; }
   border: 0;
   appearance: none;
   background: transparent;
-  color: var(--brand-primary);
+  color: var(--brand-green);
   font: 500 14px/1 var(--font-suit);
   cursor: pointer;
 }
+
+.discovery__page-chevron-icon {
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: var(--chevron-src) center / contain no-repeat;
+  mask: var(--chevron-src) center / contain no-repeat;
+}
+
+.discovery__page-chevron-icon--prev { transform: scaleX(-1); }
 
 .discovery__page-chevron:disabled {
   color: var(--text-muted);
@@ -1136,14 +1507,14 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__page-chevron:focus-visible {
-  outline: 2px solid var(--brand-primary);
+  outline: 2px solid var(--color-green-7);
   outline-offset: 2px;
   border-radius: var(--radius-s);
 }
 
 @media (hover: hover) {
   .discovery__page-chevron:not(:disabled):hover {
-    color: var(--text-primary);
+    color: #718c2b;
   }
 }
 
@@ -1171,7 +1542,7 @@ a { text-decoration: none; color: inherit; }
    * "flex base size" 를 border-box 로 맞추지 못해(패딩만큼 바닥값이 생겨) 둘이 150px vs
    * 184px 로 34px 나 차이나게 갈라졌다 — basis 를 0 대신 50% 로 주면 그 바닥값보다 커서
    * 두 컬럼이 거의 정확히 절반씩(gap 8px 를 뺀 나머지) 나뉜다. */
-  flex: 1 1 50%;
+  flex: 1 1 calc(50% - 1px);
   min-width: 0;
 }
 
@@ -1422,16 +1793,17 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-gray);
 }
 
-/* 자두의 맞춤 팁 카드 — 관심 주제 이미지. margin-top:auto 로 label/제목/설명 아래
- * 남는 세로 공간에 맞춰 카드 바닥 쪽에 자리 잡는다(부모 .info-card__top 이 flex:1 로
- * 카드 높이를 전부 차지하고 있어야 동작한다 — 위 규칙 참고). 정사각 이미지라 늘리거나
- * 찌그러뜨리지 않고 contain 으로 카드 안에 그대로 담는다. */
+/* 자두의 맞춤 팁 카드 — 관심 주제 이미지를 카드 우측 하단에 고정하고,
+ * 정사각 비율은 contain으로 유지한다. */
 .info-card__thumb {
   flex: none;
   align-self: center;
   margin-top: auto;
-  width: 72px;
-  height: 72px;
+  width: 120px;
+  height: 120px;
+  position: absolute;
+  right: 1%;
+  bottom: 1%;
 }
 
 .info-card__thumb img {
@@ -1473,13 +1845,9 @@ a { text-decoration: none; color: inherit; }
   transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 드래그로 손가락을 따라가는 동안은 transition 을 꺼서 바로바로 반응하게 한다 —
- * 손을 떼는 순간 위 transition 이 다시 붙어 다음/이전 페이지로 자연스럽게 미끄러진다.
- * 페이지네이션 클릭(스와이프가 아닌 탭/화살표)일 때도 같은 이유로 잠깐 꺼진다 — 트랙을
- * 100% 폭만큼 통째로 미끄러뜨리면 "화면 전체가 좌우로 움직이는" 것처럼 보여서, 클릭
- * 이동은 대신 아래 .discovery-page__slide 의 작은 fade+shift 하나로만 이동을 알린다. */
-.discovery-page__track.is-dragging,
-.discovery-page__track.is-instant {
+/* 드래그 중에만 transition 을 꺼 손가락을 그대로 따라간다. 손을 떼거나 화살표·숫자를
+ * 누르면 3카드 페이지 전체가 같은 320ms ease-out 전환으로 이동한다. */
+.discovery-page__track.is-dragging {
   transition: none;
 }
 
@@ -1488,32 +1856,18 @@ a { text-decoration: none; color: inherit; }
   min-width: 0;
 }
 
-/* 페이지네이션 탭/화살표 클릭으로 넘어갈 때만 붙는 진입 애니메이션 — 방금 활성화된
- * 슬라이드 하나(날짜 카드·광고 카드·맞춤 팁 카드를 담은 discovery__row 전체)가 한
- * 덩어리로 옅게 밀려 들어온다. 스와이프(드래그) 이동은 이미 트랙 자체가 손가락을 따라
- * 자연스럽게 넘어가므로 이 애니메이션을 겹치지 않는다(DiscoverySection.tsx 의 clickNav
- * 상태가 클릭 이동일 때만 이 클래스를 붙인다). */
-@keyframes discovery-slide-enter-next {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+/* 최초 노출 swipe 힌트 — index는 01에 둔 채 트랙만 10px 왼쪽으로 살짝 밀었다 돌아온다. */
+@keyframes discovery-swipe-hint {
+  0%, 100% { transform: translateX(0); }
+  48% { transform: translateX(-10px); }
 }
 
-@keyframes discovery-slide-enter-prev {
-  from { opacity: 0; transform: translateX(-20px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.discovery-page__slide.is-entering-next {
-  animation: discovery-slide-enter-next 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
-
-.discovery-page__slide.is-entering-prev {
-  animation: discovery-slide-enter-prev 300ms cubic-bezier(0, 0, 0.2, 1) both;
+.discovery-page__track.is-hinting {
+  animation: discovery-swipe-hint 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discovery-page__slide.is-entering-next,
-  .discovery-page__slide.is-entering-prev {
+  .discovery-page__track.is-hinting {
     animation: none;
   }
 }

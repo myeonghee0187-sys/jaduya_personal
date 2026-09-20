@@ -143,6 +143,8 @@ body {
  * 시트 peek 높이(299px)는 그대로 두고 짧은 화면에서는 Hero 여유 공간만 줄인다. */
 .app {
   --sheet-top: calc(100% - 299px);
+  /* 시트가 놓이는 고정 위치 — 아래 expanded 의 --sheet-top 과 같은 식이다 */
+  --sheet-top-expanded: min(calc(var(--header-h) + 13px), calc(100% - 299px));
 }
 
 /* 113px = Figma 헤더 100px + 여백 13px 가 합쳐진 값이었다 — 헤더 100px 은 실제

@@ -118,12 +118,50 @@
   color: #1c1917;
 }
 
+.profile-settings__topic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
 /* 제목 옆 보조 텍스트 — 제목 위계를 넘지 않게 작고 옅게 둔다 */
 .profile-settings__pick-hint {
   font: 400 12px/1.3 var(--font-suit);
   font-style: normal;
   letter-spacing: -0.12px;
-  color: #78716c;
+  color: var(--text-secondary);
+}
+
+.profile-settings__clear-topics {
+  flex: none;
+  min-width: 64px;
+  min-height: 40px;
+  margin: -12px -8px -12px 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font: 600 12px/1 var(--font-suit);
+  color: var(--brand-primary);
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.profile-settings__clear-topics:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.profile-settings__clear-topics:focus:not(:focus-visible) { outline: none; }
+
+.profile-settings__clear-topics:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-s);
+}
+
+@media (hover: hover) {
+  .profile-settings__clear-topics:not(:disabled):hover { opacity: 0.72; }
 }
 
 /* ---------- 선택 그리드 ---------- */
@@ -269,13 +307,27 @@
  * 보고 있는 분야를 고르는 탭"과 그 아래 주제 목록을 시각적으로 나눈다. */
 .profile-settings__field-tabs {
   display: flex;
+  flex-wrap: nowrap;
   gap: var(--space-xs);
   margin-top: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-warm);
   overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  cursor: grab;
   scrollbar-width: none;
+}
+
+.profile-settings__field-tabs.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.recommend-setup__topics .profile-settings__field-tabs {
+  margin-top: 10px;
 }
 
 .profile-settings__field-tabs::-webkit-scrollbar {
@@ -283,10 +335,14 @@
 }
 
 .profile-settings__field-tab {
-  flex: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
   height: 32px;
   padding: 0 var(--space-md);
-  border: 0;
+  border: 1px solid #e5e1dd;
   border-radius: var(--radius-pill);
   background: var(--surface-widget);
   font: 600 13px/1.4 var(--font-suit);
@@ -295,8 +351,21 @@
   cursor: pointer;
 }
 
+/* 선택값이 있지만 현재 보고 있지는 않은 분야 — active filled보다 약한 Primary 상태 */
+.profile-settings__field-tab[data-has-selection='true']:not([aria-selected='true']) {
+  border-color: rgba(180, 57, 54, 0.4);
+  background: #fff2f1;
+  color: var(--brand-primary);
+}
+
+.profile-settings__field-tab-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 활성 탭만 Primary 로 명확하게 강조한다 — 비활성은 neutral 배경 + 기존 muted 텍스트 */
 .profile-settings__field-tab[aria-selected='true'] {
+  border-color: var(--brand-primary);
   background: var(--brand-primary);
   color: var(--surface-cream);
 }
@@ -342,6 +411,7 @@
   color: #57534e;
   text-align: left;
   cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
 }
 
 .profile-settings__topic span {
@@ -357,19 +427,25 @@
 
 .profile-settings__topic[aria-pressed='true'] {
   border-color: var(--brand-primary);
-  background: #fdf2f2;
+  background: #fff0ee;
+  box-shadow: inset 0 0 0 1px rgba(180, 57, 54, 0.08);
   font-weight: 600;
   letter-spacing: -0.14px;
   color: var(--brand-primary);
 }
 
-/* ---------- 하단 안내 accordion ---------- *
- * 기본은 한 줄로 접혀 있다("ⓘ 맞춤 추천 안내" + chevron) — 눌러야 기존 안내 문구가
- * 펼쳐진다. 위치는 그대로 관심 주제 아래 / 저장 버튼 바로 위를 유지한다. */
+/* ---------- 하단 안내 accordion ---------- */
 .profile-settings__note {
+  border: 1px solid rgba(180, 57, 54, 0.24);
   border-radius: var(--radius-m);
-  background: #f7ebeb;
+  background: #fff2f1;
   overflow: hidden;
+  transition: border-color 220ms ease, background-color 220ms ease;
+}
+
+.profile-settings__note.is-open {
+  border-color: rgba(180, 57, 54, 0.24);
+  background: #fff2f1;
 }
 
 .profile-settings__note-toggle {
@@ -377,7 +453,8 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 12px 16px;
   border: 0;
   background: none;
   font: 500 13px/1.3 var(--font-suit);
@@ -385,7 +462,10 @@
   color: #1c1917;
   text-align: left;
   cursor: pointer;
+  transition: transform 120ms ease;
 }
+
+.profile-settings__note-toggle:active { transform: scale(0.99); }
 
 .profile-settings__note-toggle img:first-child {
   flex: none;
@@ -402,30 +482,43 @@
   flex: none;
   width: 11px;
   height: 7px;
-  transition: transform 150ms ease;
+  transition: transform 220ms ease;
 }
 
 .profile-settings__note-chevron.is-open {
   transform: rotate(180deg);
 }
 
-/* 펼친 본문 — 아이콘(20) + 토글의 gap(8) 만큼 왼쪽에서 들여써서 위 제목과 줄을 맞춘다 */
 .profile-settings__note-body {
-  padding: 0 16px 16px 44px;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 220ms ease, opacity 200ms ease;
 }
 
-.profile-settings__note-body strong {
-  display: block;
-  font: 500 12px/1.3 var(--font-suit);
-  letter-spacing: -0.12px;
-  color: #1c1917;
+.profile-settings__note.is-open .profile-settings__note-body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.profile-settings__note-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 16px;
+  transition: padding-bottom 220ms ease;
+}
+
+.profile-settings__note.is-open .profile-settings__note-body-inner {
+  padding-bottom: 16px;
 }
 
 .profile-settings__note-body p {
-  margin: 4px 0 0;
+  margin: 0;
   font: 400 12px/1.4 var(--font-suit);
-  color: #57534e;
+  color: var(--text-secondary);
 }
+
+.profile-settings__note-body p + p { margin-top: 4px; }
 
 .profile-settings__note-toggle:focus:not(:focus-visible) {
   outline: none;

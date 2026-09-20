@@ -1,118 +1,101 @@
-import type { KeyboardEvent as ReactKeyboardEvent, Ref } from 'react';
-import { icon, img } from '../lib/asset';
-import { getWidgetDef } from '../data/widgetRegistry';
-import { WidgetCard } from './widget/WidgetCard';
-import type { PlacementState } from '../utils/placement';
+import { useRef } from 'react';
+import type { RefObject } from 'react';
+import { GlyphIcon } from './GlyphIcon';
+import { MenuWidgetSlot } from './MenuWidget';
+import { useMenuGridEdit } from '../hooks/useMenuGridEdit';
+import type { MenuWidgetItem } from '../data/menuWidgets';
 
-/* ② 내 생활 (Personal Widget Canvas)
+/* ② 내 메뉴
  *
- * Figma Home Widget Container 342 × 194 규격 그대로:
- *   Medium 167 × 114 × 2  +  Small 128.5 × 72 × 2  (또는 Large 342 × 114 단독)
- * 실제로 무엇이 놓이는지는 widgets/WidgetPlacementContext 가 들고 있는 배치 상태를
- * 그대로 따른다 — 위젯 관리 화면(WidgetPage)에서 바꾸면 여기도 즉시 반영된다.
- * 카드 렌더링은 components/widget/WidgetCard 를 그대로 재사용해서, "위젯"이
- * 어디서 보이든(Home/위젯 관리/위젯 추가) 항상 같은 모양이다. */
+ * 사용자가 고른 1×1 위젯을 4열 그리드로 보여준다 (data/menuWidgets.ts).
+ * 위젯은 { id, type, size, order } 아이템이고, 여기서는 order 순서대로 그릴 뿐이다.
+ * 길게 누르면 같은 화면에서 편집 모드가 되고, 헤더의 메뉴 관리 버튼은 별도 관리 화면으로
+ * 이동한다. 삭제(-)와 드래그 재정렬은 items 를 바꿔 다시 내려받는 방식으로만 반영된다. */
 
 interface MyLifeSectionProps {
-  /** 지금 Home 캔버스에 실제로 놓여 있는 위젯 배치 */
-  placement: PlacementState;
-  /** 하트 표기 — data/personaProfile.ts 의 resolveLevel() 결과 (예: 1,200) */
-  heartsLabel: string;
-  /** 레벨 표기 — 같은 원본에서 계산한다. 마이페이지와 값이 어긋나면 안 된다 (예: Lv.1) */
-  levelLabel: string;
-  /** 현재 페르소나의 성장 단계 아이콘과 이름 — personaProfile.resolveLevel() 결과 */
-  levelIcon: string;
-  levelStageName: string;
-  /** 레벨 안내 그룹 전체를 눌렀을 때 현재 버튼을 기준으로 공용 안내 팝오버를 연다 */
-  onOpenLevelInfo?: (anchor: HTMLElement) => void;
-  /** '+' 위젯 추가 슬롯을 눌렀을 때 — 위젯 관리 화면으로 이동한다 */
-  onAddWidget?: () => void;
-  /** 아래 두 ref 는 코치마크가 강조 영역을 잴 때만 쓴다. 평소 렌더링에는 영향 없다. */
-  /** ❤️ 하트 + 🍃 Level 배지 영역(.section-header__status) DOM 참조 */
-  statusRef?: Ref<HTMLDivElement>;
-  /** 위젯 추가(+) 슬롯(.module-card--add) DOM 참조 */
-  addSlotRef?: Ref<HTMLDivElement>;
+  /** 홈에 놓인 위젯 — order 순서로 그려진다 */
+  widgets: MenuWidgetItem[];
+  editing: boolean;
+  onOpenWidget: (item: MenuWidgetItem) => void;
+  /** 상세 메뉴 관리 화면으로 이동 — 홈의 편집 mode를 직접 켜지 않는다. */
+  onManageMenu: () => void;
+  onEnterEdit: () => void;
+  onExitEdit: () => void;
+  onRemoveWidget: (id: string) => void;
+  /** 드래그를 놓았을 때 새 순서(위젯 id 배열) */
+  onReorderWidgets: (ids: string[]) => void;
+  /** 위젯 그리드(.menu-grid) DOM 참조 — 코치마크가 강조 영역을 잴 때도 쓴다 */
+  gridRef: RefObject<HTMLUListElement>;
 }
 
 export function MyLifeSection({
-  placement,
-  heartsLabel,
-  levelLabel,
-  levelIcon,
-  levelStageName,
-  onOpenLevelInfo,
-  onAddWidget,
-  statusRef,
-  addSlotRef,
+  widgets,
+  editing,
+  onOpenWidget,
+  onManageMenu,
+  onEnterEdit,
+  onExitEdit,
+  onRemoveWidget,
+  onReorderWidgets,
+  gridRef,
 }: MyLifeSectionProps) {
-  const handleSlotKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onAddWidget?.();
-    }
-  };
+  const sectionRef = useRef<HTMLElement>(null);
+  const ordered = [...widgets].sort((a, b) => a.order - b.order);
+  const byId = new Map(ordered.map((item) => [item.id, item]));
+
+  const { renderIds, draggingId, gridProps } = useMenuGridEdit({
+    gridRef,
+    sectionRef,
+    ids: ordered.map((item) => item.id),
+    editing,
+    onEnterEdit,
+    onExitEdit,
+    onReorder: onReorderWidgets,
+  });
 
   return (
-    <section className="my-life">
+    <section className="my-life" ref={sectionRef}>
       <div className="section-header">
         <div className="section-header__title">
-          <h2>내 생활</h2>
-          <img className="section-header__plus" src={icon('plus-small.svg')} alt="" aria-hidden="true" />
+          <h2>내 메뉴</h2>
         </div>
-        <div className="section-header__status" ref={statusRef}>
-          <div className="stat-bar stat-bar--love">
-            <span className="stat-bar__bar">{heartsLabel}</span>
-            <img className="stat-bar__badge" src={img('badge-love.png')} alt="" />
-          </div>
-          <button
-            type="button"
-            className="stat-bar stat-bar--level"
-            aria-label={`${levelStageName} ${levelLabel}, 자취 레벨 안내 보기`}
-            aria-haspopup="dialog"
-            onClick={(event) => onOpenLevelInfo?.(event.currentTarget)}
-          >
-            <img className="stat-bar__badge" src={levelIcon} alt={`${levelStageName} 레벨`} />
-            <span className="stat-bar__bar">{levelLabel}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          className="section-header__edit"
+          aria-label="내 메뉴 관리 화면으로 이동"
+          onClick={onManageMenu}
+        >
+          <span className="fill_box">
+            <span className="home-action-button__icon">
+              <GlyphIcon file="gear.svg" size={15} />
+            </span>
+            <span>메뉴 관리</span>
+          </span>
+        </button>
       </div>
 
-      <div className="module-grid">
-        <div className="module-grid__row" data-home-large-row={placement.large ? 'true' : undefined}>
-          {placement.large ? (
-            (() => {
-              const def = getWidgetDef(placement.large.widgetId);
-              return def ? <WidgetCard def={def} size="large" variant="home" /> : null;
-            })()
-          ) : (
-            placement.medium.map((slot, i) => {
-              if (!slot) return null;
-              const def = getWidgetDef(slot.widgetId);
-              return def ? <WidgetCard key={i} def={def} size="medium" variant="home" /> : null;
-            })
-          )}
-        </div>
-
-        <div className="module-grid__row module-grid__row--small">
-          {placement.small.map((slot, i) => {
-            if (!slot) return null;
-            const def = getWidgetDef(slot.widgetId);
-            return def ? <WidgetCard key={i} def={def} size="small" variant="home" /> : null;
-          })}
-
-          <div
-            ref={addSlotRef}
-            className="module-card module-card--add"
-            role="button"
-            tabIndex={0}
-            aria-label="위젯 추가"
-            onClick={onAddWidget}
-            onKeyDown={handleSlotKeyDown}
-          >
-            <img src={icon('plus-add.svg')} alt="위젯 추가" />
-          </div>
-        </div>
-      </div>
+      <ul
+        className={`menu-grid${editing ? ' is-editing' : ''}`}
+        ref={gridRef}
+        aria-label="내 메뉴"
+        {...gridProps}
+      >
+        {renderIds.map((id, index) => {
+          const item = byId.get(id);
+          if (!item) return null;
+          return (
+            <MenuWidgetSlot
+              key={item.id}
+              item={item}
+              position={index + 1}
+              editing={editing}
+              dragging={draggingId === item.id}
+              onOpen={onOpenWidget}
+              onRemove={onRemoveWidget}
+            />
+          );
+        })}
+      </ul>
     </section>
   );
 }

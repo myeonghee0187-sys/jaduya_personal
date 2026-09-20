@@ -5,23 +5,15 @@ import type {
 } from 'react';
 import type { SheetState } from '../types';
 
-const SHEET_TOP: Record<SheetState, number> = { peek: 575, expanded: 113 };
 const DRAG_THRESHOLD = 40; // px
+/** peek 일 때 시트가 보여주는 높이 — home.css .sheet 의 translateY(calc(100% - 299px)) 와 같은 값 */
+const PEEK_VISIBLE_HEIGHT = 299;
 
-/* 실기기(작은/짧은 화면)에서는 CSS 의 --sheet-top 이
- * calc(100% - 299px) 로 화면 높이에서 역산되므로, 드래그 중에도
- * 874px 프레임 기준 상수(SHEET_TOP) 를 그대로 쓰면 짧은 화면에서
- * 시트가 튄다. .sheet 의 offsetParent(.app) 실제 높이를 기준으로
- * peek/expanded px 를 CSS 와 동일한 공식(peek: 100% - 299px,
- * expanded: min(113px, peek))으로 다시 계산한다. .app 을 찾을 수
- * 없으면(테스트 환경 등) 기존 상수로 폴백한다. */
-function getSheetTop(sheet: HTMLElement | null): Record<SheetState, number> {
-  const parent = sheet?.offsetParent as HTMLElement | null;
-  const appHeight = parent?.clientHeight;
-  if (!appHeight) return SHEET_TOP;
-  const peek = appHeight - 299;
-  const expanded = Math.min(SHEET_TOP.expanded, peek);
-  return { peek, expanded };
+/* 시트는 펼친 위치에 top 을 고정해 두고 transform: translateY 로만 움직인다(home.css .sheet).
+ * shift = 펼친 위치에서 내려간 거리 — expanded 는 0, peek 는 (시트 높이 - 299px). CSS 와 같은
+ * 식이라 실기기 화면 높이가 달라도 드래그 시작·끝에서 튀지 않는다. */
+function getMaxShift(sheet: HTMLElement | null): number {
+  return Math.max(0, (sheet?.offsetHeight ?? 0) - PEEK_VISIBLE_HEIGHT);
 }
 
 interface DragInfo {
@@ -29,12 +21,15 @@ interface DragInfo {
   startY: number;
   y: number;
   moved: boolean;
+  /** 드래그를 시작한 순간의 시트 위치(shift) 와 움직일 수 있는 최대 거리 */
+  baseShift: number;
+  maxShift: number;
 }
 
 /* js/home.js 의 Bottom Sheet 제스처를 그대로 옮긴 훅.
  *
- * 드래그 중에는 기존과 동일하게 sheet.style.top 을 직접 쓴다.
- * (프레임마다 setState 하면 시트가 끊긴다 — 원본의 의도된 설계)
+ * 드래그 중에는 sheet.style.transform(translateY) 만 직접 쓴다 — 시트 안쪽 레이아웃은
+ * 건드리지 않는다. (프레임마다 setState 하면 시트가 끊긴다 — 원본의 의도된 설계)
  * 상태는 pointerup 에서 한 번만 커밋한다.
  */
 export function useSheetGesture() {
@@ -68,7 +63,15 @@ export function useSheetGesture() {
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    dragRef.current = { id: e.pointerId, startY: e.clientY, y: e.clientY, moved: false };
+    const maxShift = getMaxShift(sheetRef.current);
+    dragRef.current = {
+      id: e.pointerId,
+      startY: e.clientY,
+      y: e.clientY,
+      moved: false,
+      baseShift: stateRef.current === 'peek' ? maxShift : 0,
+      maxShift,
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
     setIsDragging(true);
   }, []);
@@ -81,10 +84,13 @@ export function useSheetGesture() {
     const delta = drag.y - drag.startY;
     if (Math.abs(delta) > 3) drag.moved = true;
 
-    const bounds = getSheetTop(sheetRef.current);
-    const base = bounds[stateRef.current];
-    const top = Math.min(bounds.peek, Math.max(bounds.expanded, base + delta));
-    if (sheetRef.current) sheetRef.current.style.top = `${top}px`;
+    /* 정수 px 로 옮긴다 — 소수점 위치에서는 안쪽 글자·테두리가 요소마다 다르게 반올림돼 흔들려 보인다 */
+    /* 포인터 이동량은 화면 px, shift 는 CSS px — 데스크톱 iPhone 목업처럼 zoom 으로 줄여 보이는 화면에서는
+     * 비율이 1 이 아니라서 그대로 쓰면 시트가 손가락보다 덜 움직인다 */
+    const sheet = sheetRef.current;
+    const screenPerCss = sheet && sheet.offsetHeight > 0 ? sheet.getBoundingClientRect().height / sheet.offsetHeight : 1;
+    const shift = Math.round(Math.min(drag.maxShift, Math.max(0, drag.baseShift + delta / screenPerCss)));
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${shift}px)`;
   }, []);
 
   const onPointerUp = useCallback(
@@ -95,7 +101,7 @@ export function useSheetGesture() {
       const delta = drag.y - drag.startY;
       const moved = drag.moved;
 
-      if (sheetRef.current) sheetRef.current.style.top = '';
+      if (sheetRef.current) sheetRef.current.style.transform = '';
       setIsDragging(false);
       if (e.currentTarget.hasPointerCapture(drag.id)) {
         e.currentTarget.releasePointerCapture(drag.id);
