@@ -8,6 +8,9 @@ import { ChipGroup } from '../components/homecare/ChipGroup';
 import { GuideTimeline } from '../components/homecare/GuideTimeline';
 import { StepCard } from '../components/homecare/StepCard';
 import { ServiceCard } from '../components/homecare/ServiceCard';
+import { ServiceConnectionSheet } from '../components/homecare/ServiceConnectionSheet';
+import { selectHomecareService } from '../components/homecare/serviceConnection';
+import type { SelectedHomecareService } from '../components/homecare/serviceConnection';
 import { usePrefersReducedMotion } from '../components/homecare/usePrefersReducedMotion';
 import { PROBLEM_TYPES, HOMECARE_CATEGORIES, HOMECARE_GUIDE_SCENARIOS } from '../data/homecareGuide';
 import type { ProblemKey } from '../data/homecareGuide';
@@ -32,7 +35,7 @@ const serviceItemVariants = {
 
 /* 생활 > 홈케어 — 문제 유형(카테고리) → 1차 선택 → 2차 선택 세 단계로 상황을 좁히면
  * 상황 안내 제목·질문·Chip·"현재 선택" 문구·해결 가이드가 전부 데이터에서 조회되어 바뀐다.
- * Figma daily_care (2008:9698 / 2289:24032).
+ * Figma daily_care (3969:23030).
  * 목적: 집에 생긴 문제를 유형별로 짚어보고 지금 할 수 있는 해결 방법을 순서대로 안내한다.
  *
  * 카테고리마다 JSX 를 따로 두지 않는다 — HomecareCategory 데이터 하나를 조회해
@@ -40,6 +43,7 @@ const serviceItemVariants = {
  * 상황이 새로 추가되면 homecareGuide.ts 에 데이터만 더하면 된다. */
 export function LifeHomecarePage() {
   const navigation = useAppNavigation();
+  const [selectedService, setSelectedService] = useState<SelectedHomecareService | null>(null);
   const reduceMotion = usePrefersReducedMotion();
   /* Timeline Active Progress 가 기준으로 삼는 실제 스크롤 컨테이너 — 이 페이지는
    * window 가 아니라 .daily-care__scroll 안에서 스크롤된다. */
@@ -91,7 +95,10 @@ export function LifeHomecarePage() {
         <motion.div className="dc-services" variants={servicesContainerVariants}>
           {scenario.services.map((service) => (
             <motion.div key={service.title} variants={serviceItemVariants}>
-              <ServiceCard title={service.title} href={service.href} />
+              <ServiceCard
+                title={service.title}
+                onSelect={() => setSelectedService(selectHomecareService(service, selectedCategory, guideAnimationKey))}
+              />
             </motion.div>
           ))}
         </motion.div>
@@ -104,7 +111,7 @@ export function LifeHomecarePage() {
       <SubPageHeader
         title="생활"
         backLabel="생활로"
-        onBack={() => navigation?.goBack('life')}
+        onBack={() => navigation?.goBack('life-first')}
       />
 
       <CategoryTabs active="homecare" />
@@ -112,23 +119,25 @@ export function LifeHomecarePage() {
       <main className="daily-care__scroll" ref={scrollContainerRef}>
         {/* ============ ① 문제 유형 ============ */}
         <section className="dc-section">
-          <div className="dc-section__head">
-            <h2>
-              집에 문제가 생겼나요?
-              <br />
-              상황부터 확인하고 해결해봐요.
-            </h2>
-            <p>문제 유형을 고르면 지금 할 수 있는 방법부터 알려드려요.</p>
+          <div className="dc-problem-top">
+            <div className="dc-section__head">
+              <h2>
+                집에 문제가 생겼나요?
+                <br />
+                상황부터 확인하고 해결해봐요.
+              </h2>
+              <p>문제 유형을 고르면 지금 할 수 있는 방법부터 알려드려요.</p>
+            </div>
+            <ChipGroup
+              ariaLabel="문제 유형"
+              variant="type"
+              options={PROBLEM_TYPES}
+              value={selectedCategory}
+              onChange={(key) => selectCategory(key as ProblemKey)}
+            />
           </div>
-          <ChipGroup
-            ariaLabel="문제 유형"
-            variant="type"
-            options={PROBLEM_TYPES}
-            value={selectedCategory}
-            onChange={(key) => selectCategory(key as ProblemKey)}
-          />
+          <hr className="dc-divider" />
         </section>
-        <hr className="dc-divider" />
 
         {/* ============ ② 상황 선택 ============ */}
         <section className="dc-section dc-section--situation">
@@ -155,17 +164,16 @@ export function LifeHomecarePage() {
               />
             </div>
           </div>
+          <hr className="dc-divider" />
         </section>
-        <hr className="dc-divider" />
 
         {/* ============ ③ 해결 가이드 ============ */}
         {/* key 를 motion 엘리먼트에 직접 주면 옛 인스턴스가 정리되지 않고 새 인스턴스와
          * 함께 남는 문제가 있어(Motion + key 리마운트 상호작용), 평범한 div 하나에 key 를
          * 주고 그 안에서 motion.div 를 쓴다 — 평범한 엘리먼트의 key 교체는 GuideTimeline 도
-         * 이미 같은 방식으로 문제없이 동작한다. gap 은 기존 .dc-section 의 flex gap(24px)과
-         * 동일하게 인라인으로 맞춰 spacing 이 바뀌지 않게 한다. */}
+         * 이미 같은 방식으로 문제없이 동작한다. 가이드 제목과 단계 간격은 CSS에서 관리한다. */}
         <section className="dc-section dc-section--guide">
-          <div key={guideAnimationKey} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div key={guideAnimationKey} className="dc-guide">
             <motion.div
               className="dc-guide-head"
               initial={reduceMotion ? false : { opacity: 0, y: 5 }}
@@ -181,6 +189,7 @@ export function LifeHomecarePage() {
       </main>
 
       <BottomNavigation activeTab="life" />
+      <ServiceConnectionSheet service={selectedService} onClose={() => setSelectedService(null)} />
     </div>
   );
 }

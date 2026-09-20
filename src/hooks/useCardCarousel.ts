@@ -23,6 +23,10 @@ interface UseCardCarouselOptions {
   /** 가로/세로 방향을 가르는 기준 비율 — 생활 페이지와 같은 값(가로 이동이 세로의 이 배수를
    * 넘어야 스와이프로 본다) */
   axisRatio?: number;
+  /** 처음·마지막에서 이어붙일지 여부. 기본값 true 는 위 주석의 무한 루프 동작 그대로다.
+   * false 면 첫 칸에서 이전, 마지막 칸에서 다음이 모두 제자리에 머물고(루프 없음),
+   * 양 끝에서 더 당기면 드래그 오프셋도 줄여 끝이라는 걸 손끝으로 알려준다. */
+  loop?: boolean;
 }
 
 interface SwipeTracking {
@@ -55,6 +59,7 @@ export function useCardCarousel({
   count,
   swipeThreshold = 45,
   axisRatio = 1.4,
+  loop = true,
 }: UseCardCarouselOptions): CardCarousel {
   const [index, setIndexState] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -63,8 +68,12 @@ export function useCardCarousel({
   const swipeRef = useRef<SwipeTracking | null>(null);
 
   const wrap = useCallback(
-    (value: number) => (count <= 0 ? 0 : ((value % count) + count) % count),
-    [count],
+    (value: number) => {
+      if (count <= 0) return 0;
+      if (!loop) return Math.min(count - 1, Math.max(0, value));
+      return ((value % count) + count) % count;
+    },
+    [count, loop],
   );
 
   const setIndex = useCallback(
@@ -86,6 +95,18 @@ export function useCardCarousel({
   const goTo = useCallback((value: number) => setIndex(value), [setIndex]);
   const goNext = useCallback(() => setIndex(indexRef.current + 1), [setIndex]);
   const goPrev = useCallback(() => setIndex(indexRef.current - 1), [setIndex]);
+
+  /* 루프를 쓰지 않을 때 양 끝에서 더 당기면 따라오는 거리를 줄인다 — 넘어갈 칸이
+   * 없다는 걸 손끝으로 알려주고, 손을 떼면 제자리로 돌아간다. */
+  const resist = useCallback(
+    (dx: number) => {
+      if (loop) return dx;
+      const atStart = indexRef.current === 0 && dx > 0;
+      const atEnd = indexRef.current === count - 1 && dx < 0;
+      return atStart || atEnd ? dx * 0.3 : dx;
+    },
+    [count, loop],
+  );
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -125,9 +146,9 @@ export function useCardCarousel({
         }
       }
       event.preventDefault();
-      setDragOffset(dx);
+      setDragOffset(resist(dx));
     },
-    [axisRatio],
+    [axisRatio, resist],
   );
 
   const endSwipe = useCallback(

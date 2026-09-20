@@ -33,8 +33,6 @@ export const MENU_CATALOG: readonly MenuCatalogSection[] = [
     items: [
       { id: 'first-home', label: '첫 자취', icon: 'menu-truck.svg', widgetType: 'FirstHome' },
       { id: 'home-care', label: '홈케어', icon: 'menu-broom.svg', widgetType: 'HomeCare' },
-      { id: 'housekeeping', label: '살림', icon: 'menu-recycle.svg' },
-      { id: 'food', label: '먹거리', icon: 'menu-food.svg' },
     ],
   },
   {

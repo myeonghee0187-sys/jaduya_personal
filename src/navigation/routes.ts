@@ -10,8 +10,6 @@ export type AppPage =
   | 'life'
   | 'life-first'
   | 'life-homecare'
-  | 'life-house'
-  | 'life-eat'
   | 'community'
   | 'community-question'
   | 'community-tip'
@@ -55,8 +53,8 @@ export interface NavigateOptions {
 export const PAGE_PATHS: Record<AppPage, string> = {
   home: '/', my: '/my', settings: '/my/settings', account: '/my/account', support: '/my/support',
   mission: '/my/missions', 'living-profile': '/my/profile', saved: '/my/activity',
-  life: '/living', 'life-first': '/living/first', 'life-homecare': '/living/home-care',
-  'life-house': '/living/housekeeping', 'life-eat': '/living/food',
+  // 하단 생활 메뉴와 기존 공용 호출은 첫 자취로 바로 진입한다.
+  life: '/living/first', 'life-first': '/living/first', 'life-homecare': '/living/home-care',
   community: '/community', 'community-question': '/community?filter=question',
   'community-tip': '/community/tips', 'community-region': '/community/reviews',
   benefits: '/money/benefits', 'benefits-recommend': '/money/benefits/recommended',
@@ -76,6 +74,8 @@ export function pageUrl(page: AppPage, options: NavigateOptions = {}): string {
   return url.pathname + url.search;
 }
 export function pageForPath(pathname: string): AppPage {
+  // life 별칭과 같은 URL이어도 실제 화면의 정체성은 첫 자취로 유지한다.
+  if (pathname === PAGE_PATHS['life-first'] || pathname === '/living') return 'life-first';
   if (pathname.startsWith('/community/post/')) return 'community';
   const exact = Object.entries(PAGE_PATHS).find(([, path]) => path === pathname);
   if (exact) return exact[0] as AppPage;

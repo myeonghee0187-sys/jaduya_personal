@@ -1,54 +1,78 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { useAuth } from '../auth/AuthContext';
-import type { Persona } from '../auth/mockUsers';
-import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { CarouselDots } from '../components/CarouselDots';
 import { CategoryTabs } from '../components/homecare/CategoryTabs';
+import { GlyphIcon } from '../components/GlyphIcon';
 import { SubPageHeader } from '../components/SubPageHeader';
-import Stack from '../components/Stack/Stack';
-import { icon, img } from '../lib/asset';
+import { useCardCarousel } from '../hooks/useCardCarousel';
+import { useRegretCarousel } from '../hooks/useRegretCarousel';
+import type { CardCarousel } from '../hooks/useCardCarousel';
+import { icon } from '../lib/asset';
 
-/* 집을 보러 갔을 때 확인할 생활 조건 — 마름모 레이더 위 네 버튼을 누르면 설명이 말풍선으로 뜬다. */
-const HOUSE_POINTS = [
-  { key: 'light', name: '채광', desc: '햇빛이 충분히 드는지', file: 'life/life_sun.png' },
-  { key: 'water', name: '수압', desc: '물줄기가 충분히 센지', file: 'life/life_water.png' },
-  { key: 'storage', name: '수납', desc: '수납공간이 충분한지', file: 'life/life_storage.png' },
-  { key: 'nearby', name: '생활 편의', desc: '편의시설이 가까운지', file: 'life/life_convenience.png' },
+/* 집을 볼 때 확인할 항목 — 집 내부와 생활 조건 두 탭이 똑같은 구조로 쓴다.
+ * 탭이 바뀌어도 화면이 그리는 요소(아이콘 · 진행 게이지 · 설명 · 확인 버튼)는 같고
+ * 이 데이터만 갈아끼운다. detail 은 항상 두 줄이라 탭을 바꿔도 높이가 튀지 않는다. */
+interface HousePoint {
+  readonly key: string;
+  readonly name: string;
+  /** public/assets/icon 아래 파일 이름 */
+  readonly icon: string;
+  readonly detail: readonly [string, string];
+}
+
+/* 집 안에서 직접 눈으로 확인하는 것 */
+const INTERIOR_POINTS: readonly HousePoint[] = [
+  {
+    key: 'mold', name: '곰팡이', icon: 'tip-category-clean.svg',
+    detail: ['창틀과 욕실, 벽 모서리에', '곰팡이나 물 얼룩이 없는지 확인해보세요.'],
+  },
+  {
+    key: 'defect', name: '하자', icon: 'tip-category-repair.svg',
+    detail: ['벽과 바닥, 문에 깨진 곳이나', '수리한 흔적이 없는지 확인해보세요.'],
+  },
+  {
+    key: 'light-plug', name: '조명', icon: 'lightbulb-tip.svg',
+    detail: ['방마다 조명이 잘 켜지는지,', '콘센트 위치와 개수를 확인해보세요.'],
+  },
+  {
+    key: 'lock', name: '잠금', icon: 'lock.svg',
+    detail: ['현관문과 창문 잠금장치가', '제대로 잠기는지 확인해보세요.'],
+  },
 ] as const;
 
-/* 레이더 그래프 모양 — persona 마다 다른 집 조건을 보여준다(0~100, 축마다 독립).
- * 이서준(beginner)은 아직 입주 전이라 실제 집이 없어서, 원래 화면이 쓰던 예시 모양을 그대로 둔다. */
-interface HouseRadarScore {
-  light: number;
-  water: number;
-  storage: number;
-  nearby: number;
-}
+/* 살기 좋은 집인지 판단할 때 참고하는 생활 조건 */
+const CONDITION_POINTS: readonly HousePoint[] = [
+  {
+    key: 'light', name: '채광', icon: 'life-first-sun.svg',
+    detail: ['낮에도 불을 켜야 하는지,', '창문 방향과 앞 건물 간격을 함께 확인해보세요.'],
+  },
+  {
+    key: 'water', name: '수압', icon: 'life-first-drop.svg',
+    detail: ['수도와 샤워기를 직접 틀어보고,', '물줄기와 온수가 잘 나오는지 확인해보세요.'],
+  },
+  {
+    key: 'storage', name: '수납', icon: 'life-first-sofa.svg',
+    detail: ['가지고 올 짐을 떠올리며,', '옷장과 주방 수납공간이 충분한지 확인해보세요.'],
+  },
+  {
+    key: 'nearby', name: '생활 편의', icon: 'life-first-store.svg',
+    detail: ['자주 이용할 길을 직접 걸어보고,', '교통과 가까운 편의시설을 함께 확인해보세요.'],
+  },
+] as const;
 
-const HOUSE_RADAR_DEFAULT: HouseRadarScore = { light: 83, water: 64, storage: 86, nearby: 29 };
+type HouseView = 'interior' | 'conditions';
 
-/* 회원가입 폼 자동입력용 "일반 테스트 계정"(signupTestProfiles.ts 의 generic) — persona 가
- * 항상 'beginner' 로 가입되어 이서준과 겹치므로, 이메일로 구분해 네 축 모두 중간값을 보여준다. */
-const HOUSE_RADAR_GENERIC_TEST: HouseRadarScore = { light: 50, water: 50, storage: 50, nearby: 50 };
+const HOUSE_VIEW_ORDER: readonly HouseView[] = ['interior', 'conditions'];
 
-const HOUSE_RADAR_SCORES: Record<Persona, HouseRadarScore> = {
-  /* 이서준 · 아직 입주 전 — 원래 화면의 예시 모양 */
-  beginner: HOUSE_RADAR_DEFAULT,
-  /* 김하린 · 원룸 3년차 — 채광·수압은 괜찮지만 원룸이라 수납이 아쉽고, 대신 생활 편의는 매우 좋다 */
-  worker: { light: 75, water: 80, storage: 45, nearby: 90 },
-  /* 조아영 · 빌라·투룸 2년차 — 창이 많아 채광이 좋고 투룸이라 수납도 넉넉하지만, 주택가라 생활 편의는 아쉽다 */
-  pet: { light: 85, water: 60, storage: 80, nearby: 55 },
+const HOUSE_VIEWS: Record<HouseView, { label: string; points: readonly HousePoint[] }> = {
+  interior: { label: '집 내부', points: INTERIOR_POINTS },
+  conditions: { label: '생활 조건', points: CONDITION_POINTS },
 };
-
-/* 점수(0~100)를 96px 다이아몬드 기준 CSS 퍼센트 좌표로 바꾼다.
- * 중심(50%)이 0점, 각 축의 바깥 꼭짓점(0%/100%)이 100점이다. */
-function radarAxisPercent(score: number, direction: 'inward' | 'outward') {
-  const clamped = Math.min(100, Math.max(0, score));
-  const distance = (clamped / 100) * 50;
-  return `${direction === 'inward' ? 50 - distance : 50 + distance}%`;
-}
 
 /* 체크리스트를 보는 시점 */
 const CONTRACT_STAGES = ['계약 전', '계약 시', '입주 전', '입주 후'] as const;
@@ -59,6 +83,18 @@ interface ChecklistItem {
   title: string;
   description: string;
 }
+
+/* 한 단계(STEP)는 두 줄로 보이고, 두 줄은 각각 따로 체크한다 —
+ * 제목 줄을 눌러도 아래 줄의 체크는 그대로 남는다. */
+interface ChecklistRow {
+  id: string;
+  label: string;
+}
+
+const checklistRows = (item: ChecklistItem): readonly ChecklistRow[] => [
+  { id: item.id + ':1', label: item.title },
+  { id: item.id + ':2', label: item.description },
+];
 
 /* 단계별 체크 항목 — 화면은 이 데이터만 보고 그린다 */
 const CHECKLIST_BY_STAGE: Record<ContractStage, ChecklistItem[]> = {
@@ -75,7 +111,7 @@ const CHECKLIST_BY_STAGE: Record<ContractStage, ChecklistItem[]> = {
     { id: 'transfer', title: '송금 계좌 확인', description: '임대인 명의 계좌인지 확인해요' },
   ],
   '입주 전': [
-    { id: 'owner', title: '집주인 확인', description: '등기부등본, 실소유자 여부' },
+    { id: 'owner', title: '집주인 확인', description: '임대인 정보 · 소유자 정보' },
     { id: 'fee', title: '관리비 항목', description: '포함 항목과 금액을 확인해요' },
     { id: 'terms', title: '특약사항', description: '계약서에 꼭 확인해요' },
     { id: 'account', title: '송금 계좌', description: '정확한 계좌를 다시 확인해요' },
@@ -88,99 +124,208 @@ const CHECKLIST_BY_STAGE: Record<ContractStage, ChecklistItem[]> = {
   ],
 };
 
-/* 체크 상태는 단계마다 따로 쌓인다 — 입주 전에서 체크한 게 입주 후로 넘어가지 않는다 */
+/* 체크 상태는 단계마다, 그리고 줄마다 따로 쌓인다 —
+ * 입주 전에서 체크한 게 입주 후로 넘어가지 않고, 한 줄을 꺼도 옆줄은 그대로다. */
 const INITIAL_CHECKED: Record<ContractStage, string[]> = {
   '계약 전': [],
   '계약 시': [],
-  '입주 전': ['owner', 'fee'],
+  '입주 전': ['owner:1', 'owner:2', 'fee:1', 'fee:2'],
   '입주 후': [],
 };
 
-/* 자취 선배들의 후회 — Stack 에 겹쳐 쌓이는 메모 카드.
+/* 자취 선배들의 후회 — 겹쳐 쌓인 메모 카드를 좌우로 넘겨 본다.
  * 후회로 끝내지 않고 바로 해볼 수 있는 방법까지 한 장에 담는다. */
-const REGRETS = [
-  {
-    key: 'environment',
-    category: '주변 환경',
-    tone: 'green',
-    /* 카드 주제를 한눈에 알려주는 작은 3D 아이콘 — public/assets/img/life 아래 */
-    icon: 'life/regret-night.png',
-    regret: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 후회했어요.',
-    solution: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
-  },
-  {
-    key: 'living',
-    category: '생활 준비',
-    tone: 'pink',
-    icon: 'life/regret-moving.png',
-    regret:
-      '인터넷과 필요한 생활용품을 미리 준비하지 않아서 입주하고 며칠 동안 생각보다 많이 불편했어요.',
-    solution: '입주 1~2주 전 인터넷 설치를 예약하고, 첫날 필요한 생필품을 미리 준비해두세요.',
-  },
-  {
-    key: 'contract',
-    category: '계약 확인',
-    tone: 'cream',
-    icon: 'life/regret-contract.png',
-    regret:
-      '계약할 때 관리비에 어떤 항목이 포함되는지 자세히 확인하지 않아 생각보다 생활비가 많이 들었어요.',
-    solution: '계약 전에 관리비 포함 항목과 별도 납부 항목을 구분해 확인하세요.',
-  },
-] as const;
-
-interface RegretCardProps {
-  category: string;
-  regret: string;
-  solution: string;
-  tone: string;
-  icon: string;
+interface RegretCardData {
+  readonly id: string;
+  readonly category: string;
+  readonly title: string;
+  readonly description: string;
+  readonly tip: string;
+  readonly icon: string;
+  readonly tone: 'green' | 'pink' | 'cream';
+  readonly color: string;
 }
 
-function RegretCard({ category, regret, solution, tone, icon }: RegretCardProps) {
+/* 내용·색·아이콘은 카드 ID에 귀속된다. 순환 위치가 바뀌어도 이 객체는 바꾸지 않는다. */
+const REGRETS: readonly RegretCardData[] = [
+  {
+    id: 'move-in-record',
+    category: '입주기록',
+    title: '입주 첫날 사진을 남겨둘 걸 그랬어요',
+    description: '입주 첫 날 집 상태를 사진으로 안 남겼는데, 퇴실할 때 원래 있던 흠집까지 증명하기 어려웠어요.',
+    tip: '짐을 풀기 전에 집 상태를 사진이나 영상으로 남겨두세요.',
+    icon: 'life-first-tip.svg',
+    tone: 'green',
+    color: 'var(--color-green-3)',
+  },
+  {
+    id: 'environment',
+    category: '주변 환경',
+    title: '저녁에도 집 주변을 살펴볼 걸 그랬어요',
+    description: '낮에만 집을 보고 계약했는데 밤에는 주변 소음이 생각보다 커서 후회했어요.',
+    tip: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
+    icon: 'life-first-tip.svg',
+    tone: 'pink',
+    color: 'var(--color-primary-15)',
+  },
+  {
+    id: 'living',
+    category: '생활 준비',
+    title: '입주 첫날 필요한 걸 미리 준비할 걸 그랬어요',
+    description: '인터넷과 필요한 생활용품을 미리 준비하지 않아서 입주하고 며칠 동안 생각보다 많이 불편했어요.',
+    tip: '입주 1~2주 전 인터넷 설치를 예약하고, 첫날 필요한 생필품을 미리 준비해두세요.',
+    icon: 'life-first-tip.svg',
+    tone: 'cream',
+    color: 'var(--color-cream-4)',
+  },
+];
+
+/* 체크 원 — 완료 여부와 상관없이 항상 같은 자리에 같은 크기로 그린다.
+ * 해제 상태에서도 원을 지우지 않고 초록 선만 남기고 체크 표시만 감춘다(CSS 에서 처리).
+ * 그래서 체크를 켜고 꺼도 주변 글자 위치가 움직이지 않는다. */
+function CheckCircle({ done, className }: { done: boolean; className?: string }) {
   return (
-    <div className={`regret-card regret-card--${tone}`}>
-      {/* 주제 아이콘은 글을 가리지 않게 오른쪽 위 구석에만 둔다 */}
-      <img className="regret-card__icon" src={img(icon)} alt="" />
-      <span className="regret-card__category">{category}</span>
-      <p className="regret-card__text">
-        {/* 아이콘이 걸리는 윗부분만 비워 주는 자리 — 아래 줄은 전체 폭을 그대로 쓴다 */}
-        <span className="regret-card__text-gap" aria-hidden="true" />
-        {regret}
-      </p>
-      {/* 후회 다음에 바로 해볼 방법 — 별도 박스 없이 divider 와 타이포로만 나눈다 */}
-      <div className="regret-card__solution">
-        <span className="regret-card__solution-label">💡 이렇게 해보세요</span>
-        <p>{solution}</p>
-      </div>
-    </div>
+    <svg
+      className={'check-circle' + (done ? ' is-done' : '') + (className ? ' ' + className : '')}
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle className="check-circle__ring" cx="9" cy="9" r="8.25" />
+      <path className="check-circle__mark" d="M5.21 9L8.05 11.84L12.79 6.16" />
+    </svg>
   );
 }
 
-/* 생활 > 첫 자취 — 방을 고를 때 볼 것, 계약 때 챙길 것, 선배들의 후회 순서로 보여준다.
- * 첫 섹션은 정보, 두 번째는 체크, 세 번째는 넘겨보는 콘텐츠로 역할을 나눈다. */
+/* 카드를 스와이프하고 손을 뗀 순간, 카드 안의 버튼이 눌린 것으로 처리되지 않게 막는다.
+ * 스와이프를 받는 요소에 그대로 펼쳐서 쓴다. */
+function useSwipeClickGuard() {
+  const draggedRef = useRef(false);
+  const startXRef = useRef(0);
+
+  return {
+    onPointerDownCapture: (event: ReactPointerEvent<HTMLElement>) => {
+      draggedRef.current = false;
+      startXRef.current = event.clientX;
+    },
+    onPointerMoveCapture: (event: ReactPointerEvent<HTMLElement>) => {
+      if (Math.abs(event.clientX - startXRef.current) > 8) draggedRef.current = true;
+    },
+    onClickCapture: (event: ReactMouseEvent<HTMLElement>) => {
+      if (!draggedRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+  };
+}
+
+/* 스와이프로 넘기는 영역은 키보드에서도 좌우 방향키로 넘길 수 있어야 한다 */
+function carouselKeyHandler(carousel: CardCarousel) {
+  return (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      carousel.goNext();
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      carousel.goPrev();
+    }
+  };
+}
+
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+interface RegretCardProps {
+  card: RegretCardData;
+  interactive: boolean;
+  onOpenTips: () => void;
+}
+
+function RegretCard({ card, interactive, onOpenTips }: RegretCardProps) {
+  return (
+    <article className={"regret-card regret-card--" + card.tone} style={{ backgroundColor: card.color }}>
+      <div className="regret-card__top">
+        <div className="regret-card__meta">
+          <span className="regret-card__category">{card.category}</span>
+          <button
+            type="button"
+            className="regret-card__arrow"
+            aria-label="커뮤니티 자취 꿀팁 보기"
+            tabIndex={interactive ? 0 : -1}
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerUp={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenTips();
+            }}
+          >
+            <img src={icon('life-first-next.svg')} alt="" />
+          </button>
+        </div>
+        <div className="regret-card__copy">
+          <h3 className="regret-card__quote">“{card.title}”</h3>
+          <p className="regret-card__text">{card.description}</p>
+        </div>
+      </div>
+      <div className="regret-card__solution">
+        <span className="regret-card__tip-icon" aria-hidden="true">
+          <img src={icon(card.icon)} alt="" />
+        </span>
+        <div className="regret-card__solution-copy">
+          <span className="regret-card__solution-label">TIP</span>
+          <p>{card.tip}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* 생활 > 첫 자취 — 생활 조건, 단계별 체크, 선배의 경험을 기존 기능과 연결한다. */
 export function LifeFirstPage() {
   const navigation = useAppNavigation();
-  const { user } = useAuth();
-  const radarScore =
-    user?.email === SIGNUP_TEST_PROFILES.generic.email
-      ? HOUSE_RADAR_GENERIC_TEST
-      : HOUSE_RADAR_SCORES[user?.persona ?? 'beginner'];
-  const radarPosition = {
-    top: radarAxisPercent(radarScore.light, 'inward'),
-    right: radarAxisPercent(radarScore.water, 'outward'),
-    bottom: radarAxisPercent(radarScore.storage, 'outward'),
-    left: radarAxisPercent(radarScore.nearby, 'inward'),
-  };
+
+  const [houseView, setHouseView] = useState<HouseView>('conditions');
+  /* "지금 보고 있는 항목"과 "한 번이라도 눌러서 확인한 항목"은 서로 다른 상태다.
+   * 진행률은 순서(index)가 아니라 visited 집합의 크기로만 계산하고, 두 탭이 따로 쌓인다 —
+   * 생활 조건에서 두 개를 봤다고 집 내부가 2/4 가 되지 않는다. */
+  /* 처음에는 어떤 항목도 고르지 않은 상태로 둔다 — 0번(채광)을 미리 선택하지 않는다. */
+  const [activeByView, setActiveByView] = useState<Record<HouseView, number | null>>({
+    interior: null,
+    conditions: null,
+  });
+  const [visitedByView, setVisitedByView] = useState<Record<HouseView, Set<string>>>({
+    interior: new Set<string>(),
+    conditions: new Set<string>(),
+  });
+
   const [checkedByStage, setCheckedByStage] =
     useState<Record<ContractStage, string[]>>(INITIAL_CHECKED);
-  const [regretTop, setRegretTop] = useState(0);
   const [stage, setStage] = useState<ContractStage>('입주 전');
   const [stageOpen, setStageOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
-  const [openPoint, setOpenPoint] = useState<string | null>(null);
-  const radarRef = useRef<HTMLDivElement>(null);
 
-  /* 바깥을 누르면 닫는다 (터치·마우스 공통) — 저장한 정보 화면과 같은 방식 */
+  const view = HOUSE_VIEWS[houseView];
+  const points = view.points;
+  const activeIndex = activeByView[houseView];
+  const activePoint = activeIndex === null ? null : points[activeIndex];
+  const visitedPoints = visitedByView[houseView];
+  const visitedCount = visitedPoints.size;
+  const visitedRatio = points.length ? (visitedCount / points.length) * 100 : 0;
+
+  const items = CHECKLIST_BY_STAGE[stage];
+  const checked = checkedByStage[stage];
+  const checklist = useCardCarousel({ count: items.length, loop: false });
+  const checklistGuard = useSwipeClickGuard();
+  const itemIndex = Math.min(checklist.index, Math.max(items.length - 1, 0));
+  const currentItem = items[itemIndex];
+
+  const regret = useRegretCarousel(REGRETS.length);
+  const orderedRegrets = [
+    ...REGRETS.slice(regret.activeIndex),
+    ...REGRETS.slice(0, regret.activeIndex),
+  ];
+
   useEffect(() => {
     if (!stageOpen) return;
     const onOutside = (event: PointerEvent) => {
@@ -190,22 +335,19 @@ export function LifeFirstPage() {
     return () => document.removeEventListener('pointerdown', onOutside);
   }, [stageOpen]);
 
-  /* 채광·수압·수납·생활 편의 버튼 설명 말풍선 — 화면 아무 곳이나 누르면 닫힌다.
-   * 다른 버튼을 누르면 그 버튼의 onClick 이 openPoint 를 바로 새 값으로 바꿔서 전환된다. */
-  useEffect(() => {
-    if (!openPoint) return;
-    const onOutside = (event: PointerEvent) => {
-      if (!radarRef.current?.contains(event.target as Node)) setOpenPoint(null);
-    };
-    document.addEventListener('pointerdown', onOutside);
-    return () => document.removeEventListener('pointerdown', onOutside);
-  }, [openPoint]);
-
-  /* 지금 고른 단계의 항목과 체크 상태만 화면에 쓴다 */
-  const items = CHECKLIST_BY_STAGE[stage];
-  const checked = checkedByStage[stage];
-  const done = checked.length;
-  const progress = items.length ? Math.round((done / items.length) * 100) : 0;
+  /* 항목을 누르면 그 항목을 보여주고, 같은 순간 "확인한 항목"으로 쌓는다.
+   * 이미 본 항목을 다시 눌러도 Set 이라 개수는 그대로다. */
+  const selectPoint = (index: number) => {
+    setActiveByView((prev) => ({ ...prev, [houseView]: index }));
+    setVisitedByView((prev) => {
+      const current = prev[houseView];
+      const key = points[index].key;
+      if (current.has(key)) return prev;
+      const next = new Set(current);
+      next.add(key);
+      return { ...prev, [houseView]: next };
+    });
+  };
 
   const toggleCheck = (id: string) =>
     setCheckedByStage((prev) => {
@@ -216,118 +358,96 @@ export function LifeFirstPage() {
       };
     });
 
-  /* Stack 은 배열의 마지막 카드를 맨 앞에 놓으므로 뒤집어 넘겨 1번이 먼저 보이게 한다.
-   * cards 가 바뀌면 순서가 초기화되므로 한 번만 만든다. */
-  const regretCards = useMemo(
-    () =>
-      [...REGRETS].reverse().map((regret) => (
-        <RegretCard
-          key={regret.key}
-          category={regret.category}
-          regret={regret.regret}
-          solution={regret.solution}
-          tone={regret.tone}
-          icon={regret.icon}
-        />
-      )),
-    [],
-  );
-  /* 뒤집어 넣었으니 pagination 번호도 원래 순서로 되돌린다 */
-  const onTopChange = useCallback((index: number) => setRegretTop(REGRETS.length - 1 - index), []);
+  const openTips = useCallback(() => navigation?.navigateTab('community-tip'), [navigation]);
 
   return (
     <div className="life-first app">
-      <SubPageHeader
-        title="생활"
-        backLabel="생활로"
-        onBack={() => navigation?.goBack('life')}
-      />
-
+      <SubPageHeader title="생활" backLabel="이전 화면으로" onBack={() => navigation?.goBack('home')} />
       <CategoryTabs active="first" />
 
       <main className="life-first__scroll">
-        {/* ============ ① 좋은 집인지 살펴봐요 — 정보만 전달한다 ============ */}
         <section className="house-check">
           <div className="house-check__head">
             <h2>좋은 집인지 살펴봐요</h2>
-            <p>집을 보러 갔을 때 꼭 확인해볼 생활 조건이에요.</p>
+            <p>살기 좋은 집인지 판단할 때 참고할 생활 조건이에요.</p>
           </div>
 
-          {/* 리스트 대신 마름모 레이더 위에 네 버튼 — 누르면 설명이 말풍선으로 뜬다 */}
           <div className="house-check__panel">
-            <div className="house-check__radar" ref={radarRef}>
-              <div className="house-check__radar-diamond" aria-hidden="true">
-                <span className="house-check__radar-outline house-check__radar-outline--outer" />
-                <span className="house-check__radar-outline house-check__radar-outline--inner" />
-                <span className="house-check__radar-cross house-check__radar-cross--h" />
-                <span className="house-check__radar-cross house-check__radar-cross--v" />
-                {/* 계정(persona)마다 다른 집 조건 데이터 — clip-path·dot 위치를 점수로 계산해
-                  * 인라인 스타일로 넘긴다. 이 그룹만 house-check__radar-data 로 감싸서 화면에
-                  * 들어올 때 중심에서 바깥으로 펴지는 모션을 준다. */}
-                <span className="house-check__radar-data">
-                  <span
-                    className="house-check__radar-fill"
-                    style={{
-                      clipPath: `polygon(50% ${radarPosition.top}, ${radarPosition.right} 50%, 50% ${radarPosition.bottom}, ${radarPosition.left} 50%)`,
-                    }}
-                  />
-                  <span
-                    className="house-check__radar-dot house-check__radar-dot--top"
-                    style={{ top: radarPosition.top }}
-                  />
-                  <span
-                    className="house-check__radar-dot house-check__radar-dot--right"
-                    style={{ left: radarPosition.right }}
-                  />
-                  <span
-                    className="house-check__radar-dot house-check__radar-dot--bottom"
-                    style={{ top: radarPosition.bottom }}
-                  />
-                  <span
-                    className="house-check__radar-dot house-check__radar-dot--left"
-                    style={{ left: radarPosition.left }}
-                  />
-                </span>
-                <span className="house-check__radar-dot house-check__radar-dot--center" />
-              </div>
-              {HOUSE_POINTS.map((point) => (
-                <div key={point.key} className={`house-check__pill-wrap house-check__pill-wrap--${point.key}`}>
-                  <button
-                    type="button"
-                    className={`house-check__pill${openPoint === point.key ? ' is-active' : ''}`}
-                    aria-pressed={openPoint === point.key}
-                    onClick={() => setOpenPoint((prev) => (prev === point.key ? null : point.key))}
-                  >
-                    <img src={img(point.file)} alt="" />
-                    <span>{point.name}</span>
-                  </button>
-                  {openPoint === point.key && (
-                    <span className="house-check__tooltip" role="tooltip">
-                      {point.desc}
-                    </span>
-                  )}
-                </div>
+            <div className="house-check__segments" role="group" aria-label="집 조건 보기">
+              {HOUSE_VIEW_ORDER.map((view) => (
+                <button
+                  key={view}
+                  type="button"
+                  className={"house-check__segment" + (houseView === view ? ' is-active' : '')}
+                  aria-pressed={houseView === view}
+                  onClick={() => setHouseView(view)}
+                >
+                  {HOUSE_VIEWS[view].label}
+                </button>
               ))}
+            </div>
+
+            <div
+              className="house-check__categories"
+              role="group"
+              aria-label={HOUSE_VIEWS[houseView].label + ' 선택'}
+            >
+              {points.map((point, index) => (
+                <button
+                  key={point.key}
+                  type="button"
+                  className={"house-check__category" + (index === activeIndex ? ' is-active' : '')}
+                  aria-pressed={index === activeIndex}
+                  onClick={() => selectPoint(index)}
+                >
+                  <span className="house-check__category-icon">
+                    <GlyphIcon file={point.icon} size={28} />
+                  </span>
+                  <span>{point.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="house-check__analysis" aria-live="polite" aria-atomic="true">
+              <div className="house-check__analysis-meta">
+                <span>{(activePoint ? activePoint.name : view.label)} 체크</span>
+                <span>CHECK {pad2(visitedCount)} / {pad2(points.length)}</span>
+              </div>
+              <div
+                className="house-check__track"
+                role="progressbar"
+                aria-label="확인한 항목"
+                aria-valuemin={0}
+                aria-valuemax={points.length}
+                aria-valuenow={visitedCount}
+                aria-valuetext={points.length + '개 중 ' + visitedCount + '개 확인'}
+              >
+                <span style={{ width: visitedRatio + '%' }} />
+              </div>
+              <p className="house-check__analysis-desc">
+                {activePoint
+                  ? <>{activePoint.detail[0]}<br />{activePoint.detail[1]}</>
+                  : '확인할 항목을 눌러보세요.'}
+              </p>
             </div>
           </div>
         </section>
 
-        {/* ============ ② 계약부터 입주까지 — 직접 체크하는 영역 ============ */}
         <section className="contract-check">
           <div className="contract-check__head">
             <h2>계약부터 입주까지 챙겨봐요</h2>
+            <p>계약 전부터 입주까지 놓치기 쉬운 항목을 순서대로 확인해요.</p>
           </div>
-
-          {/* 완료 상태와 단계 선택을 한 줄에 두어 제목과 위계를 나눈다.
-            * 항목이 없는 단계에서도 다시 단계를 바꿀 수 있어야 해서 이 줄은 항상 그린다. */}
-          <div className="contract-check__progress">
-            <div className="contract-check__meta">
-              {items.length > 0 && (
-                <span className="contract-check__count">
-                  {done}/{items.length} 완료
-                </span>
-              )}
-              <div className="stage-select" ref={stageRef}>
+          <div className="contract-check__ticket">
+            <div
+              className="stage-select"
+              ref={stageRef}
+              onKeyDown={(event) => {
+                if (event.key !== 'Escape' || !stageOpen) return;
+                setStageOpen(false);
+                stageRef.current?.querySelector<HTMLButtonElement>('.stage-select__button')?.focus();
+              }}
+            >
               <button
                 type="button"
                 className="stage-select__button"
@@ -335,10 +455,10 @@ export function LifeFirstPage() {
                 aria-haspopup="listbox"
                 onClick={() => setStageOpen((open) => !open)}
               >
-                {stage}
+                {stage} 체크
                 <img src={icon(stageOpen ? 'chevron-up.svg' : 'chevron-down.svg')} alt="" />
               </button>
-              <ul className="stage-select__list" role="listbox" hidden={!stageOpen}>
+              <ul className="stage-select__list" role="listbox" aria-label="체크 시점" hidden={!stageOpen}>
                 {CONTRACT_STAGES.map((option) => (
                   <li key={option} role="option" aria-selected={option === stage}>
                     <button
@@ -346,7 +466,9 @@ export function LifeFirstPage() {
                       className={option === stage ? 'is-selected' : undefined}
                       onClick={() => {
                         setStage(option);
+                        checklist.goTo(0);
                         setStageOpen(false);
+                        stageRef.current?.querySelector<HTMLButtonElement>('.stage-select__button')?.focus();
                       }}
                     >
                       {option}
@@ -354,78 +476,119 @@ export function LifeFirstPage() {
                   </li>
                 ))}
               </ul>
-              </div>
             </div>
 
-            {items.length > 0 && (
-              <span
-                className="contract-check__bar"
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="계약 체크 진행률"
-              >
-                <span className="contract-check__bar-fill" style={{ width: `${progress}%` }} />
-              </span>
-            )}
-          </div>
-
-          {/* 항목이 없는 단계는 목록 대신 안내만 보여준다 */}
-          {items.length === 0 ? (
-            <p className="contract-check__empty">체크리스트 준비 중이에요.</p>
-          ) : (
-          <ul className="contract-check__list">
-            {items.map((item) => {
-              const isDone = checked.includes(item.id);
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    className={`contract-item${isDone ? ' is-done' : ''}`}
-                    aria-pressed={isDone}
-                    onClick={() => toggleCheck(item.id)}
+            {currentItem ? (
+              <>
+                {/* 항목 이동은 카드 스와이프로만 한다 — 아래 점은 위치 표시 전용이다 */}
+                <div
+                  className="contract-check__viewport"
+                  role="group"
+                  aria-roledescription="카드 넘기기"
+                  aria-label="체크 항목"
+                  tabIndex={0}
+                  onKeyDown={carouselKeyHandler(checklist)}
+                  {...checklist.viewportHandlers}
+                  {...checklistGuard}
+                >
+                  <div
+                    className={"contract-check__track" + (checklist.isDragging ? ' is-dragging' : '')}
+                    style={{
+                      transform: `translateX(calc(${-itemIndex * 100}% + ${checklist.dragOffset}px))`,
+                    }}
                   >
-                    <img src={icon(isDone ? 'life-check-on.svg' : 'life-check-off.svg')} alt="" />
-                    <span className="contract-item__text">
-                      <strong>{item.title}</strong>
-                      <em>{item.description}</em>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          )}
+                    {items.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="contract-check__slide"
+                        aria-hidden={index !== itemIndex}
+                      >
+                        <div className="contract-check__ticket-main">
+                          <div className="contract-check__step" aria-hidden="true">
+                            <span>STEP</span>
+                            <strong>{pad2(index + 1)}</strong>
+                          </div>
+                          <div className="contract-item">
+                            {checklistRows(item).map((row) => {
+                              const done = checked.includes(row.id);
+                              return (
+                                <button
+                                  key={row.id}
+                                  type="button"
+                                  className={"contract-item__row" + (done ? ' is-done' : '')}
+                                  aria-pressed={done}
+                                  tabIndex={index === itemIndex ? 0 : -1}
+                                  onClick={() => toggleCheck(row.id)}
+                                >
+                                  <CheckCircle done={done} />
+                                  <span>{row.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="contract-check__dots" aria-hidden="true">
+                  {items.map((item, index) => (
+                    <span
+                      key={item.id}
+                      className={"contract-check__dot" + (itemIndex === index ? ' is-active' : '')}
+                    />
+                  ))}
+                </div>
+                <span className="sr-only" aria-live="polite">
+                  체크 항목 {itemIndex + 1} / {items.length}
+                </span>
+              </>
+            ) : <p className="contract-check__empty">체크리스트 준비 중이에요.</p>}
+          </div>
         </section>
 
-        {/* ============ ③ 자취 선배들의 후회 — 넘겨보는 콘텐츠 ============ */}
         <section className="regret">
           <div className="regret__head">
             <h2>자취 선배들은 이걸 후회했어요</h2>
-            <p>먼저 살아본 사람들의 이야기를 모았어요.</p>
+            <p>먼저 자취한 사람들의 경험에서 놓치기 쉬운 준비를 확인해요.</p>
           </div>
-          <div className="regret__stack">
-            <Stack
-              /* 매번 달라지는 랜덤 회전 대신 index 기반 고정 각도를 쓴다 */
-              randomRotation={false}
-              sensitivity={180}
-              sendToBackOnClick
-              mobileClickOnly
-              autoplay={false}
-              cards={regretCards}
-              onTopChange={onTopChange}
-            />
+          {/* 세 DOM을 유지하고 앞·중간·뒤 위치만 회전한다. */}
+          <div
+            className="regret__stack regret__deck"
+            role="group"
+            aria-roledescription="카드 넘기기"
+            aria-label="자취 선배들의 후회"
+            tabIndex={0}
+            {...regret.viewportHandlers}
+            data-animating={regret.isAnimating}
+            data-dragging={regret.isDragging}
+          >
+            {orderedRegrets.map((card, depth) => {
+              const isFront = depth === 0;
+              return (
+                <div
+                  key={card.id}
+                  className={"regret__deck-card" + (isFront && regret.isDragging ? ' is-dragging' : '')}
+                  aria-hidden={!isFront}
+                  data-card-id={card.id}
+                  data-tone={card.tone}
+                  data-depth={depth}
+                  style={{
+                    transform: `translate3d(${isFront ? regret.dragOffset : 0}px, ${-depth * 12}px, 0)`,
+                    zIndex: REGRETS.length - depth,
+                    pointerEvents: isFront ? 'auto' : 'none',
+                  }}
+                >
+                  <RegretCard card={card} interactive={isFront} onOpenTips={openTips} />
+                </div>
+              );
+            })}
           </div>
-          <div className="regret__pager">
-            <CarouselDots count={REGRETS.length} activeIndex={regretTop} />
-            <span className="regret__status" aria-live="polite">
-              후회 {regretTop + 1} / 전체 {REGRETS.length}
-            </span>
-          </div>
+          <span className="sr-only" aria-live="polite">
+            후회 {regret.activeIndex + 1} / 전체 {REGRETS.length}
+          </span>
         </section>
       </main>
-
       <BottomNavigation activeTab="life" />
     </div>
   );
