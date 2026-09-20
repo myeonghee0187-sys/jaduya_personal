@@ -8,56 +8,69 @@
 }
 
 .benefits__scroll {
+  display: flex;
   flex: 1 1 0;
+  flex-direction: column;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
-  padding: 30px var(--screen-margin) calc(var(--tab-bar-h) + 30px);
 }
 
 .benefits__scroll::-webkit-scrollbar {
   display: none;
 }
 
-.benefits-ai {
+/* 탭 — 커뮤니티처럼 헤더 바로 아래, 화면 맨 위에 독립적으로 위치한다 */
+.benefits-tabs {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm) var(--screen-margin) 0;
+  border-bottom: 1px solid var(--border-warm);
+  background: var(--surface-page);
+}
+
+/* 화면 폭을 꽉 채우는 배경 블록 — 좌우 여백 없이, 라운드 없이. */
+.benefits-hero {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-xl);
   width: 100%;
-  padding: 29px var(--card-padding-m);
+  padding: 44px var(--card-padding-m);
   overflow: hidden;
-  border-radius: 16px;
-  background: #f4e3d8;
+  background: #ffe5d4;
 }
 
 .benefits-ai__top {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: var(--space-sm);
   width: 100%;
 }
 
 .benefits-ai__avatar {
   flex: none;
-  width: 33px;
-  height: 33px;
-  object-fit: fill;
+  width: auto;
+  height: 45px;
+  object-fit: contain;
 }
 
 .benefits-ai__copy {
   min-width: 0;
   display: flex;
-  flex: 1 1 0;
+  flex: none;
   flex-direction: column;
   gap: var(--space-2xs);
   overflow: hidden;
 }
 
-.benefits-ai h2,
-.benefits-ai p,
+.benefits-hero h2,
+.benefits-hero p,
 .benefits-list h2,
 .benefits-list p,
 .benefit-card h3,
@@ -65,15 +78,15 @@
   margin: 0;
 }
 
-.benefits-ai h2 {
+.benefits-hero h2 {
   font: 600 18px/1.35 var(--font-a2z);
   color: var(--text-primary);
   white-space: nowrap;
 }
 
-.benefits-ai p {
-  font: 400 13px/1.5 var(--font-asta);
-  color: var(--text-secondary);
+.benefits-hero p {
+  font: 400 11px/1.5 var(--font-asta);
+  color: #89654b;
   white-space: nowrap;
 }
 
@@ -82,45 +95,42 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  width: 232px;
+  width: min(305px, 100%);
   height: 35px;
   padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--surface-subtle);
+  background: var(--brand-primary);
   box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.05);
-  color: var(--brand-primary);
+  color: var(--category-etc-bg);
   font: 700 13px/1.35 var(--font-suit);
   letter-spacing: -0.325px;
   cursor: pointer;
 }
 
+/* 아이콘을 mask 로 깔고 배경색으로 칠한다 — filter 로는 임의 토큰 색을 정확히 맞출 수 없다 */
 .benefits-ai__sparkle {
   width: 16px;
   height: 16px;
   flex: none;
-  filter: brightness(0) saturate(100%) invert(26%) sepia(41%) saturate(1778%) hue-rotate(322deg) brightness(90%);
+  background-color: var(--category-etc-bg);
+  mask: url('/assets/icon/money-benefit-sparkle.svg') center / 16px 16px no-repeat;
+  -webkit-mask: url('/assets/icon/money-benefit-sparkle.svg') center / 16px 16px no-repeat;
 }
 
-.benefits__content {
+/* 흰 패널 — 위쪽만 둥글게 배경 블록 아래에 이어진다.
+ * flex: 1 로 남은 세로 공간을 채워서, 카드가 적을 때도 하단까지 흰색이 이어지게 한다.
+ * 하단 탭바 여백도 패널 자신의 padding 으로 가져와서, 그 구간까지 흰색이 덮이게 한다. */
+.benefits-sheet {
+  position: relative;
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   gap: var(--space-md);
-  margin-top: 27px;
-}
-
-.benefits-filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
-.benefits-tabs {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  border-bottom: 1px solid var(--border-warm);
+  margin-top: 0;
+  padding: var(--space-lg) var(--screen-margin) calc(var(--tab-bar-h) + 30px);
+  border-radius: 16px 16px 0 0;
+  background: var(--surface-base);
 }
 
 .benefits-tabs__item {
@@ -165,56 +175,6 @@
   }
 }
 
-.benefits-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  overflow: hidden;
-}
-
-.benefits-chip {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  min-height: 24px;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: #f6f0e6;
-  color: var(--text-muted);
-  font: 600 12px/1 var(--font-suit);
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.benefits-chip--region {
-  gap: 2px;
-  background: var(--brand-green);
-  color: var(--text-primary);
-}
-
-.benefits-chip--region img {
-  /* chevron-down.svg 원본 비율(10.6827 : 6.466) 그대로 — 정사각형으로 강제하면
-   * 화살표가 세로로 눌려 보인다 (saved__sort-button img 와 같은 비율). */
-  width: 11.2px;
-  height: 6.78px;
-  filter: brightness(0);
-}
-
-.benefits-chip--saved {
-  gap: 7px;
-}
-
-.benefits-chip--saved img {
-  width: 11px;
-  height: 11px;
-  opacity: 1;
-}
-
 .benefits-list {
   display: flex;
   flex-direction: column;
@@ -245,8 +205,8 @@
 }
 
 .benefits-list__header p {
-  color: #7b726d;
-  font: 400 12px/1.4 var(--font-asta);
+  color: #a58666;
+  font: 400 13px/1.4 var(--font-asta);
   white-space: nowrap;
 }
 
@@ -276,151 +236,109 @@
   width: 100%;
 }
 
+.benefits-list__empty {
+  margin-top: 4px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  padding: 32px 20px;
+  background: var(--surface-base);
+  color: var(--text-secondary);
+  font: 500 13px/1.4 var(--font-suit);
+  text-align: center;
+}
+
 .benefit-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--space-xs);
   width: 100%;
   padding: var(--card-padding-m);
   overflow: hidden;
-  border: 1px solid #e9e4df;
+  border: 1px solid #e7dacd;
   border-radius: var(--radius-m);
   background: var(--surface-base);
 }
 
-.benefit-card__content {
+.benefit-card__tags {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
+  align-items: center;
+  gap: 6px;
 }
 
-.benefit-card__top {
+.benefit-card__tag {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.benefit-card__rank {
-  display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   padding: var(--space-2xs) var(--space-xs);
   overflow: hidden;
   border-radius: var(--radius-s);
-  background: #e9c8b1;
-  color: var(--text-nav);
-  font: 500 11px/1.5 var(--font-suit);
+  font: 600 11px/1.5 var(--font-asta);
   white-space: nowrap;
 }
 
-.benefit-card__rank.is-first {
-  background: var(--brand-primary);
+.benefit-card__tag--method {
+  border: 1px solid #b43936;
+  background: var(--surface-base);
+  color: #b43936;
+}
+
+/* 전체 탭에서만 보여주는 카테고리 표시 — 신청방법 칩 왼쪽 */
+.benefit-card__tag--housing {
+  background: var(--brand-orange);
   color: var(--surface-base);
 }
 
-.benefit-card__bookmark {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+.benefit-card__tag--cost {
+  background: var(--brand-secondary);
+  color: #855335;
 }
 
-.benefit-card__bookmark img {
-  width: 24px;
-  height: 24px;
-  filter: brightness(0) saturate(100%) invert(68%) sepia(81%) saturate(450%) hue-rotate(24deg) brightness(90%);
+.benefit-card__tag--pet {
+  background: var(--brand-green);
+  color: var(--surface-base);
 }
 
-.benefit-card__bookmark:not(.is-active) img {
-  opacity: 0.45;
+.benefit-card__tag--medical {
+  background: var(--category-culture-accent);
+  color: var(--surface-base);
 }
 
-.benefit-card__details {
+.benefit-card__row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   width: 100%;
-  overflow: hidden;
-}
-
-.benefit-card__title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .benefit-card h3 {
+  min-width: 0;
+  overflow: hidden;
   color: #120605;
   font: 600 16px/1.4 var(--font-a2z);
-}
-
-.benefit-card:nth-child(3) h3 {
-  color: #140c06;
-  font-size: 18px;
-  line-height: 1.35;
-}
-
-.benefit-card__meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.benefit-card__meta span {
-  color: #757575;
-  font: 500 12px/1.3 var(--font-asta);
-  letter-spacing: -0.12px;
-}
-
-.benefit-card__meta strong {
-  padding: 2px 6px;
-  color: var(--text-primary);
-  font: 700 13px/1.35 var(--font-suit);
-  letter-spacing: -0.325px;
-}
-
-.benefit-card__target {
-  color: #464646;
-  font: 400 12px/1.4 var(--font-asta);
-}
-
-.benefit-card__bottom {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-}
-
-.benefit-card__detail {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: var(--space-xs) 12px var(--space-xs) 14px;
+.benefit-card__apply {
+  flex: none;
+  padding: var(--space-2xs) var(--space-sm);
   border: 0;
   border-radius: var(--radius-pill);
-  background: #fce493;
-  box-shadow: 1px 1px 2.5px rgba(0, 0, 0, 0.05);
-  color: #3c2312;
-  font: 400 12px/1.4 var(--font-suit);
+  background: var(--brand-primary);
+  color: var(--surface-base);
+  font: 600 13px/1.4 var(--font-suit);
   cursor: pointer;
 }
 
-.benefit-card__detail img {
-  /* chevron-right-sm.svg 원본 비율(5.29037 : 8.74037) 그대로 — 정사각형으로 강제하면
-   * 화살표가 가로로 눌려 보인다 (mypage__links button img 와 같은 비율). */
-  width: 7px;
-  height: 11px;
-  filter: brightness(0) saturate(100%) invert(12%) sepia(34%) saturate(1261%) hue-rotate(347deg) brightness(92%);
+.benefit-card__target {
+  color: #ad8b60;
+  font: 400 12px/1.4 var(--font-asta);
 }
 
 @media (max-width: 379px) {
-  .benefits-ai {
+  .benefits-hero {
     padding-right: 12px;
     padding-left: 12px;
   }
@@ -429,11 +347,11 @@
     gap: var(--space-xs);
   }
 
-  .benefits-ai h2 {
+  .benefits-hero h2 {
     font-size: 16px;
   }
 
-  .benefits-ai p {
+  .benefits-hero p {
     font-size: 11px;
   }
 
@@ -450,16 +368,6 @@
   }
 
   .benefits-list__sort {
-    font-size: 12px;
-  }
-
-  .benefit-card__meta {
-    gap: 2px;
-  }
-
-  .benefit-card__meta strong {
-    padding-right: 0;
-    padding-left: 3px;
     font-size: 12px;
   }
 }
@@ -610,25 +518,6 @@
   white-space: nowrap;
 }
 
-.recommend-list__sort {
-  display: flex;
-  flex: none;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font: 600 14px/1.3 var(--font-asta);
-  letter-spacing: -0.14px;
-  cursor: pointer;
-}
-
-.recommend-list__sort img {
-  width: 14px;
-  height: 14px;
-  margin-left: 2px;
-}
-
 .recommend-list__cards {
   display: flex;
   flex-direction: column;
@@ -639,118 +528,75 @@
 .recommend-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-xl);
+  gap: var(--space-xs);
   width: 100%;
-  height: 198px;
   padding: var(--card-padding-m);
   overflow: hidden;
-  border: 1px solid #e9e4df;
+  border: 1px solid #e7dacd;
   border-radius: var(--radius-m);
   background: var(--surface-base);
 }
 
-.recommend-card__content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  width: 100%;
-}
-
-.recommend-card__top {
+.recommend-card__tags {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  gap: 6px;
 }
 
-.recommend-card__status {
+.recommend-card__tag {
   display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.recommend-card__status > span {
-  display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   padding: var(--space-2xs) var(--space-xs);
   overflow: hidden;
   border-radius: var(--radius-s);
+  font: 600 11px/1.5 var(--font-asta);
+  white-space: nowrap;
+}
+
+.recommend-card__tag--deadline {
   background: #f0d7d7;
   color: var(--brand-primary);
-  font: 500 11px/1.5 var(--font-asta);
-  white-space: nowrap;
 }
 
-.recommend-card__status > p {
-  color: #757575;
-  font: 500 12px/1.3 var(--font-asta);
-  letter-spacing: -0.12px;
-  white-space: nowrap;
+.recommend-card__tag--method {
+  border: 1px solid #b43936;
+  background: var(--surface-base);
+  color: #b43936;
 }
 
-.recommend-card__bookmark {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.recommend-card__bookmark img {
-  width: 24px;
-  height: 24px;
-  filter: brightness(0) saturate(100%) invert(68%) sepia(81%) saturate(450%) hue-rotate(24deg) brightness(90%);
-}
-
-.recommend-card__bookmark:not(.is-active) img {
-  opacity: 0.45;
-}
-
-.recommend-card__copy {
+.recommend-card__row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   width: 100%;
-  overflow: hidden;
 }
 
 .recommend-card h3 {
+  min-width: 0;
+  overflow: hidden;
   color: #120605;
   font: 600 16px/1.4 var(--font-a2z);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.recommend-card__copy > p {
-  width: 100%;
-  color: #464646;
-  font: 400 13px/1.5 var(--font-suit);
-}
-
-.recommend-card__detail {
-  display: flex;
+.recommend-card__apply {
   flex: none;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: var(--space-xs) 12px var(--space-xs) 14px;
+  padding: var(--space-2xs) var(--space-sm);
   border: 0;
   border-radius: var(--radius-pill);
-  background: #fce493;
-  box-shadow: 1px 1px 2.5px rgba(0, 0, 0, 0.05);
-  color: #3c2312;
-  font: 400 12px/1.4 var(--font-suit);
+  background: var(--brand-primary);
+  color: var(--surface-base);
+  font: 600 13px/1.4 var(--font-suit);
   cursor: pointer;
 }
 
-.recommend-card__detail img {
-  width: 13.44px;
-  height: 13.44px;
-  filter: brightness(0) saturate(100%) invert(12%) sepia(34%) saturate(1261%) hue-rotate(347deg) brightness(92%);
+.recommend-card__target {
+  color: #ad8b60;
+  font: 400 12px/1.4 var(--font-asta);
 }
 
 .benefits-recommend__bottom-space {
@@ -789,9 +635,6 @@
     font-size: 11px;
   }
 
-  .recommend-list__sort {
-    font-size: 12px;
-  }
 }
 
 /* ================= 혜택 상세 ================= */
@@ -834,50 +677,12 @@
   background: #f9f1eb;
 }
 
-.benefit-detail__context {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  height: 44px;
-  border-bottom: 1px solid #c4c4c4;
-  color: var(--text-gray);
-  font: 400 13px/1.5 var(--font-asta);
-}
-
-.benefit-detail__bookmark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-right: -10px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.benefit-detail__bookmark img {
-  width: 24px;
-  height: 24px;
-  filter: brightness(0) saturate(100%) invert(15%) sepia(9%) saturate(1211%) hue-rotate(332deg) brightness(93%);
-}
-
-.benefit-detail__bookmark:not(.is-active) img {
-  opacity: 0.82;
-}
-
-.benefit-detail__bookmark.is-active img {
-  filter: brightness(0) saturate(100%) invert(26%) sepia(37%) saturate(1747%) hue-rotate(321deg) brightness(91%);
-}
-
 .benefit-detail__headline {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
-  margin-top: -14px;
+  margin-top: 0;
 }
 
 .benefit-detail__meta-row {
@@ -888,14 +693,18 @@
   min-width: 0;
 }
 
+/* 추천 카드의 마감 배지와 같은 상태 배지 스타일 */
 .benefit-detail__meta-row > span {
   flex: none;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  background: #902e2b;
-  color: #ddd;
-  font: 700 10px/1 var(--font-suit);
-  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xs) var(--space-xs);
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  background: #f0d7d7;
+  color: var(--brand-primary);
+  font: 500 11px/1.5 var(--font-asta);
   white-space: nowrap;
 }
 
@@ -909,7 +718,18 @@
   white-space: nowrap;
 }
 
-.benefit-detail__headline h2 {
+/* 제목 · 지원금액 · 지원 내용을 한 박스로 묶는다 */
+.benefit-detail__highlight {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--card-padding-m) var(--card-padding-m) var(--space-xl);
+  border: 1px solid #ad9f86;
+  border-radius: var(--radius-m);
+  background: var(--surface-base);
+}
+
+.benefit-detail__highlight h2 {
   width: 100%;
   color: var(--text-nav);
   font: 700 24px/1.25 var(--font-a2z);
@@ -939,7 +759,8 @@
   flex-direction: column;
   gap: var(--space-xs);
   width: 100%;
-  padding-top: var(--space-sm);
+  padding-top: 30px;
+  border-top: 1px solid #e9e4df;
 }
 
 .benefit-detail__description h3 {
@@ -948,39 +769,54 @@
 }
 
 .benefit-detail__description p,
-.benefit-detail__section > p {
-  color: var(--text-gray);
-  font: 400 14px/1.4 var(--font-asta);
+.benefit-detail__card > p {
+  color: #bba47d;
+  font: 400 12px/1.4 var(--font-asta);
 }
 
 .benefit-detail__section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
   width: 100%;
   padding: var(--space-2xl) var(--screen-margin) 0;
 }
 
-.benefit-detail__eligibility {
-  border-top: 1px solid #e9e4df;
-}
-
-.benefit-detail__section-heading {
+/* 신청 대상 · 필요 서류 · 신청 절차 — 제목+내용을 하나의 카드로 묶는다 */
+.benefit-detail__card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-sm);
   width: 100%;
+  padding: var(--card-padding-m);
+  border: 1px solid #e9e4df;
+  border-radius: var(--radius-m);
+  background: var(--surface-base);
 }
 
-.benefit-detail__section h3,
-.benefit-detail__section-heading h3 {
+.benefit-detail__process .benefit-detail__card {
+  gap: var(--space-xl);
+}
+
+.benefit-detail__section h3 {
   color: var(--text-nav);
   font: 600 18px/1.35 var(--font-a2z);
 }
 
-.benefit-detail__section-heading span {
-  color: var(--text-gray);
-  font: 400 13px/1.5 var(--font-asta);
+/* "조건 N개 일치" — 카드 상단에 따로, 오른쪽 정렬은 그대로 유지 */
+.benefit-detail__card-top {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-bottom: var(--space-xs);
+}
+
+.benefit-detail__card-top span {
+  flex: none;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  color: var(--surface-base);
+  font: 600 12px/1.5 var(--font-asta);
 }
 
 .benefit-detail__process {
@@ -1113,7 +949,7 @@
 }
 
 @media (max-width: 379px) {
-  .benefit-detail__headline h2,
+  .benefit-detail__highlight h2,
   .benefit-detail__amount strong {
     font-size: 22px;
   }
