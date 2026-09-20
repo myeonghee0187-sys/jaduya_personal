@@ -829,7 +829,7 @@ export function AIChatPage() {
   }, [user?.email]);
   const repairMapAreaName = repairTarget?.displayName ?? effectiveLocation ?? '설정 지역';
   const locationSummaryName = effectiveLocation;
-  const userChips = [contractType, housingValue, locationSummaryName].filter((chip): chip is string => Boolean(chip));
+  const userChips = [locationSummaryName, contractType, housingValue].filter((chip): chip is string => Boolean(chip));
   const profileContext: ScenarioUserContext = {
     name: user?.name,
     persona: user?.persona,
@@ -1966,11 +1966,11 @@ export function AIChatPage() {
   return renderInAppShell(
     <div
       ref={pageRef}
-      className={`ai-chat-page app${closeState === 'open' ? '' : ` is-${closeState}`}`}
+      className={`ai-chat-page app ${conversationStarted ? 'is-conversation' : 'is-intro'}${closeState === 'open' ? '' : ` is-${closeState}`}`}
       onAnimationEnd={finishClose}
     >
       <StatusBar />
-      <header className="ai-chat-page__header">
+      <header className={`ai-chat-page__header${conversationStarted ? ' is-chat' : ''}`}>
         <div className="ai-chat-page__header-left">
           {/* 화면 navigation 전용 — 자두AI를 나가 원래 앱 화면으로 돌아간다(닫기와 같은
             * 동작이지만, 좌상단 '이전 화면' 자리는 항상 노출해 화면 진입 상태와 무관하게
@@ -1983,39 +1983,60 @@ export function AIChatPage() {
             onClick={closeChat}
             disabled={closeState !== 'open'}
           >
-            <img src={icon('gnb-back.svg')} alt="" />
+            <img src={icon('ai-back-arrow.svg')} alt="" />
           </button>
-          <div className="ai-chat-page__profile">
-            <img src={icon('ai-avatar.svg')} alt="" />
-            <span className="ai-chat-page__profile-copy">
-              <strong>자두AI</strong>
-              <span className="ai-chat-page__status-row">
-                <span className="ai-chat-page__status-dot" aria-hidden="true" />
-                <span>24시간 운영해요</span>
+          {conversationStarted ? (
+            <button type="button" className="ai-chat-page__new-conversation" onClick={startNewConversation}>
+              <img src={icon('ai-plus.svg')} alt="" aria-hidden="true" />
+              <span>새 대화</span>
+            </button>
+          ) : (
+            <div className="ai-chat-page__profile">
+              <img src={icon('ai-avatar.svg')} alt="" />
+              <span className="ai-chat-page__profile-copy">
+                <strong>자두AI</strong>
+                <span className="ai-chat-page__status-row">
+                  <span className="ai-chat-page__status-dot" aria-hidden="true" />
+                  <span>언제든 답변 준비 완료!</span>
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          )}
         </div>
-        <button
-          type="button"
-          className="ai-chat-page__close"
-          aria-label="자두AI 닫기"
-          onClick={closeChat}
-          disabled={closeState !== 'open'}
-        >
-          <img src={icon('gnb-close.svg')} alt="" />
-        </button>
+        {conversationStarted && (
+          <button
+            type="button"
+            className="ai-chat-page__help"
+            aria-label="자두AI 도움말"
+            onClick={() => sendMessage('자두AI 사용 방법을 알려줘')}
+          >
+            <img src={icon('ai-help.svg')} alt="" />
+          </button>
+        )}
       </header>
 
-      <div className="ai-chat-page__chips">
-        <span className="ai-chat-page__chip-group">
-          {userChips.map((chip) => (
-            <span key={chip} className="ai-chat-page__chip">
-              {chip}
-            </span>
-          ))}
-        </span>
-        <button type="button" className="ai-chat-page__chip ai-chat-page__chip--edit" onClick={openAISettings}>
+      {!conversationStarted && !isResumeView && (
+        <section className="ai-chat-page__hero" aria-labelledby="ai-chat-welcome">
+          <h1 id="ai-chat-welcome">
+            무슨 이야기부터 해볼까요?
+            <br />
+            사소한 궁금증도 좋아요!
+          </h1>
+        </section>
+      )}
+
+      <div className={`ai-chat-page__chips${conversationStarted ? ' is-chat' : ''}`}>
+        <div className="ai-chat-page__condition-group">
+          <span className="ai-chat-page__condition-label">내 조건</span>
+          <span className="ai-chat-page__chip-group">
+            {userChips.map((chip) => (
+              <span key={chip} className="ai-chat-page__chip">
+                {chip}
+              </span>
+            ))}
+          </span>
+        </div>
+        <button type="button" className="ai-chat-page__chip-edit" onClick={openAISettings}>
           편집
         </button>
       </div>
@@ -2039,15 +2060,6 @@ export function AIChatPage() {
         </div>
       )}
 
-      {conversationStarted && (
-        <div className="ai-chat-page__conversation-controls">
-          <button type="button" className="ai-chat-page__new-conversation" onClick={startNewConversation}>
-            <img src={icon('ai-plus.svg')} alt="" aria-hidden="true" />
-            <span>새 대화</span>
-          </button>
-        </div>
-      )}
-
       {conversationStarted ? (
         <div className="ai-chat-page__conversation-wrap">
           <div ref={chatRef} className="ai-chat-page__conversation" role="log" aria-live="polite" onScroll={updateChatPinnedState}>
@@ -2056,12 +2068,12 @@ export function AIChatPage() {
               key={message.id}
               className={`ai-chat-page__message ai-chat-page__message--${message.role}`}
             >
-              {message.role === 'assistant' && (
-                <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
-              )}
               <div className="ai-chat-page__message-content">
                 {message.role === 'assistant' && (
-                  <span className="ai-chat-page__message-sender">자두AI</span>
+                  <span className="ai-chat-page__assistant-header">
+                    <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
+                    <span className="ai-chat-page__message-sender">자두AI</span>
+                  </span>
                 )}
                 {message.attachments && (
                   <div className="ai-chat-page__message-attachments">
@@ -2179,9 +2191,11 @@ export function AIChatPage() {
             )}
             {isTyping && (
               <div className="ai-chat-page__message ai-chat-page__message--assistant">
-                <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
                 <div className="ai-chat-page__message-content">
-                  <span className="ai-chat-page__message-sender">자두AI</span>
+                  <span className="ai-chat-page__assistant-header">
+                    <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
+                    <span className="ai-chat-page__message-sender">자두AI</span>
+                  </span>
                   <div className="ai-chat-page__typing" aria-label="자두가 답변을 생각하고 있어요">
                     <span />
                     <span />
@@ -2192,9 +2206,11 @@ export function AIChatPage() {
             )}
             {isRepairSearchLoading && (
               <div className="ai-chat-page__message ai-chat-page__message--assistant">
-                <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
                 <div className="ai-chat-page__message-content">
-                  <span className="ai-chat-page__message-sender">자두AI</span>
+                  <span className="ai-chat-page__assistant-header">
+                    <img className="ai-chat-page__message-avatar" src={icon('ai-avatar.svg')} alt="" />
+                    <span className="ai-chat-page__message-sender">자두AI</span>
+                  </span>
                   <div className="ai-chat-page__repair-search-status" role="status" aria-live="polite">
                     <strong>{effectiveLocation} 주변을 찾고 있어요</strong>
                     <span>가까운 수리업체를 확인하고 있어요.</span>
@@ -2219,17 +2235,7 @@ export function AIChatPage() {
         </div>
       ) : (
         <div className="ai-chat-page__body">
-          <div className="ai-chat-page__intro">
-            <p className="ai-chat-page__headline">
-              무슨 이야기부터 해볼까요?
-              <br />
-              사소한 궁금증도 좋아요!
-            </p>
-            <img className="ai-chat-page__mole" src={img('ai/ai-mole.svg')} alt="" />
-          </div>
-
           <div className="ai-chat-page__prompt-block">
-            <p className="ai-chat-page__prompt-caption">시작이 어렵다면 선택해보세요!</p>
             <ul className="ai-chat-page__prompts">
               {personaPrompts.map((prompt) => (
                 <li key={prompt.label}>
@@ -2238,7 +2244,11 @@ export function AIChatPage() {
                     className="ai-chat-page__prompt"
                     onClick={() => sendMessage(prompt.label, undefined, [], prompt.scenario)}
                   >
-                    {`“${prompt.label}”`}
+                    <img src={icon(`chatbot/${prompt.icon}`)} alt="" aria-hidden="true" />
+                    <span className="ai-chat-page__prompt-copy">
+                      <span>{prompt.category}</span>
+                      <strong>{prompt.label}</strong>
+                    </span>
                   </button>
                 </li>
               ))}
@@ -2319,6 +2329,9 @@ export function AIChatPage() {
             </button>
           </div>
         </div>
+        <p className="ai-chat-page__disclaimer">
+          자두AI는 부정확한 정보를 줄 수 있어요. 중요한 결정은 한 번 더 확인해주세요.
+        </p>
       </form>
 
       {isRepairLocationModalOpen && (
