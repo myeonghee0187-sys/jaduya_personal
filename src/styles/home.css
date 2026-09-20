@@ -98,17 +98,40 @@ a { text-decoration: none; color: inherit; }
 }
 
 .hero__background img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* 바람에 실린 연한 나뭇잎 여러 장이 오른쪽 위에서 왼쪽 중단~하단으로 계속 흩날리는
- * 연출이다. 기본 6개 경로를 3개 위상으로 복제해 기존보다 3배 많은 양이 보인다 — leaf-drift 의 duration
- * 자체가 한 장이 화면을 가로지르는 시간(8~14s)이고, 그 사이 낙엽처럼 우수수 쏟아지는
- * 느낌이 나지 않도록 opacity 는 0.22~0.38 로 옅게 유지한다. leaf 마다 delay 를 1.5~3.5초씩
- * 벌려 시간차로 등장시키고 duration 도 서로 달라서(8~14s), infinite 로 반복되며 각자
- * 다른 위상으로 계속 어긋나 화면이 비는 순간 없이 여러 장이 자연스럽게 겹친다. */
+.hero__background-image--outgoing {
+  animation: home-background-fade-out 900ms ease-in-out both;
+}
+
+.hero__background-image--incoming {
+  animation: home-background-fade-in 900ms ease-in-out both;
+}
+
+@keyframes home-background-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes home-background-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 오른쪽 나무 근처에서 시작한 다섯 잎이 서로 다른 곡선으로 왼쪽 아래로 흩날린다. */
 .falling-leaves {
   position: absolute;
   top: 0;
@@ -132,14 +155,12 @@ a { text-decoration: none; color: inherit; }
 
 .falling-leaves__path {
   position: absolute;
-  left: var(--leaf-start-left);
+  right: var(--leaf-start-right);
   top: var(--leaf-start-top);
   width: var(--leaf-width);
   height: var(--leaf-height);
   will-change: transform, opacity;
-  /* backwards 없이는 양수 delay 동안(잎이 아직 등장 전) 0% 키프레임(opacity:0)이 아니라
-   * 기본값(opacity:1)이 보여서, 시작 위치에 잎이 그대로 떠 있는 것처럼 비쳤다 */
-  animation: leaf-drift var(--leaf-duration) linear var(--leaf-delay) infinite backwards;
+  animation: leaf-drift var(--leaf-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95) var(--leaf-delay) infinite both;
 }
 
 .falling-leaves__leaf {
@@ -165,55 +186,51 @@ a { text-decoration: none; color: inherit; }
   transform-origin: left center;
 }
 
-/* 가로(dx)는 --leaf-area-w 에 대한 %(숫자만, 부호 포함), 세로(dy)는 FallingLeaves.tsx 가
- * 미리 계산해 넘기는 vh 값(위 --leaf-area-w 주석 참고) — 둘 다 시작점(left/top)에서부터
- * 얼마나 이동했는지를 나타낸다. 회전은 각 지점의 절대 각도라 그대로 보간된다.
- * 10%(via1)에서 왼쪽 아래로 방향을 잡고, 20%(via2)에서 잠깐 떠오르듯 하강폭이 줄고
- * 좌우로 한 번 휘며, 32.5%(via3)에서 다시 아래로 — 실제 "가로지르기"는 duration(전체
- * 주기)의 앞 절반(0~50%)에서 끝나고, 나머지 절반(50~100%)은 opacity 0으로 화면 밖에
- * 멈춰 쉰다. 기본 leaf 6개 경로가 3개 위상으로 나뉘어 무한 반복하는데, 쉬는 구간 없이(=100% 전부
- * 비행) 두면 delay 를 1.5~3.5초로 촘촘히 벌려도 대부분의 순간에 6장이 한꺼번에 다
- * 보여 버린다(실측 확인됨) — 절반을 쉬게 하고 3개 위상으로 나눠 평균 6~12장 정도가 겹친다. */
+/* 각 경유점은 왼쪽 이동 사이에 짧은 오른쪽 되돌림을 섞어 직선 대신 느슨한 S 곡선을 만든다. */
 @keyframes leaf-drift {
   0% {
     opacity: 0;
     transform: translate3d(0, 0, 0) rotate(var(--leaf-r0));
   }
-  4% {
+  10% {
     opacity: var(--leaf-opacity);
   }
-  10% {
+  22% {
     transform: translate3d(
       calc(var(--leaf-area-w) * var(--leaf-dx1) / 100),
       var(--leaf-dy1),
       0
     ) rotate(var(--leaf-r1));
   }
-  20% {
+  42% {
     transform: translate3d(
       calc(var(--leaf-area-w) * var(--leaf-dx2) / 100),
       var(--leaf-dy2),
       0
     ) rotate(var(--leaf-r2));
   }
-  32.5% {
+  64% {
     transform: translate3d(
       calc(var(--leaf-area-w) * var(--leaf-dx3) / 100),
       var(--leaf-dy3),
       0
     ) rotate(var(--leaf-r3));
   }
-  42.5% {
+  87% {
     opacity: var(--leaf-opacity);
-  }
-  50%,
-  100% {
-    opacity: 0;
     transform: translate3d(
       calc(var(--leaf-area-w) * var(--leaf-dx4) / 100),
       var(--leaf-dy4),
       0
     ) rotate(var(--leaf-r4));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(
+      calc(var(--leaf-area-w) * var(--leaf-dx5) / 100),
+      var(--leaf-dy5),
+      0
+    ) rotate(var(--leaf-r5));
   }
 }
 
@@ -246,6 +263,10 @@ a { text-decoration: none; color: inherit; }
 
 .hero__accent    { left: 134px;  top: 85px;   width: 51px;      height: 51px; }
 .hero__cup       { left: 93px;   top: 110px;  width: 71px;      height: 72px; }
+
+.home.is-night .hero__illustration {
+  filter: brightness(0.78) saturate(0.9) contrast(1.02);
+}
 
 /* ================= Header ================= */
 
@@ -323,6 +344,38 @@ a { text-decoration: none; color: inherit; }
   color: var(--brand-logo);
 }
 
+.home.is-night .nav-header__name {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.home.is-night .filled-bell {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.home.is-night .status-bar {
+  position: relative;
+}
+
+.home.is-night .status-bar__time {
+  color: var(--color-gray-05);
+}
+
+.home.is-night .status-bar__icons {
+  opacity: 0;
+}
+
+.home.is-night .status-bar::after {
+  content: '';
+  position: absolute;
+  top: 18.5px;
+  right: var(--screen-margin);
+  width: 87.67px;
+  height: 13px;
+  background-color: var(--color-gray-05);
+  -webkit-mask: url('/assets/icon/status-icons.svg') center / 100% 100% no-repeat;
+  mask: url('/assets/icon/status-icons.svg') center / 100% 100% no-repeat;
+}
+
 /* ================= Hero copy ================= */
 
 .greeting {
@@ -386,18 +439,29 @@ a { text-decoration: none; color: inherit; }
   color: var(--text-muted);
 }
 
+.home.is-night .greeting__situation {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.home.is-night .greeting__title {
+  color: #fff;
+}
+
+.home.is-night .greeting__sub {
+  color: rgba(255, 255, 255, 0.72);
+}
+
 /* ================= Home benefit banner ================= */
 /* 혜택·복지 페이지로 이동하는 Home CTA 배너.
- * 컨테이너 크기
- * (top/height)는 바뀌기 전 위치를 그대로 유지해 다른 레이아웃이 밀리지 않게 한다. */
+ * 제거된 인포 버튼을 위해 남겨 두었던 위쪽 빈 영역 없이 실제 CTA 높이만 차지한다. */
 
 .home-benefit-banner {
   position: absolute;
   left: var(--screen-margin);
-  top: 426px;
+  top: 487px;
   z-index: 10;
   width: var(--content-width);
-  height: 121px;
+  height: 60px;
 }
 
 .home-benefit-banner__button {
@@ -413,7 +477,7 @@ a { text-decoration: none; color: inherit; }
   padding: 10px 16px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
   box-shadow: 0 4px 12px rgba(46, 26, 36, 0.08);
@@ -422,11 +486,11 @@ a { text-decoration: none; color: inherit; }
 }
 
 .home-benefit-banner__button:hover {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .home-benefit-banner__button:active {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px 0 rgba(46, 26, 36, 0.08);
   transform: scale(0.98);
 }

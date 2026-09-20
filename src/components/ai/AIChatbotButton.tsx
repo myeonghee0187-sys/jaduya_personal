@@ -13,6 +13,7 @@ import { usePrefersReducedMotion } from '../homecare/usePrefersReducedMotion';
 const SIZE = 72; // 버튼 지름
 const EDGE = 16; // 좌우 안전 여백
 const GAP = 8; // 헤더 / 바텀네비와의 최소 간격
+const MONEY_SHEET_GAP = 16; // 돈관리 고정 시트와의 최소 간격
 const INITIAL_GNB_GAP_RATIO = 0.05; // 최초 위치: GNB 위 화면 높이의 5%
 /* 이 값 이하로 움직이면 클릭으로 본다. 마우스는 누르고 떼는 사이 몇 px 씩 흔들려서
  * 터치 기준(5px)으로는 단순 클릭이 드래그로 오판된다 — 8px 로 둔다. */
@@ -35,7 +36,17 @@ function readBounds(host: HTMLElement | null): Bounds | null {
   const headerH = app.querySelector<HTMLElement>('.header')?.offsetHeight ?? 100;
   const tabBarH = app.querySelector<HTMLElement>('.tab-bar')?.offsetHeight ?? 91;
   const minTop = headerH + GAP;
-  const maxTop = Math.max(minTop, app.clientHeight - tabBarH - GAP - SIZE);
+  const defaultMaxTop = app.clientHeight - tabBarH - GAP - SIZE;
+  /* 돈관리 '이번 달'의 고정 peek 시트는 탭바 위에 실제 높이로 놓인다.
+   * 시트 높이를 FAB 코드에 복제하지 않고 현재 DOM 상단을 직접 읽어, 높이가 바뀌어도
+   * 버튼 전체가 항상 시트 밖에서 16px 떨어지도록 이동 범위를 제한한다. */
+  const moneySheet = app.classList.contains('money')
+    ? app.querySelector<HTMLElement>('.statement-peek')
+    : null;
+  const sheetMaxTop = moneySheet && moneySheet.offsetParent === app
+    ? moneySheet.offsetTop - MONEY_SHEET_GAP - SIZE
+    : defaultMaxTop;
+  const maxTop = Math.max(minTop, Math.min(defaultMaxTop, sheetMaxTop));
   return { width: app.clientWidth, height: app.clientHeight, tabBarH, minTop, maxTop };
 }
 
@@ -188,9 +199,28 @@ export function AIChatbotButton({
   useLayoutEffect(() => {
     settle();
     window.addEventListener('resize', settle);
+    const app = ref.current?.offsetParent as HTMLElement | null;
+    const moneySheetResizeObserver = app?.classList.contains('money')
+      ? new ResizeObserver(settle)
+      : null;
+    const observeMoneySheet = () => {
+      moneySheetResizeObserver?.disconnect();
+      const sheet = app?.querySelector<HTMLElement>('.statement-peek');
+      if (sheet) moneySheetResizeObserver?.observe(sheet);
+      settle();
+    };
+    /* 같은 /money route 안에서 탭을 바꾸면 statement-peek가 mount/unmount된다.
+     * 전역 FAB는 재마운트되지 않으므로 DOM 변화를 감지해 새 시트 상단에 맞춰 다시 배치한다. */
+    const moneyObserver = app?.classList.contains('money')
+      ? new MutationObserver(observeMoneySheet)
+      : null;
+    moneyObserver?.observe(app!, { childList: true, subtree: true });
+    observeMoneySheet();
     if (settleRef) settleRef.current = settle;
     return () => {
       window.removeEventListener('resize', settle);
+      moneyObserver?.disconnect();
+      moneySheetResizeObserver?.disconnect();
       if (settleRef) settleRef.current = null;
     };
   }, [settle, settleRef]);
