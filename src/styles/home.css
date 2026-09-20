@@ -402,20 +402,21 @@ a { text-decoration: none; color: inherit; }
 
 .home-benefit-banner__button {
   position: absolute;
-  left: calc(50% - 2px);
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: calc(var(--content-width) - 4px);
-  padding: 10px 14px 10px 10px;
+  gap: 12px;
+  width: 100%;
+  height: 60px;
+  padding: 10px 16px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
-  box-shadow: 0 4px 14px 0 rgba(46, 26, 36, 0.08);
+  box-shadow: 0 4px 12px rgba(46, 26, 36, 0.08);
   cursor: pointer;
   transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
@@ -427,7 +428,7 @@ a { text-decoration: none; color: inherit; }
 .home-benefit-banner__button:active {
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 2px 8px 0 rgba(46, 26, 36, 0.08);
-  transform: translateX(-50%) scale(0.98);
+  transform: scale(0.98);
 }
 
 .home-benefit-banner__button:focus-visible {
@@ -439,16 +440,16 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: none;
   border-radius: var(--radius-pill);
   background: var(--color-primary-05);
 }
 
 .home-benefit-banner__icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   background-color: var(--brand-primary);
   mask-repeat: no-repeat;
   mask-position: center;
@@ -459,21 +460,44 @@ a { text-decoration: none; color: inherit; }
 }
 
 .home-benefit-banner__text {
-  margin: 0;
+  display: flex;
   flex: 1 0 0;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  text-align: left;
+}
+
+.home-benefit-banner__label,
+.home-benefit-banner__title {
+  display: block;
   font-family: var(--font-suit);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: -0.14px;
-  color: var(--text-body);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.home-benefit-banner__arrow { width: 16px; height: 16px; flex: none; }
+.home-benefit-banner__label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.home-benefit-banner__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.14px;
+  color: var(--text-body);
+}
+
+.home-benefit-banner__arrow {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  opacity: 0.9;
+}
 
 /* 펼친 HomeSheet의 하단 Dock — BottomNavigation(.tab-bar)이 있던 자리를 그대로 대신한다(브라우저
  * viewport 가 아니라 .home.app 기준 하단 고정). 별도의 떠 있는 카드가 아니라 하단 영역 자체이므로
@@ -492,7 +516,7 @@ a { text-decoration: none; color: inherit; }
   width: 100%;
   /* 기본 배너의 고정 height(121px)를 이어받지 않고 padding 포함 콘텐츠 높이로 */
   height: auto;
-  padding: 12px var(--screen-margin) calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 12px var(--screen-margin) calc(30px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-warm);
   background: var(--surface-subtle);
 }
@@ -573,6 +597,26 @@ a { text-decoration: none; color: inherit; }
 
 /* ================= Bottom Sheet ================= */
 
+/* 펼친 시트 위에 남는 Header + Hero 배경 영역 전체를 접기 타깃으로 사용한다.
+ * 보이는 디자인은 추가하지 않고, 시트 자체보다 위쪽 영역만 정확히 덮는다. */
+.home-sheet-dismiss-area {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 35;
+  width: 100%;
+  height: var(--sheet-top-expanded);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.home-sheet-dismiss-area:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
 /* 시트는 top 이 아니라 transform 으로만 움직인다.
  * top 을 매 프레임 바꾸면 시트 높이와 안쪽 레이아웃이 프레임마다 다시 계산되고, 소수점 위치에서
  * 요소마다 다르게 반올림돼 내 메뉴 위젯이 1~2px 씩 움찔거렸다. 여기서는 top 을 펼친 위치에
@@ -593,7 +637,7 @@ a { text-decoration: none; color: inherit; }
   box-shadow: 0 -5px 6.8px 0 rgba(0, 0, 0, 0.05);
   transform: translateY(0);
   will-change: transform;
-  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 480ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .app[data-sheet-state="peek"] .sheet { transform: translateY(calc(100% - 299px)); }
@@ -948,12 +992,61 @@ a { text-decoration: none; color: inherit; }
   position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 86px);
   gap: var(--widget-gap);
   width: var(--content-width);
   margin: 0;
   padding: 0;
   list-style: none;
 }
+
+.menu-grid__drop-placeholder {
+  z-index: 1;
+  min-width: 0;
+  border: 1px dashed var(--brand-primary);
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
+  pointer-events: none;
+}
+
+.menu-grid__drop-placeholder.is-invalid {
+  border-color: var(--color-gray-4);
+  background: color-mix(in srgb, var(--color-gray-4) 7%, transparent);
+  opacity: 0.7;
+}
+
+.menu-grid__drop-placeholder.is-waiting {
+  border-color: color-mix(in srgb, var(--brand-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--brand-primary) 3%, transparent);
+}
+
+.menu-grid__empty { min-width: 0; }
+
+.menu-grid__empty-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 86px;
+  padding: 0;
+  border: 1px dashed var(--color-gray-3);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--color-gray-4);
+  font: 400 24px/1 var(--font-suit);
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out, background-color 150ms ease-out, transform 150ms ease-out;
+}
+
+.menu-grid__empty-button:hover,
+.menu-grid__empty-button:focus-visible {
+  border-color: var(--color-gray-4);
+  background: color-mix(in srgb, var(--color-gray-2) 20%, transparent);
+  color: var(--text-secondary);
+}
+
+.menu-grid__empty-button:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+.menu-grid__empty-button:active { transform: scale(0.97); }
 
 .menu-slot {
   position: relative;
@@ -1003,7 +1096,7 @@ a { text-decoration: none; color: inherit; }
   background: var(--menu-slot-bg);
   text-align: left;
   cursor: pointer;
-  transition: transform 0.15s ease-out, box-shadow 0.2s ease-out, border-color 0.2s;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease-out, border-color 140ms ease, background-color 140ms ease;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -1011,7 +1104,7 @@ a { text-decoration: none; color: inherit; }
 
 .menu-widget:active { transform: scale(0.97); }
 
-.menu-widget__icon .glyph-icon__mask { transition: background-color 0.2s; }
+.menu-widget__icon .glyph-icon__mask { transition: background-color 140ms ease; }
 
 /* ---- 내 메뉴 편집 모드 ----
  * 위젯 크기·4열 배치는 그대로, 아주 약한 흔들림으로 편집 중임을 알린다.
@@ -1036,11 +1129,17 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* 잡고 있는 위젯 — 살짝 커지고 떠오른다. 흔들림은 그대로 두고 확대·그림자만 안쪽 카드에 준다. */
-.menu-slot.is-dragging { z-index: 3; will-change: transform; }
+.menu-slot.is-dragging { z-index: 3; opacity: 0.92; will-change: transform; }
+
+.menu-slot.is-dragging.is-preview-2x2 {
+  width: 167px;
+  height: 180px;
+  transition: width 180ms ease-out, height 180ms ease-out;
+}
 
 .menu-slot.is-dragging .menu-widget {
   cursor: grabbing;
-  transform: scale(1.06);
+  transform: scale(1.02);
   box-shadow: 0 8px 18px rgba(33, 25, 20, 0.18);
 }
 
@@ -1456,10 +1555,12 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery__page-line {
+  position: relative;
   display: block;
   flex-shrink: 0;
   width: 0;
   height: 2.5px;
+  overflow: hidden;
   border-radius: 1px;
   background: transparent;
   transition:
@@ -1469,7 +1570,26 @@ a { text-decoration: none; color: inherit; }
 
 .discovery__page-line.is-active {
   width: 28px;
+  background: color-mix(in srgb, var(--brand-green) 20%, transparent);
+}
+
+.discovery__page-line.is-active::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: var(--brand-green);
+  content: '';
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: discovery-page-progress var(--discovery-progress-duration, 4500ms) linear forwards;
+}
+
+.discovery.is-auto-paused .discovery__page-line.is-active::after {
+  animation-play-state: paused;
+}
+
+@keyframes discovery-page-progress {
+  to { transform: scaleX(1); }
 }
 
 /* 페이지네이션 줄 양 끝의 이전/다음 — 카드 옆 원형 화살표가 아니라 숫자 옆에 붙는
@@ -1814,12 +1934,9 @@ a { text-decoration: none; color: inherit; }
   object-position: center;
 }
 
-/* ---------- 자두가 알려드려요: 3카드 세트 페이지 캐러셀 ----------
- * "오늘부터 3일 + 오늘의 장보기 + 자두의 맞춤 팁" 3장 전체가 하나의 슬라이드다 —
- * 오른쪽 맞춤 팁 카드만 바뀌는 게 아니라 discovery__row 통째로 페이지 단위로 넘어간다
- * (카드 각각 따로 움직이지 않는다). 페이지 전환 자체(트랙 transform + 드래그 중 transition
- * 끄기)는 생활 페이지 해결팁 캐러셀과 같은 방식이고, 페이지네이션은 헤더 아래 숫자형
- * .discovery__pagination 이 맡는다(좌우 화살표·하단 dot 은 쓰지 않는다). */
+/* ---------- 자두가 알려드려요: 3카드 세트 swipe 전환 ----------
+ * 현재 장과 목표 장만 같은 viewport에 겹쳐 두고 transform으로 함께 이동시킨다.
+ * 제목·페이지네이션·섹션 박스에는 transform을 적용하지 않는다. */
 .discovery-page__carousel {
   position: relative;
   width: 100%;
@@ -1837,39 +1954,41 @@ a { text-decoration: none; color: inherit; }
 }
 
 .discovery-page__track {
-  display: flex;
-  align-items: flex-start;
-  /* 페이지(슬라이드) 사이 간격 — JS 쪽 DISCOVERY_PAGE_GAP_PX 와 같은 값을 인라인
-   * 커스텀 프로퍼티로 내려받는다(값은 거기 한 곳에서만 관리, 여긴 기본값 fallback). */
-  gap: var(--discovery-page-gap, 4px);
-  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* 드래그 중에만 transition 을 꺼 손가락을 그대로 따라간다. 손을 떼거나 화살표·숫자를
- * 누르면 3카드 페이지 전체가 같은 320ms ease-out 전환으로 이동한다. */
-.discovery-page__track.is-dragging {
-  transition: none;
+  display: grid;
+  width: 100%;
 }
 
 .discovery-page__slide {
-  flex: 0 0 100%;
+  grid-area: 1 / 1;
   min-width: 0;
+  will-change: transform;
 }
 
-/* 최초 노출 swipe 힌트 — index는 01에 둔 채 트랙만 10px 왼쪽으로 살짝 밀었다 돌아온다. */
-@keyframes discovery-swipe-hint {
-  0%, 100% { transform: translateX(0); }
-  48% { transform: translateX(-10px); }
+.discovery-page__slide--current {
+  z-index: 2;
+  transform: translate3d(var(--discovery-current-x, 0%), 0, 0);
 }
 
-.discovery-page__track.is-hinting {
-  animation: discovery-swipe-hint 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.discovery-page__slide--target {
+  z-index: 1;
+  transform: translate3d(var(--discovery-target-x, 100%), 0, 0);
+  pointer-events: none;
+}
+
+.discovery-page__track.is-moving .discovery-page__slide,
+.discovery-page__track.is-reverting .discovery-page__slide {
+  transition: transform 570ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .discovery-page__track.is-hinting {
+  .discovery-page__track.is-moving .discovery-page__slide,
+  .discovery-page__track.is-reverting .discovery-page__slide,
+  .discovery__page-line.is-active::after {
     animation: none;
+    transition: none;
   }
+
+  .discovery__page-line.is-active::after { transform: scaleX(1); }
 }
 
 /* ---------- 외출 팁: 맞춤 추천 설정 전 ----------

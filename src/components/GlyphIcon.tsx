@@ -25,6 +25,10 @@ const GLYPH_BOUNDS: Record<string, [number, number, number, number]> = {
   'menu-gift.svg': [0.0938, 0.0625, 0.9063, 0.8438],
   'menu-plum.svg': [0.0375, 0, 0.9625, 1],
   'community-book.svg': [0.0833, 0.0833, 0.8771, 0.9167],
+  /* 메뉴 관리 사용법 3단계 — stroke(≈1.3~1.6px) 아웃라인 아이콘들의 도형 크기를 맞춰 잰 값 */
+  'widget-search.svg': [0.0833, 0.0833, 0.9167, 0.9167],
+  'money-fund-check.svg': [0.125, 0.2083, 0.875, 0.75],
+  'money-fixed.svg': [0.16, 0.16, 0.84, 0.89],
 };
 
 interface GlyphIconProps {

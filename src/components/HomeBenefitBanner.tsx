@@ -60,7 +60,10 @@ export function HomeBenefitBanner({ onClick, bannerRef, fixed = false }: HomeBen
         onClick={onClick}
       >
         <BenefitIcon />
-        <span className="home-benefit-banner__text">나에게 맞는 자취 혜택 확인하기</span>
+        <span className="home-benefit-banner__text">
+          <span className="home-benefit-banner__label">맞춤 혜택</span>
+          <span className="home-benefit-banner__title">나에게 맞는 자취 혜택 확인하기</span>
+        </span>
         <img
           className="home-benefit-banner__arrow"
           src={icon('chevron-right-gray.svg')}

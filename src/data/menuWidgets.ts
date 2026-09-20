@@ -1,4 +1,6 @@
 import type { AppPage, NavigateOptions } from '../navigation/routes';
+import type { DemoAccountId } from '../auth/mockUsers';
+import type { MenuSizeKey } from './menuWidgetAssets';
 
 /* 홈 '내 메뉴'의 위젯 데이터.
  *
@@ -28,6 +30,22 @@ export interface MenuWidgetItem {
   size: MenuWidgetSize;
   order: number;
 }
+
+/** 메뉴 관리와 홈이 함께 사용하는 asset 단위 선택값. */
+export interface SelectedMenuWidget {
+  assetId: string;
+  menuId: string;
+  size: MenuSizeKey;
+  variant: string;
+  order: number;
+  /** 홈 4×2 Grid의 시작 슬롯(1~8). 기존 저장값에는 없을 수 있어 로딩 시 계산한다. */
+  slot?: number;
+  /** 이 메뉴에서 마지막으로 사용한 2×2 variant. 1×1 자동 확장 시에만 참조한다. */
+  previous2x2AssetId?: string;
+}
+
+/** menuWidgetAssets.ts에 별도 레코드가 없는 기존 1×1 위젯의 안정적인 asset id. */
+export const baseMenuWidgetAssetId = (menuId: string): string => `${menuId}-1x1`;
 
 interface MenuWidgetDef {
   label: string;
@@ -59,6 +77,47 @@ export const SLOT_COLOR_COUNT = 8;
 export function slotColorOf(order: number): number {
   return ((order - 1) % SLOT_COLOR_COUNT) + 1;
 }
+
+/** 데모 계정별 최초 MY 메뉴 추천 구성 — 의도된 정적 preset 이다(저장값이 없을 때만 쓴다).
+ * 1×1·2×2 모두 계정의 생활 상황에 맞춰 명시적으로 고르고, DEFAULT_MENU_WIDGETS 에서 잘라 쓰지 않는다.
+ *   assetId — 2×2 는 menuWidgetAssets.ts 의 에셋 id, 1×1 은 baseMenuWidgetAssetId(menuId)
+ *   slot    — 홈 4×2 Grid 의 시작 칸(1~8). 2×2 는 왼쪽 위(1), 1×1 은 남은 칸.
+ * 한 menuId 는 크기 하나만 선택할 수 있어서 같은 메뉴의 1×1 과 2×2 를 함께 넣지 않는다. */
+export interface PersonaMenuPreset {
+  widgets: { assetId: string; slot: number }[];
+}
+
+export const PERSONA_MENU_PRESETS: Record<DemoAccountId, PersonaMenuPreset> = {
+  /* 서준 — 2주 뒤 이사 예정, 첫 자취 준비 중. 계약·입주 준비와 초기 비용 파악 → 2×2 + 1×1 3개 = 7/8 (슬롯 8 은 비워 둔다) */
+  seojun: {
+    widgets: [
+      { assetId: 'first-home-checklist', slot: 1 },
+      { assetId: baseMenuWidgetAssetId('home-care'), slot: 3 },
+      { assetId: baseMenuWidgetAssetId('recent-expense'), slot: 4 },
+      { assetId: baseMenuWidgetAssetId('fixed-expense'), slot: 7 },
+    ],
+  },
+  /* 하린 — 자취 3년차 원룸. 집 관리·살림·먹거리와 반복 생활비 → 2×2 + 1×1 4개 = 8/8 */
+  harin: {
+    widgets: [
+      { assetId: 'home-care', slot: 1 },
+      { assetId: baseMenuWidgetAssetId('housekeeping'), slot: 3 },
+      { assetId: baseMenuWidgetAssetId('food'), slot: 4 },
+      { assetId: baseMenuWidgetAssetId('fixed-expense'), slot: 7 },
+      { assetId: baseMenuWidgetAssetId('emergency-fund'), slot: 8 },
+    ],
+  },
+  /* 아영 — 직장인, 빌라·투룸. 지출·계좌·혜택으로 비용을 챙기고 집 유지 관리 → 2×2 + 1×1 4개 = 8/8 */
+  ayoung: {
+    widgets: [
+      { assetId: 'recent-expense', slot: 1 },
+      { assetId: baseMenuWidgetAssetId('account'), slot: 3 },
+      { assetId: baseMenuWidgetAssetId('fixed-expense'), slot: 4 },
+      { assetId: baseMenuWidgetAssetId('custom-benefit'), slot: 7 },
+      { assetId: baseMenuWidgetAssetId('home-care'), slot: 8 },
+    ],
+  },
+};
 
 /** 홈 '내 메뉴'의 기본 위젯 — 4열 × 2줄 = 8개. 사용자가 위젯 편집 화면에서 추가·삭제하면
  * 개수는 달라질 수 있고, 그 저장값이 생기면 이 초기값을 대체한다. */
@@ -101,8 +160,18 @@ export function reorderMenuWidgets(items: MenuWidgetItem[], ids: string[]): Menu
  * 화면에서 localStorage 를 직접 부르지 않고 아래 두 함수만 쓴다. */
 const STORAGE_PREFIX = 'jaduya.menuWidgets.';
 
-function storageKey(ownerKey: string): string {
+export function menuWidgetStorageKey(ownerKey: string): string {
   return STORAGE_PREFIX + ownerKey.trim().toLowerCase();
+}
+
+/** 저장된 MY 메뉴를 지운다 — 다음 진입 때 계정의 최초 추천 구성(persona preset)으로 다시 시작한다.
+ * '처음부터 시작하기'(demoProgress.resetAccountDemo)가 쓴다. */
+export function clearMenuWidgets(ownerKey: string): void {
+  try {
+    localStorage.removeItem(menuWidgetStorageKey(ownerKey));
+  } catch {
+    /* 삭제 실패는 무시 */
+  }
 }
 
 function isMenuWidgetItem(value: unknown): value is MenuWidgetItem {
@@ -121,7 +190,7 @@ function isMenuWidgetItem(value: unknown): value is MenuWidgetItem {
  * 전부 지운 상태(빈 배열)도 저장값으로 그대로 돌려준다. */
 export function loadMenuWidgets(ownerKey: string): MenuWidgetItem[] {
   try {
-    const raw = localStorage.getItem(storageKey(ownerKey));
+    const raw = localStorage.getItem(menuWidgetStorageKey(ownerKey));
     if (raw === null) return DEFAULT_MENU_WIDGETS;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_MENU_WIDGETS;
@@ -139,8 +208,46 @@ export function loadMenuWidgets(ownerKey: string): MenuWidgetItem[] {
 
 export function saveMenuWidgets(ownerKey: string, items: MenuWidgetItem[]): void {
   try {
-    localStorage.setItem(storageKey(ownerKey), JSON.stringify(items));
+    localStorage.setItem(menuWidgetStorageKey(ownerKey), JSON.stringify(items));
   } catch {
     /* 저장 실패는 무시 — 이번 세션에서만 바뀐 상태로 동작 */
   }
+}
+
+/* ---- 홈 그리드 칸 계산 ----
+ * 홈 그리드는 4열이고 위젯은 order 순서대로 CSS grid 자동 배치(sparse)로 놓인다. 각 위젯이 어느 칸에 놓이는지는
+ * 저장값이 아니라 order 에서 계산한다(슬롯 색이 이 칸을 따른다). */
+
+export const HOME_GRID_COLUMNS = 4;
+
+interface MenuWidgetPlacement {
+  item: SelectedMenuWidget;
+  row: number;
+  col: number;
+  span: 1 | 2;
+}
+
+/** order 순서대로 각 위젯이 차지하는 칸을 계산한다 (홈 .menu-grid 의 자동 배치와 같은 규칙) */
+export function placeMenuWidgets(items: readonly SelectedMenuWidget[]): MenuWidgetPlacement[] {
+  const used = new Set<string>();
+  const free = (row: number, col: number, span: number) => {
+    for (let r = row; r < row + span; r += 1) {
+      for (let c = col; c < col + span; c += 1) if (used.has(`${r},${c}`)) return false;
+    }
+    return col + span <= HOME_GRID_COLUMNS;
+  };
+  let cursor = 0;
+  return [...items].sort((a, b) => a.order - b.order).map((item) => {
+    const span: 1 | 2 = item.size === '2x2' ? 2 : 1;
+    const preferred = typeof item.slot === 'number' ? item.slot - 1 : -1;
+    let index = preferred >= 0 && free(Math.floor(preferred / HOME_GRID_COLUMNS), preferred % HOME_GRID_COLUMNS, span)
+      ? preferred
+      : cursor;
+    while (!free(Math.floor(index / HOME_GRID_COLUMNS), index % HOME_GRID_COLUMNS, span)) index += 1;
+    const row = Math.floor(index / HOME_GRID_COLUMNS);
+    const col = index % HOME_GRID_COLUMNS;
+    for (let r = row; r < row + span; r += 1) for (let c = col; c < col + span; c += 1) used.add(`${r},${c}`);
+    cursor = Math.min(cursor, index);
+    return { item, row, col, span };
+  });
 }

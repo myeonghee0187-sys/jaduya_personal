@@ -1,90 +1,186 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
-
-/* 홈 '내 메뉴' 그리드의 편집 제스처.
- *
- *   길게 누르기        → 편집 모드 진입 (짧게 탭하면 그대로 위젯 이동)
- *   편집 모드에서 잡기 → 드래그로 순서 변경, 주변 위젯은 자리를 비켜 재배치
- *   바깥 탭 / Esc      → 편집 종료 (드래그 중에는 종료하지 않는다)
- *
- * 위젯 배치의 source of truth 는 Home 의 items 하나다. 여기서는 드래그하는 동안만
- * 미리보기 순서(draftIds)를 들고 있다가, 놓는 순간 onReorder 로 넘기고 비운다.
- * 포인터 이벤트만 쓰고 별도 라이브러리는 없다. */
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
+import { flushSync } from 'react-dom';
+import type { MenuSizeKey } from '../data/menuWidgetAssets';
 
 const LONG_PRESS_MS = 500;
-/** 이 거리(px) 이상 움직여야 실제 끌기가 시작된다 — 누르자마자 카드가 움직이지 않게 (스크롤도 이걸로 구분) */
 const MOVE_THRESHOLD = 8;
 const COLUMNS = 4;
-/** 주변 위젯이 자리를 옮기는 시간·곡선 — 천천히 감속하는 ease-out */
-const REFLOW_MS = 240;
-const REFLOW_EASING = 'cubic-bezier(0.33, 1, 0.68, 1)';
-/** 순서를 바꾸려면 손가락이 옮겨 갈 칸의 '중심부'에 들어와야 한다 — 칸 폭·높이의 이 비율만큼이 중심부.
- * 칸 가장자리에 스치거나 몇 px 흔들리는 정도로는 순서가 바뀌지 않는다. */
-const REORDER_ZONE = 0.5;
-/** 한 번 순서가 바뀐 뒤 다음 변경까지의 최소 간격(ms) — 두 칸 사이를 왔다 갔다 하며 떠는 것을 막는다 */
-const REORDER_COOLDOWN_MS = 160;
+const ROWS = 2;
+const SLOT_COUNT = COLUMNS * ROWS;
+const REFLOW_MS = 200;
+const REFLOW_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const EXPAND_HOVER_MS = 450;
 
-interface Gesture {
+interface GridItem {
   id: string;
-  pointerId: number;
-  startX: number;
-  startY: number;
-  longPressed: boolean;
-  dragging: boolean;
-  grabX: number;
-  grabY: number;
-  timer: number | null;
+  menuId: string;
+  size: MenuSizeKey;
+  slot?: number;
+  compactAssetId?: string;
+  expandedAsset?: { assetId: string; variant: string };
 }
-
+interface Gesture {
+  id: string; pointerId: number; startX: number; startY: number;
+  longPressed: boolean; dragging: boolean; grabX: number; grabY: number; timer: number | null;
+}
+interface AssetReplacement {
+  fromAssetId: string;
+  widget: { assetId: string; menuId: string; size: MenuSizeKey; variant: string };
+}
+interface DropPlan {
+  placements: { assetId: string; slot: number }[];
+  slot: number;
+  span: 1 | 2;
+  replacement?: AssetReplacement;
+}
+interface DropPreview { slot: number; span: 1 | 2; invalid: boolean; waiting?: boolean }
 interface Options {
   gridRef: RefObject<HTMLUListElement>;
   sectionRef: RefObject<HTMLElement>;
-  /** 지금 홈에 놓인 위젯 id — order 순서 */
-  ids: string[];
+  items: GridItem[];
   editing: boolean;
   onEnterEdit: () => void;
   onExitEdit: () => void;
-  /** 드래그를 놓았을 때 새 순서 */
-  onReorder: (ids: string[]) => void;
+  onReorder: (placements: { assetId: string; slot: number }[], replacement?: AssetReplacement) => void;
 }
 
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/* 화면 px 과 CSS px 의 비율. 데스크톱 iPhone 목업은 앱을 zoom(< 1)으로 줄여 보여줘서
- * getBoundingClientRect / 포인터 좌표(화면 px)와 offsetLeft·offsetWidth·transform(CSS px)이 서로
- * 다른 단위다. 두 단위를 섞어 빼면 위젯이 엉뚱한 자리에서 출발해 그리드 전체가 쪼그라들었다 커지므로,
- * 화면 px 로 잰 값은 반드시 이 비율로 나눠 CSS px 로 바꿔서 쓴다. 배율이 없는 실기기에서는 1이다. */
 const screenPerCss = (el: HTMLElement) => (el.offsetWidth > 0 ? el.getBoundingClientRect().width / el.offsetWidth : 1);
 
-export function useMenuGridEdit({ gridRef, sectionRef, ids, editing, onEnterEdit, onExitEdit, onReorder }: Options) {
-  const [draftIds, setDraftIds] = useState<string[] | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+/** 드롭 대상을 먼저 고정하고 나머지를 기존 상대 순서대로 남은 첫 빈칸에 채운다. */
+function planDrop(
+  items: readonly GridItem[],
+  draggedId: string,
+  targetSlot: number,
+  resultSize?: MenuSizeKey,
+  resultAssetId?: string,
+  resultVariant = 'default',
+): DropPlan | null {
+  const dragged = items.find((item) => item.id === draggedId);
+  if (!dragged) return null;
+  const resolvedSize = resultSize ?? dragged.size;
+  const resolvedAssetId = resultAssetId ?? dragged.id;
+  const span: 1 | 2 = resolvedSize === '2x2' ? 2 : 1;
+  const targetRow = Math.floor(targetSlot / COLUMNS);
+  const targetCol = targetSlot % COLUMNS;
+  if (targetSlot < 0 || targetSlot >= SLOT_COUNT || targetCol + span > COLUMNS || targetRow + span > ROWS) return null;
 
-  /* 이벤트 핸들러는 렌더마다 새로 만들어지므로 최신 값은 ref 로 읽는다 */
+  const occupied = Array<boolean>(SLOT_COUNT).fill(false);
+  const starts = new Map<string, number>();
+  const canPlace = (slot: number, itemSpan: 1 | 2) => {
+    const row = Math.floor(slot / COLUMNS);
+    const col = slot % COLUMNS;
+    if (col + itemSpan > COLUMNS || row + itemSpan > ROWS) return false;
+    for (let r = row; r < row + itemSpan; r += 1) {
+      for (let c = col; c < col + itemSpan; c += 1) if (occupied[r * COLUMNS + c]) return false;
+    }
+    return true;
+  };
+  const place = (id: string, slot: number, itemSpan: 1 | 2) => {
+    const row = Math.floor(slot / COLUMNS);
+    const col = slot % COLUMNS;
+    for (let r = row; r < row + itemSpan; r += 1) {
+      for (let c = col; c < col + itemSpan; c += 1) occupied[r * COLUMNS + c] = true;
+    }
+    starts.set(id, slot);
+  };
+
+  place(resolvedAssetId, targetSlot, span);
+  for (const item of items) {
+    if (item.id === dragged.id) continue;
+    const itemSpan: 1 | 2 = item.size === '2x2' ? 2 : 1;
+    let slot = typeof item.slot === 'number' ? item.slot - 1 : 0;
+    if (!canPlace(slot, itemSpan)) slot = 0;
+    while (slot < SLOT_COUNT && !canPlace(slot, itemSpan)) slot += 1;
+    if (slot >= SLOT_COUNT) return null;
+    place(item.id, slot, itemSpan);
+  }
+  return {
+    placements: [...starts.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .map(([assetId, slot]) => ({ assetId, slot: slot + 1 })),
+    slot: targetSlot,
+    span,
+    ...(resolvedAssetId !== dragged.id ? {
+      replacement: {
+        fromAssetId: dragged.id,
+        widget: { assetId: resolvedAssetId, menuId: dragged.menuId, size: resolvedSize, variant: resultVariant },
+      },
+    } : {}),
+  };
+}
+
+/** 1×1 전용 이동. 빈칸이면 source만 비우고, 다른 1×1이면 두 slot만 정확히 교환한다.
+ * 2×2가 점유한 칸과의 충돌은 기존 2×2 규칙을 침범하지 않도록 허용하지 않는다. */
+function planOneByOneDrop(items: readonly GridItem[], draggedId: string, targetSlot: number): DropPlan | null {
+  const dragged = items.find((item) => item.id === draggedId);
+  if (!dragged || dragged.size !== '1x1' || typeof dragged.slot !== 'number') return null;
+  if (targetSlot < 0 || targetSlot >= SLOT_COUNT) return null;
+  const sourceSlot = dragged.slot - 1;
+  if (sourceSlot === targetSlot) {
+    return {
+      placements: items.map((item) => ({ assetId: item.id, slot: item.slot ?? 1 })),
+      slot: targetSlot,
+      span: 1,
+    };
+  }
+
+  const targetWidget = items.find((item) => {
+    if (typeof item.slot !== 'number') return false;
+    const start = item.slot - 1;
+    if (item.size === '1x1') return start === targetSlot;
+    const row = Math.floor(start / COLUMNS);
+    const col = start % COLUMNS;
+    const targetRow = Math.floor(targetSlot / COLUMNS);
+    const targetCol = targetSlot % COLUMNS;
+    return targetRow >= row && targetRow < row + 2 && targetCol >= col && targetCol < col + 2;
+  });
+  if (targetWidget?.size === '2x2') return null;
+
+  const placements = items.map((item) => {
+    if (item.id === dragged.id) return { assetId: item.id, slot: targetSlot + 1 };
+    if (item.id === targetWidget?.id) return { assetId: item.id, slot: sourceSlot + 1 };
+    return { assetId: item.id, slot: item.slot ?? 1 };
+  });
+  return { placements, slot: targetSlot, span: 1 };
+}
+
+export function useMenuGridEdit({ gridRef, sectionRef, items, editing, onEnterEdit, onExitEdit, onReorder }: Options) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [, setDropPlan] = useState<DropPlan | null>(null);
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  const [expandedPreviewAssetId, setExpandedPreviewAssetId] = useState<string | null>(null);
   const gesture = useRef<Gesture | null>(null);
-  const draftRef = useRef<string[] | null>(null);
+  const planRef = useRef<DropPlan | null>(null);
   const editingRef = useRef(editing);
   editingRef.current = editing;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const callbacks = useRef({ onEnterEdit, onExitEdit, onReorder });
   callbacks.current = { onEnterEdit, onExitEdit, onReorder };
   const suppressClick = useRef(false);
-  const lastReorderAt = useRef(0);
-  const reorderTimer = useRef<number | null>(null);
   const pointer = useRef({ x: 0, y: 0 });
   const prevPositions = useRef(new Map<string, { left: number; top: number }>());
-
-  const setDraft = (next: string[] | null) => {
-    draftRef.current = next;
-    setDraftIds(next);
+  const dropFlipRects = useRef<Map<string, DOMRect> | null>(null);
+  const expandTimer = useRef<number | null>(null);
+  const expandCandidate = useRef<string | null>(null);
+  const setPlan = (plan: DropPlan | null, preview: DropPreview | null = null) => {
+    planRef.current = plan;
+    setDropPlan(plan);
+    setDropPreview(preview ?? (plan ? { slot: plan.slot, span: plan.span, invalid: false } : null));
+  };
+  const clearExpansion = () => {
+    if (expandTimer.current !== null) window.clearTimeout(expandTimer.current);
+    expandTimer.current = null;
+    expandCandidate.current = null;
+    setExpandedPreviewAssetId(null);
   };
 
-  const draggedElement = (): HTMLElement | null => {
+  const draggedElement = () => {
     const g = gesture.current;
-    if (!g?.dragging) return null;
-    return gridRef.current?.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`) ?? null;
+    return g?.dragging ? gridRef.current?.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`) ?? null : null;
   };
-
-  /* 잡고 있는 위젯을 손가락 위치에 붙인다 — 배치 위치(offsetLeft/Top)가 바뀔 때마다 다시 계산 */
   const positionDragged = () => {
     const g = gesture.current;
     const el = draggedElement();
@@ -97,35 +193,45 @@ export function useMenuGridEdit({ gridRef, sectionRef, ids, editing, onEnterEdit
     el.style.transform = `translate(${left - el.offsetLeft}px, ${top - el.offsetTop}px)`;
   };
 
-  /* 순서가 바뀌면(드래그·삭제) 자리가 바뀐 위젯이 이전 자리에서 새 자리로 미끄러지게 한다(FLIP) */
   useLayoutEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
+    /* 숨겨진 페이지(예: 메뉴 관리에 가 있는 동안의 홈)에서는 모든 칸의 위치가 0 으로 측정된다 — 그때 기록하거나
+     * 비교하면 다시 보일 때 카드가 엉뚱한 위치에서 날아 들어오므로, 보이지 않을 때는 건너뛴다. */
+    if (grid.getClientRects().length === 0) return;
     const reduce = prefersReducedMotion();
+    const dropRects = dropFlipRects.current;
+    dropFlipRects.current = null;
     const next = new Map<string, { left: number; top: number }>();
-
     grid.querySelectorAll<HTMLElement>('.menu-slot').forEach((el) => {
       const id = el.dataset.widgetId;
       if (!id) return;
+      /* 드래그 중 inline transform을 paint 전에 제거하고 최종 Slot 좌표를 측정한다. */
+      if (dropRects?.has(id)) el.style.transform = '';
       const pos = { left: el.offsetLeft, top: el.offsetTop };
       next.set(id, pos);
+      const first = dropRects?.get(id);
+      if (first && !reduce) {
+        const last = el.getBoundingClientRect();
+        const k = screenPerCss(grid);
+        const dx = (first.left - last.left) / k;
+        const dy = (first.top - last.top) / k;
+        if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+          el.getAnimations().forEach((animation) => animation.cancel());
+          el.animate(
+            [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
+            { duration: REFLOW_MS, easing: REFLOW_EASING },
+          );
+        }
+        return;
+      }
       const prev = prevPositions.current.get(id);
-      if (!prev || reduce || el.classList.contains('is-dragging')) return;
-      /* 배치가 실제로 바뀐 위젯만 움직인다 — 다른 이유로 다시 그려질 때(시트 드래그 등)는 건드리지 않는다 */
-      const shiftX = prev.left - pos.left;
-      const shiftY = prev.top - pos.top;
-      if (Math.abs(shiftX) < 0.5 && Math.abs(shiftY) < 0.5) return;
-      /* 아직 움직이던 중이면 그 위치에서 이어서 움직이도록, 지금 적용 중인 이동량(CSS px)을 더한다 */
-      const current = new DOMMatrix(window.getComputedStyle(el).transform);
-      const dx = shiftX + current.m41;
-      const dy = shiftY + current.m42;
-      el.getAnimations().forEach((animation) => animation.cancel());
-      el.animate(
-        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
-        { duration: REFLOW_MS, easing: REFLOW_EASING },
-      );
+      if (!prev || reduce || dropRects || el.classList.contains('is-dragging')) return;
+      const dx = prev.left - pos.left;
+      const dy = prev.top - pos.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: REFLOW_MS, easing: REFLOW_EASING });
     });
-
     prevPositions.current = next;
     positionDragged();
   });
@@ -134,178 +240,169 @@ export function useMenuGridEdit({ gridRef, sectionRef, ids, editing, onEnterEdit
     const g = gesture.current;
     if (!g) return;
     if (g.timer !== null) window.clearTimeout(g.timer);
-    if (reorderTimer.current !== null) {
-      window.clearTimeout(reorderTimer.current);
-      reorderTimer.current = null;
-    }
+    clearExpansion();
     gesture.current = null;
     if (!g.dragging) return;
-
-    const el = gridRef.current?.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`);
-    const settle = el?.style.transform;
-    if (el) el.style.transform = '';
-    /* 놓는 순간 손가락 위치에서 자기 자리로 내려앉는다 */
-    if (el && settle && !prefersReducedMotion()) {
-      el.animate([{ transform: settle }, { transform: 'translate(0, 0)' }], {
-        duration: REFLOW_MS,
-        easing: REFLOW_EASING,
+    const finalPlan = planRef.current;
+    const grid = gridRef.current;
+    if (commit && finalPlan) {
+      /* 현재 drag transform을 포함한 화면 좌표를 먼저 저장한다. asset 교체 시에는 새 id로 연결한다. */
+      const firstRects = new Map<string, DOMRect>();
+      grid?.querySelectorAll<HTMLElement>('.menu-slot').forEach((element) => {
+        const id = element.dataset.widgetId;
+        if (!id) return;
+        const finalId = id === g.id ? finalPlan.replacement?.widget.assetId ?? id : id;
+        firstRects.set(finalId, element.getBoundingClientRect());
       });
+      dropFlipRects.current = firstRects;
+      flushSync(() => {
+        callbacks.current.onReorder(finalPlan.placements, finalPlan.replacement);
+        setPlan(null);
+        setDraggingId(null);
+      });
+      return;
     }
 
-    const finalIds = draftRef.current;
-    setDraft(null);
+    const el = grid?.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`);
+    const settle = el?.style.transform;
+    if (el) el.style.transform = '';
+    setPlan(null);
     setDraggingId(null);
-    if (commit && finalIds) callbacks.current.onReorder(finalIds);
+    if (el && settle && !prefersReducedMotion()) {
+      el.animate([{ transform: settle }, { transform: 'translate(0, 0)' }], { duration: REFLOW_MS, easing: REFLOW_EASING });
+    }
   };
 
   const startDrag = (grid: HTMLUListElement, g: Gesture, event: ReactPointerEvent<HTMLElement>) => {
     const el = grid.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`);
     if (!el) return;
-    if (g.timer !== null) {
-      window.clearTimeout(g.timer);
-      g.timer = null;
-    }
-    /* 끌기가 시작되는 그 지점을 잡은 것으로 본다 — 활성 거리만큼 카드가 툭 튀지 않고 거기서부터 따라온다 */
-    const rect = el.getBoundingClientRect();
+    /* 이전 SWAP 애니메이션 도중 다시 잡아도 새 pointer drag가 transform을 온전히 제어한다. */
+    const visualRect = el.getBoundingClientRect();
+    el.getAnimations().forEach((animation) => animation.cancel());
+    const settledRect = el.getBoundingClientRect();
+    const k = screenPerCss(grid);
+    el.style.transform = `translate(${(visualRect.left - settledRect.left) / k}px, ${(visualRect.top - settledRect.top) / k}px)`;
+    if (g.timer !== null) window.clearTimeout(g.timer);
+    g.timer = null;
+    const rect = visualRect;
     g.grabX = pointer.current.x - rect.left;
     g.grabY = pointer.current.y - rect.top;
     g.dragging = true;
-    lastReorderAt.current = 0;
-    /* 이제부터 포인터는 그리드가 받는다 — 순서가 바뀌며 위젯 DOM 이 옮겨져도 끊기지 않게 */
     grid.setPointerCapture(event.pointerId);
-    setDraft([...ids]);
     setDraggingId(g.id);
+    setPlan(null);
+    clearExpansion();
   };
 
-  /* 카드는 손가락을 그대로 따라오고, 주변 위젯의 재배치는 여기서 차분하게 판단한다 */
   const updateDrag = (grid: HTMLUListElement, g: Gesture) => {
     positionDragged();
-
-    const list = draftRef.current;
-    const el = grid.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(g.id)}"]`);
-    if (!list || !el) return;
-
+    if (!draggedElement()) return;
     const box = grid.getBoundingClientRect();
     const k = screenPerCss(grid);
     const style = window.getComputedStyle(grid);
     const gapX = Number.parseFloat(style.columnGap) || 0;
     const gapY = Number.parseFloat(style.rowGap) || 0;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const px = (pointer.current.x - box.left) / k;
-    const py = (pointer.current.y - box.top) / k;
-    const col = Math.floor(px / (w + gapX));
-    const row = Math.floor(py / (h + gapY));
-    if (col < 0 || col >= COLUMNS || row < 0) return;
-
-    /* 그 칸의 중심부에 들어왔을 때만 */
-    const localX = px - col * (w + gapX);
-    const localY = py - row * (h + gapY);
-    if (Math.abs(localX - w / 2) > (w * REORDER_ZONE) / 2) return;
-    if (Math.abs(localY - h / 2) > (h * REORDER_ZONE) / 2) return;
-
-    /* 마지막 줄의 빈 칸 중심부는 맨 끝으로 옮기는 것으로 본다 */
-    const target = Math.min(row * COLUMNS + col, list.length - 1);
-    const from = list.indexOf(g.id);
-    if (from === -1 || from === target) return;
-
-    /* 방금 바뀌었다면 잠깐 기다렸다가, 그때도 그 자리에 있으면 바꾼다 */
-    const wait = REORDER_COOLDOWN_MS - (performance.now() - lastReorderAt.current);
-    if (wait > 0) {
-      if (reorderTimer.current === null) {
-        reorderTimer.current = window.setTimeout(() => {
-          reorderTimer.current = null;
-          const current = gesture.current;
-          const currentGrid = gridRef.current;
-          if (current?.dragging && currentGrid) updateDrag(currentGrid, current);
-        }, wait);
+    const cellWidth = (grid.offsetWidth - gapX * (COLUMNS - 1)) / COLUMNS;
+    /* 행 높이가 px 로 고정된 grid(메뉴 관리 MY 메뉴)는 그 값을 쓴다 — 행이 1개뿐이어도 정확하다 */
+    const fixedRow = Number.parseFloat(style.gridAutoRows);
+    const cellHeight = Number.isFinite(fixedRow) ? fixedRow : (grid.offsetHeight - gapY * (ROWS - 1)) / ROWS;
+    const left = (pointer.current.x - box.left - g.grabX) / k;
+    const top = (pointer.current.y - box.top - g.grabY) / k;
+    const col = Math.max(0, Math.min(COLUMNS - 1, Math.round(left / (cellWidth + gapX))));
+    const row = Math.max(0, Math.min(ROWS - 1, Math.round(top / (cellHeight + gapY))));
+    const dragged = itemsRef.current.find((item) => item.id === g.id);
+    if (!dragged) return;
+    if (dragged.size === '2x2') {
+      if (col < 2) {
+        setPlan(planDrop(itemsRef.current, g.id, 0, '2x2'));
+        return;
       }
+      const slot = row * COLUMNS + col;
+      const plan = dragged.compactAssetId
+        ? planDrop(itemsRef.current, g.id, slot, '1x1', dragged.compactAssetId)
+        : null;
+      setPlan(plan, { slot, span: 1, invalid: !plan });
       return;
     }
-
-    const next = [...list];
-    next.splice(from, 1);
-    next.splice(target, 0, g.id);
-    lastReorderAt.current = performance.now();
-    setDraft(next);
+    if (col < 2 && dragged.expandedAsset) {
+      const leftSlots = new Set([0, 1, 4, 5]);
+      const blocked = itemsRef.current.some((item) => {
+        if (item.id === dragged.id || typeof item.slot !== 'number') return false;
+        const start = item.slot - 1;
+        if (item.size === '1x1') return leftSlots.has(start);
+        return true;
+      });
+      if (!blocked) {
+        if (expandedPreviewAssetId === dragged.expandedAsset.assetId) {
+          setPlan(planDrop(itemsRef.current, g.id, 0, '2x2', dragged.expandedAsset.assetId, dragged.expandedAsset.variant));
+          return;
+        }
+        const oneByOnePlan = planOneByOneDrop(itemsRef.current, g.id, row * COLUMNS + col);
+        setPlan(oneByOnePlan, { slot: 0, span: 2, invalid: false, waiting: true });
+        if (expandCandidate.current !== dragged.id) {
+          clearExpansion();
+          expandCandidate.current = dragged.id;
+          expandTimer.current = window.setTimeout(() => {
+            const current = gesture.current;
+            const latest = itemsRef.current.find((item) => item.id === dragged.id);
+            if (!current?.dragging || current.id !== dragged.id || !latest?.expandedAsset) return;
+            const expandedPlan = planDrop(itemsRef.current, dragged.id, 0, '2x2', latest.expandedAsset.assetId, latest.expandedAsset.variant);
+            if (!expandedPlan) return;
+            expandTimer.current = null;
+            setExpandedPreviewAssetId(latest.expandedAsset.assetId);
+            setPlan(expandedPlan);
+          }, EXPAND_HOVER_MS);
+        }
+        return;
+      }
+    }
+    clearExpansion();
+    setPlan(planOneByOneDrop(itemsRef.current, g.id, row * COLUMNS + col));
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLUListElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (gesture.current) return; /* 두 번째 손가락은 무시 */
+    if (gesture.current) return;
     const target = event.target as HTMLElement;
     if (target.closest('.menu-slot__remove')) return;
     const slot = target.closest<HTMLElement>('.menu-slot');
     if (!slot?.dataset.widgetId) return;
-
     suppressClick.current = false;
     pointer.current = { x: event.clientX, y: event.clientY };
-    const g: Gesture = {
-      id: slot.dataset.widgetId,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      longPressed: false,
-      dragging: false,
-      grabX: 0,
-      grabY: 0,
-      timer: null,
-    };
+    const g: Gesture = { id: slot.dataset.widgetId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, longPressed: false, dragging: false, grabX: 0, grabY: 0, timer: null };
     gesture.current = g;
-
     if (!editingRef.current) {
       g.timer = window.setTimeout(() => {
         g.timer = null;
         g.longPressed = true;
-        /* 길게 누른 뒤에 따라오는 click 은 위젯 이동으로 이어지지 않게 막는다 */
         suppressClick.current = true;
         callbacks.current.onEnterEdit();
       }, LONG_PRESS_MS);
     }
   };
-
   const onPointerMove = (event: ReactPointerEvent<HTMLUListElement>) => {
     const g = gesture.current;
     if (!g || event.pointerId !== g.pointerId) return;
     pointer.current = { x: event.clientX, y: event.clientY };
-
     if (!g.dragging) {
       if (Math.hypot(event.clientX - g.startX, event.clientY - g.startY) < MOVE_THRESHOLD) return;
       if (editingRef.current || g.longPressed) {
         startDrag(event.currentTarget, g, event);
-        /* 빠르게 끌어서 첫 move 가 이미 다른 칸이어도 그 칸으로 바로 반영한다 */
         if (g.dragging) updateDrag(event.currentTarget, g);
-      } else {
-        /* 편집 모드가 아닌데 움직였다 = 스크롤/스와이프. 길게 누르기를 취소한다 */
-        endGesture(false);
-      }
+      } else endGesture(false);
       return;
     }
     updateDrag(event.currentTarget, g);
   };
-
-  const onPointerUp = (event: ReactPointerEvent<HTMLUListElement>) => {
-    if (gesture.current && event.pointerId === gesture.current.pointerId) endGesture(true);
-  };
-
-  const onPointerCancel = (event: ReactPointerEvent<HTMLUListElement>) => {
-    if (gesture.current && event.pointerId === gesture.current.pointerId) endGesture(false);
-  };
-
-  /* 편집 중에는 위젯 이동을 잠시 끄고, 길게 누른 직후의 click 도 삼킨다. 삭제(-) 버튼은 통과. */
+  const onPointerUp = (event: ReactPointerEvent<HTMLUListElement>) => { if (gesture.current?.pointerId === event.pointerId) endGesture(true); };
+  const onPointerCancel = (event: ReactPointerEvent<HTMLUListElement>) => { if (gesture.current?.pointerId === event.pointerId) endGesture(false); };
   const onClickCapture = (event: ReactMouseEvent<HTMLUListElement>) => {
     if ((event.target as HTMLElement).closest('.menu-slot__remove')) return;
-    if (editingRef.current || suppressClick.current) {
-      suppressClick.current = false;
-      event.preventDefault();
-      event.stopPropagation();
-    }
+    if ((event.target as HTMLElement).closest('.menu-grid__empty-button')) return;
+    if (editingRef.current || suppressClick.current) { suppressClick.current = false; event.preventDefault(); event.stopPropagation(); }
   };
-
-  /* 길게 누를 때 뜨는 브라우저 컨텍스트 메뉴를 막는다 */
   const onContextMenu = (event: ReactMouseEvent<HTMLUListElement>) => event.preventDefault();
 
-  /* 편집 중이거나 길게 누른 손가락이 끌기 시작할 때 화면(시트)이 같이 스크롤되지 않게 한다 */
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
@@ -316,34 +413,34 @@ export function useMenuGridEdit({ gridRef, sectionRef, ids, editing, onEnterEdit
     grid.addEventListener('touchmove', block, { passive: false });
     return () => grid.removeEventListener('touchmove', block);
   }, [gridRef]);
-
-  /* 편집 종료: 내 메뉴 영역 밖을 누르거나 Esc. 드래그 중에는 종료하지 않는다. */
   useEffect(() => {
     if (!editing) return;
-    const onDocumentPointerDown = (event: PointerEvent) => {
-      if (gesture.current?.dragging) return;
-      if (sectionRef.current?.contains(event.target as Node)) return;
-      callbacks.current.onExitEdit();
+    const outside = (event: PointerEvent) => {
+      if (!gesture.current?.dragging && !sectionRef.current?.contains(event.target as Node)) callbacks.current.onExitEdit();
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !gesture.current?.dragging) callbacks.current.onExitEdit();
-    };
-    document.addEventListener('pointerdown', onDocumentPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onDocumentPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !gesture.current?.dragging) callbacks.current.onExitEdit(); };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
   }, [editing, sectionRef]);
-
   useEffect(() => () => {
     if (gesture.current?.timer != null) window.clearTimeout(gesture.current.timer);
+    if (expandTimer.current !== null) window.clearTimeout(expandTimer.current);
   }, []);
 
+  const dropPlaceholder = dropPreview ? {
+    style: {
+      gridColumn: `${(dropPreview.slot % COLUMNS) + 1} / span ${dropPreview.span}`,
+      gridRow: `${Math.floor(dropPreview.slot / COLUMNS) + 1} / span ${dropPreview.span}`,
+    } as CSSProperties,
+    invalid: dropPreview.invalid,
+    waiting: dropPreview.waiting ?? false,
+  } : null;
   return {
-    /** 그릴 순서 — 드래그 중에는 미리보기 순서, 아니면 ids 그대로 */
-    renderIds: draftIds ?? ids,
+    renderIds: items.map((item) => item.id),
     draggingId,
+    expandedPreviewAssetId,
+    dropPlaceholder,
     gridProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClickCapture, onContextMenu },
   };
 }

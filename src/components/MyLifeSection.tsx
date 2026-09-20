@@ -3,7 +3,10 @@ import type { RefObject } from 'react';
 import { GlyphIcon } from './GlyphIcon';
 import { MenuWidgetSlot } from './MenuWidget';
 import { useMenuGridEdit } from '../hooks/useMenuGridEdit';
-import type { MenuWidgetItem } from '../data/menuWidgets';
+import { HOME_GRID_COLUMNS, baseMenuWidgetAssetId, placeMenuWidgets } from '../data/menuWidgets';
+import type { SelectedMenuWidget } from '../data/menuWidgets';
+import { MENU_CATALOG } from '../data/menuCatalog';
+import { resolveAutoExpandAsset } from '../data/menuWidgetAssets';
 
 /* ② 내 메뉴
  *
@@ -14,16 +17,22 @@ import type { MenuWidgetItem } from '../data/menuWidgets';
 
 interface MyLifeSectionProps {
   /** 홈에 놓인 위젯 — order 순서로 그려진다 */
-  widgets: MenuWidgetItem[];
+  widgets: SelectedMenuWidget[];
   editing: boolean;
-  onOpenWidget: (item: MenuWidgetItem) => void;
+  onOpenWidget: (item: SelectedMenuWidget) => void;
   /** 상세 메뉴 관리 화면으로 이동 — 홈의 편집 mode를 직접 켜지 않는다. */
   onManageMenu: () => void;
   onEnterEdit: () => void;
   onExitEdit: () => void;
   onRemoveWidget: (id: string) => void;
   /** 드래그를 놓았을 때 새 순서(위젯 id 배열) */
-  onReorderWidgets: (ids: string[]) => void;
+  onReorderWidgets: (
+    placements: { assetId: string; slot: number }[],
+    replacement?: {
+      fromAssetId: string;
+      widget: { assetId: string; menuId: string; size: '1x1' | '2x2'; variant: string };
+    },
+  ) => void;
   /** 위젯 그리드(.menu-grid) DOM 참조 — 코치마크가 강조 영역을 잴 때도 쓴다 */
   gridRef: RefObject<HTMLUListElement>;
 }
@@ -41,17 +50,51 @@ export function MyLifeSection({
 }: MyLifeSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const ordered = [...widgets].sort((a, b) => a.order - b.order);
-  const byId = new Map(ordered.map((item) => [item.id, item]));
+  const byId = new Map(ordered.map((item) => [item.assetId, item]));
+  const compactMenuIds = new Set(
+    MENU_CATALOG.flatMap((section) => section.items)
+      .filter((menu) => menu.showBaseWidgetInMenuManage !== false)
+      .map((menu) => menu.id),
+  );
 
-  const { renderIds, draggingId, gridProps } = useMenuGridEdit({
+  const { renderIds, draggingId, expandedPreviewAssetId, dropPlaceholder, gridProps } = useMenuGridEdit({
     gridRef,
     sectionRef,
-    ids: ordered.map((item) => item.id),
+    items: ordered.map((item) => ({
+      id: item.assetId,
+      menuId: item.menuId,
+      size: item.size,
+      slot: item.slot,
+      compactAssetId: compactMenuIds.has(item.menuId) ? baseMenuWidgetAssetId(item.menuId) : undefined,
+      expandedAsset: (() => {
+        const asset = resolveAutoExpandAsset(item.assetId, item.menuId, item.previous2x2AssetId);
+        return asset ? { assetId: asset.id, variant: asset.variant ?? 'default' } : undefined;
+      })(),
+    })),
     editing,
     onEnterEdit,
     onExitEdit,
     onReorder: onReorderWidgets,
   });
+
+  /* 색상은 배열 순번이 아니라 실제 4열 Grid의 시작 칸에 붙는다.
+   * 드래그 중에는 renderIds 순서를 임시 order로 사용해 이동 중인 새 슬롯 색도 즉시 반영한다. */
+  const renderedItems = renderIds.flatMap((id, index) => {
+    const item = byId.get(id);
+    return item ? [{ ...item, order: index + 1 }] : [];
+  });
+  const placements = placeMenuWidgets(renderedItems);
+  const placementByAssetId = new Map(placements.map(({ item, row, col, span }) => [
+    item.assetId,
+    { slotIndex: row * HOME_GRID_COLUMNS + col + 1, row, col, span },
+  ]));
+  const occupiedSlots = new Set<number>();
+  placements.forEach(({ row, col, span }) => {
+    for (let r = row; r < row + span; r += 1) {
+      for (let c = col; c < col + span; c += 1) occupiedSlots.add(r * HOME_GRID_COLUMNS + c);
+    }
+  });
+  const emptySlots = Array.from({ length: 8 }, (_, slot) => slot).filter((slot) => !occupiedSlots.has(slot));
 
   return (
     <section className="my-life" ref={sectionRef}>
@@ -80,21 +123,52 @@ export function MyLifeSection({
         aria-label="내 메뉴"
         {...gridProps}
       >
-        {renderIds.map((id, index) => {
+        {dropPlaceholder && (
+          <li
+            className={`menu-grid__drop-placeholder${dropPlaceholder.invalid ? ' is-invalid' : ''}${dropPlaceholder.waiting ? ' is-waiting' : ''}`}
+            style={dropPlaceholder.style}
+            aria-hidden="true"
+          />
+        )}
+        {renderIds.map((id) => {
           const item = byId.get(id);
           if (!item) return null;
+          const placement = placementByAssetId.get(item.assetId);
           return (
             <MenuWidgetSlot
-              key={item.id}
+              key={item.assetId}
               item={item}
-              position={index + 1}
+              slotIndex={placement?.slotIndex ?? 1}
+              row={placement?.row ?? 0}
+              col={placement?.col ?? 0}
+              span={placement?.span ?? 1}
               editing={editing}
-              dragging={draggingId === item.id}
+              dragging={draggingId === item.assetId}
+              previewAssetId={draggingId === item.assetId ? expandedPreviewAssetId ?? undefined : undefined}
               onOpen={onOpenWidget}
               onRemove={onRemoveWidget}
             />
           );
         })}
+        {emptySlots.map((slot) => (
+          <li
+            key={`empty-${slot + 1}`}
+            className="menu-grid__empty"
+            style={{
+              gridColumn: `${(slot % HOME_GRID_COLUMNS) + 1} / span 1`,
+              gridRow: `${Math.floor(slot / HOME_GRID_COLUMNS) + 1} / span 1`,
+            }}
+          >
+            <button
+              type="button"
+              className="menu-grid__empty-button"
+              aria-label={`빈 슬롯 ${slot + 1}, 메뉴 추가`}
+              onClick={onManageMenu}
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+          </li>
+        ))}
       </ul>
     </section>
   );

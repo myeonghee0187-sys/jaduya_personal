@@ -44,6 +44,30 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* URL은 즉시 전환하고 새 route의 일반 콘텐츠만 가볍게 등장시킨다.
+ * retained route wrapper는 display:contents라 레이아웃·스크롤에 관여하지 않는다.
+ * 공통/고정 chrome은 각 페이지의 기존 위치에 그대로 두고 애니메이션 대상에서 제외한다. */
+.route-page.is-active > .app > :not(.header):not(.page-header):not(.menu-manage__header):not(.ai-chat-page__header):not(.tab-bar):not(.community-fab):not(.home-sheet-dismiss-area):not(.sheet) {
+  animation: route-page-enter 200ms ease-out both;
+}
+
+@keyframes route-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-page.is-active > .app > :not(.header):not(.page-header):not(.menu-manage__header):not(.ai-chat-page__header):not(.tab-bar):not(.community-fab):not(.home-sheet-dismiss-area):not(.sheet) {
+    animation: none;
+  }
+}
+
 .app {
   width: 100%;
   /* 모바일 지원 범위는 360~402px 이고 402px 가 Figma 디자인 기준이다 — 402px 를
@@ -323,13 +347,13 @@ body {
   }
 
   .home-benefit-banner__button {
-    left: calc(50% - 2px);
-    right: auto;
-    width: calc(var(--content-width) - 4px);
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    width: auto;
+    transform: none;
   }
 
   .home-benefit-banner__button:active {
-    transform: translateX(-50%) scale(0.98);
+    transform: scale(0.98);
   }
 }

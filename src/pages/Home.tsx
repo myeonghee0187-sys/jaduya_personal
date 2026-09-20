@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 import { AdDetailSheet } from '../components/AdDetailSheet';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { triggerAiFabDemoMove } from '../components/ai/aiFabDemoMove';
@@ -17,12 +18,9 @@ import { MyLifeSection } from '../components/MyLifeSection';
 import type { AdContent } from '../data/adContents';
 import {
   MENU_WIDGET_DEFS,
-  loadMenuWidgets,
-  removeMenuWidget,
-  reorderMenuWidgets,
-  saveMenuWidgets,
 } from '../data/menuWidgets';
-import type { MenuWidgetItem } from '../data/menuWidgets';
+import type { SelectedMenuWidget } from '../data/menuWidgets';
+import { MENU_CATALOG } from '../data/menuCatalog';
 import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
 import { PERSONA_PROFILE } from '../data/personaProfile';
@@ -32,6 +30,7 @@ import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
 import { useSheetGesture } from '../hooks/useSheetGesture';
 import { useDragToClose } from '../hooks/useDragToClose';
 import { useAppNavigation } from '../navigation/AppNavigation';
+import { useMenuWidgetSelection } from '../widgets/MenuWidgetSelectionContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
@@ -65,7 +64,33 @@ export function Home() {
 
   const navigation = useAppNavigation();
   const sheet = useSheetGesture();
+  const heroScrollGestureRef = useRef<{ pointerId: number; startY: number } | null>(null);
   const [bottomNavigationVisible, setBottomNavigationVisible] = useState(true);
+
+  /* peek 상태에서 시트 밖 Hero를 스크롤해도 시트가 올라오게 한다. wheel은 아래 방향,
+   * touch/pen은 위로 40px 이상 움직였을 때만 반응하며 시트 내부 제스처는 기존 훅에 맡긴다. */
+  const handleHeroWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (sheet.state !== 'peek' || event.deltaY <= 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('.sheet')) return;
+    sheet.apply('expanded');
+  };
+  const handleHeroPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (sheet.state !== 'peek' || event.pointerType === 'mouse') return;
+    const target = event.target as HTMLElement;
+    if (target.closest('.sheet')) return;
+    heroScrollGestureRef.current = { pointerId: event.pointerId, startY: event.clientY };
+  };
+  const handleHeroPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const gesture = heroScrollGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (event.clientY - gesture.startY > -40) return;
+    heroScrollGestureRef.current = null;
+    sheet.apply('expanded');
+  };
+  const clearHeroPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (heroScrollGestureRef.current?.pointerId === event.pointerId) heroScrollGestureRef.current = null;
+  };
 
   /* 시트가 펼쳐지거나 드래그를 시작하면 탭바를 즉시 제거한다.
    * 닫힐 때는 시트 이동(transform) 전환이 끝난 뒤에만 다시 렌더링해, 시트가 내려가는 중간에
@@ -98,19 +123,13 @@ export function Home() {
       window.clearTimeout(fallback);
     };
   }, [bottomNavigationVisible, sheet.isDragging, sheet.sheetRef, sheet.state]);
-  /* 내 메뉴 위젯 — 저장된 배치(없으면 기본 8개)가 유일한 source of truth 다.
-   * 삭제·재정렬은 이 배열만 바꾸고 바로 저장한다. isEditing 은 화면 상태일 뿐 저장하지 않는다. */
-  const [menuWidgets, setMenuWidgets] = useState<MenuWidgetItem[]>(() => loadMenuWidgets(ownerKey));
+  /* 메뉴 관리와 같은 asset 단위 선택값을 구독한다. 삭제·재정렬도 이 공통 상태만 변경한다. */
+  const { selectedWidgets: menuWidgets, removeWidget, reorderWidgets } = useMenuWidgetSelection();
   const [menuEditing, setMenuEditing] = useState(false);
-  const updateMenuWidgets = (change: (items: MenuWidgetItem[]) => MenuWidgetItem[]) => {
-    setMenuWidgets((current) => {
-      const next = change(current);
-      saveMenuWidgets(ownerKey, next);
-      return next;
-    });
-  };
-  const openMenuWidget = (item: MenuWidgetItem) => {
-    const def = MENU_WIDGET_DEFS[item.type];
+  const openMenuWidget = (item: SelectedMenuWidget) => {
+    const menu = MENU_CATALOG.flatMap((section) => section.items).find((entry) => entry.id === item.menuId);
+    const def = menu?.widgetType ? MENU_WIDGET_DEFS[menu.widgetType] : null;
+    if (!def) return;
     navigation?.navigate(def.page, def.options);
   };
 
@@ -232,10 +251,24 @@ export function Home() {
     <div
       className={`home app${sheet.isDragging ? ' is-dragging' : ''}`}
       data-sheet-state={sheet.state}
+      onWheelCapture={handleHeroWheel}
+      onPointerDownCapture={handleHeroPointerDown}
+      onPointerMoveCapture={handleHeroPointerMove}
+      onPointerUpCapture={clearHeroPointer}
+      onPointerCancelCapture={clearHeroPointer}
     >
       <Hero showFallingLeaves={isDemoAccount} />
 
       <Header />
+
+      {sheet.state === 'expanded' && !recommendationSettingsOpen && (
+        <button
+          type="button"
+          className="home-sheet-dismiss-area"
+          aria-label="홈 대시보드 접기"
+          onClick={() => sheet.apply('peek')}
+        />
+      )}
 
       <Greeting name={greetingName(user?.name ?? '')} hero={content.hero} />
 
@@ -277,8 +310,8 @@ export function Home() {
             onManageMenu={() => navigation?.navigate('widget-gallery')}
             onEnterEdit={() => setMenuEditing(true)}
             onExitEdit={() => setMenuEditing(false)}
-            onRemoveWidget={(id) => updateMenuWidgets((items) => removeMenuWidget(items, id))}
-            onReorderWidgets={(ids) => updateMenuWidgets((items) => reorderMenuWidgets(items, ids))}
+            onRemoveWidget={removeWidget}
+            onReorderWidgets={reorderWidgets}
             gridRef={menuGridRef}
           />
           <DiscoverySection onOpenRecommendSetup={openRecommendSetup} onOpenAd={openAd} />

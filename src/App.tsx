@@ -28,7 +28,7 @@ import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
 import { BenefitDetailPage } from './pages/BenefitDetailPage';
-import { WidgetPage } from './pages/WidgetPage';
+import { MenuManagePage } from './pages/MenuManagePage';
 import { NotificationPage } from './pages/NotificationPage';
 import { AppSettingsPage } from './pages/AppSettingsPage';
 import { AccountManagementPage } from './pages/AccountManagementPage';
@@ -38,6 +38,7 @@ import { AppNavigationProvider, useAppNavigation } from './navigation/AppNavigat
 import { BookmarkProvider } from './bookmarks/BookmarkContext';
 import { CommunityPostsProvider } from './community/CommunityPostsContext';
 import { WidgetPlacementProvider } from './widgets/WidgetPlacementContext';
+import { MenuWidgetSelectionProvider } from './widgets/MenuWidgetSelectionContext';
 import { NotificationProvider } from './notifications/NotificationContext';
 import { initializeLivingProfileFromOnboarding } from './data/livingProfile';
 import { PERSONA_PROFILE } from './data/personaProfile';
@@ -58,7 +59,8 @@ function MissingPage() {
 }
 function RouteChrome() {
   const navigation = useAppNavigation()!;
-  return <AIChatbot hidden={navigation.page === 'settings' || navigation.page === 'support'}
+  /* 메뉴 관리(widget-gallery)는 하단 저장 Action Bar 를 가리므로 챗봇 FAB 을 렌더링하지 않는다 */
+  return <AIChatbot hidden={navigation.page === 'settings' || navigation.page === 'support' || navigation.page === 'widget-gallery'}
     disabled={navigation.isAIChatOpen} showEntryHint={navigation.page === 'home'}
     initialLift={navigation.page.startsWith('community') ? 68 : 0} />;
 }
@@ -74,7 +76,10 @@ function MainPages() {
   const backgroundPath = location.pathname === '/ai' ? (background?.pathname ?? '/') : undefined;
   if (background && !retained.current.has(background.pathname)) retained.current.set(background.pathname, background);
   return <>
-    {[...retained.current].map(([path, at]) => <div key={path} hidden={path !== location.pathname && path !== backgroundPath}
+    {[...retained.current].map(([path, at]) => <div
+      key={path}
+      className={`route-page${path === location.pathname ? ' is-active' : ''}`}
+      hidden={path !== location.pathname && path !== backgroundPath}
       style={{ display: path === location.pathname || path === backgroundPath ? 'contents' : 'none' }}>
       <Routes location={at}>
         <Route element={<AppNavigationProvider currentLocation={location}><Outlet /></AppNavigationProvider>}>
@@ -105,7 +110,7 @@ function MainPages() {
           <Route path="/my/settings" element={<AppSettingsPage />} />
           <Route path="/my/account" element={<AccountManagementPage />} />
           <Route path="/my/support" element={<CustomerCenterPage />} />
-          <Route path="/widgets" element={<WidgetPage />} />
+          <Route path="/widgets" element={<MenuManagePage />} />
           <Route path="/notifications" element={<NotificationPage />} />
           <Route path="/ai" element={<AIChatPage />} />
           <Route path="*" element={<MissingPage />} />
@@ -145,6 +150,8 @@ export default function App() {
   }
   if (isAuth) return <Navigate to={returnTo} replace />;
   return <BookmarkProvider key={user.email}><CommunityPostsProvider><NotificationProvider><WidgetPlacementProvider>
-    <MainPages />
+    <MenuWidgetSelectionProvider ownerKey={user.email}>
+      <MainPages />
+    </MenuWidgetSelectionProvider>
   </WidgetPlacementProvider></NotificationProvider></CommunityPostsProvider></BookmarkProvider>;
 }
