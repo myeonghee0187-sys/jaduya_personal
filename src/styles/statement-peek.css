@@ -1,0 +1,1790 @@
+/* 홈 결제 예정 카드(레퍼런스) — 화면 아래쪽에 살짝 보이는 카드와, 눌렀을 때 올라오는 바텀시트.
+ * 색은 브랜드 레드 + 흰 글자, 뱃지는 검정 알약. 반지름은 위쪽만 20px. */
+
+/* ---------- 살짝 보이는 카드 ---------- */
+.statement-peek {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--tab-bar-h);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  box-sizing: border-box;
+  height: 104px;
+  padding: 12px 20px 0;
+  border: none;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--brand-primary);
+  box-shadow: 0 -4px 16px color-mix(in srgb, var(--color-gray-10) 14%, transparent);
+  color: var(--color-gray-0);
+  text-align: left;
+  cursor: pointer;
+  animation: statement-peek-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes statement-peek-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.statement-peek:active {
+  transform: scale(0.99);
+}
+
+/* 위쪽 가운데 손잡이 — 끌어올릴 수 있다는 표시 */
+.statement-peek__handle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-gray-10) 28%, transparent);
+  transform: translateX(-50%);
+}
+
+.statement-peek__art {
+  flex: none;
+  width: 62px;
+  height: 83px;
+  transform: scaleX(-1); /* 좌우 반전 */
+  margin-top: 0;
+  object-fit: contain;
+}
+
+.statement-peek__info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statement-peek__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statement-peek__badge {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-10);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--color-gray-0);
+}
+
+.statement-peek__title {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--color-gray-0);
+}
+
+.statement-peek__amount {
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--color-gray-0);
+}
+
+/* ---------- 바텀시트 ---------- */
+/* 뒤의 돈 관리 화면 딤 처리 — 레이어는 공용 바텀시트처럼 화면 전체를 덮어 뒤 화면 전체를 어둡게 하고 터치도 막는다.
+ * 딤 진하기는 --stmt-dim(0~1)으로 정한다: 열려 있는 동안 1, 닫으려고 손잡이를 끌어 내리는 동안에는 옅어져 0이 된다.
+ * (선택자에 클래스를 겹쳐 써서 공용 .layer--sheet 규칙보다 항상 우선한다.) */
+.layer.statement-layer:not([hidden]) .layer-dim {
+  opacity: var(--stmt-dim, 1);
+}
+
+.layer.statement-layer.is-dragging .layer-dim {
+  transition: none;
+}
+
+/* 시트 위치·높이 — 화면 아래에 붙고(하단 탭 바까지 덮는 표준 시트), 높이는 컴포넌트가 정한다:
+ * 바로 Large — 위쪽 38px 만 남김. */
+.layer.statement-layer .bsheet.statement-sheet {
+  top: auto;
+  bottom: 0;
+  max-height: none;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), height 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.statement-sheet {
+  overflow: hidden;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--color-gray-0);
+}
+
+.statement-sheet__card {
+  position: relative;
+  padding: 12px 20px 16px;
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
+  margin: 0;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-gray-10) 22%, transparent);
+  flex: none;
+}
+
+/* 위쪽 손잡이 영역 — 아래로 끌면 시트가 따라 내려가고 충분히 끌면 닫힌다(useDragToClose). 눈에 보이는
+ * 막대는 작지만 손가락으로 잡기 쉽게 터치 영역은 넓게 잡는다. */
+.statement-sheet__grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  height: 36px;
+  padding-top: 8px;
+  box-sizing: border-box;
+  cursor: grab;
+  touch-action: none;
+}
+
+.statement-sheet__grip:active {
+  cursor: grabbing;
+}
+
+.statement-sheet__grip span {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-gray-10) 28%, transparent);
+}
+
+.statement-sheet__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 0;
+  height: 104px;
+}
+
+.statement-sheet__art {
+  flex: none;
+  width: 76px;
+  height: 101px;
+  transform: scaleX(-1); /* 좌우 반전 */
+  object-fit: contain;
+  margin-top: 8px;
+}
+
+.statement-sheet__info {
+  min-width: 0;
+  text-align: right;
+}
+
+.statement-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0;
+}
+
+.statement-sheet__title {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.statement-sheet__amount {
+  margin: 2px 0 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+/* 카드값 구성 — 어느 카드 명세서가 합쳐진 금액인지 한 줄로 보여준다 */
+.statement-sheet__cards {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-gray-0) 80%, transparent);
+}
+
+/* 아래 세 버튼 — 흰 테두리만 있는 알약(카드 위에서 눈에 띄되 색을 더하지 않는다) */
+.statement-sheet__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.statement-sheet__actions button {
+  flex: 1 1 0;
+  height: 40px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-gray-0) 70%, transparent);
+  border-radius: var(--radius-pill);
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-gray-0);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+@media (hover: hover) {
+  .statement-sheet__actions button:hover {
+    background: color-mix(in srgb, var(--color-gray-0) 16%, transparent);
+  }
+}
+
+/* ---------- 시트 본문(레퍼런스: 카드사 앱 "최근 이용 내역" / "월별 소비 분류") ----------
+ * 카드 아래 영역이 스크롤되고, 그 안에서 "월 이동 + 달력"이 위에 붙어(sticky) 내역이 스크롤되는 동안에도 보인다. */
+.statement-sheet__body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 20px 28px;
+  overflow-y: auto;
+  --stmt-income: #2f6fd6;
+  --stmt-expense: var(--brand-primary);
+}
+
+/* 금액 + 소비 분류 버튼 */
+/* 금액 요약 — 스크롤하면 부드럽게 접혀 사라진다(레퍼런스와 같이 월 이동과 한 줄 달력만 남는다) */
+.stmt-summary-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.stmt-summary-wrap.is-hidden {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.stmt-summary-wrap > .stmt-summary {
+  min-height: 0;
+  overflow: hidden;
+}
+
+
+.stmt-summary {
+  padding-top: 4px;
+}
+
+.stmt-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.stmt-summary__total {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+  color: var(--color-gray-10);
+}
+
+.stmt-classify {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-gray-10);
+  border-radius: var(--radius-m);
+  background: var(--color-gray-0);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-gray-10);
+  cursor: pointer;
+}
+
+/* 막대그래프 모양 아이콘 */
+.stmt-classify__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+
+.stmt-classify__bars i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.stmt-classify__bars i:nth-child(1) {
+  height: 5px;
+}
+
+.stmt-classify__bars i:nth-child(2) {
+  height: 10px;
+}
+
+.stmt-classify__bars i:nth-child(3) {
+  height: 7px;
+}
+
+.stmt-summary__caption {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-gray-5);
+}
+
+.stmt-summary__caption strong {
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+/* 월 이동 + 달력 — 위에 붙어 내역이 스크롤되는 동안에도 보인다 */
+.stmt-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -20px;
+  padding: 16px 20px 0;
+  background: var(--color-gray-0);
+}
+
+/* 월 이동 — 양쪽 화살표 */
+.stmt-month {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stmt-month--center {
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.stmt-month button,
+.stmt-subhead button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.stmt-month button img,
+.stmt-subhead button img {
+  width: 14px;
+  height: 14px;
+}
+
+.stmt-month button:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.is-flip {
+  transform: rotate(180deg);
+}
+
+.stmt-month__label {
+  min-width: 40px;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+  color: var(--color-gray-10);
+}
+
+/* 달력 — 한 줄(선택한 날의 주)만 보이다가 아래 화살표로 펼친다 */
+.stmt-cal {
+  margin-top: 8px;
+}
+
+.stmt-cal__weekdays,
+.stmt-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.stmt-cal__weekdays span {
+  padding-bottom: 6px;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-gray-4);
+}
+
+.stmt-cal__window {
+  overflow: hidden;
+  transition: height 0.25s ease-in-out;
+}
+
+.stmt-cal__grid {
+  transition: transform 0.25s ease-in-out;
+}
+
+.stmt-cal__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  height: 70px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.stmt-cal__day {
+  cursor: pointer;
+}
+
+.stmt-cal__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--color-gray-3);
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.stmt-cal__day.has-spend .stmt-cal__num,
+.stmt-cal__day.is-today .stmt-cal__num {
+  color: var(--color-gray-10);
+}
+
+.stmt-cal__day.is-today .stmt-cal__num {
+  font-weight: 700;
+}
+
+/* 선택한 날 — 검정 원 + 흰 숫자 */
+.stmt-cal__day.is-selected .stmt-cal__num {
+  background: var(--color-gray-10);
+  color: var(--color-gray-0);
+}
+
+.stmt-cal__amount,
+.stmt-cal__pay {
+  font-family: var(--font-suit);
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--color-gray-6);
+}
+
+.stmt-cal__day.is-selected .stmt-cal__amount {
+  font-weight: 700;
+  color: var(--color-gray-10);
+}
+
+/* 카드 결제일 표시 — 빨간 글씨 */
+.stmt-cal__pay {
+  color: var(--brand-primary);
+}
+
+/* 펼치기·접기 화살표 */
+.stmt-cal__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--color-gray-05);
+  background: none;
+  cursor: pointer;
+}
+
+.stmt-cal__toggle img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.45;
+  transition: transform 0.25s ease-in-out;
+}
+
+.stmt-cal__toggle img.is-open {
+  transform: rotate(180deg);
+}
+
+/* 이용 내역 목록 — 날짜별 그룹 */
+.stmt-list {
+  padding-top: 8px;
+}
+
+.stmt-list__group {
+  padding-top: 20px;
+}
+
+.stmt-list__date {
+  margin: 0 0 12px;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-gray-5);
+}
+
+.stmt-list__group ul {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stmt-tx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stmt-tx__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-s);
+}
+
+.stmt-tx__icon img {
+  width: 20px;
+  height: 20px;
+}
+
+.stmt-tx__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stmt-tx__name {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-gray-10);
+}
+
+.stmt-tx__sub {
+  overflow: hidden;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-gray-5);
+}
+
+.stmt-tx__amount {
+  flex: none;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-gray-10);
+}
+
+.stmt-empty {
+  margin: 24px 0 0;
+  font-family: var(--font-suit);
+  font-size: 14px;
+  text-align: center;
+  color: var(--color-gray-4);
+}
+
+/* 월별 소비 분류 / 카테고리별 이용 내역 */
+.stmt-subhead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 16px;
+  margin-left: -8px;
+}
+
+.stmt-subhead h3 {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-gray-10);
+}
+
+.stmt-category__total {
+  margin: 12px 0 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--color-gray-10);
+}
+
+.stmt-category__caption {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-gray-5);
+}
+
+.stmt-category__caption strong {
+  font-weight: 700;
+  color: var(--color-gray-10);
+}
+
+.stmt-category__caption strong.is-more {
+  color: var(--brand-primary);
+}
+
+.stmt-detail__label {
+  margin: 16px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-gray-5);
+}
+
+.stmt-detail__label + .stmt-category__total {
+  margin-top: 4px;
+  text-align: left;
+}
+
+.stmt-category__list {
+  display: flex;
+  flex-direction: column;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stmt-category__list li + li {
+  border-top: 1px solid var(--color-gray-05);
+}
+
+.stmt-category__row {
+  display: block;
+  width: 100%;
+  padding: 16px 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stmt-category__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stmt-category__name {
+  flex: 1 1 auto;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-gray-8);
+}
+
+.stmt-category__sum {
+  font-family: var(--font-suit);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-gray-10);
+}
+
+.stmt-category__chev {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+
+/* 비중 막대 — 카테고리 색(연한 accent) 채움 */
+.stmt-category__bar {
+  display: block;
+  height: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-05);
+}
+
+.stmt-category__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.stmt-category__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  color: var(--color-gray-6);
+}
+
+.stmt-category__foot .is-up {
+  color: var(--brand-primary);
+}
+
+.stmt-category__foot .is-down {
+  color: var(--color-gray-8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stmt-cal__window,
+  .stmt-cal__grid,
+  .stmt-cal__toggle img,
+  .stmt-cal__num {
+    transition: none;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .statement-peek {
+    animation: none;
+  }
+}
+
+
+/* 수입(파랑) / 지출(빨강) — 요약, 달력 칸, 내역 금액에 같은 색을 쓴다 */
+.stmt-summary__amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stmt-summary__income,
+.stmt-summary__expense {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.stmt-summary__income {
+  color: var(--stmt-income);
+}
+
+.stmt-summary__expense {
+  color: var(--stmt-expense);
+}
+
+.stmt-cal__lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 26px;
+}
+
+.stmt-cal__in,
+.stmt-cal__out {
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.stmt-cal__in {
+  color: var(--stmt-income);
+}
+
+.stmt-cal__out {
+  color: var(--stmt-expense);
+}
+
+.stmt-cal__day.is-selected .stmt-cal__in,
+.stmt-cal__day.is-selected .stmt-cal__out {
+  font-weight: 700;
+}
+
+.stmt-tx__amount.is-in {
+  color: var(--stmt-income);
+}
+
+.stmt-tx__amount.is-out {
+  color: var(--stmt-expense);
+}
+
+.stmt-tx__icon--income {
+  background: color-mix(in srgb, var(--stmt-income) 14%, var(--color-gray-0));
+}
+
+/* 수입·지출 화면 — 앱 표준 좌우 여백(30px)으로 넓이를 맞춘다(시트 안은 20px) */
+.spending-history--page {
+  padding-left: var(--screen-margin);
+  padding-right: var(--screen-margin);
+}
+
+.spending-history--page .stmt-sticky {
+  margin-left: calc(-1 * var(--screen-margin));
+  margin-right: calc(-1 * var(--screen-margin));
+  padding-left: var(--screen-margin);
+  padding-right: var(--screen-margin);
+}
+
+/* ---------- 카드 아래(레퍼런스): "9월 수입·지출" 제목 줄 + 한 줄 달력 + "오늘 • 20일(일)" 내역 ---------- */
+.stmt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.stmt-head__title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--color-gray-10);
+}
+
+.stmt-head__title span:last-child {
+  margin-left: 4px;
+}
+
+.stmt-head__title button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.stmt-head__title button img {
+  width: 12px;
+  height: 12px;
+}
+
+.stmt-head__title button:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.stmt-head__more {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-suit);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-gray-6);
+  cursor: pointer;
+}
+
+.stmt-head__more img {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+
+/* 요약 — 수입·지출 합계를 한 줄로 */
+.stmt-summary__amounts {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.stmt-summary__income,
+.stmt-summary__expense {
+  font-size: 14px;
+}
+
+/* 요일 줄: 검은 글씨, 일요일만 빨강 */
+.stmt-cal__weekdays span {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-gray-10);
+}
+
+.stmt-cal__weekdays span.is-sun {
+  color: var(--brand-primary);
+}
+
+/* 날짜 숫자: 크고 굵게, 일요일은 빨강 */
+.stmt-cal__num {
+  width: 36px;
+  height: 36px;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.stmt-cal__day.is-sun .stmt-cal__num {
+  color: var(--brand-primary);
+}
+
+.stmt-cal__day.is-sun.is-selected .stmt-cal__num {
+  color: var(--color-gray-0);
+}
+
+/* 이용 내역 — 날짜 제목 + 큰 행 */
+.stmt-list__date {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-gray-10);
+}
+
+.stmt-tx__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-m);
+}
+
+.stmt-tx__icon img {
+  width: 24px;
+  height: 24px;
+}
+
+.stmt-tx__name {
+  font-size: 16px;
+}
+
+.stmt-tx__sub {
+  font-size: 13px;
+  color: var(--color-gray-5);
+}
+
+.stmt-tx__amount {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* ---------- 간단히 보여주는 화면(레퍼런스): 큰 제목 + 한 줄 달력 + 선택한 날 내역 한 묶음 ---------- */
+.stmt-head__title {
+  display: block;
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--color-gray-10);
+}
+
+.stmt-head__more {
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+}
+
+.stmt-head__more img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+.stmt-cal__weekdays span {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.stmt-cal__num {
+  font-weight: 500;
+  font-size: 20px;
+}
+
+.stmt-cal__day.is-selected .stmt-cal__num {
+  font-weight: 600;
+}
+
+.stmt-list__date {
+  margin: 0 0 16px;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.stmt-list {
+  padding-top: 20px;
+}
+
+.stmt-tx__name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.stmt-tx__sub {
+  font-size: 14px;
+}
+
+.stmt-tx__amount {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+/* ==========================================================================
+ * 글씨 크기·굵기 — DESIGN_SYSTEM.md 5장 Core Styles 표 그대로
+ *   Heading 1 A2Z Bold 24 · Heading 2 A2Z Bold 20 · Heading 3 A2Z SemiBold 18 · Heading 4 A2Z SemiBold 16
+ *   Body L SUIT Regular 16 · Body M 14 · Body S 12 · Label L SUIT SemiBold 14 · Label M SUIT Medium 12 · Caption 10
+ * 이 블록이 가장 뒤에 있어 위의 옛 값들을 덮는다.
+ * ========================================================================== */
+
+/* 결제 예정 카드(기본) / 시트 위쪽 카드 */
+.statement-peek__amount,
+.statement-sheet__amount {
+  font-family: var(--font-a2z);
+  font-weight: 700; /* Heading 2 */
+  font-size: 20px;
+}
+
+.statement-peek__title,
+.statement-sheet__title {
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+.statement-peek__badge {
+  font-weight: 500; /* Label M */
+  font-size: 12px;
+}
+
+.statement-sheet__cards {
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+}
+
+.statement-sheet__actions button {
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+/* 카드 아래 — 제목 줄 */
+.stmt-head__title {
+  font-family: var(--font-a2z);
+  font-weight: 700; /* Heading 2 */
+  font-size: 20px;
+}
+
+/* 달력 */
+.stmt-cal__weekdays span {
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+.stmt-cal__num {
+  width: 32px;
+  height: 32px;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body L */
+  font-size: 16px;
+}
+
+.stmt-cal__day.is-today .stmt-cal__num,
+.stmt-cal__day.is-selected .stmt-cal__num {
+  font-weight: 400;
+}
+
+.stmt-cal__in,
+.stmt-cal__out,
+.stmt-cal__amount,
+.stmt-cal__pay {
+  font-weight: 400; /* Caption */
+  font-size: 10px;
+}
+
+.stmt-cal__day.is-selected .stmt-cal__in,
+.stmt-cal__day.is-selected .stmt-cal__out,
+.stmt-cal__day.is-selected .stmt-cal__amount {
+  font-weight: 400;
+}
+
+/* 선택한 날 내역 */
+.stmt-list__date {
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 4 */
+  font-size: 16px;
+  color: var(--color-gray-10);
+}
+
+.stmt-tx__name {
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+.stmt-tx__sub {
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+}
+
+.stmt-tx__amount {
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+.stmt-empty {
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+}
+
+/* 월별 소비 분류 / 카테고리별 이용 내역 */
+.stmt-subhead h3 {
+  font-weight: 600; /* Heading 4 */
+  font-size: 16px;
+}
+
+.stmt-category__total {
+  font-weight: 700; /* Heading 1 */
+  font-size: 24px;
+}
+
+.stmt-category__caption {
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+}
+
+.stmt-category__name {
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+}
+
+.stmt-category__sum {
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+}
+
+.stmt-category__foot {
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+}
+
+.stmt-detail__label {
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+}
+
+.stmt-month__label {
+  font-weight: 700; /* Heading 2 */
+  font-size: 20px;
+}
+
+/* ==========================================================================
+ * 배치 정돈 — 제목 → 요일 → 한 줄 달력 → 구분선 → 선택한 날 내역
+ *   간격은 Spacing 토큰(4·8·12·16·20·24)만 쓴다. 좌우는 본문 패딩 하나에 맞춘다.
+ * ========================================================================== */
+.statement-sheet__body {
+  padding-top: 8px;
+}
+
+/* 위에 붙는 영역(제목 + 달력) */
+.stmt-sticky {
+  padding-top: 16px;
+}
+
+.stmt-head {
+  margin-bottom: 16px;
+}
+
+.stmt-cal {
+  margin-top: 0;
+}
+
+.stmt-cal__weekdays span {
+  padding-bottom: 8px;
+}
+
+/* 달력 아래 ∨ 화살표 + 구분선 */
+.stmt-cal__toggle {
+  height: 32px;
+  border-bottom: 1px solid var(--color-gray-1);
+}
+
+/* 선택한 날 내역 — 제목 아래 행들을 같은 좌측선에, 행 사이 16px */
+.stmt-list {
+  padding: 24px 0 8px;
+}
+
+.stmt-list__date {
+  margin: 0 0 16px;
+}
+
+.stmt-list ul {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stmt-tx {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.stmt-tx__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-m);
+}
+
+.stmt-tx__icon img {
+  width: 22px;
+  height: 22px;
+}
+
+.stmt-tx__text {
+  gap: 2px;
+}
+
+.stmt-empty {
+  margin: 0;
+  padding: 16px 0;
+  text-align: left;
+}
+
+/* ---------- 수입·지출 화면(variant full) — 월 이동 화살표가 있는 제목 줄 + 요약 ---------- */
+.stmt-head--full .stmt-head__title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stmt-head--full .stmt-head__title span:last-child {
+  margin-left: 4px;
+}
+
+.stmt-head--full .stmt-head__title button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.stmt-head--full .stmt-head__title button img {
+  width: 12px;
+  height: 12px;
+}
+
+.stmt-head--full .stmt-head__title button:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.stmt-head--full .stmt-head__more {
+  width: auto;
+  height: auto;
+  gap: 2px;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+  color: var(--color-gray-6);
+}
+
+.stmt-head--full .stmt-head__more img {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+
+.stmt-head--full + .stmt-summary-wrap {
+  margin-bottom: 8px;
+}
+
+/* 요약 수치: Label L 14/600 */
+.stmt-summary__income,
+.stmt-summary__expense {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---------- 처음 디자인(variant classic) — 월 · 총 지출 · 캡션 / 한 달 전체 달력 / 선택한 날 내역 ---------- */
+.stmt-classic__head {
+  padding-bottom: 20px;
+}
+
+.stmt-classic__month {
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 4 */
+  font-size: 16px;
+  color: var(--color-gray-10);
+}
+
+.stmt-classic__total {
+  margin: 8px 0 0;
+  font-family: var(--font-a2z);
+  font-weight: 700; /* Heading 1 */
+  font-size: 24px;
+  line-height: 1.3;
+  color: var(--color-gray-10);
+}
+
+.stmt-classic__caption {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+  color: var(--color-gray-5);
+}
+
+.stmt-classic__caption strong {
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+/* 선택한 날 내역 — 이름 + 금액만 간단히(시각·결제수단 줄은 숨긴다) */
+.stmt-classic__list {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-gray-05);
+}
+
+.stmt-classic__list .stmt-tx__sub {
+  display: none;
+}
+
+.stmt-classic__list .stmt-tx__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-s);
+}
+
+.stmt-classic__list .stmt-list__date {
+  margin: 0 0 12px;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+  color: var(--color-gray-5);
+}
+
+/* ---------- 수입·지출 화면 — 월 제목 / 수입·지출 두 줄 / 소비 분류 버튼(레퍼런스) ---------- */
+.stmt-head--full .stmt-head__title {
+  font-weight: 700; /* Heading 1 */
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.stmt-head--full .stmt-head__title button img {
+  width: 14px;
+  height: 14px;
+}
+
+.stmt-head--full ~ .stmt-summary-wrap .stmt-summary__row {
+  align-items: center;
+}
+
+.stmt-head--full ~ .stmt-summary-wrap .stmt-summary__amounts {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stmt-head--full ~ .stmt-summary-wrap .stmt-summary__income,
+.stmt-head--full ~ .stmt-summary-wrap .stmt-summary__expense {
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 3 */
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.stmt-head--full + .stmt-summary-wrap {
+  margin-bottom: 12px;
+}
+
+/* ---------- 소비 분류 버튼 — DESIGN_SYSTEM.md 기준(Label L 14/600, 버튼 반지름 12px) ---------- */
+.stmt-classify {
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-gray-10);
+  border-radius: var(--radius-m); /* Button 12px */
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 막대그래프 아이콘 — 글자 높이에 맞춰 14px 박스 안에 굵은 막대 3개 */
+.stmt-classify__bars {
+  gap: 2px;
+  height: 14px;
+}
+
+.stmt-classify__bars i {
+  width: 3px;
+  border-radius: 1px;
+}
+
+.stmt-classify__bars i:nth-child(1) {
+  height: 7px;
+}
+
+.stmt-classify__bars i:nth-child(2) {
+  height: 14px;
+}
+
+.stmt-classify__bars i:nth-child(3) {
+  height: 10px;
+}
+
+/* ---------- 시트 — 달력 아래 섹션(레퍼런스): 9월 카드 이용 금액 / 고정비 ---------- */
+.stmt-sections {
+  margin-top: 8px;
+}
+
+.stmt-sec {
+  padding: 20px 0;
+  border-top: 1px solid var(--color-gray-05);
+}
+
+.stmt-sec__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.stmt-sec__head h3 {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 4 */
+  font-size: 16px;
+  color: var(--color-gray-10);
+}
+
+.stmt-sec__head img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.stmt-sec__meta {
+  margin: 4px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+  color: var(--color-gray-5);
+}
+
+.stmt-sec__meta strong {
+  margin-left: 4px;
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+  color: var(--color-gray-10);
+}
+
+.stmt-sec ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stmt-sec__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stmt-sec__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stmt-sec__name {
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+  color: var(--color-gray-10);
+}
+
+.stmt-sec__sub {
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body S */
+  font-size: 12px;
+  color: var(--color-gray-5);
+}
+
+.stmt-sec__amount {
+  flex: none;
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+  color: var(--color-gray-10);
+}
+
+.stmt-sec__when {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.stmt-sec__dday {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-05);
+  font-family: var(--font-suit);
+  font-weight: 500; /* Label M */
+  font-size: 12px;
+  color: var(--color-gray-6);
+}
+
+/* ---------- 시트의 "9월 수입·지출" 제목 + 달력 — DESIGN_SYSTEM.md 5장 Core Styles 기준으로 다시 맞춤 ----------
+ *   제목(시트 안 섹션 제목)   Heading 3  A2Z  SemiBold 18px
+ *   요일 줄                    Label M    SUIT Medium   12px
+ *   날짜 숫자                  Body L     SUIT Regular  16px
+ *   날짜 아래 금액·결제일      Caption    SUIT Regular  10px
+ * (수입·지출 화면의 큰 제목 .stmt-head--full 은 페이지 제목이라 Heading 1 그대로 둔다) */
+.stmt-head__title {
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 3 */
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.stmt-cal__weekdays span {
+  font-family: var(--font-suit);
+  font-weight: 500; /* Label M */
+  font-size: 12px;
+}
+
+.stmt-cal__num {
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body L */
+  font-size: 16px;
+}
+
+/* ---------- 시트 — 달력 아래 안내 배너(레퍼런스): 연한 파랑 바탕 + 굵은 두 줄 + 오른쪽 카드·돈주머니 그림 ---------- */
+.stmt-promo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  margin-top: 16px;
+  padding: 20px 24px;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, #2f6fd6 26%, var(--color-gray-0));
+  text-align: left;
+  cursor: pointer;
+}
+
+.stmt-promo__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 3 */
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--color-gray-10);
+}
+
+.stmt-promo__art {
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+
+/* 시트가 열려 있어도 챗봇 AI 아이콘(.ai-fab, z-index 50)이 보이도록, 시트 레이어를 아이콘 아래(45)에 둔다 —
+ * 하단 탭 바(40) 위이므로 딤은 여전히 탭 바와 헤더까지 덮는다. 공용 시트 레이어(70)보다 클래스를 겹쳐 우선한다. */
+.layer.statement-layer {
+  z-index: 45;
+}
+
+/* ---------- 시트 — 달력 아래 "지출 중간 점검"(레퍼런스): 어두운 카드 + 큰 제목 + 원형 비중 링 3개 ---------- */
+.stmt-check {
+  margin-top: 16px;
+  padding: 24px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--color-gray-85);
+  color: var(--color-gray-0);
+}
+
+.stmt-check__title {
+  margin: 0;
+  font-family: var(--font-a2z);
+  font-weight: 700; /* Heading 2 */
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.stmt-check__sub {
+  margin: 8px 0 0;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-gray-3);
+}
+
+.stmt-check__rings {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stmt-check__rings li {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.stmt-check__ring {
+  position: relative;
+  display: block;
+  width: 88px;
+  height: 88px;
+}
+
+.stmt-check__ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stmt-check__track,
+.stmt-check__arc {
+  fill: none;
+  stroke-width: 8;
+}
+
+.stmt-check__track {
+  stroke: var(--color-gray-7);
+}
+
+.stmt-check__arc {
+  stroke: var(--color-gray-2);
+  stroke-linecap: round;
+}
+
+.stmt-check__arc.is-top {
+  stroke: var(--brand-primary);
+}
+
+.stmt-check__pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-a2z);
+  font-weight: 700; /* Heading 2 */
+  font-size: 20px;
+}
+
+.stmt-check__label {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-suit);
+  font-weight: 400; /* Body M */
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-gray-4);
+}
+
+.stmt-check__label.is-top {
+  font-weight: 600; /* Label L */
+  color: var(--color-gray-0);
+}
+
+/* 수입·지출 화면 — 전체 / 수입 / 지출 탭. 고정비 카테고리 탭(.money-fixed-category-tab)과 같은 패딩·라운드·색을 쓴다 */
+.stmt-flow-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 var(--space-md);
+}
+
+.stmt-flow-tabs__tab {
+  flex: none;
+  padding: 8px 14px;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: var(--surface-base);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.stmt-flow-tabs__tab.is-active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+/* 시트의 "N월 수입·지출" 제목 — 누르면 수입·지출 페이지로 이동. 제목 안 버튼 공통 규칙(24×24 화살표 버튼)을 되돌린다 */
+.stmt-head__title button.stmt-head__title-link {
+  display: inline;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}

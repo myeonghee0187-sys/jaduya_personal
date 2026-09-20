@@ -10,7 +10,7 @@ URL에서 계산한 표시용 값이다. 별도 메모리 navigation stack은 �
 | --- | --- |
 | 시작 | `/`, `/login`, `/signup`, `/onboarding` |
 | 생활 | `/living`, `/living/first`, `/living/home-care`, `/living/housekeeping`, `/living/food` |
-| 돈관리 | `/money`, `/money/budget`, `/money/accounts` |
+| 돈관리 | `/money`, `/money/budget`, `/money/accounts`, `/money/fixed`, `/money/fund`, `/money/expense` |
 | 혜택 | `/money/benefits`, `/money/benefits/recommended`, `/money/benefits/:id` |
 | 커뮤니티 | `/community`, `/community?filter=question`, `/community/tips`, `/community/reviews`, `/community/post/:id` |
 | 마이 | `/my`, `/my/profile`, `/my/activity`, `/my/missions`, `/my/settings`, `/my/account`, `/my/support` |

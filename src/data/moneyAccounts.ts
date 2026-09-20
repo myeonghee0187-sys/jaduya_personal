@@ -6,6 +6,8 @@
  * 은행 로고는 실제 로고 이미지 파일(jaduya_custom_recommendation_36/money_management/
  * bank*.png)을 그대로 쓴다 — 경로는 assets/img/ 기준(lib/asset.ts 의 img()). */
 
+import { CARD_STATEMENTS } from './moneyFixed';
+
 export interface MoneyAccount {
   id: string;
   bank: string;
@@ -42,3 +44,42 @@ export const ACCOUNTS: MoneyAccount[] = [
 
 /** 총 계좌 잔액 = 계좌 목록의 합 그 자체다(동일 데이터 정합). */
 export const TOTAL_BALANCE = ACCOUNTS.reduce((sum, acc) => sum + acc.balance, 0);
+
+/** 카드 — 별도 카드 연동이 아직 없어, 소비·고정비 원본에서 카드별로 합친 이번 달 명세서(moneyFixed.ts 의
+ * CARD_STATEMENTS)를 그대로 쓴다(동일 데이터 정합 — 숫자를 따로 만들지 않는다). */
+export interface MoneyCard {
+  id: string;
+  /** "신한카드" 같은 카드사 이름 */
+  issuer: string;
+  /** "•• 4821" 같은 카드 뒷자리 표기 */
+  tail: string;
+  /** 이번 달 이 카드로 쓴 금액(소비) — 모든 카드를 더하면 이번 달 쓴 돈과 같다 */
+  amount: number;
+  /** "25일 결제" 같은 보조 표기 */
+  note: string;
+}
+
+export const CARDS: MoneyCard[] = CARD_STATEMENTS.map((card) => ({
+  id: card.id,
+  issuer: card.issuer,
+  tail: card.tail,
+  amount: card.amount,
+  note: `${card.billingDay}일 결제`,
+}));
+
+/** 대출 — 실제 연동이 없는 정적 목업. */
+export interface MoneyLoan {
+  id: string;
+  /** "전세대출" 같은 대출 종류 */
+  kind: string;
+  bank: string;
+  /** 대출 잔액(원) */
+  amount: number;
+  /** 연 이자율(%) */
+  rate: number;
+}
+
+export const LOANS: MoneyLoan[] = [
+  { id: 'jeonse', kind: '전세대출', bank: '카카오뱅크', amount: 100_000_000, rate: 3.82 },
+  { id: 'credit', kind: '신용대출', bank: '국민은행', amount: 5_000_000, rate: 4.5 },
+];
