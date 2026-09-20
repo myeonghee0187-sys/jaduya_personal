@@ -48,6 +48,11 @@
   cursor: grabbing;
 }
 
+/* 돈관리 고정 시트가 나타나며 FAB의 안전 범위가 바뀔 때만 부드럽게 따라 올라간다. */
+.money .ai-fab:not(.is-dragging) {
+  transition: left 200ms ease, right 200ms ease, top 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* 홈 진입 1초 뒤 나타나는 AI 기능 안내. FAB와 같은 .app 좌표계를 쓰되 레이아웃에는
  * 참여하지 않고, 기본 FAB 자리 바로 위에서 오른쪽 프레임 밖으로 출입한다. */
 .ai-fab-hint {

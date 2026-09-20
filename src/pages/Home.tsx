@@ -31,6 +31,7 @@ import { useSheetGesture } from '../hooks/useSheetGesture';
 import { useDragToClose } from '../hooks/useDragToClose';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useMenuWidgetSelection } from '../widgets/MenuWidgetSelectionContext';
+import { getHomeTimePeriod, type HomeTimePeriod } from '../lib/homeTimeBackground';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
@@ -46,6 +47,7 @@ import { useMenuWidgetSelection } from '../widgets/MenuWidgetSelectionContext';
  */
 
 export function Home() {
+  const [homeTimePeriod, setHomeTimePeriod] = useState<HomeTimePeriod>(() => getHomeTimePeriod(new Date()));
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
   const isDemoAccount = !!user?.email && getDemoAccountId(user.email) !== null;
@@ -249,7 +251,7 @@ export function Home() {
 
   return (
     <div
-      className={`home app${sheet.isDragging ? ' is-dragging' : ''}`}
+      className={`home app${homeTimePeriod === 'night' ? ' is-night' : ''}${sheet.isDragging ? ' is-dragging' : ''}`}
       data-sheet-state={sheet.state}
       onWheelCapture={handleHeroWheel}
       onPointerDownCapture={handleHeroPointerDown}
@@ -257,7 +259,7 @@ export function Home() {
       onPointerUpCapture={clearHeroPointer}
       onPointerCancelCapture={clearHeroPointer}
     >
-      <Hero showFallingLeaves={isDemoAccount} />
+      <Hero showFallingLeaves={isDemoAccount} onTimePeriodChange={setHomeTimePeriod} />
 
       <Header />
 
