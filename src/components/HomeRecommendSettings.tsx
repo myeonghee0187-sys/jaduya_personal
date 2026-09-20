@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { INTEREST_CATEGORIES, toggleInterestTopic } from '../data/livingProfile';
+import { clearInterestTopics, INTEREST_CATEGORIES, toggleInterestTopic } from '../data/livingProfile';
 import type { InterestCategory } from '../data/livingProfile';
 import { InterestPicker } from './InterestPicker';
 import { RecommendInfoAccordion } from './RecommendInfoAccordion';
@@ -31,41 +30,40 @@ export function emptyRecommendDraft(): RecommendDraft {
 interface HomeRecommendSettingsProps {
   /** 지금까지 저장된 임시 선택값 — 다시 들어왔을 때 그대로 보여준다 */
   value: RecommendDraft;
-  /** ← 뒤로가기 — 고친 값을 넘기지 않고 이전 View 로 돌아간다 */
-  onBack: () => void;
+  /** 설정 overlay만 닫는다 */
+  onClose: () => void;
   /** 설정 저장하기 — 고른 값을 넘기고 이전 View 로 돌아간다 */
   onSave: (draft: RecommendDraft) => void;
+  /** 저장 전 선택값도 패널을 닫았다 다시 열 때 유지한다 */
+  onChange: (draft: RecommendDraft) => void;
 }
 
-export function HomeRecommendSettings({ value, onBack, onSave }: HomeRecommendSettingsProps) {
-  /* 편집 중인 값은 여기서만 들고 있다 — 뒤로가기로 나가면 그대로 버려지고,
-   * 저장했을 때만 onSave 로 부모에게 넘어간다. */
-  const [draft, setDraft] = useState<RecommendDraft>(value);
-
+export function HomeRecommendSettings({ value, onClose, onSave, onChange }: HomeRecommendSettingsProps) {
   /* 관심 주제를 고르는 로직은 InterestPicker(선택 UI) 와 짝을 이루는 data/livingProfile.ts
    * 의 공용 헬퍼를 그대로 쓴다 — 마이페이지(ProfileSettingsPage)와 같은 함수라 복붙된
    * 로직이 따로 없다. */
   const toggleTopic = (category: InterestCategory, topic: string) =>
-    setDraft((prev) => ({ ...prev, topics: toggleInterestTopic(prev.topics, category, topic) }));
+    onChange({ ...value, topics: toggleInterestTopic(value.topics, category, topic) });
 
   return (
     <section className="sheet-view sheet-view--recommend" aria-labelledby="home-recommend-title">
       <header className="recommend-setup__top">
-        {/* 페이지 이동이 아니라 시트 안에서 이전 View 로 돌아가는 버튼이다 */}
+        <h2 id="home-recommend-title">맞춤 추천 설정</h2>
         <button
           type="button"
-          className="recommend-setup__back"
-          aria-label="자두가 알려드려요로 돌아가기"
-          onClick={onBack}
+          className="recommend-setup__close"
+          aria-label="맞춤 추천 설정 닫기"
+          onClick={onClose}
         >
-          <img src={icon('gnb-back.svg')} alt="" />
+          <img src={icon('gnb-close.svg')} alt="" />
         </button>
-        <h2 id="home-recommend-title">맞춤 추천 설정</h2>
       </header>
 
-      <p className="recommend-setup__lead">관심사에 맞춰 홈에서 정보를 추천해드려요.</p>
-
-      <InterestPicker topics={draft.topics} onToggleTopic={toggleTopic} />
+      <InterestPicker
+        topics={value.topics}
+        onToggleTopic={toggleTopic}
+        onClearAll={() => onChange({ ...value, topics: clearInterestTopics() })}
+      />
 
       <RecommendInfoAccordion />
 
@@ -78,7 +76,7 @@ export function HomeRecommendSettings({ value, onBack, onSave }: HomeRecommendSe
       <button
         type="button"
         className="profile-settings__save recommend-setup__save"
-        onClick={() => onSave(draft)}
+        onClick={() => onSave(value)}
       >
         설정 저장하기
       </button>

@@ -10,6 +10,7 @@ import { RecommendInfoAccordion } from '../components/RecommendInfoAccordion';
 import { SettingsToggle } from '../components/SettingsRow';
 import { geocodeSavedLocation, reverseGeocodeKoreanLocation } from '../data/locationSearch';
 import {
+  clearInterestTopics,
   HOUSING_TYPES,
   LIVING_EXPERIENCES,
   loadLivingProfile,
@@ -300,7 +301,11 @@ export function ProfileSettingsPage() {
             <p>선택한 관심사에 맞춰 홈에서 정보를 추천해드려요.</p>
           </header>
 
-          <InterestPicker topics={profile.topics} onToggleTopic={toggleTopic} />
+          <InterestPicker
+            topics={profile.topics}
+            onToggleTopic={toggleTopic}
+            onClearAll={() => setProfile((prev) => ({ ...prev, topics: clearInterestTopics() }))}
+          />
         </section>
 
         <RecommendInfoAccordion />

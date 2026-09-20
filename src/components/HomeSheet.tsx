@@ -11,7 +11,7 @@ export interface SheetHandleProps {
   onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerCancel: (e: ReactPointerEvent<HTMLDivElement>) => void;
-  onKeyDown: (e: ReactKeyboardEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: ReactKeyboardEvent<HTMLDivElement>) => void;
 }
 
 interface HomeSheetProps {
@@ -21,6 +21,7 @@ interface HomeSheetProps {
   handleRef: MutableRefObject<HTMLDivElement | null>;
   handleProps: SheetHandleProps;
   children: ReactNode;
+  overlay?: ReactNode;
 }
 
 /** Home 대시보드 Bottom Sheet 셸 (peek ↔ expanded) */
@@ -31,6 +32,7 @@ export function HomeSheet({
   handleRef,
   handleProps,
   children,
+  overlay,
 }: HomeSheetProps) {
   const expanded = state === 'expanded';
 
@@ -52,6 +54,7 @@ export function HomeSheet({
       <div className="sheet__scroll" id="sheetScroll" ref={scrollRef}>
         {children}
       </div>
+      {overlay}
     </section>
   );
 }

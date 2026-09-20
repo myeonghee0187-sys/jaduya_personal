@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AdDetailSheet } from '../components/AdDetailSheet';
 import { aiFabRef } from '../components/ai/aiFabRef';
 import { triggerAiFabDemoMove } from '../components/ai/aiFabDemoMove';
@@ -10,37 +10,41 @@ import { Greeting } from '../components/Greeting';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
 import { HomeBenefitBanner } from '../components/HomeBenefitBanner';
-import { HomeRecommendSettings, emptyRecommendDraft } from '../components/HomeRecommendSettings';
+import { HomeRecommendSettings } from '../components/HomeRecommendSettings';
 import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
-import { LevelInfoPopover, levelInfoAnchor } from '../components/LevelInfoPopover';
 import { MyLifeSection } from '../components/MyLifeSection';
 import type { AdContent } from '../data/adContents';
+import {
+  MENU_WIDGET_DEFS,
+  loadMenuWidgets,
+  removeMenuWidget,
+  reorderMenuWidgets,
+  saveMenuWidgets,
+} from '../data/menuWidgets';
+import type { MenuWidgetItem } from '../data/menuWidgets';
 import { initializeLivingProfileFromOnboarding, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { DEFAULT_PERSONA, HOME_PERSONA_CONTENT, greetingName } from '../data/personaHome';
-import { LEVEL_STAGE_LIST, PERSONA_PROFILE, resolveLevel } from '../data/personaProfile';
+import { PERSONA_PROFILE } from '../data/personaProfile';
 import { useAuth } from '../auth/AuthContext';
 import { getDemoAccountId } from '../auth/mockUsers';
 import { isCoachmarkSeen, markCoachmarkSeen } from '../auth/coachmarkProgress';
 import { useSheetGesture } from '../hooks/useSheetGesture';
+import { useDragToClose } from '../hooks/useDragToClose';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { useWidgetPlacement } from '../widgets/WidgetPlacementContext';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
  *   Home
- *    └─ 위젯 추가(+)는 이제 오버레이가 아니라 별도 페이지(위젯 갤러리)로 이동한다.
- *       내 홈 위젯 상태 자체는 widgets/WidgetPlacementContext 가 화면 전환과 무관하게 들고 있다.
+ *    └─ '내 메뉴'는 { id, type, size, order } 위젯 아이템 배열(data/menuWidgets.ts)을 그린다.
+ *       위젯 추가·삭제·재정렬은 이 배열만 바꾸면 되도록 화면은 order 순서로 그리기만 한다.
  *
  * 시트 안은 다시 두 개의 View 로 나뉜다 — 새 시트를 겹쳐 띄우지 않고 콘텐츠만 바꾼다.
  *
  *   HomeSheet
- *    ├─ 'home'      : 내 생활 + 자두가 알려드려요
+ *    ├─ 'home'      : 내 메뉴 + 자두가 알려드려요
  *    └─ 'recommend' : 맞춤 추천 설정
  */
-
-/** 홈 시트 안에서 보여줄 콘텐츠 */
-type HomeSheetView = 'home' | 'recommend';
 
 export function Home() {
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
@@ -49,8 +53,6 @@ export function Home() {
   const persona = user?.persona ?? DEFAULT_PERSONA;
   const content = HOME_PERSONA_CONTENT[persona];
   const personaProfile = PERSONA_PROFILE[persona];
-  /* 하트·레벨은 마이페이지와 같은 원본을 쓴다 (data/personaProfile.ts) */
-  const level = resolveLevel(personaProfile.level);
   /* 맞춤 추천 설정의 저장값은 마이페이지 자취 프로필과 같은 계정별 키를 쓴다
    * (data/livingProfile.ts) — 계정을 바꾸면 다른 계정 값과 섞이지 않는다 */
   const ownerKey = user?.email ?? 'guest';
@@ -66,7 +68,7 @@ export function Home() {
   const [bottomNavigationVisible, setBottomNavigationVisible] = useState(true);
 
   /* 시트가 펼쳐지거나 드래그를 시작하면 탭바를 즉시 제거한다.
-   * 닫힐 때는 top 전환이 끝난 뒤에만 다시 렌더링해, 시트가 내려가는 중간에
+   * 닫힐 때는 시트 이동(transform) 전환이 끝난 뒤에만 다시 렌더링해, 시트가 내려가는 중간에
    * 탭바가 먼저 튀어나오지 않게 한다. 탭바는 absolute 요소이고 시트 스크롤
    * padding은 그대로 유지하므로 본문 높이와 스크롤 위치는 변하지 않는다. */
   useLayoutEffect(() => {
@@ -80,7 +82,7 @@ export function Home() {
 
     const revealBottomNavigation = () => setBottomNavigationVisible(true);
     const onTransitionEnd = (event: TransitionEvent) => {
-      if (event.target === sheetElement && event.propertyName === 'top') revealBottomNavigation();
+      if (event.target === sheetElement && event.propertyName === 'transform') revealBottomNavigation();
     };
 
     sheetElement.addEventListener('transitionend', onTransitionEnd);
@@ -96,55 +98,56 @@ export function Home() {
       window.clearTimeout(fallback);
     };
   }, [bottomNavigationVisible, sheet.isDragging, sheet.sheetRef, sheet.state]);
-  /* 내 생활 위젯 배치 — 위젯 관리 화면(WidgetPage)과 공유하는 전역 상태 */
-  const placement = useWidgetPlacement();
+  /* 내 메뉴 위젯 — 저장된 배치(없으면 기본 8개)가 유일한 source of truth 다.
+   * 삭제·재정렬은 이 배열만 바꾸고 바로 저장한다. isEditing 은 화면 상태일 뿐 저장하지 않는다. */
+  const [menuWidgets, setMenuWidgets] = useState<MenuWidgetItem[]>(() => loadMenuWidgets(ownerKey));
+  const [menuEditing, setMenuEditing] = useState(false);
+  const updateMenuWidgets = (change: (items: MenuWidgetItem[]) => MenuWidgetItem[]) => {
+    setMenuWidgets((current) => {
+      const next = change(current);
+      saveMenuWidgets(ownerKey, next);
+      return next;
+    });
+  };
+  const openMenuWidget = (item: MenuWidgetItem) => {
+    const def = MENU_WIDGET_DEFS[item.type];
+    navigation?.navigate(def.page, def.options);
+  };
 
-  /* 시트 안에서 지금 보여줄 View. 페이지 이동이 아니라 이 state 하나로만 갈린다. */
-  const [sheetView, setSheetView] = useState<HomeSheetView>('home');
-  const [levelInfo, setLevelInfo] = useState<{ top: number; left: number } | null>(null);
+  /* 홈 본문과 별개로 그 위에 올라오는 추천 설정 overlay 상태 */
+  const [recommendationSettingsOpen, setRecommendationSettingsOpen] = useState(false);
+  const [recommendationSettingsClosing, setRecommendationSettingsClosing] = useState(false);
   /* 맞춤 추천 설정 View 에서 편집 중인 draft — 저장 전까지는 여기서만 바뀐다.
    * 실제 저장값(source of truth)은 마이페이지와 같은 livingProfile 이다(data/livingProfile.ts) —
    * 이 state 는 그 값을 복제해 영구 보관하는 곳이 아니라, 시트가 열려 있는 동안의
    * 편집용 임시값일 뿐이다. */
-  const [recommendDraft, setRecommendDraft] = useState<RecommendDraft>(emptyRecommendDraft);
-  /* 한 번이라도 설정 View 를 다녀왔는지 — 돌아올 때만 전환 효과를 준다.
-   * (첫 진입에서 시트 콘텐츠가 괜히 움직여 보이지 않게) */
-  const cameBackRef = useRef(false);
+  const [recommendDraft, setRecommendDraft] = useState<RecommendDraft>(() => {
+    const saved = loadLivingProfile(ownerKey, personaProfile);
+    return { topics: saved.topics };
+  });
   /* 광고 상세 바텀시트 — 홈 화면 전체를 덮어야 해서 스크롤 영역 안(DiscoverySection)이 아니라
    * 여기서 연다. 닫는 동안 내용이 사라지지 않게 열림 여부와 마지막 광고를 따로 든다. */
   const [adDetail, setAdDetail] = useState<{ ad: AdContent | null; open: boolean }>({ ad: null, open: false });
   const openAd = (ad: AdContent) => setAdDetail({ ad, open: true });
   const closeAd = () => setAdDetail((current) => ({ ...current, open: false }));
 
-  const openLevelInfo = (anchorElement: HTMLElement) => {
-    const anchor = levelInfoAnchor(anchorElement);
-    if (anchor) setLevelInfo(anchor);
-  };
-
-  const viewMissions = () => {
-    setLevelInfo(null);
-    navigation?.navigate('mission');
-  };
-
-  /* View 를 바꾸면 시트 스크롤은 항상 맨 위에서 시작한다 — 시트 자체(peek/expanded)와
-   * 스크롤 구조는 그대로 두고 scrollTop 만 되돌린다. */
-  const showSheetView = (view: HomeSheetView) => {
-    setSheetView(view);
-    if (sheet.scrollRef.current) sheet.scrollRef.current.scrollTop = 0;
-  };
-
-  /* 설정 View 를 열 때마다 livingProfile 에 저장되어 있는 현재 값으로 draft 를 다시 채운다 —
-   * 이전에 이 화면에서 저장하지 않고 나간 값이 남아있지 않도록 한다. */
+  /* 홈 시트의 위치와 스크롤은 건드리지 않고 내부 설정 패널만 연다. */
   const openRecommendSetup = () => {
-    const saved = loadLivingProfile(ownerKey, personaProfile);
-    setRecommendDraft({ topics: saved.topics });
-    showSheetView('recommend');
+    setRecommendationSettingsClosing(false);
+    setRecommendationSettingsOpen(true);
   };
 
-  const closeRecommendSetup = () => {
-    cameBackRef.current = true;
-    showSheetView('home');
-  };
+  const closeRecommendSetup = () => setRecommendationSettingsClosing(true);
+  const recommendPanelDrag = useDragToClose(closeRecommendSetup);
+
+  useEffect(() => {
+    if (!recommendationSettingsClosing) return;
+    const timer = window.setTimeout(() => {
+      setRecommendationSettingsOpen(false);
+      setRecommendationSettingsClosing(false);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [recommendationSettingsClosing]);
 
   /* 설정 저장하기 — draft 의 관심 주제만 livingProfile 에 반영한다.
    * 자취 경험·주거 형태 등 이 화면이 다루지 않는 값은 그대로 둔다. */
@@ -178,8 +181,7 @@ export function Home() {
 
   /* 강조할 실제 DOM — 좌표를 하드코딩하지 않고 Coachmark 가 매 단계 실측한다 */
   const benefitBannerRef = useRef<HTMLButtonElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
-  const addSlotRef = useRef<HTMLDivElement>(null);
+  const menuGridRef = useRef<HTMLUListElement>(null);
 
   /* useMemo 로 고정한다 — 배열 리터럴을 렌더마다 새로 만들면 stepIndex 가 그대로여도
    * steps[stepIndex] 객체 참조가 매번 바뀌어, Coachmark 의 재측정 effect(참조가 dep)가
@@ -197,20 +199,12 @@ export function Home() {
       sheetState: 'peek',
     },
     {
-      key: 'level',
-      title: '활동할수록 레벨 UP!',
-      body: '자두야에서 활동할수록 레벨이 올라가요.\n하트를 모아 다양한 보상을 받아보세요.',
-      targetRef: statusRef,
-      radius: 20,
-      sheetState: 'peek',
-    },
-    {
       key: 'menu',
       title: '자주 쓰는 메뉴만 쏙 모아보세요',
       body: '자주 쓰는 기능을 골라\n나만의 메뉴를 만들어보세요.',
-      targetRef: addSlotRef,
+      targetRef: menuGridRef,
       radius: 16,
-      /* peek 상태에선 위젯 추가(+) 슬롯이 시트 아래로 가려 안 보인다 */
+      /* peek 상태에선 내 메뉴 위젯이 시트 아래로 가려 안 보인다 */
       sheetState: 'expanded',
     },
     {
@@ -232,7 +226,7 @@ export function Home() {
        * 그 이동을 따라가야 해서 계속 재측정이 필요하다(Coachmark.tsx 참고). */
       trackContinuously: true,
     },
-  ], [benefitBannerRef, statusRef, addSlotRef]);
+  ], [benefitBannerRef, menuGridRef]);
 
   return (
     <div
@@ -255,47 +249,50 @@ export function Home() {
         sheetRef={sheet.sheetRef}
         scrollRef={sheet.scrollRef}
         handleRef={sheet.handleRef}
-        handleProps={sheet.handleProps}
-      >
-        {sheetView === 'home' ? (
+        handleProps={recommendationSettingsOpen ? recommendPanelDrag.handleProps : sheet.handleProps}
+        overlay={recommendationSettingsOpen ? (
           <div
-            className={`sheet-view sheet-view--home${cameBackRef.current ? ' sheet-view--back' : ''}`}
+            className={`recommend-panel${recommendationSettingsClosing ? ' is-closing' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-recommend-title"
+            style={recommendationSettingsClosing ? undefined : { transform: `translateY(${recommendPanelDrag.dragY}px)` }}
           >
-            <MyLifeSection
-              placement={placement.state}
-              heartsLabel={level.heartsLabel}
-              levelLabel={level.levelLabel}
-              levelIcon={level.levelIcon}
-              levelStageName={level.stageName}
-              onOpenLevelInfo={openLevelInfo}
-              onAddWidget={() => navigation?.navigate('widget-gallery')}
-              statusRef={statusRef}
-              addSlotRef={addSlotRef}
-            />
-            <DiscoverySection onOpenRecommendSetup={openRecommendSetup} onOpenAd={openAd} />
+            <div className="recommend-panel__scroll">
+              <HomeRecommendSettings
+                value={recommendDraft}
+                onClose={closeRecommendSetup}
+                onSave={saveRecommendSetup}
+                onChange={setRecommendDraft}
+              />
+            </div>
           </div>
-        ) : (
-          <HomeRecommendSettings
-            value={recommendDraft}
-            onBack={closeRecommendSetup}
-            onSave={saveRecommendSetup}
+        ) : null}
+      >
+        <div className="sheet-view sheet-view--home">
+          <MyLifeSection
+            widgets={menuWidgets}
+            editing={menuEditing}
+            onOpenWidget={openMenuWidget}
+            onManageMenu={() => navigation?.navigate('widget-gallery')}
+            onEnterEdit={() => setMenuEditing(true)}
+            onExitEdit={() => setMenuEditing(false)}
+            onRemoveWidget={(id) => updateMenuWidgets((items) => removeMenuWidget(items, id))}
+            onReorderWidgets={(ids) => updateMenuWidgets((items) => reorderMenuWidgets(items, ids))}
+            gridRef={menuGridRef}
           />
-        )}
+          <DiscoverySection onOpenRecommendSetup={openRecommendSetup} onOpenAd={openAd} />
+        </div>
       </HomeSheet>
 
-      {bottomNavigationVisible && <BottomNavigation />}
-
-      {levelInfo && (
-        <LevelInfoPopover
-          stages={LEVEL_STAGE_LIST}
-          stage={level.stage}
-          remainingXp={level.remainingXp}
-          anchorTop={levelInfo.top}
-          anchorLeft={levelInfo.left}
-          onViewMissions={viewMissions}
-          onClose={() => setLevelInfo(null)}
+      {bottomNavigationVisible ? (
+        <BottomNavigation />
+      ) : sheet.state === 'expanded' && !recommendationSettingsOpen ? (
+        <HomeBenefitBanner
+          fixed
+          onClick={() => navigation?.navigate('benefits')}
         />
-      )}
+      ) : null}
 
       <AdDetailSheet ad={adDetail.ad} open={adDetail.open} onClose={closeAd} />
 
