@@ -62,13 +62,13 @@ export const FIXED_ITEM_IMAGE_BY_NAME: Partial<Record<string, string>> = {
 };
 
 export const FIXED_EXPENSES: FixedExpenseItem[] = [
-  { key: 'rent', label: '월세', amount: 500_000, day: 1, detail: '우리집', category: '주거비', method: '자두뱅크 자동이체', enabled: true },
-  { key: 'maintenance', label: '관리비', amount: 120_000, day: 5, detail: '아파트', category: '주거비', method: '자두뱅크 자동이체', enabled: true },
-  { key: 'phone', label: '통신비', amount: 55_000, day: 10, detail: 'SKT', category: '통신 · 구독', method: 'SKT 자동납부', enabled: true },
-  { key: 'music', label: '음악 스트리밍', amount: 11_900, day: 15, detail: 'Spotify', category: '통신 · 구독', method: '자두뱅크 자동이체', enabled: true },
-  { key: 'ott', label: 'OTT 구독', amount: 13_900, day: 15, detail: '디즈니플러스', category: '통신 · 구독', method: '자두뱅크 자동이체', enabled: true },
-  { key: 'insurance', label: '보험료', amount: 70_000, day: 20, detail: '실손보험', category: '보험', method: '자두뱅크 자동이체', enabled: true },
-  { key: 'gym', label: '헬스장', amount: 66_000, day: 25, detail: '헬스장', category: '기타', method: '자두뱅크 자동이체', enabled: false },
+  { key: 'rent', label: '월세', amount: 500_000, day: 1, detail: '우리집', category: '주거비', method: '국민은행 자동이체', enabled: true },
+  { key: 'maintenance', label: '관리비', amount: 120_000, day: 5, detail: '아파트', category: '주거비', method: '국민은행 자동이체', enabled: true },
+  { key: 'phone', label: '통신비', amount: 55_000, day: 10, detail: 'SKT', category: '통신 · 구독', method: '신한카드 · •• 4821', enabled: true },
+  { key: 'music', label: '음악 스트리밍', amount: 11_900, day: 15, detail: 'Spotify', category: '통신 · 구독', method: '카카오뱅크 카드 · •• 5678', enabled: true },
+  { key: 'ott', label: 'OTT 구독', amount: 13_900, day: 15, detail: '디즈니플러스', category: '통신 · 구독', method: '삼성카드 · •• 9012', enabled: true },
+  { key: 'insurance', label: '보험료', amount: 70_000, day: 20, detail: '실손보험', category: '보험', method: '신한은행 자동이체', enabled: true },
+  { key: 'gym', label: '헬스장', amount: 66_000, day: 25, detail: '헬스장', category: '기타', method: '카카오뱅크 자동이체', enabled: false },
 ];
 
 /* 이번 달 고정비 총액 = 항목 합 그 자체다(동일 데이터 정합) — 근거 없이 값을 따로 만들지
@@ -98,12 +98,12 @@ export const FIXED_REMAINING_TOTAL = FIXED_MONTHLY_TOTAL - FIXED_PAID_TOTAL;
 /* "91% 지출 완료" 같은 진행률 헤드라인에 쓰는 값 — 진행률 바 폭과 항상 같은 계산식이다 */
 export const FIXED_PAID_PERCENT = Math.min(100, Math.round((FIXED_PAID_TOTAL / FIXED_MONTHLY_TOTAL) * 100));
 
-/* 카드별 이번 달 명세서 — 카드값은 소비(변동 지출)와 같은 값이어야 해서, 같은 원본(EXPENSE_TRANSACTIONS)에서 카드별로 나눠 계산한다.
+/* 카드별 이번 달 명세서 — 같은 원본에서 카드별로 나눠 계산한다.
  *   카드 명세서 금액 = 그 카드로 결제한 소비 거래의 합(결제수단은 transactionPaymentMethod)
- * 그래서 모든 카드 명세서를 더하면 "이번 달 쓴 돈"(TOTAL_EXPENSE)과 항상 정확히 같다(홈의 카드값 = 돈관리 소비).
- * 고정비는 전부 계좌 자동이체(자두뱅크·통신사)라 카드 명세서에 들어가지 않는다 — 고정비 항목의 결제수단이 카드였다가
- * 카드값과 소비가 어긋나는 일이 없도록 고정비 결제수단에는 카드를 쓰지 않는다. 결제수단 표기는 거래
- * (moneyTransactions.ts)의 문구와 완전히 같아야 한다. 카드는 모두 매달 25일에 결제된다. */
+ *                    + 그 카드로 나가는 고정비(FIXED_EXPENSES 의 method 가 카드 결제수단 문구와 같은 항목, 오늘까지 결제일이 지난 것)
+ * 고정비는 항목마다 결제수단이 다르다 — 통신비·구독은 카드, 월세·관리비·보험료는 계좌 자동이체. 그래서 카드값은
+ * "카드로 쓴 소비 + 카드로 나가는 고정비"이고 "9월에 쓴 돈"(소비 + 나간 고정비 전부)과는 서로 다르다. 결제수단 표기는
+ * 거래(moneyTransactions.ts)·고정비 항목의 문구와 완전히 같아야 한다. 카드는 모두 매달 25일에 결제된다. */
 export interface CardStatement {
   id: string;
   method: string;
@@ -111,39 +111,50 @@ export interface CardStatement {
   issuer: string;
   /** "•• 4821" 같은 카드 뒷자리 표기 */
   tail: string;
+  /** 카드 이미지 — public/assets/img/ 기준 경로 */
+  image: string;
   /** 매달 결제일 */
   billingDay: number;
   /** 이 카드로 결제한 소비 합계 */
   spendAmount: number;
-  /** 카드 명세서 합계 = 소비 합계(고정비는 카드로 결제하지 않는다) */
+  /** 이 카드로 나간 고정비 합계(통신비·구독 등) */
+  fixedAmount: number;
+  /** 카드 명세서 합계 = 소비 합계 + 고정비 합계 */
   amount: number;
 }
 
 const CARD_BILLING_DAY = 25;
+const CARD_IMAGE_DIR = 'jaduya_custom_recommendation_36/money_management';
 const CARD_DEFS = [
-  { method: '신한카드 · •• 4821', issuer: '신한카드', tail: '•• 4821' },
-  { method: '카카오뱅크 카드 · •• 5678', issuer: '카카오뱅크 카드', tail: '•• 5678' },
-  { method: '삼성카드 · •• 9012', issuer: '삼성카드', tail: '•• 9012' },
-  { method: '국민카드 · •• 2468', issuer: '국민카드', tail: '•• 2468' },
+  { method: '신한카드 · •• 4821', issuer: '신한카드', tail: '•• 4821', image: `${CARD_IMAGE_DIR}/image 366.png` },
+  { method: '카카오뱅크 카드 · •• 5678', issuer: '카카오뱅크 카드', tail: '•• 5678', image: `${CARD_IMAGE_DIR}/image 367.png` },
+  { method: '삼성카드 · •• 9012', issuer: '삼성카드', tail: '•• 9012', image: `${CARD_IMAGE_DIR}/image 368.png` },
+  { method: '국민카드 · •• 2468', issuer: '국민카드', tail: '•• 2468', image: `${CARD_IMAGE_DIR}/image 369.png` },
 ] as const;
 
 export const CARD_STATEMENTS: CardStatement[] = CARD_DEFS.map((def) => {
   const spendAmount = EXPENSE_TRANSACTIONS.filter(
     (tx) => tx.day <= TODAY_DAY && transactionPaymentMethod(tx.id) === def.method
   ).reduce((sum, tx) => sum + tx.amount, 0);
+  const fixedAmount = FIXED_EXPENSES.filter((item) => item.method === def.method && item.day <= TODAY_DAY).reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  );
   return {
     id: def.method,
     method: def.method,
     issuer: def.issuer,
     tail: def.tail,
+    image: def.image,
     billingDay: CARD_BILLING_DAY,
     spendAmount,
-    amount: spendAmount,
+    fixedAmount,
+    amount: spendAmount + fixedAmount,
   };
 });
 
 /* 다음에 나갈 카드값 — 오늘(TODAY_DAY) 이후 가장 가까운 결제일에 결제되는 카드 명세서들의 합계. 모든 카드가 같은
- * 결제일이라 이번 달 카드 명세서 전체 = 이번 달 쓴 돈(소비)과 같다. 돈관리 "이번 달"의 카드값 요약과 결제 예정
+ * 결제일이라 이번 달 카드 명세서 전체 = 카드로 쓴 소비 + 카드로 나가는 고정비다. 돈관리 "이번 달"의 카드값 요약과 결제 예정
  * 카드·시트가 모두 같은 값을 쓴다. 남은 결제일이 없으면 null. */
 export const NEXT_CARD_PAYMENT = (() => {
   const upcoming = CARD_STATEMENTS.filter((card) => card.billingDay > TODAY_DAY);

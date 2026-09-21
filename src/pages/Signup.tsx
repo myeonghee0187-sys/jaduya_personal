@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Header } from '../components/Header';
 import { AuthField } from '../components/auth/AuthField';
-import { SignupTestSheet } from '../components/auth/SignupTestSheet';
 import type { SignupTestProfile } from '../auth/signupTestProfiles';
 import { useAuth } from '../auth/AuthContext';
 import { icon } from '../lib/asset';
@@ -11,7 +10,7 @@ import { icon } from '../lib/asset';
 interface SignupProps {
   onGoLogin: () => void;
   /** 테스트 계정 시트/페르소나 경로로 넘어온 경우 이 프로필로 폼을 미리 채운다
-   * (화면 안의 "테스트 정보 불러오기"를 누른 것과 동일한 값 — 이메일/비밀번호/닉네임 + 필수 약관) */
+   * (이메일/비밀번호/닉네임 + 필수 약관) */
   initialProfile?: SignupTestProfile;
 }
 
@@ -30,7 +29,7 @@ export function Signup({ onGoLogin, initialProfile }: SignupProps) {
   const [password, setPassword] = useState(initialProfile?.password ?? '');
   const [passwordConfirm, setPasswordConfirm] = useState(initialProfile?.password ?? '');
   const [nickname, setNickname] = useState(initialProfile?.name ?? '');
-  /* 프로필로 들어온 경우 "테스트 정보 불러오기"와 동일하게 필수 약관만 자동 체크해 둔다 */
+  /* 프로필로 들어온 경우 필수 약관만 자동 체크해 둔다 */
   const [agreements, setAgreements] = useState<Agreements>({
     terms: Boolean(initialProfile),
     privacy: Boolean(initialProfile),
@@ -41,8 +40,6 @@ export function Signup({ onGoLogin, initialProfile }: SignupProps) {
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [duplicateEmail, setDuplicateEmail] = useState(false);
-  /* 개발·발표용 더미 정보 불러오기 시트 */
-  const [testSheetOpen, setTestSheetOpen] = useState(false);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const passwordValid = password.length >= 4;
@@ -63,21 +60,6 @@ export function Signup({ onGoLogin, initialProfile }: SignupProps) {
       ? '올바른 이메일 형식을 입력해주세요.'
       : undefined;
   const confirmError = showConfirmError ? '비밀번호가 일치하지 않습니다.' : undefined;
-
-  /* 폼 값만 채운다. 가입 자체는 사용자가 회원가입 버튼을 눌러야 진행된다.
-   * validation 로직은 그대로 두고 입력값만 세팅하므로 버튼 활성 조건도 기존 그대로다. */
-  const applyTestProfile = (profile: SignupTestProfile) => {
-    setTestSheetOpen(false);
-    setEmail(profile.email);
-    setPassword(profile.password);
-    setPasswordConfirm(profile.password);
-    setNickname(profile.name);
-    /* 필수 약관만 체크하고 선택 항목은 그대로 둔다 */
-    setAgreements((prev) => ({ ...prev, terms: true, privacy: true }));
-    setDuplicateEmail(false);
-    setEmailTouched(false);
-    setConfirmTouched(false);
-  };
 
   const toggleAll = (checked: boolean) => {
     setAgreements({ terms: checked, privacy: checked, marketing: checked });
@@ -116,15 +98,6 @@ export function Signup({ onGoLogin, initialProfile }: SignupProps) {
             <AuthField
               id="signup-email"
               label="이메일"
-              labelExtra={
-                <button
-                  type="button"
-                  className="auth-testaccount"
-                  onClick={() => setTestSheetOpen(true)}
-                >
-                  테스트 정보 불러오기
-                </button>
-              }
               type="email"
               placeholder="예: jaduya@example.com"
               value={email}
@@ -263,12 +236,6 @@ export function Signup({ onGoLogin, initialProfile }: SignupProps) {
           </div>
         </form>
       </div>
-
-      <SignupTestSheet
-        open={testSheetOpen}
-        onClose={() => setTestSheetOpen(false)}
-        onSelect={applyTestProfile}
-      />
     </div>
   );
 }

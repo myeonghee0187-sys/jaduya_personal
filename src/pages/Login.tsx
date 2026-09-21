@@ -3,10 +3,8 @@ import type { FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { AuthField } from '../components/auth/AuthField';
-import { TestAccountSheet } from '../components/auth/TestAccountSheet';
 import { useAuth } from '../auth/AuthContext';
 import { DEMO_SIGNUP_EMAIL } from '../auth/demoSignup';
-import { resolveAccountSelection } from '../auth/resolveAccountSelection';
 import { TEST_ACCOUNTS } from '../auth/mockUsers';
 import type { MockAccount, Persona } from '../auth/mockUsers';
 import { SIGNUP_TEST_PROFILES } from '../auth/signupTestProfiles';
@@ -66,21 +64,11 @@ function EyeIcon({ off }: { off: boolean }) {
   );
 }
 
-function FlaskIcon() {
-  return (
-    <svg className="auth-demo__flask" width="32" height="36" viewBox="0 0 32 36" fill="none" aria-hidden="true">
-      <path d="M12 3h8M13.5 3v10L5 28.5A3 3 0 0 0 7.6 33h16.8a3 3 0 0 0 2.6-4.5L18.5 13V3" {...stroke} strokeWidth={2} />
-      <path d="M9.5 24h13l3.5 6.2a1.5 1.5 0 0 1-1.3 2.3H7.3A1.5 1.5 0 0 1 6 30.2L9.5 24Z" fill="currentColor" opacity="0.25" />
-    </svg>
-  );
-}
-
 export function Login({ onGoSignup }: LoginProps) {
-  const { login, loginDemo, demoSignedUp } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   /* 데모 패널에서 이서준(가입 전)으로 시작하면 주 버튼이 "회원가입"으로 바뀐다 */
@@ -119,11 +107,14 @@ export function Login({ onGoSignup }: LoginProps) {
     attemptLogin();
   };
 
-  /* 가입 전인 데모 계정(이서준)은 자동 입력 대신 회원가입으로 보낸다 */
-  const pendingSignupEmail = demoSignedUp ? null : DEMO_SIGNUP_EMAIL;
-
   /* 데모 배너의 프로필을 누르면 바로 로그인시키지 않고 폼만 채운다 — 이서준은 가입 여부와 상관없이
    * 항상 신규 가입 흐름을 보여주므로, 폼을 채우지 않고 주 버튼이 "회원가입"이 된다 */
+  /* 지금 폼에 채워진 데모 계정 — 이서준은 폼을 비우고 "회원가입" 주 버튼이 되므로
+   * signupCta 로 판단한다. 따로 상태를 두지 않아 폼을 직접 고치면 선택 표시도 사라진다. */
+  const pickedEmail = signupCta
+    ? DEMO_SIGNUP_EMAIL
+    : (TEST_ACCOUNTS.find((account) => account.email === email && account.password === password)?.email ?? null);
+
   const pickDemoAccount = (account: MockAccount) => {
     setError('');
     if (account.email === DEMO_SIGNUP_EMAIL) {
@@ -135,17 +126,6 @@ export function Login({ onGoSignup }: LoginProps) {
     setSignupCta(false);
     setEmail(account.email);
     setPassword(account.password);
-  };
-
-  const handleSelectAccount = (account: MockAccount) => {
-    setSheetOpen(false);
-    const selection = resolveAccountSelection(account, demoSignedUp);
-    if (selection.target === 'signup') {
-      onGoSignup(SIGNUP_TEST_PROFILES.seojunDemo);
-      return;
-    }
-    const ok = loginDemo(selection.personaId);
-    if (!ok) setError('데모 계정으로 로그인할 수 없어요.');
   };
 
   return (
@@ -171,30 +151,42 @@ export function Login({ onGoSignup }: LoginProps) {
 
         <section className="auth-demo" aria-label="데모 계정">
           <div className="auth-demo__intro">
-            <FlaskIcon />
+            <img className="auth-demo__flask" src={img('onboarding/image 35.png')} width={36} height={36} alt="" />
             <div className="auth-demo__copy">
               <p className="auth-demo__title">데모 계정으로 간편하게 체험해보세요!</p>
               <p className="auth-demo__desc">3명의 자취 라이프로 미리 만나보세요.</p>
             </div>
           </div>
-          <ul className="auth-demo__people">
-            {TEST_ACCOUNTS.map((account) => (
-              <li key={account.email}>
-                <button type="button" className="auth-demo__person" onClick={() => pickDemoAccount(account)}>
-                  <img
-                    className="auth-demo__avatar"
-                    src={img(`onboarding/${DEMO_AVATAR[account.persona]}`)}
-                    alt=""
-                  />
-                  <span className="auth-demo__name">{account.name}</span>
-                  <span className="auth-demo__role">{DEMO_ROLE[account.persona]}</span>
-                </button>
-              </li>
-            ))}
+          <ul className={`auth-demo__people${pickedEmail ? ' has-selection' : ''}`}>
+            {TEST_ACCOUNTS.map((account) => {
+              const picked = account.email === pickedEmail;
+              return (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    className={`auth-demo__person${picked ? ' is-selected' : ''}`}
+                    aria-pressed={picked}
+                    onClick={() => pickDemoAccount(account)}
+                  >
+                    <span className="auth-demo__avatar-wrap">
+                      <img
+                        className="auth-demo__avatar"
+                        src={img(`onboarding/${DEMO_AVATAR[account.persona]}`)}
+                        alt=""
+                      />
+                      {picked && (
+                        <span className="auth-demo__check" aria-hidden="true">
+                          <img src={icon('auth-check.svg')} width={10} height={10} alt="" />
+                        </span>
+                      )}
+                    </span>
+                    <span className="auth-demo__name">{account.name}</span>
+                    <span className="auth-demo__role">{DEMO_ROLE[account.persona]}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
-          <button type="button" className="auth-demo__more" aria-label="데모 계정 전체 보기" onClick={() => setSheetOpen(true)}>
-            <img src={icon('chevron-right-primary.svg')} alt="" />
-          </button>
         </section>
 
         <form className="auth-form" onSubmit={handleFormSubmit}>
@@ -284,16 +276,6 @@ export function Login({ onGoSignup }: LoginProps) {
         </div>
       </div>
 
-      <TestAccountSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSelect={handleSelectAccount}
-        pendingSignupEmail={pendingSignupEmail}
-        onCreateAccount={() => {
-          setSheetOpen(false);
-          onGoSignup();
-        }}
-      />
     </div>
   );
 }

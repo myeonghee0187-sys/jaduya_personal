@@ -39,6 +39,15 @@ const CONNECTABLE_BANKS: ConnectableBank[] = [
   { id: 'toss', label: '토스뱅크', logo: 'jaduya_custom_recommendation_36/money_management/bank7.png' },
 ];
 
+/* 연결 가능한 카드사 — 이미 연결된 카드(신한·카카오뱅크·삼성·국민)는 뺀다. 카드사 전용 로고 에셋이 없어
+ * 같은 금융그룹의 은행 로고(bank*.png)를 그대로 쓴다(새 에셋을 임의로 만들지 않는다). */
+const CONNECTABLE_CARDS: ConnectableBank[] = [
+  { id: 'woori-card', label: '우리카드', logo: 'jaduya_custom_recommendation_36/money_management/bank4.png' },
+  { id: 'hana-card', label: '하나카드', logo: 'jaduya_custom_recommendation_36/money_management/bank5.png' },
+  { id: 'nh-card', label: 'NH농협카드', logo: 'jaduya_custom_recommendation_36/money_management/bank6.png' },
+  { id: 'toss-card', label: '토스뱅크', logo: 'jaduya_custom_recommendation_36/money_management/bank7.png' },
+];
+
 type FinTab = 'accounts' | 'cards' | 'transfer';
 
 /* 이체 폼의 빠른 금액 버튼 */
@@ -60,15 +69,23 @@ const INITIAL_TRANSFERS: RecentTransfer[] = [...TRANSFER_TRANSACTIONS]
 export function MoneyAccountsPage() {
   const navigation = useAppNavigation();
   const [notice, setNotice] = useState('');
-  const [tab, setTab] = useState<FinTab>('accounts');
+  /* "이번 달" 탭 내 자산의 "송금" 버튼으로 들어오면 이체 탭이 먼저 열리고, 그 계좌가 보내는 계좌로 골라져 있다 */
+  const requestedTab = navigation?.options.tab;
+  const requestedFrom = ACCOUNTS.find((account) => account.id === navigation?.options.section);
+  const [tab, setTab] = useState<FinTab>(requestedTab === 'transfer' ? 'transfer' : 'accounts');
   /* 이체하면 이 화면 안에서 계좌 잔액이 바뀌어 보인다(데모 — 원본 데이터에는 저장하지 않는다) */
   const [balances, setBalances] = useState<Record<string, number>>(() =>
     Object.fromEntries(ACCOUNTS.map((account) => [account.id, account.balance]))
   );
-  const [fromId, setFromId] = useState(ACCOUNTS[0].id);
-  const [toId, setToId] = useState(ACCOUNTS[1]?.id ?? ACCOUNTS[0].id);
+  const [fromId, setFromId] = useState((requestedFrom ?? ACCOUNTS[0]).id);
+  const [toId, setToId] = useState(
+    (ACCOUNTS.find((account) => account.id !== (requestedFrom ?? ACCOUNTS[0]).id) ?? ACCOUNTS[0]).id,
+  );
   const [amountText, setAmountText] = useState('');
   const [transfers, setTransfers] = useState<RecentTransfer[]>(INITIAL_TRANSFERS);
+
+  /* 계좌 탭의 총 잔액 — 이체해도 합계는 그대로다(계좌 사이 이동이라) */
+  const totalBalance = Object.values(balances).reduce((sum, value) => sum + value, 0);
 
   const amount = Number(amountText) || 0;
   const fromAccount = ACCOUNTS.find((account) => account.id === fromId) ?? ACCOUNTS[0];
@@ -143,6 +160,11 @@ export function MoneyAccountsPage() {
 
         {tab === 'accounts' && (
           <>
+          <section className="fin-summary" aria-label="총 잔액">
+            <p className="fin-summary__label">총 잔액</p>
+            <p className="fin-summary__amount">{totalBalance.toLocaleString()}원</p>
+          </section>
+
           <button
             type="button"
             className="money-accounts__section-head money-tappable"
@@ -220,16 +242,14 @@ export function MoneyAccountsPage() {
               <section className="fin-summary" aria-label="다음 카드값">
                 <p className="fin-summary__label">9월 {NEXT_CARD_PAYMENT.day}일 카드값</p>
                 <p className="fin-summary__amount">{NEXT_CARD_PAYMENT.amount.toLocaleString()}원</p>
-                <p className="fin-summary__sub">카드 {NEXT_CARD_PAYMENT.cards.length}장 · 이번 달 쓴 돈과 같아요</p>
+                <p className="fin-summary__sub">카드 {NEXT_CARD_PAYMENT.cards.length}장 · 이번 달 카드 사용액과 같아요</p>
               </section>
             )}
             <h2 className="money-accounts__section-title fin-title">내 카드 {CARDS.length}장</h2>
             <div className="money-accounts__list">
               {CARDS.map((card) => (
                 <div key={card.id} className="money-accounts__row">
-                  <span className="fin-card-thumb" aria-hidden="true">
-                    {card.issuer.replace('카드', '').trim()}
-                  </span>
+                  <img className="fin-card-thumb" src={img(card.image)} alt="" aria-hidden="true" />
                   <span className="money-accounts__row-info">
                     <span className="money-accounts__row-bank">{card.issuer}</span>
                     <span className="money-accounts__row-type">
@@ -240,6 +260,52 @@ export function MoneyAccountsPage() {
                 </div>
               ))}
             </div>
+
+            <button
+              type="button"
+              className="money-accounts__connect-row money-tappable"
+              onClick={() => setNotice('카드 연결 기능은 준비 중이에요.')}
+            >
+              <span className="money-accounts__connect-row-icon">
+                <img src={icon('menu-card.svg')} alt="" />
+              </span>
+              <span className="money-accounts__connect-row-text">
+                <span className="money-accounts__connect-row-title">다른 카드 연결</span>
+                <span className="money-accounts__connect-row-sub">쓰는 카드를 연결하면 카드값을 한눈에 볼 수 있어요.</span>
+              </span>
+              <img className="money-accounts__connect-row-chevron" src={icon('chevron-right-gray.svg')} alt="" />
+            </button>
+
+            <section className="money-accounts__banks">
+              <h2 className="money-accounts__section-title">연결 가능한 카드사</h2>
+              <div className="money-accounts__banks-grid">
+                {CONNECTABLE_CARDS.map((issuer) => (
+                  <button
+                    key={issuer.id}
+                    type="button"
+                    className="money-accounts__bank money-tappable"
+                    onClick={() => setNotice('카드 연결 기능은 준비 중이에요.')}
+                  >
+                    <span className="money-accounts__bank-badge" aria-hidden="true">
+                      <img src={img(issuer.logo)} alt="" />
+                    </span>
+                    <span className="money-accounts__bank-label">{issuer.label}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="money-accounts__bank money-tappable"
+                  onClick={() => setNotice('카드 연결 기능은 준비 중이에요.')}
+                >
+                  <span className="money-accounts__bank-badge money-accounts__bank-badge--more" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  <span className="money-accounts__bank-label">그 외</span>
+                </button>
+              </div>
+            </section>
           </>
         )}
 
