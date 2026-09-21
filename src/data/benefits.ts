@@ -64,3 +64,76 @@ export const RECOMMENDED_BENEFIT_IDS = ['seongnam-pet-medical', 'gyeonggi-youth-
 export function getBenefitById(id?: string): BenefitDetail | undefined {
   return BENEFITS.find((benefit) => benefit.id === id);
 }
+
+/* 혜택·복지 탭 — 전체 / 주거 / 생활비 / 반려동물 / 의료.
+ * 각 AppPage 로 이동하는 독립 화면이다 (혜택은 IA상 메인 페이지가 아니라 money 하위 탭). */
+export const BENEFIT_CATEGORIES = ['전체', '주거', '생활비', '반려동물', '의료'] as const;
+export type BenefitCategory = (typeof BENEFIT_CATEGORIES)[number];
+
+export const BENEFIT_CATEGORY_PAGES: Record<BenefitCategory, import('../navigation/routes').AppPage> = {
+  전체: 'benefits',
+  주거: 'benefits-housing',
+  생활비: 'benefits-cost',
+  반려동물: 'benefits-pet',
+  의료: 'benefits-medical',
+};
+
+export interface BenefitListItem {
+  id: string;
+  category: BenefitCategory;
+  title: string;
+  region: string;
+  /** 지역 옆 메타 문구 — "상시 접수" 또는 마감 D-day 등 */
+  meta: string;
+  /** 실제 신청인원 데이터가 없는 항목은 비워서 줄 자체를 생략한다. */
+  applicants?: string;
+  target: string;
+}
+
+/* 전체 탭의 기존 3건 + AI맞춤 추천에서 이미 쓰던 반려동물 지원(seongnam-pet-medical)을
+ * 카테고리별로 분류해 재사용한다. '의료'는 실제 데이터가 없어 항목을 만들지 않는다. */
+export const BENEFIT_LIST_ITEMS: BenefitListItem[] = [
+  {
+    id: 'youth-rent',
+    category: '주거',
+    title: '청년 월세 특별지원',
+    region: '전국',
+    meta: '상시 접수',
+    applicants: '1240명',
+    target: '만 19-34세 무주택 청년 1인 가구',
+  },
+  {
+    id: 'youth-leap',
+    category: '생활비',
+    title: '청년도약계좌',
+    region: '경기',
+    meta: '상시 접수',
+    applicants: '980명',
+    target: '만 19-34세 근로 · 사업 소득 청년',
+  },
+  {
+    id: 'gyeonggi-points',
+    category: '생활비',
+    title: '경기도 청년 복지포인트',
+    region: '경기',
+    meta: '상시 접수',
+    applicants: '760명',
+    target: '경기 거주 만 19-39세 중소기업 재직 청년',
+  },
+  {
+    id: 'seongnam-pet-medical',
+    category: '반려동물',
+    title: '성남시 반려동물 진료비 지원',
+    region: '성남시 · 경기도',
+    meta: '마감 D-30',
+    target: '성남시에 주소를 둔 시민 중 동물등록을 마친 반려동물 보호자',
+  },
+];
+
+export function benefitListItemsByCategory(category: BenefitCategory): BenefitListItem[] {
+  return BENEFIT_LIST_ITEMS.filter((item) => item.category === category);
+}
+
+/* 전체 탭 "또래가 많이 신청한 지원" 순위 — 이 탭에서만 순위 배지를 보여주므로
+ * BenefitListItem 자체가 아니라 여기서만 순서를 관리한다. */
+export const RANKED_BENEFIT_IDS = ['youth-rent', 'youth-leap', 'gyeonggi-points'] as const;

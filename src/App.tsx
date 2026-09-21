@@ -26,6 +26,10 @@ import { CommunityTipPage } from './pages/CommunityTipPage';
 import { CommunityRegionPage } from './pages/CommunityRegionPage';
 import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
+import { BenefitsHousingPage } from './pages/BenefitsHousingPage';
+import { BenefitsCostPage } from './pages/BenefitsCostPage';
+import { BenefitsPetPage } from './pages/BenefitsPetPage';
+import { BenefitsMedicalPage } from './pages/BenefitsMedicalPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
 import { BenefitDetailPage } from './pages/BenefitDetailPage';
 import { MenuManagePage } from './pages/MenuManagePage';
@@ -96,6 +100,10 @@ function MainPages() {
           <Route path="/money/expense" element={<MoneyPage screen="expense" />} />
           <Route path="/money/fund" element={<MoneyPage screen="fund" />} />
           <Route path="/money/benefits" element={<BenefitsPage />} />
+          <Route path="/money/benefits/housing" element={<BenefitsHousingPage />} />
+          <Route path="/money/benefits/cost" element={<BenefitsCostPage />} />
+          <Route path="/money/benefits/pet" element={<BenefitsPetPage />} />
+          <Route path="/money/benefits/medical" element={<BenefitsMedicalPage />} />
           <Route path="/money/benefits/recommended" element={<BenefitsRecommendPage />} />
           <Route path="/money/benefits/:id" element={<BenefitDetailPage />} />
           <Route path="/community" element={<CommunityPage />} />
