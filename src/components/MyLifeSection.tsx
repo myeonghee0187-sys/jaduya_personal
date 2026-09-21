@@ -116,6 +116,7 @@ export function MyLifeSection({
           </span>
         </button>
       </div>
+      <p className="my-life__hint">꾹 눌러 위치를 바꿔보세요</p>
 
       <ul
         className={`menu-grid${editing ? ' is-editing' : ''}`}

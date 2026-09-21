@@ -71,6 +71,38 @@ a { text-decoration: none; color: inherit; }
  * 클래스 두 개짜리 선택자라 .app 보다 명시도가 높아 순서와 무관하게 이긴다. */
 .home.app {
   background: var(--surface-page);
+  /* 시간대 전환 공통 값 — 배경 crossfade · 일러스트 밝기(filter) · 나뭇잎 · 별 · 헤더/인사말 텍스트 색이 모두
+   * 이 두 값을 참조해서 같은 순간 시작해 같은 duration / easing 으로 끝난다(시작 시점은 Hero.tsx 가 맞춘다).
+   * 텍스트도 .home 아래에 있어서 여기서 정의해야 상속받는다. */
+  --hero-time-transition-duration: 1400ms;
+  --hero-time-transition-easing: ease-in-out;
+}
+
+/* 시간대가 바뀔 때 헤더 · 인사말의 글자/아이콘 색도 배경과 같은 순간 시작해 같은 duration / easing 으로 서서히 바뀐다.
+ * (.home.is-night 는 새 배경 crossfade 가 시작되는 순간에 붙는다 — Hero.tsx 의 toneTime) */
+.home .nav-header__name,
+.home .filled-bell,
+.home .status-bar__time,
+.home .greeting__situation,
+.home .greeting__title,
+.home .greeting__sub {
+  transition: color var(--hero-time-transition-duration) var(--hero-time-transition-easing);
+}
+
+.home .home-time-preview__clock {
+  transition: stroke var(--hero-time-transition-duration) var(--hero-time-transition-easing);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home .nav-header__name,
+  .home .filled-bell,
+  .home .status-bar__time,
+  .home .greeting__situation,
+  .home .greeting__title,
+  .home .greeting__sub,
+  .home .home-time-preview__clock,
+  .home .status-bar__icons,
+  .home .status-bar::after { transition: none; }
 }
 
 /* 예전엔 여기서 402px 보다 좁거나 짧은 화면의 .app 바깥 여백(레터박스) 배경을
@@ -105,21 +137,11 @@ a { text-decoration: none; color: inherit; }
   object-fit: cover;
 }
 
-.hero__background-image--outgoing {
-  animation: home-background-fade-out 900ms ease-in-out both;
-}
-
+/* 시간대 전환 — 기존 배경(.hero__background 의 첫 img)은 끝까지 불투명하게 두고, 다음 시간대 배경이
+ * 그 위에서 0 → 1 로 나타난다. 두 장이 동시에 반투명해지는 구간이 없어 중간에 배경이 비치지 않는다.
+ * (prefers-reduced-motion 에서는 Hero.tsx 가 이 레이어 없이 바로 바꾼다.) */
 .hero__background-image--incoming {
-  animation: home-background-fade-in 900ms ease-in-out both;
-}
-
-@keyframes home-background-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  animation: home-background-fade-in var(--hero-time-transition-duration) var(--hero-time-transition-easing) both;
 }
 
 @keyframes home-background-fade-in {
@@ -129,6 +151,225 @@ a { text-decoration: none; color: inherit; }
   to {
     opacity: 1;
   }
+}
+
+/* ---- night 하늘 장식 (HeroNightSky.tsx) ----
+ * 별과 별똥별은 z-index 가 더 높은 전경(나뭇잎 1 · illustration 2 · 헤더/텍스트 10+)보다 항상 뒤에 그려진다.
+ * 전경에는 어떤 색 보정도 하지 않는다. */
+
+/* 별 — 화면 기준 레이어(별똥별 레이어와 같은 박스, z-index 0). 별의 left / top 은 HeroNightSky.tsx 가
+ * 미리 정해 둔 안전한 하늘 자리 후보 중에서 골라 넣고, 별이 완전히 사라진 순간(주기 경계)에만 바뀐다.
+ * 자리가 바뀌는 순간이 눈에 띄지 않도록 left / top 에는 transition 을 걸지 않는다. */
+.hero__sparkle-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: min(100%, var(--frame-width));
+  height: var(--sheet-top);
+  overflow: hidden;
+  pointer-events: none;
+  animation: hero-night-fade-in 1600ms ease-out both;
+}
+
+/* 다음 시간대 배경이 덮으며 들어오는 동안 함께 서서히 사라진다 — 배경 crossfade 와 같은 duration / easing */
+.hero__sparkle-layer.is-leaving,
+.hero__shooting-layer.is-leaving {
+  animation: hero-night-fade-out var(--hero-time-transition-duration) var(--hero-time-transition-easing) both;
+}
+
+@keyframes hero-night-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hero-night-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* 별 twinkle — 가운데 작은 밝은 점 + 상하좌우로 뻗는 가는 십자 축(4-point sparkle).
+ * 축은 ::before(가로) / ::after(세로)이고, clip-path 마름모로 중심에서 가장 굵고 양 끝은 뾰족하게 가늘어지며
+ * gradient 로 끝이 투명해진다. 위치는 고정이다. 흐릿하게 남아 있지 않고, 한 주기 동안 완전히 사라져 있다가
+ * (opacity 0) 작게 시작해 커지며 나타나 잠깐 밝아지고 다시 사라진다 — 주기의 절반 남짓은 아예 안 보인다.
+ * 크기는 --star-size 로 정한다. */
+.hero__star {
+  position: absolute;
+  width: var(--star-size, 22px);
+  height: var(--star-size, 22px);
+  margin: calc(var(--star-size, 22px) / -2) 0 0 calc(var(--star-size, 22px) / -2);
+  background: radial-gradient(
+    circle closest-side,
+    #fff 0 14%,
+    rgba(214, 232, 255, 0.4) 24%,
+    rgba(214, 232, 255, 0) 40%
+  );
+  opacity: 0;
+  animation: hero-star-twinkle var(--star-duration) ease-in-out var(--star-delay) infinite;
+}
+
+.hero__star::before,
+.hero__star::after {
+  content: '';
+  position: absolute;
+}
+
+.hero__star::before {
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, rgba(214, 232, 255, 0), rgba(255, 255, 255, 0.92) 50%, rgba(214, 232, 255, 0));
+  clip-path: polygon(0 50%, 50% 0, 100% 50%, 50% 100%);
+  animation: hero-star-axis-x var(--star-duration) ease-in-out var(--star-delay) infinite;
+}
+
+.hero__star::after {
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  margin-left: -1px;
+  background: linear-gradient(180deg, rgba(214, 232, 255, 0), rgba(255, 255, 255, 0.92) 50%, rgba(214, 232, 255, 0));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  animation: hero-star-axis-y var(--star-duration) ease-in-out var(--star-delay) infinite;
+}
+
+@keyframes hero-star-twinkle {
+  0%,
+  26% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  48% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+  76%,
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes hero-star-axis-x {
+  0%,
+  26% {
+    transform: scaleX(0.4);
+  }
+  48% {
+    transform: scaleX(1.1);
+  }
+  76%,
+  100% {
+    transform: scaleX(0.5);
+  }
+}
+
+@keyframes hero-star-axis-y {
+  0%,
+  26% {
+    transform: scaleY(0.4);
+  }
+  48% {
+    transform: scaleY(1.1);
+  }
+  76%,
+  100% {
+    transform: scaleY(0.5);
+  }
+}
+
+/* 별똥별 — 화면 기준 레이어. 나뭇잎 레이어(.falling-leaves)와 같은 박스를 쓰고 z-index 0 이라
+ * 나뭇잎(1) · illustration(2) 뒤에 그려진다. 오른쪽 기준으로 시작점을 잡아 좁은 화면에서도 잘리지 않는다. */
+.hero__shooting-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: min(100%, var(--frame-width));
+  height: var(--sheet-top);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 헤더 아래 오른쪽 빈 하늘에서 시작해 같은 속도로 왼쪽 아래 약 216px를 스쳐 간다.
+ * 막대의 오른쪽 끝이 머리(작은 빛점)이고, 회전한 x축 방향으로 이동한다. */
+.hero__shooting-star {
+  position: absolute;
+  left: calc(100% - 20px);
+  top: 44px;
+  width: 54px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(214, 232, 255, 0),
+    rgba(226, 239, 255, 0.5) 65%,
+    rgba(255, 255, 255, 0.95)
+  );
+  transform-origin: 0 50%;
+  opacity: 0;
+  animation: hero-shooting-star var(--shoot-duration, 1.9s) linear both;
+}
+
+.hero__shooting-star::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px 1px rgba(214, 232, 255, 0.45);
+}
+
+@keyframes hero-shooting-star {
+  0% {
+    opacity: 0;
+    transform: translate(var(--shoot-x, 0px), var(--shoot-y, 0px)) rotate(145.6deg) translateX(0);
+  }
+  14% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--shoot-x, 0px), var(--shoot-y, 0px)) rotate(145.6deg) translateX(216px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__sparkle-layer { animation: none; }
+  .hero__star,
+  .hero__star::before,
+  .hero__star::after { animation: none; }
+  .hero__star { opacity: 0.55; }
+  .hero__shooting-layer { display: none; }
+}
+
+/* night 에서는 나뭇잎을 숨긴다 — 잎의 위치·속도·모양은 그대로이고 서서히 사라졌다 나타나기만 한다. */
+.falling-leaves {
+  transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing), visibility 0s linear 0s;
+}
+
+.falling-leaves.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing), visibility 0s linear var(--hero-time-transition-duration);
 }
 
 /* 오른쪽 나무 근처에서 시작한 다섯 잎이 서로 다른 곡선으로 왼쪽 아래로 흩날린다. */
@@ -245,6 +486,7 @@ a { text-decoration: none; color: inherit; }
   top: 355px;
   width: 245px;
   height: 157px;
+  transition: filter var(--hero-time-transition-duration) var(--hero-time-transition-easing);
 }
 
 .hero__illustration img,
@@ -264,8 +506,17 @@ a { text-decoration: none; color: inherit; }
 .hero__accent    { left: 134px;  top: 85px;   width: 51px;      height: 51px; }
 .hero__cup       { left: 93px;   top: 110px;  width: 71px;      height: 72px; }
 
-.home.is-night .hero__illustration {
-  filter: brightness(0.78) saturate(0.9) contrast(1.02);
+/* 밤에는 전경 일러스트 묶음만 푸른 주변광에 맞춰 톤다운한다.
+ * 낮 배경과 공용인 원본의 색은 유지하면서 약한 cyan 기운만 더하고,
+ * 헤더·텍스트·CTA·시트·별 효과는 이 wrapper 밖이라 영향을 받지 않는다.
+ * data-time-tone 은 시간대 값이 아니라 "새 배경 crossfade 가 시작되는 순간"에 바뀐다(Hero.tsx) —
+ * 그래서 이 filter 의 transition 이 배경 crossfade 와 같은 순간 시작해 같은 duration / easing 으로 끝난다. */
+.hero__illustration[data-time-tone='night'] {
+  filter: brightness(0.82) saturate(0.9) contrast(1.01) hue-rotate(-4deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__illustration { transition: none; }
 }
 
 /* ================= Header ================= */
@@ -309,7 +560,7 @@ a { text-decoration: none; color: inherit; }
   justify-content: space-between;
   /* .status-bar 와 같은 이유로 고정 — .add-widget 의 flex 컬럼 안에서 찌그러지지 않게 */
   flex: none;
-  height: 50px;
+  height: 60px;
   padding: 0 var(--screen-margin);
 }
 
@@ -352,7 +603,157 @@ a { text-decoration: none; color: inherit; }
   color: rgba(255, 255, 255, 0.92);
 }
 
-.home.is-night .status-bar {
+.home-time-preview {
+  position: relative;
+  flex: none;
+  width: var(--header-icon-btn);
+  height: var(--header-icon-btn);
+}
+
+.home-time-preview__clock {
+  width: var(--header-icon-svg);
+  height: var(--header-icon-svg);
+  fill: none;
+  stroke: var(--text-body);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home.is-night .home-time-preview__clock {
+  stroke: rgba(255, 255, 255, 0.92);
+}
+
+.home-time-preview__trigger {
+  border-radius: var(--radius-pill);
+  transition: background-color 120ms ease;
+}
+
+.home-time-preview__trigger:active {
+  background: rgba(59, 51, 46, 0.08);
+}
+
+.home.is-night .home-time-preview__trigger:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.home-time-preview__hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: 196px;
+  padding: 12px 14px;
+  border: 1px solid rgba(145, 145, 145, 0.38);
+  border-radius: var(--radius-l);
+  background: var(--surface-primary, #fffdf9);
+  box-shadow: 0 10px 28px rgba(59, 51, 46, 0.14);
+  color: var(--text-body);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease, visibility 0s linear 150ms;
+}
+
+.home-time-preview__hint-title,
+.home-time-preview__hint-description {
+  margin: 0;
+  font-family: var(--font-suit);
+}
+
+.home-time-preview__hint-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.home-time-preview__hint-description {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 17px;
+  color: var(--text-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-time-preview__trigger:hover {
+    background: rgba(59, 51, 46, 0.06);
+  }
+
+  .home.is-night .home-time-preview__trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .home-time-preview:not(.is-open):hover .home-time-preview__hint {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition-delay: 0s;
+  }
+}
+
+.home-time-preview__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: 176px;
+  padding: 12px;
+  border: 1px solid rgba(145, 145, 145, 0.45);
+  border-radius: var(--radius-l);
+  background: var(--surface-primary, #fffdf9);
+  box-shadow: 0 10px 28px rgba(59, 51, 46, 0.16);
+  color: var(--text-body);
+}
+
+.home-time-preview__title {
+  margin: 0 0 8px;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.home-time-preview__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.home-time-preview__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  font-family: var(--font-suit);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.home-time-preview__option.is-selected {
+  border-color: var(--brand-primary);
+  background: rgba(180, 57, 54, 0.06);
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.home-time-preview__check {
+  opacity: 0;
+}
+
+.home-time-preview__option.is-selected .home-time-preview__check {
+  opacity: 1;
+}
+
+.home .status-bar {
   position: relative;
 }
 
@@ -360,11 +761,17 @@ a { text-decoration: none; color: inherit; }
   color: var(--color-gray-05);
 }
 
+/* 밤에는 어두운 기본 상태바 아이콘(img)을 밝은 마스크 아이콘(::after)으로 바꾼다.
+ * 둘 다 항상 있고 opacity 만 서로 교차하므로 전환 중에 아이콘이 툭 나타나거나 사라지지 않는다. */
+.home .status-bar__icons {
+  transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing);
+}
+
 .home.is-night .status-bar__icons {
   opacity: 0;
 }
 
-.home.is-night .status-bar::after {
+.home .status-bar::after {
   content: '';
   position: absolute;
   top: 18.5px;
@@ -374,6 +781,13 @@ a { text-decoration: none; color: inherit; }
   background-color: var(--color-gray-05);
   -webkit-mask: url('/assets/icon/status-icons.svg') center / 100% 100% no-repeat;
   mask: url('/assets/icon/status-icons.svg') center / 100% 100% no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing);
+}
+
+.home.is-night .status-bar::after {
+  opacity: 1;
 }
 
 /* ================= Hero copy ================= */
@@ -477,9 +891,7 @@ a { text-decoration: none; color: inherit; }
   padding: 10px 16px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
+  background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 4px 12px rgba(46, 26, 36, 0.08);
   cursor: pointer;
   transition: background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
@@ -958,6 +1370,21 @@ a { text-decoration: none; color: inherit; }
   font-size: 20px;
   font-weight: 600;
   color: var(--text-heading-alt);
+}
+
+/* 사용 힌트 — 제목 바로 아래 보조 텍스트. 별도 코치마크를 못 봤어도 카드를 꾹 눌러 옮길 수 있다는 걸 바로 알게 한다.
+ * .my-life 의 gap(16px)을 음수 margin 으로 상쇄해 제목(h2 박스)과는 약 5px 로 붙이고, 아래 카드 영역과는
+ * gap 그대로 16px 를 유지한다(-3px 는 헤더 높이 36px 안에서 h2 가 20px 라 생기는 여백을 뺀 값).
+ * 한 줄 고정 — 360px 에서도 줄바꿈 · 말줄임 없이 글자 크기를 그대로 둔다(문구가 약 130px 라 폭이 충분하다).
+ * 폭을 내용에 맞추고 pointer-events 를 꺼서, 오른쪽 '메뉴 관리' 버튼(44px 터치 영역) 위를 덮어도 클릭을 가로채지 않는다. */
+.my-life__hint {
+  width: fit-content;
+  margin: calc(var(--my-life-gap) * -1 - 3px) 0 0;
+  font: 400 13px/1.3 var(--font-suit);
+  letter-spacing: -0.01em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* 편집 버튼 — 44px 터치 영역 안에 작은 배지 형태로 표시한다.

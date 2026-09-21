@@ -14,6 +14,7 @@ import { HomeBenefitBanner } from '../components/HomeBenefitBanner';
 import { HomeRecommendSettings } from '../components/HomeRecommendSettings';
 import type { RecommendDraft } from '../components/HomeRecommendSettings';
 import { HomeSheet } from '../components/HomeSheet';
+import { HomeTimePreview } from '../components/HomeTimePreview';
 import { MyLifeSection } from '../components/MyLifeSection';
 import type { AdContent } from '../data/adContents';
 import {
@@ -31,7 +32,7 @@ import { useSheetGesture } from '../hooks/useSheetGesture';
 import { useDragToClose } from '../hooks/useDragToClose';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useMenuWidgetSelection } from '../widgets/MenuWidgetSelectionContext';
-import { getHomeTimePeriod, type HomeTimePeriod } from '../lib/homeTimeBackground';
+import { getHomeTimePeriod, type HomeTimeOverride, type HomeTimePeriod } from '../lib/homeTimeBackground';
 
 /* Home 화면 — 모든 레이어는 라우트가 아니라 상태로 열린다.
  *
@@ -48,6 +49,7 @@ import { getHomeTimePeriod, type HomeTimePeriod } from '../lib/homeTimeBackgroun
 
 export function Home() {
   const [homeTimePeriod, setHomeTimePeriod] = useState<HomeTimePeriod>(() => getHomeTimePeriod(new Date()));
+  const [homeTimeOverride, setHomeTimeOverride] = useState<HomeTimeOverride>('auto');
   /* 현재 로그인한 사용자의 persona 로 Home 콘텐츠를 고른다 */
   const { user } = useAuth();
   const isDemoAccount = !!user?.email && getDemoAccountId(user.email) !== null;
@@ -259,9 +261,17 @@ export function Home() {
       onPointerUpCapture={clearHeroPointer}
       onPointerCancelCapture={clearHeroPointer}
     >
-      <Hero showFallingLeaves={isDemoAccount} onTimePeriodChange={setHomeTimePeriod} />
+      <Hero
+        showFallingLeaves={isDemoAccount}
+        timeOverride={homeTimeOverride}
+        onTimePeriodChange={setHomeTimePeriod}
+      />
 
-      <Header />
+      <Header
+        beforeBell={isDemoAccount ? (
+          <HomeTimePreview value={homeTimeOverride} onChange={setHomeTimeOverride} />
+        ) : undefined}
+      />
 
       {sheet.state === 'expanded' && !recommendationSettingsOpen && (
         <button
