@@ -71,10 +71,10 @@ export const NOTIFICATIONS_BY_PERSONA: Record<Persona, NotificationItem[]> = {
     {
       id: 'ayoung-life-checklist',
       type: 'life',
-      title: '이번 주 생활 체크리스트가 도착했어요',
-      message: '미뤄둔 집안일을 확인해보세요.',
+      title: '집에 생긴 문제를 함께 해결해봐요',
+      message: '홈케어에서 상황에 맞는 해결 방법을 확인해보세요.',
       createdAt: '방금 전',
-      route: 'life-house',
+      route: 'life-homecare',
     },
     {
       id: 'ayoung-benefit-new',

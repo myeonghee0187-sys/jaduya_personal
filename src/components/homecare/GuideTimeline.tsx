@@ -5,10 +5,10 @@ import type { ReactNode, RefObject } from 'react';
 import { usePrefersReducedMotion } from './usePrefersReducedMotion';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-/* 활성화 전/후 마커 배경 — CSS 변수(--dc-white, --brand-secondary)와 같은 값을
+/* 활성화 전/후 마커 배경 — CSS 변수(--dc-white, --brand-green)와 같은 값을
  * 리터럴로도 둔다. useTransform 의 색 보간은 실제 문자열이 필요해 var() 를 못 읽는다. */
 const MARKER_BG_INACTIVE = '#fffdfb';
-const MARKER_BG_ACTIVE = '#d1a40a';
+const MARKER_BG_ACTIVE = '#a2b123';
 /* Active Line(progress, 0~1)이 마커 자신의 위치(threshold)에 못 미쳐도 이 정도 가까워지면
  * "도달"로 본다 — 정확히 같은 값이어야만 반응하면 오히려 부자연스럽다. */
 const MARKER_ACTIVATE_WINDOW = 0.06;
@@ -165,7 +165,7 @@ export function GuideTimeline({ items, scrollContainerRef }: GuideTimelineProps)
 
   return (
     <div className="dc-timeline-wrapper" ref={wrapperRef}>
-      {/* Rail — track(항상 연한 베이지, 전체 구조) + progress(Point 그린, scaleY 로 스크롤
+      {/* Rail — track(연한 Point 그린, 전체 구조) + progress(Point 그린, scaleY 로 스크롤
        * 진행도만큼만 자란다). <ol> 의 형제이지 자식이 아니다 — <ol> 의 direct child 는
        * 항상 <li> 만 유지된다. */}
       <span className="dc-timeline__track" style={{ top: railTop, height: railHeight }} aria-hidden="true" />

@@ -1,21 +1,11 @@
-/* JADUYA — 생활 > 홈케어 (Figma daily_care 2008:9698)
- *
- * main.tsx 에서 life-first.css 다음에 읽는다 (.daily-care.app 이 .app 을 덮어야 한다).
- * 색은 tokens.css 를 우선 쓰고, 이 화면에만 있는 값(Oat Cream, Roasted Plum 등)은
- * life-first.css 와 같은 방식으로 지역 변수에 둔다. */
+/* JADUYA — 생활 > 홈케어 (Figma daily_care 3969:23030)
+ * 기존 선택·가이드·스크롤 로직을 유지하고 확정된 Point 그린 스타일을 적용한다. */
 
 .daily-care {
-  --dc-oat-2: #f3ebde; /* divider */
-  --dc-oat-3: #ece1ce; /* 칩·카드 테두리 */
-  /* Timeline Track(비활성 레일) 지정 색 — #F4E3D8 고정. dc-oat-3 를 그대로 쓰면 페이지 배경
-   * (--surface-subtle #fcfaf7)과 명도 차이가 거의 없어(대비비 ~1.24:1) 카드 테두리처럼 사각형
-   * 실루엣이 있는 곳에서는 티가 나도, 얇은 세로 직선 하나만 있는 Timeline에서는 거의 안 보인다.
-   * 색 자체를 더 진하게 바꾸는 대신(지정 색 고정) Rail 두께를 2px→3px 로 늘려 같은 색이라도
-   * 지각되는 면적을 넓힌다(얇은 선일수록 같은 색상차도 훨씬 덜 보이는 것은 인지적 특성이라
-   * 폭을 넓히는 쪽이 안전하다) — 다른 카드·칩 테두리에 쓰이는 dc-oat-3 는 그대로 둔다. */
-  --dc-timeline-track: #f4e3d8;
-  --dc-text-strong: #2a211c; /* 질문·라벨 텍스트 */
-  --dc-white: #fffdfb; /* 타임라인 원 배경 */
+  --dc-divider: #e9e4df;
+  --dc-card-border: #828e1c;
+  --dc-timeline-track: var(--color-green-3);
+  --dc-white: #fffdfb;
 
   display: flex;
   flex-direction: column;
@@ -23,9 +13,11 @@
   font-family: var(--font-suit);
 }
 
-/* home.css 의 .app { background: var(--screen-base) } 을 덮는다 */
 .daily-care.app {
-  background: var(--surface-page);
+  --screen-margin: 30px;
+  width: 100%;
+  max-width: 402px;
+  background: var(--surface-subtle);
 }
 
 /* ================= 하위 탭 ================= */
@@ -84,6 +76,35 @@ span.dc-tabs__tab {
   }
 }
 
+/* 생활의 두 탭만 적용한다. SavedPage가 사용하는 공통 dc-tabs는 유지한다. */
+.dc-tabs--life {
+  align-items: stretch;
+  padding-top: 0;
+  border-bottom: 0;
+}
+
+.dc-tabs--life .dc-tabs__tab {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 12px 14px 14px;
+  border-bottom: 1px solid #737373;
+  color: #737373;
+}
+
+.dc-tabs--life .dc-tabs__tab.is-active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+.dc-tabs--life .dc-tabs__tab.is-active::after {
+  bottom: -1px;
+  border-radius: 0;
+}
+
 /* 헤더·탭·탭바는 고정이고 이 영역만 스크롤한다 */
 .daily-care__scroll {
   position: relative;
@@ -114,10 +135,13 @@ span.dc-tabs__tab {
   margin: 0;
   border: 0;
   /* hr 는 height 가 아니라 border 로 두께를 잡아야 크롬에서 실제로 그려진다 */
-  border-top: 1px solid var(--dc-oat-2);
+  border-top: 1px solid var(--dc-divider);
 }
 
 .dc-section {
+  flex: none;
+  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -125,79 +149,62 @@ span.dc-tabs__tab {
 
 /* ================= ① 문제 유형 ================= */
 
-.dc-section__head {
+.dc-problem-top {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.dc-section__head h2 {
+.dc-section__head {
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .dc-section__head p {
   margin: 0;
-  color: #653b04;
-  font: 400 13px/1.5 var(--font-suit);
+  color: #74716d;
+  font: 400 14px/1.4 var(--font-suit);
 }
 
-/* ---------- 칩 공용 ---------- */
-
+/* 네 칩이 모바일 본문 폭 안에서 함께 줄어든다. 긴 선택지는 자연스럽게 줄바꿈한다. */
 .dc-chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
   gap: 8px;
 }
 
 .dc-chip {
-  border: 0;
-  background: #ffffff;
-  color: #8f6e55;
-  font: 400 13px/1.5 var(--font-suit);
+  min-width: 0;
+  min-height: 35px;
+  padding: 6px 2px;
+  border: 1px solid var(--brand-green);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-black);
+  font: 700 13px/1.35 var(--font-suit);
+  letter-spacing: -0.325px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   cursor: pointer;
   transition:
     border-color 160ms ease,
-    background-color 160ms ease;
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
-/* 문제 유형 칩 — radius 12px */
-.dc-chip--type {
-  padding: 8px 13px;
-  border: 1px solid var(--dc-oat-3);
-  border-radius: var(--radius-m);
-}
-
-.dc-chip--type.is-selected {
-  border-color: transparent;
-  background: var(--brand-secondary);
-  color: #855335;
-  font-weight: 500;
-}
-
-/* 위치·상태 칩 — 문제 유형 칩과 라운드를 통일(var(--radius-m)) */
-.dc-chip--pill {
-  padding: 7px 12px;
-  border: 1px solid var(--dc-oat-3);
-  border-radius: var(--radius-m);
-  font-weight: 500;
-  letter-spacing: -0.13px;
-}
-
-.dc-chip--pill.is-selected {
-  border-color: transparent;
-  background: var(--brand-secondary);
-  color: #855335;
-  font-weight: 500;
+.dc-chip.is-selected {
+  background: var(--brand-green);
+  color: var(--dc-white);
 }
 
 /* ================= ② 상황 선택 ================= */
 
-.dc-question {
+.daily-care .dc-question {
   margin: 0;
-  color: var(--dc-text-strong);
-  font: 600 18px/1.25 var(--font-suit);
+  color: var(--text-black);
+  font: 600 18px/1.35 var(--font-a2z);
 }
 
 .dc-fields {
@@ -214,37 +221,41 @@ span.dc-tabs__tab {
 
 .dc-field__label {
   margin: 0;
-  color: var(--dc-text-strong);
-  font: 700 15px/1.4 var(--font-suit);
-  letter-spacing: -0.3px;
+  color: var(--text-black);
+  font: 600 16px/1.4 var(--font-a2z);
 }
 
 /* ================= ③ 해결 가이드 ================= */
+
+.dc-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
 
 .dc-guide-head {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 37px;
 }
 
 .dc-guide-meta {
   margin: 0;
-  color: #653b04;
-  font: 500 12px/1.3 var(--font-suit);
-  letter-spacing: -0.12px;
+  color: var(--color-green-8);
+  font: 600 14px/1.3 var(--font-suit);
+  letter-spacing: -0.14px;
 }
 
 .dc-guide-head h2 {
   margin: 0;
   color: var(--text-black);
-  font: 600 18px/1.25 var(--font-suit);
+  font: 600 18px/1.35 var(--font-a2z);
 }
 
 .dc-empty {
   margin: 0;
   padding: 20px 12px;
-  border: 1px solid var(--dc-oat-3);
+  border: 1px solid var(--dc-card-border);
   border-radius: var(--radius-xl);
   color: var(--text-secondary);
   font: 400 13px/1.5 var(--font-suit);
@@ -266,8 +277,8 @@ span.dc-tabs__tab {
 .dc-timeline__track,
 .dc-timeline__progress {
   position: absolute;
-  left: 7.5px;
-  width: 3px;
+  left: 0;
+  width: 2px;
   border-radius: var(--radius-pill);
 }
 
@@ -276,7 +287,7 @@ span.dc-tabs__tab {
 }
 
 .dc-timeline__progress {
-  background: #fbdd78;
+  background: var(--brand-green);
   pointer-events: none;
 }
 
@@ -286,7 +297,7 @@ span.dc-tabs__tab {
   flex-direction: column;
   gap: 57px;
   margin: 0;
-  padding-left: 30px;
+  padding-left: 42px;
   list-style: none;
 }
 
@@ -297,17 +308,17 @@ span.dc-tabs__tab {
 .dc-timeline__marker {
   position: absolute;
   top: 2px;
-  left: -30px;
+  left: -50px;
   width: 18px;
   height: 18px;
   border-radius: var(--radius-pill);
-  background: #d1a40a;
-  border: 2px solid #d1a40a;
+  background: var(--brand-green);
+  border: 2px solid var(--brand-green);
 }
 
 .dc-timeline__marker.is-first {
   border: 0;
-  background: #d1a40a;
+  background: var(--brand-green);
 }
 
 .dc-timeline__content {
@@ -324,13 +335,13 @@ span.dc-tabs__tab {
 }
 
 .dc-timeline__num {
-  font: 600 16px/1 var(--font-asta);
+  flex: none;
+  font: 600 20px/1 var(--font-asta);
 }
 
 .dc-timeline__head h3 {
   margin: 0;
-  font: 700 15px/1.4 var(--font-suit);
-  letter-spacing: -0.3px;
+  font: 600 16px/1.4 var(--font-a2z);
 }
 
 /* ---------- 01~03 단계 카드 ---------- */
@@ -340,16 +351,15 @@ span.dc-tabs__tab {
   flex-direction: column;
   gap: 4px;
   padding: 20px;
-  border: 1px solid #cda868;
+  border: 1px solid var(--dc-card-border);
   border-radius: var(--radius-xl);
-  background: #ffffff;
+  background: transparent;
 }
 
 .dc-step-card__heading {
   margin: 0;
   color: var(--text-black);
-  font: 500 15px/1.5 var(--font-suit);
-  letter-spacing: -0.375px;
+  font: 600 20px/1.3 var(--font-suit);
 }
 
 .dc-step-card__body {
@@ -359,8 +369,8 @@ span.dc-tabs__tab {
 
 .dc-step-card__body p {
   margin: 0;
-  color: var(--text-nav);
-  font: 400 13px/1.5 var(--font-suit);
+  color: var(--text-black);
+  font: 400 16px/1.4 var(--font-suit);
 }
 
 /* ---------- 04 서비스 링크 ---------- */
@@ -378,9 +388,9 @@ span.dc-tabs__tab {
   justify-content: space-between;
   gap: 12px;
   padding: 16px;
-  border: 1px solid #cda868;
-  border-radius: var(--radius-xl);
-  background: #ffffff;
+  border: 1px solid var(--dc-card-border);
+  border-radius: 16px;
+  background: transparent;
   color: inherit;
   text-decoration: none;
   transition: border-color 160ms ease;
@@ -388,18 +398,43 @@ span.dc-tabs__tab {
 
 @media (hover: hover) {
   .dc-service-card:hover {
-    border-color: var(--brand-secondary);
+    border-color: var(--brand-green);
   }
 }
 
 .dc-service-card__title {
-  color: var(--text-nav);
-  font: 600 16px/1 var(--font-suit);
+  min-width: 0;
+  color: var(--text-black);
+  font: 700 15px/1.4 var(--font-suit);
+  letter-spacing: -0.3px;
 }
 
 .dc-service-card__arrow {
   flex: none;
   display: block;
-  width: 8px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
+}
+
+/* 데이터별 문장 길이가 달라도 카드 폭을 넘지 않고 높이만 늘어난다. */
+.dc-section h2,
+.dc-field__label,
+.dc-timeline__head h3,
+.dc-step-card,
+.dc-service-card__title {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-tabs--life .dc-tabs__tab.is-active::after {
+    animation: none;
+  }
+
+  .dc-chip,
+  .dc-service-card {
+    transition: none;
+  }
 }
