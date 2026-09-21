@@ -99,10 +99,11 @@ const LEAVES: LeafStyle[] = [
   },
 ];
 
-/** 홈 히어로 안에서만 보이는 가벼운 장식 효과. 입력이나 스크롤에는 관여하지 않는다. */
-export function FallingLeaves() {
+/** 홈 히어로 안에서만 보이는 가벼운 장식 효과. 입력이나 스크롤에는 관여하지 않는다.
+ *  hidden 이면 잎을 서서히 숨긴다(night 배경에서 쓴다). 잎의 위치·속도는 그대로다. */
+export function FallingLeaves({ hidden = false }: { hidden?: boolean }) {
   return (
-    <div className="falling-leaves" aria-hidden="true">
+    <div className={`falling-leaves${hidden ? ' is-hidden' : ''}`} aria-hidden="true">
       {LEAVES.map((style, index) => (
         <span className="falling-leaves__path" style={style} key={index}>
           <span className="falling-leaves__leaf" />

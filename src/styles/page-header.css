@@ -59,6 +59,7 @@
  * 같은 클래스를 쓰므로 페이지 이동에도 X 좌표가 움직이지 않는다.
  * 값은 여기에만 둔다 — 페이지별 CSS 에서 덮어쓰지 않는다. */
 .header-actions {
+  position: relative;
   margin-left: auto;
   display: flex;
   align-items: center;

@@ -66,9 +66,9 @@ export function MenuWidgetSlot({ item, slotIndex, row, col, span, editing, dragg
             type="button"
             aria-label={`${menu.label} 열기`}
             onClick={() => onOpen(item)}
-            style={{ display: 'block', width: '100%', padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
+            style={{ display: 'block', width: '100%', height: '100%', padding: 0, border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
           >
-            <WidgetAsset asset={(previewAsset ?? asset)!} />
+            <WidgetAsset asset={(previewAsset ?? asset)!} context="home" />
           </button>
         ) : (
           <button type="button" className="menu-widget" data-size={item.size} onClick={() => onOpen(item)}>

@@ -102,6 +102,11 @@ body {
   --widget-small-w: calc(
     (var(--content-width) - var(--widget-add-w) - var(--widget-gap) * 2) / 2
   );
+  /* 내 메뉴(홈) / MY 메뉴(메뉴 관리)가 공유하는 4열 Slot 폭 — 402px 기준 79.5px 이던 값을
+   * --content-width 비율로 다시 계산한다. 두 화면 모두 이 값 하나로 열 너비를 정하므로
+   * 같은 Grid 비율을 그대로 재사용한다(각 행 높이는 사용하는 쪽에서 이 폭에 자기 카드
+   * 비율만 곱해서 구한다 — home.css 의 --menu-cell-h, menu-manage.css 의 --mm-cell-h). */
+  --menu-cell-w: calc((var(--content-width) - var(--widget-gap) * 3) / 4);
 }
 
 /* ---------- 402px 고정 폭 제거 ---------- */
@@ -134,13 +139,13 @@ body {
   display: none;
 }
 
-/* tokens.css 의 --header-h(100px)는 Figma 값(상태바 50 + 로고헤더 50) 그대로다.
+/* tokens.css 의 --header-h(110px)는 상태바 50 + 로고헤더 60 값이다.
  * 실제 기기에서는 상태바가 위 .status-bar 처럼 safe-area 로 바뀌므로, 그 안에 얹혀
- * 실제로 헤더가 차지하는 높이도 같이 다시 계산한다 — 노치 없는 기기는 50px, 노치가
+ * 실제로 헤더가 차지하는 높이도 같이 다시 계산한다 — 노치 없는 기기는 60px, 노치가
  * 있으면 그만큼 더 커진다. .greeting 처럼 헤더 아래 여백을 --header-h 기준으로 잡는
  * 요소가 이 값을 그대로 따라간다. */
 .app {
-  --header-h: calc(env(safe-area-inset-top, 0px) + 50px);
+  --header-h: calc(env(safe-area-inset-top, 0px) + 60px);
 }
 
 /* ---------- 하단: 그려진 Home Indicator 대신 Safe Area ----------
@@ -278,7 +283,7 @@ body {
     --widget-medium-w: 167px;
     --widget-small-w: 128.5px;
     --tab-bar-h: 99px; /* nav 65 + Home Indicator 영역 34 */
-    --header-h: 100px; /* 상태바 50 + 로고헤더 50 — 실기기용 safe-area 계산을 되돌린다 */
+    --header-h: 110px; /* 상태바 50 + 로고헤더 60 — 실기기용 safe-area 계산을 되돌린다 */
 
     /* 웹에서만 쓰는 디바이스 컨테이너 마감.
      * 실물 베젤/목업은 만들지 않고 모서리와 그림자만 준다.

@@ -303,7 +303,9 @@ export function useMenuGridEdit({ gridRef, sectionRef, items, editing, onEnterEd
     const gapX = Number.parseFloat(style.columnGap) || 0;
     const gapY = Number.parseFloat(style.rowGap) || 0;
     const cellWidth = (grid.offsetWidth - gapX * (COLUMNS - 1)) / COLUMNS;
-    /* 행 높이가 px 로 고정된 grid(메뉴 관리 MY 메뉴)는 그 값을 쓴다 — 행이 1개뿐이어도 정확하다 */
+    /* grid-auto-rows 가 px 로 고정된 경우에만 그 값을 쓴다 — 지금은 두 grid(홈 .menu-grid,
+     * 메뉴 관리 .menu-manage__selected) 모두 grid-template-rows 로 행 높이를 정하므로
+     * 항상 아래 offsetHeight 기반 계산으로 떨어진다. */
     const fixedRow = Number.parseFloat(style.gridAutoRows);
     const cellHeight = Number.isFinite(fixedRow) ? fixedRow : (grid.offsetHeight - gapY * (ROWS - 1)) / ROWS;
     const left = (pointer.current.x - box.left - g.grabX) / k;
