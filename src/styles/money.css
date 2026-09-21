@@ -64,6 +64,12 @@
   text-align: center;
 }
 
+/* 고정비 탭은 탭 바 바로 위에 "+ 고정비 추가하기" 버튼이 고정돼 있다(sticky). 안내가 그 버튼을 덮어 버튼 글자가
+ * 가려지고 탭 바(홈 버튼)와 한 덩어리로 겹쳐 보였다 — 버튼(높이 48 + 아래 여백 32) 위로 띄운다. */
+.money__notice--above-cta {
+  bottom: calc(var(--tab-bar-h, 91px) + 32px + 48px + 12px);
+}
+
 /* ---------- 상단 탭 (이번 달 / 소비 / 고정비 / 비상금) + 월 선택 한 줄 ---------- */
 .money__tabs-row {
   display: flex;
@@ -142,12 +148,17 @@
 /* ---------- 아이콘 메뉴(레퍼런스) ----------
  * 맨 앞 "+" 타일 + 바로가기 타일을 가로로 나열하고 옆으로 밀어 넘긴다(스와이프). 타일은 작은
  * 둥근 정사각(56px), 아래에 라벨. 지금 보고 있는 메뉴는 JADUYA Red 테두리로 표시한다. */
+/* 좌우 30px 를 padding 이 아니라 margin 으로 둔다 — padding 이면 스크롤하는 아이콘이 그 여백 위로 지나가
+ * 화면 가장자리까지 비어져 나가 보였다. margin 이면 스와이프 영역이 콘텐츠 폭(342px)에서 딱 잘린다. */
 .money-menu {
   display: flex;
   gap: var(--space-sm);
-  margin: 18px 0 0;
-  padding: 0 var(--screen-margin);
+  margin: 18px var(--screen-margin) 0;
+  padding: 0;
   overflow-x: auto;
+  /* 자석 — 손을 떼면 가장 가까운 아이콘의 왼쪽 끝이 영역 왼쪽 가장자리에 딱 붙는다(왼쪽 아이콘이 반쯤
+   * 잘린 채 멈추지 않는다). 마우스로 끄는 동안에는 덜컥거리지 않게 끈다(.is-dragging). */
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -163,6 +174,7 @@
 
 .money-menu.is-dragging {
   cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .money-menu img {
@@ -174,13 +186,16 @@
   margin-top: 12px;
 }
 
+/* 한 화면에 5개가 온전히 들어간다 — 절반만 보이는 아이콘 없이 끝이 잘리지 않는다. 6번째부터는 옆으로 넘기면
+ * 자석으로 한 칸씩 붙는다. 폭 = (영역 폭 - 간격 4개) / 5 */
 .money-menu__item {
   display: flex;
   flex: none;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 64px;
+  width: calc((100% - var(--space-sm) * 4) / 5);
+  scroll-snap-align: start;
   padding: 0;
   border: none;
   background: none;
@@ -192,17 +207,20 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 56px;
-  height: 56px;
+  /* 칸 폭(342px 안에 5칸 = 58.8px)에 꽉 채운 정사각형 — 56px 고정이면 칸 안에서 가운데로 모여
+   * 첫 타일·다섯 번째 타일이 위아래 카드의 좌우 끝(342px 콘텐츠 라인)보다 1.4px 안쪽에 앉았다 */
+  width: 100%;
+  aspect-ratio: 1;
   border: 2px solid transparent;
   border-radius: var(--radius-l);
   background: var(--surface-widget);
   transition: border-color 0.2s ease-in-out;
 }
 
+/* 새 아이콘(200×199)은 여백이 거의 없는 그림이라 28px 로는 작아 보였다 — 타일(56px) 안쪽을 거의 채우게 40px 로 통일 */
 .money-menu__tile img {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
@@ -265,15 +283,15 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-s);
   background: var(--surface-widget);
 }
 
 .menu-edit-sheet__icon img {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 
@@ -309,7 +327,7 @@
   padding: 16px 20px;
   border-radius: var(--radius-xl);
   background: linear-gradient(135deg, var(--color-gray-0) 0%, var(--color-primary-05) 100%);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 12%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
   /* 다음 알림으로 바뀔 때 — 위에서 살짝 내려오며 나타난다(key 가 바뀌면 다시 마운트되어 재생) */
   animation: money-banner-in 0.25s ease-in-out;
 }
@@ -408,7 +426,7 @@
   border: none;
   border-radius: 50%;
   background: var(--color-gray-0);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-gray-10) 16%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-gray-10) 4%, transparent);
   cursor: pointer;
 }
 
@@ -439,7 +457,7 @@
     transparent 60px
   );
   /* 낮고 넓게 퍼지는 옅은 그림자 — 흰 패널이 크림색 화면 위에서 살짝 떠 보이도록만 한다. */
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 12%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
 }
 
 .money-budget__top {
@@ -474,7 +492,7 @@
   border: none;
   border-radius: var(--radius-pill);
   background: var(--color-gray-0);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-gray-10) 24%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-gray-10) 6%, transparent);
   cursor: pointer;
   transition: transform 0.25s ease-in-out, background-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
 }
@@ -606,7 +624,7 @@
   padding: 8px;
   border-radius: var(--radius-xl);
   background: var(--color-gray-0);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-gray-10) 16%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-gray-10) 4%, transparent);
 }
 
 .money-budget__menu-item {
@@ -794,7 +812,7 @@
   margin: 12px var(--screen-margin) 0;
   border-radius: var(--radius-xl);
   background: var(--color-primary-05);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 12%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
   overflow: hidden;
 }
 
@@ -932,7 +950,7 @@
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--color-gray-0);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 12%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
 }
 
 .money-asset-body {
@@ -1017,6 +1035,22 @@
   font-size: 12px;
   color: var(--color-gray-8);
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* 호버·키보드 포커스 — 회색 버튼은 브랜드 컬러 바탕에 흰 글자로 바뀐다(.money-budget__btn 과 같은 규칙).
+ * 터치 기기에서는 호버가 없어 눌렀을 때 효과만 남는다. */
+@media (hover: hover) {
+  .money-asset-row__btn:not(.money-asset-row__btn--tint):hover {
+    background: var(--brand-primary);
+    color: var(--color-gray-0);
+  }
+}
+
+.money-asset-row__btn:not(.money-asset-row__btn--tint):focus-visible {
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
+  outline: none;
 }
 
 .money-asset-row__btn--tint {
@@ -1026,21 +1060,11 @@
 
 /* 카드 종류 목록에 쓰는 카드 썸네일(카드사 이름) */
 .money-asset-row__card {
-  display: flex;
+  display: block;
   flex: none;
-  align-items: flex-end;
-  justify-content: flex-start;
-  box-sizing: border-box;
   width: 24px;
   height: 32px;
-  padding: 3px;
-  border-radius: var(--radius-s);
-  background: var(--color-primary-1);
-  font-family: var(--font-suit);
-  font-weight: 400;
-  font-size: 10px;
-  line-height: 1.1;
-  color: var(--color-primary-6);
+  object-fit: contain;
 }
 
 .money-asset-row__text strong,
@@ -1142,6 +1166,108 @@
   font-size: 16px;
   line-height: 1.3;
   color: var(--color-gray-10);
+}
+
+/* 신용점수 — 큰 숫자 하나가 이 카드의 핵심 정보 */
+.money-asset-score {
+  margin: 0;
+  padding-bottom: 14px;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-gray-10);
+}
+
+.money-asset-score b {
+  font-family: var(--font-a2z);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.money-asset-score span {
+  margin-left: 4px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 신용점수 지난달 대비 막대 + 관리 팁 */
+.money-asset-credit {
+  padding-bottom: 16px;
+}
+
+.money-asset-credit__bar {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-1);
+}
+
+.money-asset-credit__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-green);
+}
+
+/* 이번 달 점수 위치의 자두 — 채움 끝에 얹혀 막대의 손잡이처럼 보인다 */
+.money-asset-credit__thumb {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 지난달 점수 눈금 — 막대 위로 살짝 튀어나와 채움과 겹쳐도 보인다 */
+.money-asset-credit__prev {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--color-gray-8);
+}
+
+.money-asset-credit__legend {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0 0;
+  font-family: var(--font-suit);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.money-asset-credit__tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  background: var(--surface-widget);
+  font-family: var(--font-suit);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.money-asset-credit__tip i {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-primary);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--color-gray-0);
 }
 
 .money-asset-head__badge {
@@ -1519,7 +1645,7 @@
   /* 호버(.money-spend-grid-card:hover)와 같은 그림자를 탭에도 준다 — MoneyPage.tsx 가
    * 이 클래스를 700ms 뒤에 떼어내므로(handleSpendCardTap), 그 동안 카드가 들뜬 느낌이
    * 유지되다가 위 transition(box-shadow 160ms)으로 부드럽게 가라앉는다. */
-  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.18);
+  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.04);
 }
 
 .money-spend-grid-card--wiggle .money-spend-grid-card__fill {
@@ -1570,7 +1696,7 @@
   transform-origin: top center;
   /* 흔들림은 550ms 뿐이라 그 순간을 못 보면 반응이 없다고 느끼기 쉬웠다 — 마우스가
    * 머무는 동안 내내 떠 있는 그림자를 같이 줘서 호버 중이라는 걸 계속 보여준다. */
-  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.18);
+  box-shadow: 0 6px 14px rgba(59, 51, 46, 0.04);
 }
 
 .money-spend-grid-card:hover .money-spend-grid-card__fill {
@@ -1863,7 +1989,7 @@
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
   background: var(--surface-cream);
-  box-shadow: 0 8px 20px rgba(59, 51, 46, 0.12);
+  box-shadow: 0 8px 20px rgba(59, 51, 46, 0.03);
   /* 비상금 적립 내역 패널(fund-deposit-panel-in)과 같은 진입 애니메이션 — 하드컷 없이
    * 살짝 아래에서 올라오며 나타난다 */
   animation: fund-deposit-panel-in 180ms ease;
@@ -2096,7 +2222,7 @@
   padding: 6px 10px;
   border-radius: var(--radius-s);
   background: var(--surface-base);
-  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.14);
+  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.04);
   white-space: nowrap;
   pointer-events: none;
   transform: translateX(-50%);
@@ -2731,7 +2857,7 @@
   border: none;
   border-radius: var(--radius-l);
   background: var(--surface-base);
-  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.18), 0 0 0 1px rgba(59, 51, 46, 0.06);
+  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.04), 0 0 0 1px rgba(59, 51, 46, 0.06);
   text-align: left;
   cursor: pointer;
 }
@@ -2924,7 +3050,7 @@
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
   background: var(--surface-base);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
   animation: fund-deposit-panel-in 180ms ease;
 }
 
@@ -3243,7 +3369,7 @@
   padding: 0 var(--screen-margin) max(20px, env(safe-area-inset-bottom));
   background: #fff;
   border-radius: 28px 28px 0 0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.06);
 }
 
 .fixed-add-sheet__header {
@@ -3623,7 +3749,7 @@
   background: var(--surface-cream);
   border: 1px solid var(--border-warm);
   /* 레퍼런스처럼 배경에서 한 겹 떠 보이는 카드감 — 복권/저금통을 손에 든 듯한 무게감 */
-  box-shadow: 0 10px 24px rgba(60, 50, 45, 0.08);
+  box-shadow: 0 10px 24px rgba(60, 50, 45, 0.04);
   overflow: hidden;
   transition: background 240ms ease;
 }
@@ -3800,7 +3926,7 @@
   padding: 10px 18px;
   border-radius: var(--radius-pill);
   background: var(--surface-base);
-  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.12);
+  box-shadow: 0 4px 12px rgba(59, 51, 46, 0.03);
   font-family: var(--font-suit);
   font-weight: 700;
   font-size: 15px;
@@ -4249,7 +4375,7 @@ button.fund-card__remaining--tap {
   padding: 0 var(--screen-margin) max(20px, env(safe-area-inset-bottom));
   background: #fff;
   border-radius: 28px 28px 0 0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.06);
 }
 
 .fund-sheet__header {
@@ -4460,7 +4586,7 @@ button.fund-card__remaining--tap {
    * .budget-setup__submit), 마지막 섹션이 그 버튼 뒤에 가리지 않도록 버튼 높이(44px)와
    * 버튼 위아래 여백(원래 버튼의 margin-top이었던 space-2xl, 버튼과 탭바 사이 space-xl)을
    * 그대로 더해 둔다 — 버튼을 밖으로 빼기 전과 같은 여백으로 보이게 하기 위함. */
-  padding: 0 var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl) + 44px + var(--space-2xl));
+  padding: 0 var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl) + 44px + var(--space-2xl) + 64px);
   scrollbar-width: none;
 }
 
@@ -4486,19 +4612,19 @@ button.fund-card__remaining--tap {
   margin: 8px 0 0;
   font-family: var(--font-suit);
   font-weight: 400;
-  font-size: 13px;
+  font-size: var(--font-size-body); /* Body M */
   color: var(--text-secondary);
 }
 
-/* ---------- 마스코트 ---------- */
+/* ---------- 마스코트 — 정보보다 앞서지 않도록 작게(핵심 숫자가 화면의 주인공) ---------- */
 .budget-setup__hero {
   display: flex;
   justify-content: center;
-  padding: var(--space-xl) 0;
+  padding: var(--space-lg) 0;
 }
 
 .budget-setup__hero img {
-  width: 180px;
+  width: 140px;
   height: auto;
 }
 
@@ -4514,9 +4640,9 @@ button.fund-card__remaining--tap {
 }
 
 @keyframes budget-flash-ring {
-  0% { box-shadow: 0 0 0 0 rgba(180, 57, 54, 0); }
-  35% { box-shadow: 0 0 0 6px rgba(180, 57, 54, 0.18); }
-  100% { box-shadow: 0 0 0 0 rgba(180, 57, 54, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 0%, transparent); }
+  35% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--brand-primary) 18%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 0%, transparent); }
 }
 
 /* 값이 바뀐 숫자에 짧게 주는 펄스 — key-remount 로 재생시킨다 */
@@ -4534,23 +4660,43 @@ button.fund-card__remaining--tap {
 .budget-setup__stepper-label {
   font-family: var(--font-suit);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
 }
 
 /* "직접 입력" — 스테퍼(-/금액/+) 아래에 따로 한 줄로 둔다. 스테퍼 자체는 건드리지
- * 않고 별도 바텀시트(.budget-sheet)를 연다 */
+ * 않고 별도 바텀시트(.budget-sheet)를 연다. 글자는 작아도 누르는 영역은 44px 를 확보한다. */
 .budget-setup__stepper-edit {
   display: block;
-  margin: var(--space-sm) auto 0;
+  min-height: 44px;
+  margin: 0 auto;
   border: none;
   background: none;
-  padding: 0;
+  padding: 0 var(--space-md);
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--font-size-xs); /* Label M */
   color: var(--brand-primary);
   cursor: pointer;
+  transition: color 0.2s ease-in-out;
+}
+
+/* 텍스트 버튼 — 호버·키보드 포커스에서 한 단계 진한 레드 + 밑줄(글자 색 대비 유지) */
+@media (hover: hover) {
+  .budget-setup__stepper-edit:hover {
+    color: var(--color-primary-6);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.budget-setup__stepper-edit:focus-visible {
+  color: var(--color-primary-6);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: -2px;
+  border-radius: var(--radius-m);
 }
 
 .budget-setup__stepper-row {
@@ -4565,18 +4711,40 @@ button.fund-card__remaining--tap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--border-warm);
   border-radius: 50%;
   background: var(--surface-base);
   font-family: var(--font-suit);
   font-weight: 500;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   color: var(--text-primary);
   cursor: pointer;
-  transition: transform 120ms ease, background-color 120ms ease;
+  /* 길게 눌러 반복할 때 글자 선택·확대·길게 누르기 메뉴가 끼어들지 않게 한다 */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 120ms ease, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
+}
+
+/* 호버·키보드 포커스 — 흰 바탕에서 따뜻한 서피스 + 브랜드 레드 테두리·글자로 바뀐다(비활성일 땐 그대로) */
+@media (hover: hover) {
+  .budget-setup__stepper-btn:hover:not(:disabled) {
+    border-color: var(--brand-primary);
+    background: var(--surface-widget);
+    color: var(--brand-primary);
+  }
+}
+
+.budget-setup__stepper-btn:focus-visible {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: 2px;
 }
 
 .budget-setup__stepper-btn:active:not(:disabled) {
@@ -4595,13 +4763,15 @@ button.fund-card__remaining--tap {
   min-width: 160px;
   font-family: var(--font-asta);
   font-weight: 600;
-  font-size: 28px;
+  font-size: 32px; /* 화면의 dominant number */
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums; /* 숫자가 굴러가거나 반복해서 바뀔 때 자릿수 폭이 흔들리지 않게 */
   color: var(--text-primary);
 }
 
 /* ---------- 자두의 추천 ---------- */
 .budget-setup__recommend {
-  margin-top: var(--space-2xl);
+  margin-top: var(--space-xl); /* Section Gap 24px */
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
   background: var(--surface-widget);
@@ -4629,19 +4799,36 @@ button.fund-card__remaining--tap {
   color: var(--text-primary);
 }
 
+/* 버튼 반지름은 12px(--radius-m) — 알약(pill)을 남발하지 않는다(DESIGN_SYSTEM 3장·21장) */
 .budget-setup__recommend-apply {
   flex: none;
-  padding: 8px 14px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
   border: 1px solid var(--brand-primary);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-m);
   background: var(--surface-base);
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--font-size-body); /* Label L */
   color: var(--brand-primary);
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 120ms ease, opacity 120ms ease;
+  transition: transform 120ms ease, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* 호버·키보드 포커스 — 윤곽선 버튼이 브랜드 레드 바탕 + 흰 글자로 뒤집힌다(흰 글자 대 레드 5.87:1) */
+@media (hover: hover) {
+  .budget-setup__recommend-apply:hover:not(:disabled) {
+    background: var(--brand-primary);
+    color: var(--color-gray-0);
+  }
+}
+
+.budget-setup__recommend-apply:focus-visible {
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: 2px;
 }
 
 .budget-setup__recommend-apply:active:not(:disabled) {
@@ -4665,7 +4852,7 @@ button.fund-card__remaining--tap {
 
 /* ---------- 이렇게 관리해요 ---------- */
 .budget-setup__manage {
-  margin-top: var(--space-2xl);
+  margin-top: var(--space-xl); /* Section Gap 24px */
 }
 
 .budget-setup__stats {
@@ -4706,8 +4893,23 @@ button.fund-card__remaining--tap {
   color: var(--brand-primary);
 }
 
+/* 진행 막대 + 진행률 문구 — 예산 설정하기 버튼(.budget-setup__submit) 바로 위 하단에 고정. 스크롤되는 내용이 뒤로 비쳐
+ * 글자와 겹치지 않도록 페이지 배경색으로 받치고 위쪽만 살짝 페이드한다. absolute 인 이유는 버튼과 같다(프레임 밖으로 안 삐져나오게). */
+.budget-setup__dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tab-bar-h) + var(--space-xl) + 44px);
+  z-index: 29;
+  padding: var(--space-md) var(--screen-margin) var(--space-sm);
+  background: linear-gradient(to bottom, transparent, var(--surface-page) var(--space-md));
+}
+
+.budget-setup__dock .budget-setup__progress-label {
+  margin-top: 8px;
+}
+
 .budget-setup__progress {
-  margin-top: var(--space-md);
   height: 7px;
   border-radius: var(--radius-pill);
   background: var(--border-warm);
@@ -4719,6 +4921,11 @@ button.fund-card__remaining--tap {
   border-radius: var(--radius-pill);
   background: var(--brand-green);
   transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease;
+}
+
+/* 진입 애니메이션 동안에는 너비를 JS 가 프레임마다 직접 쓰므로 width transition 을 끈다(끝나면 다시 켜진다) */
+.budget-setup__progress.is-intro .budget-setup__progress-fill {
+  transition: background-color 200ms ease;
 }
 
 .budget-setup__progress.is-near .budget-setup__progress-fill {
@@ -4733,8 +4940,19 @@ button.fund-card__remaining--tap {
   margin: 8px 0 0;
   font-family: var(--font-asta);
   font-weight: 400;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
+}
+
+/* 진행률 상태 문구 — 색(주황/빨강)만으로 상태를 전하지 않도록 글자를 함께 쓴다(DESIGN_SYSTEM 19장) */
+.budget-setup__progress-status {
+  font-family: var(--font-suit);
+  font-weight: 600;
+  color: var(--color-orange-6);
+}
+
+.budget-setup__progress-status.is-over {
+  color: var(--brand-primary);
 }
 
 .budget-setup__today {
@@ -4757,7 +4975,7 @@ button.fund-card__remaining--tap {
   padding: 10px 12px;
   border-top: none;
   border-radius: var(--radius-m);
-  background: rgba(180, 57, 54, 0.08);
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
 }
 
 .budget-setup__today-value {
@@ -4782,7 +5000,7 @@ button.fund-card__remaining--tap {
   margin-top: var(--space-lg);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-m);
-  background: rgba(180, 57, 54, 0.08);
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
 }
 
 .budget-setup__today-guide-icon {
@@ -4798,7 +5016,7 @@ button.fund-card__remaining--tap {
   font-weight: var(--font-weight-bold);
   font-size: 10px;
   line-height: 1;
-  color: #fff;
+  color: var(--color-gray-0);
 }
 
 .budget-setup__today-guide-title {
@@ -4829,14 +5047,26 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 14px;
-  color: #fff;
+  color: var(--color-gray-0);
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  transition: background-color 150ms ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+  transition: background-color 0.2s ease-in-out, transform 0.12s ease-out;
 }
 
-.budget-setup__submit:active {
-  filter: brightness(0.94);
+/* 호버·키보드 포커스 — 한 단계 진한 레드(--color-primary-6, 흰 글자 대비 유지). 완료(is-done) 상태는 그대로 초록 */
+@media (hover: hover) {
+  .budget-setup__submit:hover:not(:disabled) {
+    background: var(--color-primary-6);
+  }
+}
+
+.budget-setup__submit:focus-visible {
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: 2px;
+}
+
+.budget-setup__submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 /* 저장 버튼을 누른 직후 "설정 완료!" 상태 — 초록으로 잠깐 바뀌었다 돈관리로 이동한다 */
@@ -4850,9 +5080,9 @@ button.fund-card__remaining--tap {
  * 쓴다는 점만 다르다. ---------- */
 .budget-sheet {
   padding: 0 var(--screen-margin) max(20px, env(safe-area-inset-bottom));
-  background: #fff;
-  border-radius: 28px 28px 0 0;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: var(--surface-base);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0; /* Bottom Sheet 24px */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.06);
 }
 
 .budget-sheet__header {
@@ -4864,10 +5094,9 @@ button.fund-card__remaining--tap {
 
 .budget-sheet__title {
   margin: 0;
-  font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.02em;
+  font-family: var(--font-a2z);
+  font-weight: 600; /* Heading 4 */
+  font-size: 16px;
   color: var(--text-primary);
 }
 
@@ -4875,8 +5104,8 @@ button.fund-card__remaining--tap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   flex: none;
 }
 
@@ -4898,7 +5127,7 @@ button.fund-card__remaining--tap {
   margin-bottom: 8px;
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-body); /* Label L */
   color: var(--text-primary);
 }
 
@@ -4946,8 +5175,24 @@ button.fund-card__remaining--tap {
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 15px;
-  color: #fff;
+  color: var(--color-gray-0);
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.12s ease-out;
+}
+
+@media (hover: hover) {
+  .budget-sheet__submit:hover:not(:disabled) {
+    background: var(--color-primary-6);
+  }
+}
+
+.budget-sheet__submit:focus-visible {
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: 2px;
+}
+
+.budget-sheet__submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .budget-sheet__submit:disabled {
@@ -5141,7 +5386,7 @@ button.fund-card__remaining--tap {
   border: 2px solid #fff;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 3px 3px 1.5px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
@@ -5242,7 +5487,7 @@ button.fund-card__remaining--tap {
 .flow-toggle__btn.is-active {
   background: var(--surface-cream);
   color: var(--brand-primary);
-  box-shadow: 0 1px 4px rgba(59, 51, 46, 0.12);
+  box-shadow: 0 1px 4px rgba(59, 51, 46, 0.03);
 }
 
 /* ---------- 월 이동(캘린더 보기) — money-fixed-month-nav 와 같은 구조에
@@ -5298,7 +5543,7 @@ button.fund-card__remaining--tap {
   border: none;
   border-radius: var(--radius-xl);
   background: var(--surface-base);
-  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.18), 0 0 0 1px rgba(59, 51, 46, 0.06);
+  box-shadow: 0 1px 3px rgba(59, 51, 46, 0.04), 0 0 0 1px rgba(59, 51, 46, 0.06);
 }
 
 /* 요일 헤더 · 날짜 그리드(.flow-calendar__grid) 둘 다 부모(.flow-calendar) 안에서 독립된
@@ -5455,7 +5700,7 @@ button.fund-card__remaining--tap {
   padding: var(--space-xs) var(--card-padding-l) var(--space-md);
   background: var(--surface-cream);
   border-radius: var(--radius-l) var(--radius-l) 0 0;
-  box-shadow: 0 6px 16px rgba(59, 51, 46, 0.12);
+  box-shadow: 0 6px 16px rgba(59, 51, 46, 0.03);
 }
 
 /* 영수증 아래쪽 톱니 절취선 — 두 대각선 그라데이션으로 삼각 이빨을 그린다
@@ -5891,7 +6136,7 @@ button.fund-card__remaining--tap {
   border: 1px solid var(--border-warm);
   border-radius: var(--radius-m);
   background: var(--surface-base);
-  box-shadow: 0 6px 16px rgba(60, 50, 45, 0.1);
+  box-shadow: 0 6px 16px rgba(60, 50, 45, 0.03);
   list-style: none;
   animation: fund-deposit-panel-in 180ms ease;
 }
@@ -6405,7 +6650,7 @@ button.fund-card__remaining--tap {
   display: flex;
   align-items: center;
   width: 100%;
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl); /* Section Gap 24px */
   padding: 0;
   border: 0;
   background: none;
@@ -6415,27 +6660,28 @@ button.fund-card__remaining--tap {
 .money-accounts__section-title {
   margin: 0;
   font-family: var(--font-a2z);
-  font-weight: 700;
+  font-weight: 600; /* Heading 4 */
   font-size: 16px;
   color: var(--text-primary);
 }
 
-/* ---------- 계좌 목록 — money-mini-card 와 같은 카드 톤 ---------- */
+/* ---------- 계좌·카드·이체 목록 — 행마다 카드를 씌우지 않고 "리스트 + 구분선"으로 만든다
+ * (DESIGN_SYSTEM 16·17장: 같은 radius 카드 반복 대신 divider 로 구분) ---------- */
 .money-accounts__list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: var(--space-md);
+  margin-top: var(--space-xs);
 }
 
 .money-accounts__row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: var(--card-padding-l);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-xl);
-  background: var(--surface-base);
+  padding: var(--card-padding-m) 0;
+}
+
+.money-accounts__row + .money-accounts__row {
+  border-top: 1px solid var(--border-warm);
 }
 
 .money-accounts__row-badge {
@@ -6467,8 +6713,8 @@ button.fund-card__remaining--tap {
 
 .money-accounts__row-bank {
   font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600; /* Label L */
+  font-size: var(--font-size-body);
   color: var(--text-primary);
 }
 
@@ -6483,24 +6729,40 @@ button.fund-card__remaining--tap {
   flex: none;
   font-family: var(--font-asta);
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16px; /* Body L */
   color: var(--text-primary);
 }
 
-/* ---------- 다른 금융기관 계좌 연결 — 아이콘 + 제목/설명 + chevron 한 줄 카드 ---------- */
+/* ---------- 다른 금융기관 계좌 연결 — 아이콘 + 제목/설명 + chevron 한 줄(리스트 마지막 행처럼 구분선으로 이어진다) ---------- */
 .money-accounts__connect-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  margin-top: 10px;
-  padding: var(--card-padding-l);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-xl);
-  background: var(--surface-base);
+  padding: var(--card-padding-m) var(--space-xs);
+  margin: 0 calc(var(--space-xs) * -1);
+  width: calc(100% + var(--space-xs) * 2);
+  border: 0;
+  border-top: 1px solid var(--border-warm);
+  border-radius: var(--radius-m);
+  background: none;
   text-align: left;
+  transition: background-color 0.2s ease-in-out;
 }
 
+/* 호버·키보드 포커스 — 따뜻한 서피스로 살짝 깔린다(터치 기기는 눌림 효과만) */
+@media (hover: hover) {
+  .money-accounts__connect-row:hover {
+    background: var(--surface-widget);
+  }
+}
+
+.money-accounts__connect-row:focus-visible {
+  background: var(--surface-widget);
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: -2px;
+}
+
+/* 팔레트에 없는 파랑 대신 중립 서피스 — 브랜드 컬러는 강조에만 쓴다 */
 .money-accounts__connect-row-icon {
   display: flex;
   flex: none;
@@ -6509,8 +6771,7 @@ button.fund-card__remaining--tap {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-m);
-  background: color-mix(in srgb, #2f6fd6 12%, white);
-  color: #2f6fd6;
+  background: var(--surface-widget);
 }
 
 .money-accounts__connect-row-icon img {
@@ -6528,8 +6789,8 @@ button.fund-card__remaining--tap {
 
 .money-accounts__connect-row-title {
   font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 14.5px;
+  font-weight: 600; /* Label L */
+  font-size: var(--font-size-body);
   color: var(--text-primary);
 }
 
@@ -6548,7 +6809,7 @@ button.fund-card__remaining--tap {
 
 /* ---------- 연결 가능한 금융기관 ---------- */
 .money-accounts__banks {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl); /* Section Gap 24px */
 }
 
 .money-accounts__banks-grid {
@@ -6576,6 +6837,22 @@ button.fund-card__remaining--tap {
   height: 48px;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--border-warm), 0 1px 3px rgba(59, 51, 46, 0.08);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+/* 호버·키보드 포커스 — 로고 둘레에 브랜드 레드 링 */
+@media (hover: hover) {
+  .money-accounts__bank:hover .money-accounts__bank-badge {
+    box-shadow: 0 0 0 2px var(--brand-primary);
+  }
+}
+
+.money-accounts__bank:focus-visible {
+  outline: none;
+}
+
+.money-accounts__bank:focus-visible .money-accounts__bank-badge {
+  box-shadow: 0 0 0 2px var(--brand-primary), 0 0 0 5px var(--color-primary-1);
 }
 
 .money-accounts__bank-badge img {
@@ -6606,68 +6883,57 @@ button.fund-card__remaining--tap {
 
 /* ---------- 금융 관리 — 카드 / 이체 탭 ---------- */
 .fin-title {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl); /* Section Gap 24px */
 }
 
-/* 다음 카드값 요약 */
+/* 요약(계좌 탭 총 잔액 / 카드 탭 다음 카드값) — 그 탭의 dominant number. 브랜드 레드로 꽉 채우지 않고
+ * 따뜻한 위젯 서피스에 큰 숫자를 둔다(DESIGN_SYSTEM 4장: Brand colors are accents, not widget backgrounds) */
 .fin-summary {
   margin-top: var(--space-lg);
   padding: var(--card-padding-l);
   border-radius: var(--radius-xl);
-  background: var(--brand-primary);
-  color: var(--color-gray-0);
+  background: var(--surface-widget);
+  color: var(--text-primary);
 }
 
 .fin-summary__label {
   margin: 0;
   font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600; /* Label L */
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
 }
 
 .fin-summary__amount {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-family: var(--font-a2z);
   font-weight: 700;
-  font-size: 24px;
-  line-height: 1.3;
+  font-size: 32px;
+  line-height: 1.25;
 }
 
 .fin-summary__sub {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-family: var(--font-suit);
   font-size: 12px;
-  color: color-mix(in srgb, var(--color-gray-0) 80%, transparent);
+  color: var(--text-secondary);
 }
 
 /* 카드 썸네일 — 카드사 이름을 담은 세로 카드 모양 */
 .fin-card-thumb {
-  display: flex;
+  display: block;
   flex: none;
-  align-items: flex-end;
-  box-sizing: border-box;
   width: 28px;
   height: 40px;
-  padding: 4px;
-  border-radius: var(--radius-s);
-  background: var(--color-primary-1);
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 10px;
-  line-height: 1.1;
-  color: var(--color-primary-6);
+  object-fit: contain;
 }
 
-/* 이체 폼 */
+/* 이체 폼 — 폼 전체를 카드로 감싸지 않는다(입력창 자체가 테두리를 가진다) */
 .fin-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   margin-top: var(--space-md);
-  padding: var(--card-padding-l);
-  border: 1px solid var(--border-warm);
-  border-radius: var(--radius-xl);
-  background: var(--surface-base);
 }
 
 .fin-field {
@@ -6703,15 +6969,20 @@ button.fund-card__remaining--tap {
   gap: 6px;
 }
 
+/* 이체 금액 — 이 탭의 dominant input 이라 다른 입력창보다 크게 */
+.fin-field__input:has(input) {
+  height: 56px;
+}
+
 .fin-field__input input {
   flex: 1 1 auto;
   min-width: 0;
   border: none;
   outline: none;
   background: none;
-  font-family: var(--font-suit);
+  font-family: var(--font-asta);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 24px;
   text-align: right;
   color: var(--color-gray-10);
 }
@@ -6729,16 +7000,31 @@ button.fund-card__remaining--tap {
 
 .fin-chips button {
   flex: 1 1 0;
-  height: 32px;
+  height: 44px; /* tap target */
   padding: 0;
   border: none;
   border-radius: var(--radius-m);
   background: var(--color-gray-05);
   font-family: var(--font-suit);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--font-size-body); /* Label L */
   color: var(--color-gray-8);
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* 호버·키보드 포커스 — 브랜드 컬러 바탕에 흰 글자 */
+@media (hover: hover) {
+  .fin-chips button:hover {
+    background: var(--brand-primary);
+    color: var(--color-gray-0);
+  }
+}
+
+.fin-chips button:focus-visible {
+  background: var(--brand-primary);
+  color: var(--color-gray-0);
+  outline: none;
 }
 
 .fin-hint {
@@ -6758,10 +7044,27 @@ button.fund-card__remaining--tap {
   border-radius: var(--radius-m);
   background: var(--brand-primary);
   font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600; /* Label L */
+  font-size: var(--font-size-body);
   color: var(--color-gray-0);
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.12s ease-out;
+}
+
+/* 호버·키보드 포커스 — 한 단계 진한 레드(흰 글자 대비 유지). 비활성일 땐 그대로 */
+@media (hover: hover) {
+  .fin-submit:hover:not(:disabled) {
+    background: var(--color-primary-6);
+  }
+}
+
+.fin-submit:focus-visible {
+  outline: 2px solid var(--color-primary-2);
+  outline-offset: 2px;
+}
+
+.fin-submit:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .fin-submit:disabled {
@@ -6783,20 +7086,28 @@ button.fund-card__remaining--tap {
   padding: var(--space-lg) var(--screen-margin) 0;
 }
 
+/* 요약 — 따뜻한 위젯 서피스로 영역을 구분하고, 건수는 작은 라벨(Label L), 총액은 큰 숫자로 위계를 분명히 한다 */
+.fixed-overview__hero {
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-widget);
+}
+
 .fixed-overview__count {
   margin: 0;
-  font-family: var(--font-a2z);
-  font-weight: 600;
-  font-size: 18px;
-  color: var(--color-gray-10);
+  font-family: var(--font-suit);
+  font-weight: 600; /* Label L */
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-secondary);
 }
 
 .fixed-overview__total {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-family: var(--font-a2z);
   font-weight: 700;
-  font-size: 28px;
-  line-height: 1.3;
+  font-size: 32px;
+  line-height: 1.25;
   color: var(--color-gray-10);
 }
 

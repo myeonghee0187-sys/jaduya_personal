@@ -330,6 +330,95 @@ export const TOTAL_INCOME = INCOME_TRANSACTIONS.reduce((sum, t) => sum + t.amoun
  * 지출의 TOTAL_PREV_EXPENSE(카테고리별 prevAmount 합)와 같은 성격의 목업 기준값이다. */
 export const TOTAL_PREV_INCOME = 2_180_000;
 
+/* ---------- 지난 달(7월·8월) 더미 거래 ----------
+ * 수입·지출 화면에서 이전 달로 넘겨 볼 때 쓰는 목업. 9월(이번 달)은 위 원본을 그대로 쓴다.
+ * 8월은 CATEGORY_META.prevAmount(카테고리별 지난달 총액) · TOTAL_PREV_INCOME 과 합계가 정확히 같도록
+ * 맞춰서 "이번 달" 탭의 지난달 비교 문구와 어긋나지 않는다. 7월은 자유 목업. */
+type PastRow = readonly [day: number, category: CategoryKey, merchant: string, amount: number];
+
+function buildPastExpenses(prefix: string, rows: readonly PastRow[]): ExpenseTransaction[] {
+  return rows.map(([day, category, merchant, amount], i) => ({ id: `${prefix}-${i + 1}`, day, category, merchant, amount }));
+}
+
+const AUG_EXPENSES = buildPastExpenses('aug', [
+  // 식비 286,000
+  [1, 'food', 'GS25', 7_000], [3, 'food', '배달의민족', 27_000], [5, 'food', '스타벅스', 4_500],
+  [7, 'food', '이마트', 38_000], [9, 'food', '김밥천국', 8_500], [11, 'food', '배달의민족', 29_000],
+  [13, 'food', '파리바게뜨', 6_000], [15, 'food', '이마트', 34_000], [17, 'food', '요기요', 21_000],
+  [19, 'food', '스타벅스', 4_500], [21, 'food', '배달의민족', 25_000], [23, 'food', 'GS25', 9_000],
+  [25, 'food', '이마트', 32_000], [27, 'food', '김밥천국', 9_000], [29, 'food', '배달의민족', 22_000],
+  [31, 'food', '파리바게뜨', 9_500],
+  // 쇼핑 235,000
+  [2, 'shopping', '쿠팡', 26_000], [6, 'shopping', '무신사', 52_000], [10, 'shopping', '올리브영', 18_000],
+  [14, 'shopping', '자라', 45_000], [18, 'shopping', '쿠팡', 31_000], [22, 'shopping', '무신사', 39_000],
+  [28, 'shopping', '올리브영', 24_000],
+  // 교통 95,000
+  [1, 'transport', '교통카드 충전', 30_000], [8, 'transport', '카카오T', 11_000], [12, 'transport', '교통카드 충전', 30_000],
+  [20, 'transport', '카카오T', 8_000], [26, 'transport', 'SRT', 16_000],
+  // 문화/여가 68,000
+  [5, 'culture', '넷플릭스 외 구독', 30_000], [16, 'culture', 'CGV', 18_000], [24, 'culture', '교보문고', 20_000],
+  // 생활 60,000
+  [4, 'life', '다이소', 15_000], [13, 'life', '세탁특공대', 14_000], [21, 'life', '올리브영', 11_000],
+  [29, 'life', '다이소', 20_000],
+  // 기타 51,000
+  [9, 'etc', '문화상품권', 10_000], [17, 'etc', '약국', 13_000], [23, 'etc', '경조사비', 20_000],
+  [30, 'etc', '기타 결제', 8_000],
+]);
+
+const JUL_EXPENSES = buildPastExpenses('jul', [
+  [2, 'food', '배달의민족', 25_000], [4, 'food', '이마트', 41_000], [6, 'food', '스타벅스', 4_500],
+  [8, 'food', '김밥천국', 8_000], [10, 'food', 'GS25', 6_500], [12, 'food', '배달의민족', 30_000],
+  [15, 'food', '이마트', 37_000], [18, 'food', '요기요', 22_000], [21, 'food', '파리바게뜨', 7_000],
+  [24, 'food', '배달의민족', 28_000], [27, 'food', '이마트', 35_000], [30, 'food', 'GS25', 7_500],
+  [3, 'shopping', '쿠팡', 33_000], [9, 'shopping', '무신사', 47_000], [16, 'shopping', '올리브영', 21_000],
+  [23, 'shopping', '쿠팡', 29_000], [28, 'shopping', '자라', 55_000],
+  [1, 'transport', '교통카드 충전', 30_000], [11, 'transport', '카카오T', 12_000], [13, 'transport', '교통카드 충전', 30_000],
+  [22, 'transport', '카카오T', 9_000], [29, 'transport', 'KTX', 32_000],
+  [5, 'culture', '넷플릭스 외 구독', 30_000], [19, 'culture', 'CGV', 18_000], [26, 'culture', '교보문고', 22_000],
+  [7, 'life', '다이소', 10_000], [14, 'life', '세탁특공대', 16_000], [25, 'life', '다이소', 12_000],
+  [17, 'etc', '기타 결제', 9_000], [31, 'etc', '경조사비', 30_000],
+]);
+
+const AUG_INCOME: readonly IncomeTransaction[] = [
+  { id: 'aug-income-1', day: 5, source: '월급', amount: 1_950_000 },
+  { id: 'aug-income-2', day: 14, source: '부수입', amount: 150_000 },
+  { id: 'aug-income-3', day: 20, source: '이자', amount: 80_000 },
+];
+
+const JUL_INCOME: readonly IncomeTransaction[] = [
+  { id: 'jul-income-1', day: 5, source: '월급', amount: 1_950_000 },
+  { id: 'jul-income-2', day: 13, source: '부수입', amount: 100_000 },
+  { id: 'jul-income-3', day: 20, source: '이자', amount: 70_000 },
+];
+
+/** 한 달의 지출 거래 — month 는 0부터(8 = 9월). 거래 데이터가 있는 달은 7·8·9월뿐이고 나머지는 빈 목록. */
+export function monthExpenseTransactions(month: number): readonly ExpenseTransaction[] {
+  if (month === 8) return EXPENSE_TRANSACTIONS;
+  if (month === 7) return AUG_EXPENSES;
+  if (month === 6) return JUL_EXPENSES;
+  return [];
+}
+
+/** 한 달의 수입 거래 — monthExpenseTransactions 와 같은 규칙. */
+export function monthIncomeTransactions(month: number): readonly IncomeTransaction[] {
+  if (month === 8) return INCOME_TRANSACTIONS;
+  if (month === 7) return AUG_INCOME;
+  if (month === 6) return JUL_INCOME;
+  return [];
+}
+
+/** 한 달의 카테고리별 지출 합계 — 그 달 거래 내역의 합이다. */
+export function monthCategoryTotals(month: number): Record<CategoryKey, number> {
+  const totals = Object.fromEntries(CATEGORY_META.map((c) => [c.key, 0])) as Record<CategoryKey, number>;
+  for (const tx of monthExpenseTransactions(month)) totals[tx.category] += tx.amount;
+  return totals;
+}
+
+/** 카테고리 합계로 비율(합 100%)을 계산한다 — 월별 소비 분류 화면용. */
+export function categoryPercentages(totals: Readonly<Record<CategoryKey, number>>): Record<CategoryKey, number> {
+  return distributePercentages(totals, Object.values(totals).reduce((sum, v) => sum + v, 0));
+}
+
 export interface TransferTransaction {
   id: string;
   day: number;

@@ -658,7 +658,7 @@
 /* 플라스크는 제목·설명 두 줄 높이를 차지한다 */
 .auth-demo__flask {
   grid-row: 1 / 3;
-  color: var(--brand-primary);
+  object-fit: contain;
 }
 
 .auth-demo__title {
@@ -702,13 +702,66 @@
   cursor: pointer;
 }
 
+.auth-demo__avatar-wrap {
+  position: relative;
+  display: flex;
+  margin-bottom: 4px;
+}
+
 .auth-demo__avatar {
   width: 52px;
   height: 52px;
-  margin-bottom: 4px;
   border-radius: 50%;
   object-fit: cover;
   background: #fff3d6;
+  transition: box-shadow 260ms ease-out, transform 260ms ease-out, opacity 260ms ease-out;
+}
+
+/* 데모 계정 선택 표시 — 고른 프로필은 브랜드 레드 링 + 체크 배지 + 살짝 튀어 오르고,
+ * 나머지 둘은 옅어져서 "누가 선택됐는지" 한눈에 보인다. 이름도 브랜드 레드로. */
+.auth-demo__people.has-selection .auth-demo__person:not(.is-selected) .auth-demo__avatar {
+  opacity: 0.45;
+}
+
+.auth-demo__person.is-selected .auth-demo__avatar {
+  box-shadow: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--brand-primary);
+  animation: auth-demo-pick 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.auth-demo__person.is-selected .auth-demo__name {
+  color: var(--brand-primary);
+}
+
+.auth-demo__check {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--surface-base);
+  border-radius: 50%;
+  background: var(--brand-primary);
+  animation: auth-demo-check 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms backwards;
+}
+
+@keyframes auth-demo-pick {
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes auth-demo-check {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-demo__avatar { transition: none; }
+  .auth-demo__person.is-selected .auth-demo__avatar,
+  .auth-demo__check { animation: none; }
 }
 
 .auth-demo__name {

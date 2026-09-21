@@ -1,4 +1,5 @@
 import type { WidgetCategory, WidgetSize } from '../types';
+import { budgetRemaining, budgetUsedPercent, formatManwon, getBudget } from './moneyBudget';
 
 /* 위젯 레지스트리 — Figma "위젯 시스템" 페이지의 "메인위젯" 섹션(node 3554:22277)에 있는
  * 위젯 17개를 그대로 옮긴 것. 문구·구조 전부 Figma가 원본이다 — 임의로 만든 데모
@@ -282,10 +283,18 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     description: '이번 달 예산과 남은 돈을 확인해요.',
     availableSizes: ['small', 'medium', 'large'],
     /* living-cost 와 같은 이유로 M/L 모두 설명 줄을 뺀다 — 진행바 + 값만으로 충분하다 */
+    /* 예산 설정 화면에서 정한 값(data/moneyBudget.ts)을 그대로 보여준다 — 값을 읽을 때마다 계산하는 getter 라
+     * 예산을 바꾸면 위젯을 다시 그릴 때 바로 반영된다. */
     content: {
-      small: { value: '15.8만원' },
-      medium: { value: '100만원', progress: 84, progressTone: 'green' },
-      large: { value: '100만원', progress: 84 },
+      get small() {
+        return { value: formatManwon(Math.max(0, budgetRemaining(getBudget()))) };
+      },
+      get medium() {
+        return { value: formatManwon(getBudget()), progress: budgetUsedPercent(getBudget()), progressTone: 'green' as const };
+      },
+      get large() {
+        return { value: formatManwon(getBudget()), progress: budgetUsedPercent(getBudget()) };
+      },
     },
   },
   {

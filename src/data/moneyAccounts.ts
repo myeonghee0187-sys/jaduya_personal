@@ -53,6 +53,8 @@ export interface MoneyCard {
   issuer: string;
   /** "•• 4821" 같은 카드 뒷자리 표기 */
   tail: string;
+  /** 카드 이미지 — public/assets/img/ 기준 경로 */
+  image: string;
   /** 이번 달 이 카드로 쓴 금액(소비) — 모든 카드를 더하면 이번 달 쓴 돈과 같다 */
   amount: number;
   /** "25일 결제" 같은 보조 표기 */
@@ -63,6 +65,7 @@ export const CARDS: MoneyCard[] = CARD_STATEMENTS.map((card) => ({
   id: card.id,
   issuer: card.issuer,
   tail: card.tail,
+  image: card.image,
   amount: card.amount,
   note: `${card.billingDay}일 결제`,
 }));
@@ -83,3 +86,6 @@ export const LOANS: MoneyLoan[] = [
   { id: 'jeonse', kind: '전세대출', bank: '카카오뱅크', amount: 100_000_000, rate: 3.82 },
   { id: 'credit', kind: '신용대출', bank: '국민은행', amount: 5_000_000, rate: 4.5 },
 ];
+
+/** 내 신용점수 — 이번 달 조회값과 지난달 값(1,000점 만점). 실제 조회 연동이 없어 정적 목업이다. */
+export const CREDIT_SCORE = { score: 812, prevScore: 806, max: 1000 } as const;

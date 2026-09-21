@@ -283,11 +283,13 @@ p.onboarding__complete-text {
   display: block;
   margin: var(--space-lg) 0 0;
   text-align: center;
-  font-family: var(--font-asta);
+  /* DESIGN_SYSTEM.md 5장 Heading 4(A2Z SemiBold 16px) — 예전 14px 는 아래 형광펜 밑줄
+   * 인터랙션이 잘 안 보일 만큼 작았다. */
+  font-family: var(--font-a2z);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.3;
-  letter-spacing: -0.14px;
+  letter-spacing: -0.16px;
   color: var(--brand-primary);
 }
 
@@ -472,6 +474,11 @@ p.onboarding__complete-text {
   width: 26px;
 }
 
+/* "자취에 조금 익숙해졌어요" 아이콘 — 좌우반전 */
+.onboarding__choice-icon.is-flipped {
+  transform: scaleX(-1);
+}
+
 .onboarding__choice-text {
   display: flex;
   flex-direction: column;
@@ -638,4 +645,465 @@ p.onboarding__complete-text {
 .onboarding__cta img {
   width: 14px;
   height: 14px;
+}
+
+/* ================= 인터랙션 — 절제된 모션 =================
+ * 크기·위치(레이아웃)는 절대 바꾸지 않고 opacity/transform 만 쓴다(버튼 위치가 단계마다
+ * 같아야 한다는 위 요구사항 유지). 색은 전부 기존 토큰. 화려함은 관심사 선택(2단계)과
+ * 완료(4단계)에 모으고, 시작·자취 단계는 은은하게만 둔다. */
+
+/* ① 시작 — 위에서부터 차례로 떠오르고, 마스코트는 팝인 후 천천히 둥실거린다 */
+.onboarding__welcome > h1,
+.onboarding__welcome > p,
+.onboarding__welcome > .onboarding__accent {
+  animation: onboarding-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.onboarding__welcome > h1 { animation-delay: 160ms; }
+.onboarding__welcome > p { animation-delay: 240ms; }
+.onboarding__welcome > .onboarding__accent { animation-delay: 320ms; }
+
+.onboarding__mascot--welcome {
+  animation:
+    onboarding-pop 560ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+    onboarding-float 3.4s ease-in-out 700ms infinite;
+}
+
+/* "두 가지 선택이면 준비 끝!" — 형광펜이 그어지듯 밑줄이 그려진다 */
+.onboarding__accent {
+  position: relative;
+  isolation: isolate;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.onboarding__accent::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: 0;
+  z-index: -1;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-secondary);
+  opacity: 0.85;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: onboarding-underline 520ms cubic-bezier(0.22, 1, 0.36, 1) 640ms forwards;
+}
+
+/* 제목 속 핵심 구절 형광펜 — 위 .onboarding__accent 와 같은 색(--brand-secondary)·같은 "그어지는" 모션인데,
+ * 문장 안에서 쓰는 인라인용이다. 줄이 바뀌어도 이어지도록 밑줄 조각이 아니라 background 그라데이션으로 그린다
+ * (하이라이트 높이 ≈ 글자 아래 40%). 단계가 바뀔 때마다(.onboarding__step 이 key 로 다시 그려짐) 다시 그어진다. */
+.onboarding__mark {
+  padding: 0 2px;
+  margin: 0 -2px;
+  background-image: linear-gradient(
+    transparent 58%,
+    color-mix(in srgb, var(--brand-secondary) 85%, transparent) 58%
+  );
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  animation: onboarding-mark 520ms cubic-bezier(0.22, 1, 0.36, 1) 480ms forwards;
+}
+
+/* 완료 화면 제목은 위로 떠오르는 모션이 260ms 늦게 시작하므로 그만큼 뒤에 그어진다 */
+.onboarding__complete-heading .onboarding__mark {
+  animation-delay: 700ms;
+}
+
+/* ②③ 선택 카드 — 위에서 스태거로 등장 */
+.onboarding__choices button,
+.onboarding__stages button {
+  animation: onboarding-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms + 120ms);
+}
+
+/* ② 선택 — 체크가 톡 튀어 나오고 아이콘이 한 번 뛴다 */
+.onboarding__choice-check {
+  animation: onboarding-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.onboarding__choices button.is-selected .onboarding__choice-icon {
+  animation: onboarding-hop 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 하단 "N개를 선택했어요" 숫자가 바뀔 때 아래에서 올라오며 교체 */
+.onboarding__count {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--brand-primary);
+  animation: onboarding-count 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ③ 라디오 — 선택하면 링이 한 번 퍼진다. 마스코트는 살짝 위아래로 */
+.is-selected .onboarding__radio {
+  animation: onboarding-ripple 480ms ease-out;
+}
+
+.onboarding__mascot--guide {
+  animation: onboarding-float 3s ease-in-out infinite;
+}
+
+/* ④ 완료 — 마스코트 팝인 + 색종이 한 번, 요약 행은 차례로 */
+.onboarding__mascot--complete {
+  animation: onboarding-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.onboarding__confetti {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.onboarding__confetti i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+  animation: onboarding-confetti 1300ms cubic-bezier(0.2, 0.7, 0.4, 1) both;
+}
+
+.onboarding__complete-heading,
+.onboarding__complete-text {
+  animation: onboarding-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) 260ms backwards;
+}
+
+.onboarding__complete-text { animation-delay: 340ms; }
+
+.onboarding__summary-row {
+  animation: onboarding-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 460ms);
+}
+
+@keyframes onboarding-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes onboarding-pop {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes onboarding-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes onboarding-hop {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-5px) scale(1.08); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes onboarding-underline {
+  to { transform: scaleX(1); }
+}
+
+@keyframes onboarding-mark {
+  to { background-size: 100% 100%; }
+}
+
+@keyframes onboarding-count {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes onboarding-ripple {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 40%, transparent); }
+  100% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--brand-primary) 0%, transparent); }
+}
+
+@keyframes onboarding-confetti {
+  0% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
+  60% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 70px)) rotate(var(--rot));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__welcome > h1,
+  .onboarding__welcome > p,
+  .onboarding__welcome > .onboarding__accent,
+  .onboarding__mascot,
+  .onboarding__choices button,
+  .onboarding__stages button,
+  .onboarding__choice-check,
+  .onboarding__choice-icon,
+  .onboarding__count,
+  .is-selected .onboarding__radio,
+  .onboarding__complete-heading,
+  .onboarding__complete-text,
+  .onboarding__summary-row {
+    animation: none;
+  }
+
+  .onboarding__accent::after { animation: none; transform: scaleX(1); }
+  .onboarding__mark { animation: none; background-size: 100% 100%; }
+  .onboarding__confetti { display: none; }
+}
+
+/* ================= 관심사 카드 — 3열 × 2행 세로 카드(레퍼런스) =================
+ * 문구는 그대로 두고 박스 모양만 바꾼다: 위에 큰 아이콘, 오른쪽 위에 선택 동그라미, 아래 가운데 정렬 글자.
+ * 선택하면 옅은 브랜드 배경 + 레드 테두리 + 레드 체크. 값은 전부 기존 토큰. */
+.onboarding__choices {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding__choices button {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 148px;
+  padding: 30px 6px 12px;
+  text-align: center;
+}
+
+.onboarding__choices button.is-selected {
+  background: var(--color-primary-05);
+}
+
+.onboarding__choices .onboarding__choice-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.onboarding__choices .onboarding__choice-text {
+  flex: none;
+  align-items: center;
+  width: 100%;
+  padding-right: 0;
+}
+
+/* 선택 동그라미 — 비어 있을 땐 테두리만, 선택하면 체크 이미지가 그 자리를 채운다 */
+.onboarding__choices .onboarding__choice-check {
+  top: 8px;
+  right: 8px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-warm);
+  border-radius: var(--radius-pill);
+  background: var(--surface-base);
+}
+
+.onboarding__choices .onboarding__choice-check.is-on {
+  border: 0;
+  background: none;
+}
+
+/* ================= 하단 버튼 위로 올리고 4단계 위치 통일 =================
+ * 본문 높이를 min-height 가 아니라 고정 height 로 잡는다 — 단계마다 콘텐츠 길이가 달라도(내용이 넘치면 본문 안에서만
+ * 스크롤) 안내 문구와 버튼(.onboarding__footer)은 항상 같은 자리에 있다. 예전 590px 에서 560px 로 줄이고 위아래 여백을
+ * 조금씩 덜어(내비 -6, 본문 위 -8, 아래 -8, 완료 삽화 -14, 요약 여백 -6, 안내 캐릭터 -12) 버튼이 그만큼 위로 올라온다. */
+.onboarding__nav {
+  height: 44px;
+}
+
+.onboarding__body {
+  height: min(560px, 66vh);
+  min-height: 0;
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-md);
+}
+
+.onboarding__body--visual {
+  padding-top: var(--space-2xl);
+}
+
+.onboarding__body--complete {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-sm);
+}
+
+.onboarding__visual--complete {
+  height: 176px;
+}
+
+.onboarding__summary {
+  margin-top: var(--space-md);
+}
+
+.onboarding__mascot--guide {
+  width: 76px;
+}
+
+/* 카드 안 글자 줄바꿈 — 한글을 글자 단위로 자르지 않고 띄어쓰기(단어) 단위로만 넘기고(keep-all), 두 줄이 비슷한 길이가
+ * 되게 나눈다(balance). 문구는 그대로다. */
+.onboarding__choices .onboarding__choice-text strong,
+.onboarding__choices .onboarding__choice-text em {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+/* ================= 화려한 인터랙션 — 마스코트 반응 · 선택 파티클 · 완료 피날레 =================
+ * 크기·위치는 바꾸지 않고 transform/opacity 만 쓴다. 색은 전부 기존 브랜드 토큰. 모션은 400~900ms 로 눈에 보이게. */
+
+/* ① 시작 — 마스코트가 위에서 떨어져 두 번 튕기며 자리 잡은 뒤 둥실거린다 */
+.onboarding__mascot--welcome {
+  animation:
+    onboarding-drop 900ms cubic-bezier(0.3, 0, 0.3, 1) backwards,
+    onboarding-float 3.4s ease-in-out 1000ms infinite;
+}
+
+@keyframes onboarding-drop {
+  0% { opacity: 0; transform: translateY(-90px) scale(0.9); }
+  45% { opacity: 1; transform: translateY(0) scale(1.04, 0.94); }
+  62% { transform: translateY(-18px) scale(0.98, 1.03); }
+  80% { transform: translateY(0) scale(1.02, 0.97); }
+  90% { transform: translateY(-5px) scale(1); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* ② 관심사 카드 — 누르면 눌리고, 켜지면 배경이 왼쪽에서 채워지고 아이콘이 돌며 커지고 파티클이 튄다 */
+.onboarding__choices button {
+  overflow: visible;
+  transition: border-color 160ms ease-out, background-color 160ms ease-out, transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.onboarding__choices button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.onboarding__choices button.is-selected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--color-primary-1);
+  opacity: 0.6;
+  animation: onboarding-fill 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+.onboarding__choices button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.onboarding__choices button.is-selected .onboarding__choice-icon {
+  animation: onboarding-spin-pop 640ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes onboarding-fill {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes onboarding-spin-pop {
+  0% { transform: scale(1) rotate(0deg); }
+  40% { transform: translateY(-8px) scale(1.25) rotate(-14deg); }
+  70% { transform: translateY(0) scale(0.95) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.onboarding__burst {
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.onboarding__burst i {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: onboarding-burst 620ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.onboarding__burst i:nth-child(even) {
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+@keyframes onboarding-burst {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(1.1); }
+}
+
+/* ③ 자취 단계 — 고를 때마다 마스코트가 통통 뛰고 고개를 갸웃한다 */
+.onboarding__mascot--guide.is-hop {
+  transform-origin: 50% 100%;
+  animation:
+    onboarding-mascot-hop 640ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    onboarding-float 3s ease-in-out 640ms infinite;
+}
+
+@keyframes onboarding-mascot-hop {
+  0% { transform: translateY(0) scale(1.06, 0.92); }
+  35% { transform: translateY(-16px) rotate(-8deg) scale(0.96, 1.05); }
+  65% { transform: translateY(0) rotate(5deg) scale(1.05, 0.95); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+/* ④ 완료 — 마스코트가 팝인 뒤 손 흔들듯 기울이며 점프 */
+.onboarding__mascot--complete {
+  transform-origin: 50% 100%;
+  animation:
+    onboarding-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards,
+    onboarding-cheer 1100ms cubic-bezier(0.34, 1.56, 0.64, 1) 700ms 2;
+}
+
+@keyframes onboarding-cheer {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-14px) rotate(-6deg); }
+  50% { transform: translateY(0) rotate(0deg) scale(1.03, 0.97); }
+  75% { transform: translateY(-8px) rotate(6deg); }
+}
+
+/* 색종이 2차 — 좌우 양쪽에서 */
+.onboarding__confetti--left { left: 10%; top: 55%; }
+.onboarding__confetti--right { left: 90%; top: 55%; }
+
+/* "준비됐어요" — 한 글자씩 튀어 오른다 */
+.onboarding__mark--letters > span {
+  display: inline-block;
+  animation: onboarding-letter 560ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: calc(var(--c, 0) * 90ms + 760ms);
+}
+
+@keyframes onboarding-letter {
+  0% { opacity: 0; transform: translateY(14px) scale(0.6); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.15); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 선택 요약 — 옆에서 날아와 정렬되며 살짝 튕긴다 */
+.onboarding__summary-row {
+  animation: onboarding-fly 560ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 110ms + 1100ms);
+}
+
+@keyframes onboarding-fly {
+  0% { opacity: 0; transform: translateX(48px) scale(0.92); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__choices button.is-selected::before,
+  .onboarding__mascot--guide.is-hop,
+  .onboarding__mark--letters > span { animation: none; }
+  .onboarding__burst { display: none; }
 }

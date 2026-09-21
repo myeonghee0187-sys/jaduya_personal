@@ -1,76 +1,23 @@
 /* 홈 결제 예정 카드(레퍼런스) — 화면 아래쪽에 살짝 보이는 카드와, 눌렀을 때 올라오는 바텀시트.
  * 색은 브랜드 레드 + 흰 글자, 뱃지는 검정 알약. 반지름은 위쪽만 20px. */
 
-/* ---------- 살짝 보이는 카드 ---------- */
+/* ---------- 접힌 카드 자리 표시 ----------
+ * 실제 카드는 아래 .statement-sheet 하나뿐이다(접힘 ↔ 펼침을 같은 요소가 오간다). 이 요소는 화면에 안 보이고,
+ * "접힌 카드의 윗변"이 어디인지만 알려 준다 — AI 챗봇 버튼(AIChatbotButton)이 이 윗변을 읽어 시트 위로 비켜 앉고,
+ * 끌기 거리도 여기와 펼친 위치(.stmt-probe) 사이로 잰다. */
+.statement-peek,
+.stmt-overlay {
+  --stmt-peek-h: 128px;
+}
+
 .statement-peek {
   position: absolute;
   left: 0;
   right: 0;
   bottom: var(--tab-bar-h);
-  z-index: 35;
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  box-sizing: border-box;
-  height: 104px;
-  padding: 12px 20px 0;
-  border: none;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  background: var(--brand-primary);
-  box-shadow: 0 -4px 16px color-mix(in srgb, var(--color-gray-10) 14%, transparent);
-  color: var(--color-gray-0);
-  text-align: left;
-  cursor: pointer;
-  animation: statement-peek-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes statement-peek-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.statement-peek:active {
-  transform: scale(0.99);
-}
-
-/* 위쪽 가운데 손잡이 — 끌어올릴 수 있다는 표시 */
-.statement-peek__handle {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  width: 36px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-gray-10) 28%, transparent);
-  transform: translateX(-50%);
-}
-
-.statement-peek__art {
-  flex: none;
-  width: 62px;
-  height: 83px;
-  transform: scaleX(-1); /* 좌우 반전 */
-  margin-top: 0;
-  object-fit: contain;
-}
-
-.statement-peek__info {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  min-width: 0;
-}
-
-.statement-peek__head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  height: var(--stmt-peek-h);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .statement-peek__badge {
@@ -85,49 +32,88 @@
   color: var(--color-gray-0);
 }
 
-.statement-peek__title {
-  font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 1.3;
-  color: var(--color-gray-0);
+/* ---------- 바텀시트(접힘 ↔ 펼침 한 요소) ----------
+ * 진행도 --stmt-p: 0 = 접힘(탭 바 위 128px 카드), 1 = 펼침(홈 시트와 같은 높이, 탭 바까지 덮음).
+ * 시트 높이·아래 여백·딤 진하기가 전부 이 값 하나에서 나온다. 끌 때는 JS 가 값을 직접 쓰고(transition 없음),
+ * 놓으면 CSS transition 이 남은 거리를 이어서 움직인다 — 열 때는 부드럽게 감속(iOS 시트와 같은 곡선). */
+@property --stmt-p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
 }
 
-.statement-peek__amount {
-  font-family: var(--font-a2z);
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 1.3;
-  color: var(--color-gray-0);
+.stmt-overlay {
+  --stmt-p: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  transition: --stmt-p 480ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ---------- 바텀시트 ---------- */
-/* 뒤의 돈 관리 화면 딤 처리 — 레이어는 공용 바텀시트처럼 화면 전체를 덮어 뒤 화면 전체를 어둡게 하고 터치도 막는다.
- * 딤 진하기는 --stmt-dim(0~1)으로 정한다: 열려 있는 동안 1, 닫으려고 손잡이를 끌어 내리는 동안에는 옅어져 0이 된다.
- * (선택자에 클래스를 겹쳐 써서 공용 .layer--sheet 규칙보다 항상 우선한다.) */
-.layer.statement-layer:not([hidden]) .layer-dim {
-  opacity: var(--stmt-dim, 1);
+.stmt-overlay.is-expanded {
+  --stmt-p: 1;
 }
 
-.layer.statement-layer.is-dragging .layer-dim {
+/* 접을 때는 조금 더 빨리 — 열 때와 같은 곡선이라 끝이 뚝 끊기지 않는다 */
+.stmt-overlay:not(.is-expanded) {
+  transition-duration: 380ms;
+}
+
+.stmt-overlay.is-dragging {
   transition: none;
 }
 
-/* 시트 위치·높이 — 화면 아래에 붙고(하단 탭 바까지 덮는 표준 시트), 높이는 컴포넌트가 정한다:
- * 바로 Large — 위쪽 38px 만 남김. */
-.layer.statement-layer .bsheet.statement-sheet {
-  top: auto;
-  bottom: 0;
-  max-height: none;
-  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1), height 300ms cubic-bezier(0.16, 1, 0.3, 1);
+/* 펼치는 중·펼친 동안·접힌 직후에는 탭 바(z 40) 위로 올라와 딤이 탭 바와 헤더까지 덮는다. 챗봇 AI 아이콘(.ai-fab, z 50)은
+ * 시트가 열려 있어도 보이도록 그 아래(45)에 둔다. */
+.stmt-overlay.is-active {
+  z-index: 45;
+}
+
+/* 펼친 위치의 윗변을 재기 위한 눈에 안 보이는 표식 */
+.stmt-probe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--sheet-top-expanded, 113px);
+  height: 0;
+  visibility: hidden;
+}
+
+/* 뒤 화면 딤 — 진행도만큼 진해진다. 펼쳤거나 끄는 동안에만 터치를 받는다(접힌 동안엔 뒤 화면이 그대로 눌린다). */
+.stmt-dim {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(28, 25, 23, 0.45);
+  opacity: var(--stmt-p);
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.stmt-overlay.is-expanded .stmt-dim,
+.stmt-overlay.is-dragging .stmt-dim {
+  pointer-events: auto;
 }
 
 .statement-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tab-bar-h) * (1 - var(--stmt-p)));
+  height: calc(var(--stmt-peek-h) + (100% - var(--sheet-top-expanded, 113px) - var(--stmt-peek-h)) * var(--stmt-p));
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  pointer-events: auto;
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   background: var(--color-gray-0);
+  box-shadow: 0 -4px 16px color-mix(in srgb, var(--color-gray-10) 5%, transparent);
 }
 
+/* 위쪽 빨간 카드 — 접혔을 땐 이 카드의 윗부분(128px)만 보이고, 펼치면 아래 버튼 줄과 내역이 드러난다.
+ * 카드 어디든 위/아래로 끌 수 있고 접힌 상태에서는 탭하면 펼쳐진다. */
 .statement-sheet__card {
   position: relative;
   padding: 12px 20px 16px;
@@ -135,12 +121,34 @@
   color: var(--color-gray-0);
   margin: 0;
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-gray-10) 22%, transparent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-gray-10) 8%, transparent);
   flex: none;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
 }
 
-/* 위쪽 손잡이 영역 — 아래로 끌면 시트가 따라 내려가고 충분히 끌면 닫힌다(useDragToClose). 눈에 보이는
- * 막대는 작지만 손가락으로 잡기 쉽게 터치 영역은 넓게 잡는다. */
+.stmt-overlay.is-expanded .statement-sheet__card,
+.stmt-overlay.is-dragging .statement-sheet__card {
+  cursor: grab;
+}
+
+.statement-sheet__card:focus-visible {
+  outline: 2px solid var(--color-gray-0);
+  outline-offset: -4px;
+}
+
+/* 내역 영역 — 남는 높이를 채우고 안에서 스크롤한다 */
+.statement-sheet__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 위쪽 손잡이 막대 — 끌 수 있다는 표시(끌기는 카드 전체가 받는다) */
 .statement-sheet__grip {
   position: absolute;
   top: 0;
@@ -153,12 +161,7 @@
   height: 36px;
   padding-top: 8px;
   box-sizing: border-box;
-  cursor: grab;
-  touch-action: none;
-}
-
-.statement-sheet__grip:active {
-  cursor: grabbing;
+  pointer-events: none;
 }
 
 .statement-sheet__grip span {
@@ -166,6 +169,13 @@
   height: 4px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-gray-10) 28%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stmt-overlay,
+  .stmt-overlay:not(.is-expanded) {
+    transition-duration: 0.01ms;
+  }
 }
 
 .statement-sheet__top {
@@ -179,8 +189,8 @@
 
 .statement-sheet__art {
   flex: none;
-  width: 76px;
-  height: 101px;
+  width: 88px;
+  height: 102px;
   transform: scaleX(-1); /* 좌우 반전 */
   object-fit: contain;
   margin-top: 8px;
@@ -224,7 +234,14 @@
   color: color-mix(in srgb, var(--color-gray-0) 80%, transparent);
 }
 
-/* 아래 세 버튼 — 흰 테두리만 있는 알약(카드 위에서 눈에 띄되 색을 더하지 않는다) */
+/* 아래 세 버튼(고정비 보기 / 예산 설정 / 내 계좌) — DESIGN_SYSTEM.md 기준
+ *   · 반지름: 3장 "Button / selected state = 12px" — 8장 Visual Don't 의 "excessive pill UI / every element rounded"
+ *     에 따라 알약(pill) 대신 --radius-m 을 쓴다.
+ *   · 글씨: 5장 Label L(SUIT SemiBold 14px).  · 높이: 20장 "tap target 충분" → 44px.
+ *   · 기본: 빨간 카드 위에서 색을 더하지 않는 흰 윤곽선 버튼(흰 글자 대 brand-primary 5.87:1).
+ *   · 호버·키보드 포커스: 흰 바탕 + 브랜드 레드 글자로 뒤집는다 — 브랜드 컬러는 강조에만 쓴다는 원칙에 맞고, 이전의
+ *     "흰색 16% 덮기"는 글자 대비가 4.5:1 아래로 내려갔지만 이건 5.87:1 그대로다.
+ *   · 눌림: 살짝 눌리는 정도(scale)만 — 색은 호버와 같다. */
 .statement-sheet__actions {
   display: flex;
   gap: 8px;
@@ -233,23 +250,37 @@
 
 .statement-sheet__actions button {
   flex: 1 1 0;
-  height: 40px;
+  height: 44px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--color-gray-0) 70%, transparent);
-  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--color-gray-0) 80%, transparent);
+  border-radius: var(--radius-m);
   background: none;
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 14px;
   color: var(--color-gray-0);
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out,
+    transform 0.12s ease-out;
 }
 
 @media (hover: hover) {
   .statement-sheet__actions button:hover {
-    background: color-mix(in srgb, var(--color-gray-0) 16%, transparent);
+    border-color: var(--color-gray-0);
+    background: var(--color-gray-0);
+    color: var(--brand-primary);
   }
+}
+
+.statement-sheet__actions button:focus-visible {
+  border-color: var(--color-gray-0);
+  background: var(--color-gray-0);
+  color: var(--brand-primary);
+  outline: none;
+}
+
+.statement-sheet__actions button:active {
+  transform: scale(0.98);
 }
 
 /* ---------- 시트 본문(레퍼런스: 카드사 앱 "최근 이용 내역" / "월별 소비 분류") ----------
@@ -1616,7 +1647,7 @@
   padding: 20px 24px;
   border: none;
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, #2f6fd6 26%, var(--color-gray-0));
+  background: var(--color-secondary-2);
   text-align: left;
   cursor: pointer;
 }
@@ -1636,12 +1667,6 @@
   flex: none;
   width: 64px;
   height: 64px;
-}
-
-/* 시트가 열려 있어도 챗봇 AI 아이콘(.ai-fab, z-index 50)이 보이도록, 시트 레이어를 아이콘 아래(45)에 둔다 —
- * 하단 탭 바(40) 위이므로 딤은 여전히 탭 바와 헤더까지 덮는다. 공용 시트 레이어(70)보다 클래스를 겹쳐 우선한다. */
-.layer.statement-layer {
-  z-index: 45;
 }
 
 /* ---------- 시트 — 달력 아래 "지출 중간 점검"(레퍼런스): 어두운 카드 + 큰 제목 + 원형 비중 링 3개 ---------- */

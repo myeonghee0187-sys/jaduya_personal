@@ -1,5 +1,6 @@
 import { icon } from '../lib/asset';
 import type { MediumWidgetId, SmallWidgetId } from '../data/personaWidgets';
+import { budgetRemaining, formatManwon, useBudget } from '../data/moneyBudget';
 
 /* Home '내 생활' 캔버스에 들어가는 위젯 본문.
  *
@@ -8,6 +9,17 @@ import type { MediumWidgetId, SmallWidgetId } from '../data/personaWidgets';
  *   Small  128.5 × 72 → .module-card
  * 클래스와 크기는 기존 home.css 를 그대로 쓰고, 내용만 위젯별로 바꾼다.
  */
+
+/* 예산 설정 화면에서 정한 예산에서 이번 달 쓴 돈을 뺀 남은 금액 */
+function BudgetSmall() {
+  const budget = useBudget();
+  return (
+    <>
+      <p className="module-card__title">예산</p>
+      <p className="module-card__value">{formatManwon(Math.max(0, budgetRemaining(budget)))}</p>
+    </>
+  );
+}
 
 export function MediumWidget({ id }: { id: MediumWidgetId }) {
   return (
@@ -186,12 +198,7 @@ function SmallBody({ id }: { id: SmallWidgetId }) {
       );
 
     case 'budget-s':
-      return (
-        <>
-          <p className="module-card__title">예산</p>
-          <p className="module-card__value">15.8만원</p>
-        </>
-      );
+      return <BudgetSmall />;
 
     case 'pet-cost':
       return (
