@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { getBenefitById } from '../data/benefits';
 import { icon } from '../lib/asset';
@@ -7,7 +6,6 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 
 export function BenefitDetailPage() {
   const navigation = useAppNavigation();
-  const bookmarks = useBookmarks();
   const [notice, setNotice] = useState('');
   const benefit = getBenefitById(navigation?.options.benefitId);
   const returnTo = navigation?.options.returnTo ?? 'benefits-recommend';
@@ -36,7 +34,6 @@ export function BenefitDetailPage() {
     );
   }
 
-  const isSaved = bookmarks.isBenefitSaved(benefit.id);
   const meta = benefit.frequency
     ? `${benefit.frequency} / 주관  ${benefit.organizer}`
     : `주관  ${benefit.organizer}`;
@@ -51,60 +48,56 @@ export function BenefitDetailPage() {
 
       <main className="benefit-detail__scroll">
         <section className="benefit-detail__hero">
-          <div className="benefit-detail__context">
-            <span>혜택 상세</span>
-            <button
-              type="button"
-              className={`benefit-detail__bookmark${isSaved ? ' is-active' : ''}`}
-              aria-label={`${benefit.title} ${isSaved ? '저장 해제' : '저장'}`}
-              aria-pressed={isSaved}
-              onClick={() => bookmarks.toggleBenefit(benefit.id)}
-            >
-              <img src={icon('community-bookmark.svg')} alt="" />
-            </button>
-          </div>
-
           <div className="benefit-detail__headline">
             <div className="benefit-detail__meta-row">
               <span>{benefit.status} · {benefit.deadline}</span>
               <small>지원 금액 · {meta}</small>
             </div>
+          </div>
+
+          <div className="benefit-detail__highlight">
             <h2>{benefit.title}</h2>
             <div className="benefit-detail__amount">
               <span>{benefit.amountLabel}</span>
               <strong>{benefit.amount}</strong>
             </div>
-          </div>
 
-          <div className="benefit-detail__description">
-            <h3>지원 내용</h3>
-            <p>{benefit.description}</p>
+            <div className="benefit-detail__description">
+              <h3>지원 내용</h3>
+              <p>{benefit.description}</p>
+            </div>
           </div>
         </section>
 
         <section className="benefit-detail__section benefit-detail__eligibility">
-          <div className="benefit-detail__section-heading">
-            <h3>신청 대상</h3>
+          <div className="benefit-detail__card-top">
             <span>조건 {benefit.matchCount}개 일치</span>
           </div>
-          <p>{benefit.eligibility}</p>
+          <div className="benefit-detail__card">
+            <h3>신청 대상</h3>
+            <p>{benefit.eligibility}</p>
+          </div>
         </section>
 
         <section className="benefit-detail__section">
-          <h3>필요 서류</h3>
-          <p>{benefit.documents.join('  ·  ')}</p>
+          <div className="benefit-detail__card">
+            <h3>필요 서류</h3>
+            <p>{benefit.documents.join('  ·  ')}</p>
+          </div>
         </section>
 
         <section className="benefit-detail__section benefit-detail__process">
-          <h3>신청 절차</h3>
-          <ol>
-            {benefit.process.map((step, index) => (
-              <li key={step}>
-                <strong>{String(index + 1).padStart(2, '0')}</strong>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
+          <div className="benefit-detail__card">
+            <h3>신청 절차</h3>
+            <ol>
+              {benefit.process.map((step, index) => (
+                <li key={step}>
+                  <strong>{String(index + 1).padStart(2, '0')}</strong>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
 
         <section className="benefit-detail__notice-card">

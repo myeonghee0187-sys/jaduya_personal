@@ -15,6 +15,10 @@ export type AppPage =
   | 'community-tip'
   | 'community-region'
   | 'benefits'
+  | 'benefits-housing'
+  | 'benefits-cost'
+  | 'benefits-pet'
+  | 'benefits-medical'
   | 'benefits-recommend'
   | 'benefit-detail'
   | 'ai-chat'
@@ -57,7 +61,10 @@ export const PAGE_PATHS: Record<AppPage, string> = {
   life: '/living/first', 'life-first': '/living/first', 'life-homecare': '/living/home-care',
   community: '/community', 'community-question': '/community?filter=question',
   'community-tip': '/community/tips', 'community-region': '/community/reviews',
-  benefits: '/money/benefits', 'benefits-recommend': '/money/benefits/recommended',
+  benefits: '/money/benefits',
+  'benefits-housing': '/money/benefits/housing', 'benefits-cost': '/money/benefits/cost',
+  'benefits-pet': '/money/benefits/pet', 'benefits-medical': '/money/benefits/medical',
+  'benefits-recommend': '/money/benefits/recommended',
   'benefit-detail': '/money/benefits/:id', 'ai-chat': '/ai', money: '/money',
   'money-budget': '/money/budget', 'money-accounts': '/money/accounts',
   'money-fixed': '/money/fixed', 'money-expense': '/money/expense', 'money-fund': '/money/fund',
