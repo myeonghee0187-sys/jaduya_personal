@@ -4,7 +4,6 @@ import { BottomNavigation } from '../components/BottomNavigation';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { icon } from '../lib/asset';
 import { useAppNavigation } from '../navigation/AppNavigation';
-import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BENEFITS, RECOMMENDED_BENEFIT_IDS } from '../data/benefits';
 
 const RECOMMENDED_BENEFITS = RECOMMENDED_BENEFIT_IDS.map((id) =>
@@ -16,7 +15,6 @@ const AYOUNG_GIVEN_NAME = AYOUNG.name.slice(1);
 
 export function BenefitsRecommendPage() {
   const navigation = useAppNavigation();
-  const bookmarks = useBookmarks();
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -70,43 +68,23 @@ export function BenefitsRecommendPage() {
               <h2 id="recommend-list-title">신청 가능한 혜택 2개</h2>
               <p>지역·나이가 맞지 않는 4개는 제외했어요</p>
             </div>
-            <button type="button" className="recommend-list__sort">
-              마감순
-              <img src={icon('chevron-down-thin.svg')} alt="" />
-            </button>
           </div>
 
           <div className="recommend-list__cards">
-            {RECOMMENDED_BENEFITS.map((benefit) => {
-              const isBookmarked = bookmarks.isBenefitSaved(benefit.id);
-              return (
-                <article key={benefit.id} className="recommend-card">
-                  <div className="recommend-card__content">
-                    <div className="recommend-card__top">
-                      <div className="recommend-card__status">
-                        <span>{benefit.deadline}</span>
-                        <p>조건 4개 일치</p>
-                      </div>
-                      <button
-                        type="button"
-                        className={`recommend-card__bookmark${isBookmarked ? ' is-active' : ''}`}
-                        aria-label={`${benefit.title} ${isBookmarked ? '저장 해제' : '저장'}`}
-                        aria-pressed={isBookmarked}
-                        onClick={() => bookmarks.toggleBenefit(benefit.id)}
-                      >
-                        <img src={icon('community-bookmark.svg')} alt="" />
-                      </button>
-                    </div>
+            {RECOMMENDED_BENEFITS.map((benefit) => (
+              <article key={benefit.id} className="recommend-card">
+                <div className="recommend-card__tags">
+                  <span className="recommend-card__tag recommend-card__tag--deadline">
+                    {benefit.deadline}
+                  </span>
+                  <span className="recommend-card__tag recommend-card__tag--method">온라인신청</span>
+                </div>
 
-                    <div className="recommend-card__copy">
-                      <h3>{benefit.title}</h3>
-                      <p>{benefit.description}</p>
-                    </div>
-                  </div>
-
+                <div className="recommend-card__row">
+                  <h3>{benefit.title}</h3>
                   <button
                     type="button"
-                    className="recommend-card__detail"
+                    className="recommend-card__apply"
                     onClick={() =>
                       navigation?.navigate('benefit-detail', {
                         benefitId: benefit.id,
@@ -116,11 +94,12 @@ export function BenefitsRecommendPage() {
                     }
                   >
                     자세히 보기
-                    <img src={icon('chevron-right-sm.svg')} alt="" />
                   </button>
-                </article>
-              );
-            })}
+                </div>
+
+                <p className="recommend-card__target">{benefit.eligibility}</p>
+              </article>
+            ))}
           </div>
         </section>
         <div className="benefits-recommend__bottom-space" aria-hidden="true" />

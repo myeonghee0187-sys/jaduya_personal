@@ -8,7 +8,15 @@ const source = fs.readFileSync(path.join(__dirname, '../src/navigation/routes.ts
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const exportsForTest = {};
 new Function('exports', compiled)(exportsForTest);
-const { pageUrl, pageForPath, decodeRouteId } = exportsForTest;
+const { PAGE_PATHS, pageUrl, pageForPath, decodeRouteId } = exportsForTest;
+
+test('life entry opens first-home and both remaining pages retain canonical identities', () => {
+  assert.equal(pageUrl('life'), '/living/first');
+  assert.equal(pageForPath('/living'), 'life-first');
+  for (const page of ['life-first', 'life-homecare']) {
+    assert.equal(pageForPath(pageUrl(page)), page);
+  }
+});
 
 test('community remains canonical and legacy question callers share its filter URL', () => {
   assert.equal(pageUrl('community'), '/community');
@@ -40,7 +48,7 @@ const app = fs.readFileSync(path.join(__dirname, '../src/App.tsx'), 'utf8');
 const routes = [...app.matchAll(/<Route path="([^"]+)"/g)].map(([, route]) => ({ path: route, id: route }));
 test('approved navigation sequences PUSH then POP through actual registered routes', async () => {
   for (const sequence of [
-    ['/', '/living', '/living/first'],
+    ['/', pageUrl('life'), pageUrl('life-homecare')],
     ['/', '/money', '/money/benefits'],
     ['/', '/community', '/community/post/desk'],
     ['/my/activity?tab=작성한 글', '/community/post/demo-harin-post-1'],
@@ -65,10 +73,20 @@ test('deep-link initialization matches the requested detail instead of home', ()
   for (const [url, matched] of [
     ['/community/post/desk', '/community/post/:id'],
     ['/living/first', '/living/first'],
+    ['/living/home-care', '/living/home-care'],
     ['/money/benefits/recommended', '/money/benefits/recommended'],
   ]) {
     const router = createMemoryRouter(routes, { initialEntries: [url] });
     assert.equal(router.state.matches.at(-1).route.id, matched);
+    router.dispose();
+  }
+});
+
+test('retired housekeeping and food paths are absent from navigation and registered pages', () => {
+  for (const url of ['/living/housekeeping', '/living/food']) {
+    assert.ok(!Object.values(PAGE_PATHS).includes(url));
+    const router = createMemoryRouter(routes, { initialEntries: [url] });
+    assert.equal(router.state.matches.at(-1).route.id, '*');
     router.dispose();
   }
 });

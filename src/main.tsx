@@ -17,7 +17,7 @@ import { AuthProvider } from './auth/AuthContext';
  *   level-bar : 공용 LevelBar 컴포넌트
  *   page-header : 하위 화면 공용 헤더
  *   mypage / mission / saved : 하위 화면 (.mypage.app / .mission.app 이 .app 을 덮어야 해서 마지막)
- *   life      : 생활 메인 (.life.app 이 .app 을 덮어야 해서 마지막)
+ *   life-first / life-homecare : 최종 생활 두 페이지
  *   money     : 돈 관리 메인 (.money.app 이 .app 을 덮어야 해서 마지막)
  *   coachmark : 홈 코치마크 오버레이 — .app 위에 얹히기만 하면 되므로 순서 무관, 맨 뒤
  */
@@ -36,11 +36,8 @@ import './styles/profile-settings.css';
 import './styles/mission.css';
 import './styles/saved.css';
 import './styles/level-info.css';
-import './styles/life.css';
 import './styles/life-first.css';
 import './styles/life-homecare.css';
-import './styles/life-house.css';
-import './styles/life-eat.css';
 import './styles/community.css';
 import './styles/ai-chat-page.css';
 import './styles/money.css';

@@ -13,19 +13,20 @@ import { MyPage } from './pages/MyPage';
 import { MissionPage } from './pages/MissionPage';
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
 import { SavedPage } from './pages/SavedPage';
-import { LifePage } from './pages/LifePage';
 import { MoneyPage } from './pages/MoneyPage';
 import { MoneyBudgetPage } from './pages/MoneyBudgetPage';
 import { MoneyAccountsPage } from './pages/MoneyAccountsPage';
 import { LifeFirstPage } from './pages/LifeFirstPage';
 import { LifeHomecarePage } from './pages/LifeHomecarePage';
-import { LifeHousePage } from './pages/LifeHousePage';
-import { LifeEatPage } from './pages/LifeEatPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { CommunityTipPage } from './pages/CommunityTipPage';
 import { CommunityRegionPage } from './pages/CommunityRegionPage';
 import { AIChatPage } from './pages/AIChatPage';
 import { BenefitsPage } from './pages/BenefitsPage';
+import { BenefitsHousingPage } from './pages/BenefitsHousingPage';
+import { BenefitsCostPage } from './pages/BenefitsCostPage';
+import { BenefitsPetPage } from './pages/BenefitsPetPage';
+import { BenefitsMedicalPage } from './pages/BenefitsMedicalPage';
 import { BenefitsRecommendPage } from './pages/BenefitsRecommendPage';
 import { BenefitDetailPage } from './pages/BenefitDetailPage';
 import { MenuManagePage } from './pages/MenuManagePage';
@@ -84,11 +85,9 @@ function MainPages() {
       <Routes location={at}>
         <Route element={<AppNavigationProvider currentLocation={location}><Outlet /></AppNavigationProvider>}>
           <Route path="/" element={<Home />} />
-          <Route path="/living" element={<LifePage />} />
+          <Route path="/living" element={path === location.pathname ? <Navigate to="/living/first" replace /> : null} />
           <Route path="/living/first" element={<LifeFirstPage />} />
           <Route path="/living/home-care" element={<LifeHomecarePage />} />
-          <Route path="/living/housekeeping" element={<LifeHousePage />} />
-          <Route path="/living/food" element={<LifeEatPage />} />
           <Route path="/money" element={<MoneyPage />} />
           <Route path="/money/budget" element={<MoneyBudgetPage />} />
           <Route path="/money/accounts" element={<MoneyAccountsPage />} />
@@ -96,6 +95,10 @@ function MainPages() {
           <Route path="/money/expense" element={<MoneyPage screen="expense" />} />
           <Route path="/money/fund" element={<MoneyPage screen="fund" />} />
           <Route path="/money/benefits" element={<BenefitsPage />} />
+          <Route path="/money/benefits/housing" element={<BenefitsHousingPage />} />
+          <Route path="/money/benefits/cost" element={<BenefitsCostPage />} />
+          <Route path="/money/benefits/pet" element={<BenefitsPetPage />} />
+          <Route path="/money/benefits/medical" element={<BenefitsMedicalPage />} />
           <Route path="/money/benefits/recommended" element={<BenefitsRecommendPage />} />
           <Route path="/money/benefits/:id" element={<BenefitDetailPage />} />
           <Route path="/community" element={<CommunityPage />} />

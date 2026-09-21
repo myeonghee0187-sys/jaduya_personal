@@ -1,5 +1,5 @@
-import { motion, useMotionValue, useTransform } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { motion, useMotionValue, useTransform, useReducedMotion } from 'motion/react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { PanInfo } from 'motion/react';
 import type { ReactNode } from 'react';
 import './Stack.css';
@@ -55,6 +55,8 @@ function CardRotate({ children, onSendToBack, sensitivity, disableDrag = false }
 
 export interface StackProps {
   randomRotation?: boolean;
+  /** 첫 자취의 반듯한 종이 카드 스택. 기존 회전형 스택은 기본값을 유지한다. */
+  variant?: 'default' | 'paper';
   sensitivity?: number;
   cards?: ReactNode[];
   animationConfig?: { stiffness: number; damping: number };
@@ -70,6 +72,7 @@ export interface StackProps {
 
 export default function Stack({
   randomRotation = false,
+  variant = 'default',
   sensitivity = 200,
   cards = [],
   animationConfig = { stiffness: 260, damping: 20 },
@@ -81,6 +84,10 @@ export default function Stack({
   mobileBreakpoint = 768,
   onTopChange,
 }: StackProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const focusAfterCycle = useRef(false);
+  const descriptionId = useId();
+  const reduceMotion = useReducedMotion();
   const [isMobile, setIsMobile] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -94,7 +101,7 @@ export default function Stack({
     return () => window.removeEventListener('resize', checkMobile);
   }, [mobileBreakpoint]);
 
-  const shouldDisableDrag = mobileClickOnly && isMobile;
+  const shouldDisableDrag = variant === 'paper' || (mobileClickOnly && isMobile);
   const shouldEnableClick = sendToBackOnClick || shouldDisableDrag;
 
   const [stack, setStack] = useState(() =>
@@ -110,6 +117,10 @@ export default function Stack({
   /* 맨 뒤(index 0)가 아니라 맨 앞(마지막)이 지금 보이는 카드다 */
   useEffect(() => {
     if (stack.length) onTopChange?.(stack[stack.length - 1].id - 1);
+    if (focusAfterCycle.current) {
+      containerRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus({ preventScroll: true });
+      focusAfterCycle.current = false;
+    }
   }, [stack, onTopChange]);
 
   const sendToBack = (id: number) => {
@@ -142,7 +153,8 @@ export default function Stack({
 
   return (
     <div
-      className="stack-container"
+      ref={containerRef}
+      className={`stack-container${variant === 'paper' ? ' stack-container--paper' : ''}`}
       onMouseEnter={() => pauseOnHover && setIsPaused(true)}
       onMouseLeave={() => pauseOnHover && setIsPaused(false)}
     >
@@ -158,20 +170,42 @@ export default function Stack({
           >
             <motion.div
               className="stack-card"
-              onClick={() => shouldEnableClick && sendToBack(card.id)}
+              role={variant === 'paper' ? 'button' : undefined}
+              tabIndex={variant === 'paper' && index === stack.length - 1 ? 0 : -1}
+              aria-label={variant === 'paper' ? '다음 자취 경험 보기' : undefined}
+              aria-describedby={variant === 'paper' ? `${descriptionId}-${card.id}` : undefined}
+              aria-hidden={variant === 'paper' && index !== stack.length - 1 ? true : undefined}
+              style={variant === 'paper' ? { pointerEvents: index === stack.length - 1 ? 'auto' : 'none' } : undefined}
+              onKeyDown={(event) => {
+                if (variant === 'paper' && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  focusAfterCycle.current = true;
+                  sendToBack(card.id);
+                }
+              }}
+              onClick={() => {
+                if (!shouldEnableClick) return;
+                if (variant === 'paper' && containerRef.current?.contains(document.activeElement)) {
+                  focusAfterCycle.current = true;
+                }
+                sendToBack(card.id);
+              }}
               animate={{
-                rotateZ: (stack.length - index - 1) * 4 + randomRotate,
-                scale: 1 + index * 0.06 - stack.length * 0.06,
+                rotateZ: variant === 'paper' ? 0 : (stack.length - index - 1) * 4 + randomRotate,
+                y: variant === 'paper' ? -Math.min(2, stack.length - index - 1) * 12 : 0,
+                scale: variant === 'paper' ? 1 : 1 + index * 0.06 - stack.length * 0.06,
                 transformOrigin: '90% 90%',
               }}
               initial={false}
-              transition={{
+              transition={variant === 'paper' && reduceMotion ? { duration: 0 } : {
                 type: 'spring',
                 stiffness: animationConfig.stiffness,
                 damping: animationConfig.damping,
               }}
             >
-              {card.content}
+              {variant === 'paper' ? (
+                <div id={`${descriptionId}-${card.id}`} className="stack-card__description">{card.content}</div>
+              ) : card.content}
             </motion.div>
           </CardRotate>
         );

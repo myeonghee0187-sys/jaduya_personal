@@ -97,12 +97,10 @@ export const PERSONA_MENU_PRESETS: Record<DemoAccountId, PersonaMenuPreset> = {
       { assetId: baseMenuWidgetAssetId('fixed-expense'), slot: 7 },
     ],
   },
-  /* 하린 — 자취 3년차 원룸. 집 관리·살림·먹거리와 반복 생활비 → 2×2 + 1×1 4개 = 8/8 */
+  /* 하린 — 자취 3년차 원룸. 집 관리와 반복 생활비 → 2×2 + 1×1 2개 = 6/8 */
   harin: {
     widgets: [
       { assetId: 'home-care', slot: 1 },
-      { assetId: baseMenuWidgetAssetId('housekeeping'), slot: 3 },
-      { assetId: baseMenuWidgetAssetId('food'), slot: 4 },
       { assetId: baseMenuWidgetAssetId('fixed-expense'), slot: 7 },
       { assetId: baseMenuWidgetAssetId('emergency-fund'), slot: 8 },
     ],
