@@ -567,20 +567,41 @@
   display:grid;
   min-width:0;
   touch-action:pan-y;
+  /* 카드를 끌 때 글자가 선택되면 다음 드래그가 "선택 영역 끌기"로 넘어가고
+   * 브라우저가 pointercancel 을 보내 스와이프가 통째로 취소된다. */
+  -webkit-user-select:none;
+  user-select:none;
   margin-top:0;
   padding-top:24px;
   overflow:hidden;
   isolation:isolate;
 }
 
+/* 카드 안의 아이콘도 같은 이유로 끌리지 않게 한다 */
+.regret__deck img {
+  -webkit-user-drag:none;
+}
+
 .regret__deck-card {
   grid-area:1 / 1;
   min-width:0;
-  will-change:transform;
-  transition:transform .28s ease,opacity .28s ease;
+  will-change:transform,opacity;
+  transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .28s ease;
 }
 
+/* 손가락을 따라가는 동안에는 지연이 없어야 한다 */
 .regret__deck-card.is-dragging {
+  transition:none;
+}
+
+/* 앞장이 옆으로 빠져나가는 구간. 이 시간이 지난 뒤 순서가 한 칸 돌아간다
+ * (useRegretCarousel 의 EXIT_MS 와 같은 값이다). */
+.regret__deck-card.is-exiting {
+  transition:transform .22s cubic-bezier(.4,0,1,1),opacity .22s ease-out;
+}
+
+/* 맨 뒤 자리로 옮겨 놓는 한 프레임. 화면을 가로질러 되돌아오지 않게 애니메이션을 끈다. */
+.regret__deck-card.is-settling {
   transition:none;
 }
 
@@ -596,7 +617,8 @@
   .check-circle__mark,
   .contract-check__dot,
   .contract-check__track,
-  .regret__deck-card {
+  .regret__deck-card,
+  .regret__deck-card.is-exiting {
     transition:none;
   }
 }
