@@ -64,6 +64,10 @@ export function BenefitsPage() {
                 <h2 id="benefits-list-title">또래가 많이 신청한 지원</h2>
                 <p>30–34세 · 경기 성남시 자취 1인 가구 기준</p>
               </div>
+              <button type="button" className="benefits-list__sort">
+                더보기
+                <img src={icon('chevron-right-thin.svg')} alt="" />
+              </button>
             </div>
 
             <div className="benefits-cards">

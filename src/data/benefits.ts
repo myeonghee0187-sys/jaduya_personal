@@ -134,6 +134,24 @@ export function benefitListItemsByCategory(category: BenefitCategory): BenefitLi
   return BENEFIT_LIST_ITEMS.filter((item) => item.category === category);
 }
 
+/* 카테고리 탭(주거/생활비/반려동물/의료) 목록 정렬 — 커뮤니티 댓글 정렬과 같은
+ * community-filter 드롭다운 디자인을 재사용한다. '추천순'은 BENEFIT_LIST_ITEMS 에 이미
+ * 정리해 둔 큐레이션 순서를 그대로 쓴다. */
+export const BENEFIT_SORTS = ['추천순', '인기순'] as const;
+export type BenefitSort = (typeof BENEFIT_SORTS)[number];
+
+/** "1,240명" 같은 신청 인원 문자열에서 숫자만 뽑는다 — 데이터가 없는 항목은 0명 취급해 뒤로 밀린다. */
+export function benefitApplicantCount(item: BenefitListItem): number {
+  if (!item.applicants) return 0;
+  const digits = item.applicants.replace(/[^0-9]/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+export function sortBenefitListItems(items: BenefitListItem[], sort: BenefitSort): BenefitListItem[] {
+  if (sort === '인기순') return [...items].sort((a, b) => benefitApplicantCount(b) - benefitApplicantCount(a));
+  return items;
+}
+
 /* 전체 탭 "또래가 많이 신청한 지원" 순위 — 이 탭에서만 순위 배지를 보여주므로
  * BenefitListItem 자체가 아니라 여기서만 순서를 관리한다. */
 export const RANKED_BENEFIT_IDS = ['youth-rent', 'youth-leap', 'gyeonggi-points'] as const;

@@ -50,7 +50,6 @@ export function BenefitDetailPage() {
         <section className="benefit-detail__hero">
           <div className="benefit-detail__headline">
             <div className="benefit-detail__meta-row">
-              <span>{benefit.status} · {benefit.deadline}</span>
               <small>지원 금액 · {meta}</small>
             </div>
           </div>
@@ -61,18 +60,14 @@ export function BenefitDetailPage() {
               <span>{benefit.amountLabel}</span>
               <strong>{benefit.amount}</strong>
             </div>
+          </div>
 
-            <div className="benefit-detail__description">
-              <h3>지원 내용</h3>
-              <p>{benefit.description}</p>
-            </div>
+          <div className="benefit-detail__card-top">
+            <span>조건 {benefit.matchCount}개 일치</span>
           </div>
         </section>
 
         <section className="benefit-detail__section benefit-detail__eligibility">
-          <div className="benefit-detail__card-top">
-            <span>조건 {benefit.matchCount}개 일치</span>
-          </div>
           <div className="benefit-detail__card">
             <h3>신청 대상</h3>
             <p>{benefit.eligibility}</p>
