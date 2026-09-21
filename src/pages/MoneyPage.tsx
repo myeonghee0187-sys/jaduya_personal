@@ -1364,7 +1364,17 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
             onGoalCelebrated={() => setFund((prev) => ({ ...prev, goalCelebrated: true }))}
             onEditGoal={() => setFundSheet('goal')}
             onAddMore={() => setFundSheet('add')}
-            onShowAllDeposits={() => setNotice('적립 내역 전체보기 화면은 준비 중이에요.')}
+            /* 적립 내역 전체보기 화면은 만들지 않는다 — 목록은 "이번 달 N번 모았어요" 아코디언에 이미 있어서,
+             * 여기서는 이번 달 횟수와 합계만 알림으로 짧게 알려 준다(합계는 currentAmount 와 항상 같다) */
+            onShowDepositSummary={() =>
+              setNotice(
+                fund.deposits.length === 0
+                  ? '이번 달 적립 기록이 없어요.'
+                  : `이번 달 ${fund.deposits.length}번, 총 ${fund.deposits
+                      .reduce((sum, deposit) => sum + deposit.amount, 0)
+                      .toLocaleString()}원을 모았어요.`,
+              )
+            }
           />
         )}
       </main>
@@ -1373,7 +1383,7 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       {/* 결제 예정 카드(레퍼런스) — 이번 달 화면 아래쪽에 살짝 보이고, 누르면 바텀시트로 올라온다 */}
       <StatementPeek visible={tab === '이번 달' && !activeScreen} onViewFixed={() => navigation?.navigate('money-fixed')} />
 
-      <p className={`money__notice${tab === '고정비' ? ' money__notice--above-cta' : ''}`} role="status" aria-live="polite" hidden={!notice}>
+      <p className={`money__notice${tab === '고정비' || tab === '비상금' ? ' money__notice--above-cta' : ''}`} role="status" aria-live="polite" hidden={!notice}>
         {notice}
       </p>
 

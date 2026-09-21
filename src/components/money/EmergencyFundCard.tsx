@@ -129,7 +129,8 @@ interface EmergencyFundCardProps {
   onGoalCelebrated: () => void;
   onEditGoal: () => void;
   onAddMore: () => void;
-  onShowAllDeposits: () => void;
+  /** "목표까지 N원 남았어요" 를 눌렀을 때 — 별도 화면 없이 적립 요약을 알림으로 보여준다 */
+  onShowDepositSummary: () => void;
 }
 
 export function EmergencyFundCard({
@@ -143,7 +144,7 @@ export function EmergencyFundCard({
   onGoalCelebrated,
   onEditGoal,
   onAddMore,
-  onShowAllDeposits,
+  onShowDepositSummary,
 }: EmergencyFundCardProps) {
   const reduceMotion = usePrefersReducedMotion();
   const isEmpty = currentAmount <= 0;
@@ -336,7 +337,7 @@ export function EmergencyFundCard({
                       <button
                         type="button"
                         className="fund-card__remaining fund-card__remaining--tap"
-                        onClick={onShowAllDeposits}
+                        onClick={onShowDepositSummary}
                       >
                         <span>
                           목표까지 <b>{remaining.toLocaleString()}원</b> 남았어요.

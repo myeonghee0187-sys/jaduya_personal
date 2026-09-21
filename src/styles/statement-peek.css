@@ -291,8 +291,14 @@
   min-height: 0;
   padding: 0 20px 28px;
   overflow-y: auto;
+  /* 스크롤은 되지만 막대는 보이지 않게 — 돈관리 본문(.money__scroll)과 같은 처리 */
+  scrollbar-width: none;
   --stmt-income: #2f6fd6;
   --stmt-expense: var(--brand-primary);
+}
+
+.statement-sheet__body::-webkit-scrollbar {
+  display: none;
 }
 
 /* 금액 + 소비 분류 버튼 */

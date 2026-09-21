@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { FormEvent, MouseEvent, PointerEvent } from 'react';
+import type { CSSProperties, FormEvent, MouseEvent, PointerEvent } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { BottomSheet } from '../components/BottomSheet';
@@ -38,6 +38,9 @@ const BUDGET_FAST_STEP = 50_000;
 const BUDGET_TWEEN_MS = 380;
 /* 화면에 처음 들어올 때 숫자가 0에서 올라가는 시간 */
 const INTRO_MS = 900;
+/* 진행 바의 자두를 끌어서 정할 수 있는 예산 상한 — 바는 "쓴 금액 ÷ 예산"이라 맨 왼쪽 끝이 이 값에 해당한다
+ * (그보다 더 크게·작게는 −/+ 나 직접 입력으로 바꾼다) */
+const BUDGET_DRAG_MAX = 3_000_000;
 
 /* 버튼을 누르고 있는 동안 onStep 을 반복한다. 마우스·터치는 pointerdown 으로 시작하고,
  * 키보드(Enter/Space)는 click(detail 0)으로 한 번만 처리해 두 번 실행되지 않게 한다. */
@@ -96,10 +99,12 @@ export function MoneyBudgetPage() {
   /* 값이 바뀔 때마다 key 를 올려 숫자에 짧은 펄스를 준다(리마운트로 CSS 애니메이션을 재생) */
   const [pulseKey, setPulseKey] = useState(0);
   const prevBudgetRef = useRef(budget);
+  /* 진행 바의 자두를 끄는 중인지 — 끄는 동안엔 펄스·굴러가기 같은 값 연출을 꺼서 손가락을 그대로 따라가게 한다 */
+  const draggingRef = useRef(false);
   useEffect(() => {
     if (prevBudgetRef.current !== budget) {
       prevBudgetRef.current = budget;
-      setPulseKey((key) => key + 1);
+      if (!draggingRef.current) setPulseKey((key) => key + 1);
     }
   }, [budget]);
 
@@ -148,12 +153,16 @@ export function MoneyBudgetPage() {
     // 처음 한 번만 재생한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const introDone = intro >= 1;
+  /* 진입 애니메이션 도중에 자두를 잡으면 그 자리에서 끝낸다(이후 프레임이 값을 되돌리지 못하게 따로 기억) */
+  const [introSkipped, setIntroSkipped] = useState(false);
+  const introDone = intro >= 1 || introSkipped;
   const shown = (value: number) => (introDone ? value : Math.round(value * intro));
 
   const remaining = budget - CURRENT_USED;
   const isOverBudget = remaining < 0;
   const percentUsed = budget > 0 ? Math.min(100, Math.max(0, Math.round((CURRENT_USED / budget) * 100))) : 100;
+  /* 자두·채움 위치용 — 라벨의 정수 % 와 달리 소수까지 그대로 써서 끌 때 뚝뚝 끊기지 않는다 */
+  const usageRatio = budget > 0 ? Math.min(1, CURRENT_USED / budget) : 1;
   const todaySpendable = Math.round(remaining / DAYS_LEFT_IN_MONTH);
   /* 초과는 아니지만 거의 다 썼을 때(80%+) 미리 알려주는 중간 경고 단계 */
   const isNearLimit = !isOverBudget && percentUsed >= 80;
@@ -177,7 +186,7 @@ export function MoneyBudgetPage() {
     const from = displayRef.current;
     const diff = budget - from;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || Math.abs(diff) <= BUDGET_FAST_STEP) {
+    if (reduceMotion || draggingRef.current || Math.abs(diff) <= BUDGET_FAST_STEP) {
       displayRef.current = budget;
       setDisplayBudget(budget);
       return;
@@ -200,6 +209,64 @@ export function MoneyBudgetPage() {
     setRecommendFlashKey((key) => key + 1);
   };
 
+  /* 진행 바의 자두 끌기 — 바 안의 손가락 위치(0~100%)가 곧 사용률이라 예산 = 쓴 금액 ÷ 사용률.
+   * 오른쪽으로 끌수록 사용률이 올라가 예산이 줄고, 왼쪽으로 끌수록 예산이 늘어난다(맨 왼쪽 = BUDGET_DRAG_MAX).
+   * 끌어서는 쓴 금액 밑으로 내려가지 않는다(올림) — 예산 초과로 만들려면 −/+ 나 직접 입력을 쓴다. */
+  const progressRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  /* 아래에 더 있는 내용 알려주기 — 스크롤바가 숨겨져 있고 하단 고정 영역이 아래 내용을 가려서 "여기가 끝"으로 보였다.
+   * 내용이 더 있고 아직 스크롤하지 않았을 때만 다음 섹션 이름 칩을 보여 주고, 한 번이라도 스크롤하면(또는 눌러서
+   * 내려가면) 이 화면에서는 다시 띄우지 않는다. */
+  const scrollRef = useRef<HTMLElement>(null);
+  const manageRef = useRef<HTMLElement>(null);
+  const scrollHintDismissedRef = useRef(false);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const updateScrollHint = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (el.scrollTop > 24) scrollHintDismissedRef.current = true;
+    const canScroll = el.scrollHeight - el.clientHeight > 24;
+    setShowScrollHint(canScroll && !scrollHintDismissedRef.current);
+  }, []);
+  /* 내용 높이가 바뀌는 경우(초과 안내 배너 등장·글꼴 로드·창 크기)에도 다시 판단한다 */
+  useEffect(() => {
+    updateScrollHint();
+    const observer = new ResizeObserver(updateScrollHint);
+    if (scrollRef.current) observer.observe(scrollRef.current);
+    if (manageRef.current) observer.observe(manageRef.current);
+    return () => observer.disconnect();
+  }, [updateScrollHint]);
+  const scrollToManage = () => {
+    const scroller = scrollRef.current;
+    const target = manageRef.current;
+    if (!scroller || !target) return;
+    const top = scroller.scrollTop + target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 16;
+    scroller.scrollTo({ top, behavior: 'smooth' });
+  };
+  const setBudgetFromPointer = (clientX: number) => {
+    const el = progressRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(CURRENT_USED / BUDGET_DRAG_MAX, (clientX - rect.left) / rect.width));
+    setBudget(Math.ceil(CURRENT_USED / ratio / BUDGET_STEP) * BUDGET_STEP);
+  };
+  const startDrag = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    draggingRef.current = true;
+    setDragging(true);
+    setIntroSkipped(true);
+    setBudgetFromPointer(e.clientX);
+  };
+  const moveDrag = (e: PointerEvent<HTMLDivElement>) => {
+    if (draggingRef.current) setBudgetFromPointer(e.clientX);
+  };
+  const endDrag = () => {
+    draggingRef.current = false;
+    setDragging(false);
+  };
+
   const handleSubmit = () => {
     if (justSaved) return;
     saveBudget(budget);
@@ -219,7 +286,7 @@ export function MoneyBudgetPage() {
         onBack={() => navigation?.goBack('money')}
       />
 
-      <main className="budget-setup__scroll">
+      <main ref={scrollRef} className="budget-setup__scroll" onScroll={updateScrollHint}>
         <div className="budget-setup__intro">
           <h2 className="budget-setup__intro-title">이번 달 생활비 예산을 정해보세요</h2>
           <p className="budget-setup__intro-desc">고정비를 제외하고, 이번 달 자유롭게 사용할 금액이에요.</p>
@@ -279,7 +346,7 @@ export function MoneyBudgetPage() {
           <p className="budget-setup__recommend-caption">{RECOMMENDED_CAPTION}</p>
         </section>
 
-        <section className="budget-setup__manage">
+        <section ref={manageRef} className="budget-setup__manage">
           <h2 className="money-section__title">이렇게 관리해요</h2>
 
           <div className="budget-setup__stats">
@@ -336,23 +403,54 @@ export function MoneyBudgetPage() {
 
       {/* 진행 막대 — 예산 설정하기 버튼처럼 스크롤을 따라가지 않고 그 바로 위에 고정된다(예산을 바꾸는 동안 사용률이 늘 보인다) */}
       <div className="budget-setup__dock">
-        <div className={`budget-setup__progress${progressState}${introDone ? '' : ' is-intro'}`}>
-          <div
-            className="budget-setup__progress-fill"
-            style={{ width: `${introDone ? percentUsed : percentUsed * intro}%` }}
+        {/* 스크롤 안내 칩 — "무엇이 더 있는지"를 알려 준다. 누르면 그 섹션으로 내려간다.
+         * 섹션 제목("이렇게 관리해요")은 첫 화면 아래쪽에 이미 걸쳐 보이므로 같은 말을 되풀이하지 않고,
+         * 그 안에서 볼 수 있는 내용(남은 예산)으로 쓴다. */}
+        <button
+          type="button"
+          className={`budget-setup__scroll-hint${showScrollHint ? ' is-visible' : ''}`}
+          onClick={scrollToManage}
+          tabIndex={showScrollHint ? 0 : -1}
+          aria-hidden={!showScrollHint}
+        >
+          남은 예산 보기
+          <img src={icon('chevron-down-thin.svg')} alt="" />
+        </button>
+        <div
+          ref={progressRef}
+          className={`budget-setup__progress${progressState}${introDone ? '' : ' is-intro'}${dragging ? ' is-dragging' : ''}`}
+          style={{ '--p': `${introDone ? usageRatio * 100 : usageRatio * 100 * intro}%` } as CSSProperties}
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <div className="budget-setup__progress-fill" />
+          {/* 채움 끝에 얹힌 자두 — 내 신용점수 막대(.money-asset-credit__thumb)와 같은 이미지·같은 손잡이 표현.
+           * 바(또는 자두)를 끌면 예산이 바뀐다. 키보드·보조기기는 위 −/+ 스테퍼를 쓴다. */}
+          <img
+            className="budget-setup__progress-thumb"
+            src={img('jaduya_custom_recommendation_36/money_management/image 1.png')}
+            alt=""
+            aria-hidden="true"
           />
         </div>
         <p className="budget-setup__progress-label">
-          진행률{' '}
-          <span key={pulseKey} className="budget-setup__pulse">
-            {shown(percentUsed)}%
-          </span>
-          {(isOverBudget || isNearLimit) && (
-            <span className={`budget-setup__progress-status${isOverBudget ? ' is-over' : ''}`}>
-              {' · '}
-              {isOverBudget ? '예산 초과' : '거의 다 썼어요'}
+          <span>
+            진행률{' '}
+            <span key={pulseKey} className="budget-setup__pulse">
+              {shown(percentUsed)}%
             </span>
-          )}
+            {(isOverBudget || isNearLimit) && (
+              <span className={`budget-setup__progress-status${isOverBudget ? ' is-over' : ''}`}>
+                {' · '}
+                {isOverBudget ? '예산 초과' : '거의 다 썼어요'}
+              </span>
+            )}
+          </span>
+          <span className="budget-setup__progress-hint" aria-hidden="true">
+            자두를 끌어 조절해요
+          </span>
         </p>
 
       </div>
