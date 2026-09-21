@@ -18,15 +18,11 @@ const CHECKLIST_ROWS = [
   { dot: 'wc-checklist-dot-4.svg', width: 14, alpha: 0.1 },
 ] as const;
 
-/** 카드 자기 폭(167px) 대비 cqw — .widget-asset 의 container-type: inline-size 기준. */
-const CARD_BASE_WIDTH = 167;
-const cqw = (px: number) => `${(px / CARD_BASE_WIDTH) * 100}cqw`;
-
 function Layer({ layer, artSize }: { layer: CardLayer; artSize: number }) {
   if (layer.box) {
     const [x, y, size] = layer.box;
-    /* art 박스(.widget-asset__art) 자신의 크기 대비 %로 두면, art 자체가 cqw 로
-     * 줄어들 때 이 레이어도 같은 비율로 따라 줄어든다. */
+    /* art 박스(.widget-asset__art) 자신의 크기 대비 %로 두면, art 자체의 크기가
+     * 바뀔 때 이 레이어도 같은 비율로 따라간다. */
     const pct = (value: number) => `${(value / artSize) * 100}%`;
     return (
       <span className="widget-asset__layer widget-asset__layer--box" style={{ left: pct(x), top: pct(y), width: pct(size), height: pct(size) }}>
@@ -51,7 +47,7 @@ function Visual({ visual }: { visual: CardVisual }) {
     );
   }
   return (
-    <span className="widget-asset__art" style={{ width: cqw(visual.size), height: cqw(visual.size) }} aria-hidden="true">
+    <span className="widget-asset__art" style={{ '--wa-art': visual.size } as CSSProperties} aria-hidden="true">
       {visual.layers.map((layer) => <Layer key={layer.file} layer={layer} artSize={visual.size} />)}
     </span>
   );
@@ -59,19 +55,26 @@ function Visual({ visual }: { visual: CardVisual }) {
 
 interface WidgetAssetProps {
   asset: MenuWidgetAsset;
+  /** 'preview' = 메뉴 관리 위젯 픽커의 작은 미리보기(기본) / 'home' = 홈 '내 메뉴'의 실제 2×2 위젯 */
+  context?: 'preview' | 'home';
   className?: string;
 }
 
-export function WidgetAsset({ asset, className }: WidgetAssetProps) {
+export function WidgetAsset({ asset, context = 'preview', className }: WidgetAssetProps) {
   const { visual, category, action, caption, captionExtra, lead, value, suffix, valueSize } = asset.content;
-  const classes = ['widget-asset', valueSize === 18 ? 'widget-asset--title' : '', className].filter(Boolean).join(' ');
+  const classes = [
+    'widget-asset',
+    context === 'home' ? 'widget-asset--home' : '',
+    valueSize === 18 ? 'widget-asset--title' : '',
+    className,
+  ].filter(Boolean).join(' ');
 
   return (
     <article
       className={classes}
       data-widget-asset={asset.id}
       data-figma-node={asset.figmaNodeId}
-      style={{ '--asset-value': cqw(valueSize) } as CSSProperties}
+      style={{ '--asset-value': valueSize } as CSSProperties}
     >
       <div className="widget-asset__top">
         <Visual visual={visual} />
