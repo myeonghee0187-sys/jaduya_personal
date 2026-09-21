@@ -180,6 +180,18 @@ const REGRETS: readonly RegretCardData[] = [
   },
 ];
 
+/* 겹쳐 쌓인 모습만 담당하는 값들. 앞 1 / 가운데 0.97 / 뒤 0.94 로 줄고 한 칸씩 올라간다.
+ * 색·내용은 카드 데이터가 정하고, 이 값들은 자리(front/middle/back)만 정한다. */
+const DECK_LIFT = 12;
+const DECK_SHRINK = 0.03;
+/* 빠져나가는 카드의 기울기와, 끌고 있는 동안 따라 붙는 기울기 */
+const EXIT_ROTATE = 6;
+const DRAG_TILT = 0.05;
+const DRAG_TILT_MAX = 8;
+/* 많이 끌수록 살짝 옅어진다. 끝까지 지우지는 않는다 */
+const DRAG_FADE_DISTANCE = 320;
+const DRAG_FADE_MAX = 0.35;
+
 /* 체크 원 — 완료 여부와 상관없이 항상 같은 자리에 같은 크기로 그린다.
  * 해제 상태에서도 원을 지우지 않고 초록 선만 남기고 체크 표시만 감춘다(CSS 에서 처리).
  * 그래서 체크를 켜고 꺼도 주변 글자 위치가 움직이지 않는다. */
@@ -260,7 +272,7 @@ function RegretCard({ card, interactive, onOpenTips }: RegretCardProps) {
               onOpenTips();
             }}
           >
-            <img src={icon('life-first-next.svg')} alt="" />
+            <img src={icon('life-first-next.svg')} alt="" draggable={false} />
           </button>
         </div>
         <div className="regret-card__copy">
@@ -270,7 +282,7 @@ function RegretCard({ card, interactive, onOpenTips }: RegretCardProps) {
       </div>
       <div className="regret-card__solution">
         <span className="regret-card__tip-icon" aria-hidden="true">
-          <img src={icon(card.icon)} alt="" />
+          <img src={icon(card.icon)} alt="" draggable={false} />
         </span>
         <div className="regret-card__solution-copy">
           <span className="regret-card__solution-label">TIP</span>
@@ -565,21 +577,40 @@ export function LifeFirstPage() {
           >
             {orderedRegrets.map((card, depth) => {
               const isFront = depth === 0;
+              /* 앞 카드가 옆으로 빠져나가는 중 — 순서는 아직 그대로다. */
+              const isExiting = isFront && regret.exitSign !== 0;
+              /* 순서를 막 돌린 한 프레임 — 방금 나간 카드가 맨 뒤 자리에서 다시 나타난다. */
+              const isSettling = regret.isSettling && depth === REGRETS.length - 1;
+              const drag = isFront && !isExiting ? regret.dragOffset : 0;
+              const tilt = regret.reduceMotion
+                ? 0
+                : Math.max(-DRAG_TILT_MAX, Math.min(DRAG_TILT_MAX, drag * DRAG_TILT));
+              const transform = isExiting
+                ? `translate3d(${regret.exitSign * 120}%, 0, 0) rotate(${regret.exitSign * EXIT_ROTATE}deg)`
+                : `translate3d(${drag}px, ${-depth * DECK_LIFT}px, 0) rotate(${tilt}deg) scale(${1 - depth * DECK_SHRINK})`;
               return (
                 <div
                   key={card.id}
-                  className={"regret__deck-card" + (isFront && regret.isDragging ? ' is-dragging' : '')}
+                  className={
+                    'regret__deck-card'
+                    + (isFront && regret.isDragging ? ' is-dragging' : '')
+                    + (isExiting ? ' is-exiting' : '')
+                    + (isSettling ? ' is-settling' : '')
+                  }
                   aria-hidden={!isFront}
                   data-card-id={card.id}
                   data-tone={card.tone}
                   data-depth={depth}
                   style={{
-                    transform: `translate3d(${isFront ? regret.dragOffset : 0}px, ${-depth * 12}px, 0)`,
+                    transform,
+                    opacity: isExiting || isSettling
+                      ? 0
+                      : 1 - Math.min(Math.abs(drag) / DRAG_FADE_DISTANCE, DRAG_FADE_MAX),
                     zIndex: REGRETS.length - depth,
-                    pointerEvents: isFront ? 'auto' : 'none',
+                    pointerEvents: isFront && !isExiting ? 'auto' : 'none',
                   }}
                 >
-                  <RegretCard card={card} interactive={isFront} onOpenTips={openTips} />
+                  <RegretCard card={card} interactive={isFront && !isExiting} onOpenTips={openTips} />
                 </div>
               );
             })}
