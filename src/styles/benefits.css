@@ -40,7 +40,7 @@
   align-items: center;
   gap: var(--space-xl);
   width: 100%;
-  padding: 44px var(--card-padding-m);
+  padding: 44px var(--card-padding-m) 60px;
   overflow: hidden;
   background: #ffe5d4;
 }
@@ -127,7 +127,9 @@
   flex: 1 0 auto;
   flex-direction: column;
   gap: var(--space-md);
-  margin-top: 0;
+  /* 위쪽 둥근 모서리가 파낸 자리로 hero 뒤의 앱 배경이 살짝 비쳐 보여서,
+   * 그 자리에도 hero 배경(peach)이 깔리도록 radius 만큼 끌어올려 겹친다. */
+  margin-top: -16px;
   padding: var(--space-lg) var(--screen-margin) calc(var(--tab-bar-h) + 30px);
   border-radius: 16px 16px 0 0;
   background: var(--surface-base);
@@ -188,7 +190,6 @@
   justify-content: space-between;
   width: 100%;
   padding-top: var(--space-2xs);
-  overflow: hidden;
 }
 
 .benefits-list__header > div {
@@ -409,7 +410,7 @@
   width: 100%;
   padding: var(--space-md) var(--space-lg);
   border-radius: 16px;
-  background: #f4e3d8;
+  background: #ffe5d4;
 }
 
 .recommend-banner__intro {
@@ -423,14 +424,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  color: var(--text-nav);
-  font: 600 14px/1.3 var(--font-asta);
+  color: var(--brand-primary);
+  font: 600 14px/1.3 var(--font-suit);
   letter-spacing: -0.14px;
 }
 
 .recommend-banner__label img {
-  width: 28px;
-  height: 28px;
+  width: 33px;
+  height: 36px;
   flex: none;
 }
 
@@ -456,30 +457,9 @@
 }
 
 .recommend-banner__conditions > p {
-  color: #757575;
-  font: 400 14px/1.4 var(--font-suit);
+  color: #a98671;
+  font: 400 12px/1.4 var(--font-suit);
   white-space: nowrap;
-}
-
-.recommend-banner__edit {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 2px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-nav);
-  font: 600 14px/1.3 var(--font-suit);
-  letter-spacing: -0.14px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.recommend-banner__edit img {
-  width: 12px;
-  height: 12px;
-  filter: brightness(0) saturate(100%) invert(15%) sepia(13%) saturate(720%) hue-rotate(334deg) brightness(94%);
 }
 
 .recommend-list {
@@ -513,7 +493,7 @@
 }
 
 .recommend-list__header p {
-  color: #7b726d;
+  color: #a98671;
   font: 400 12px/1.4 var(--font-asta);
   white-space: nowrap;
 }
@@ -528,7 +508,6 @@
 .recommend-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
   width: 100%;
   padding: var(--card-padding-m);
   overflow: hidden;
@@ -553,6 +532,7 @@
   border-radius: var(--radius-s);
   font: 600 11px/1.5 var(--font-asta);
   white-space: nowrap;
+  margin-bottom: 10px;
 }
 
 .recommend-card__tag--deadline {
@@ -566,12 +546,10 @@
   color: #b43936;
 }
 
-.recommend-card__row {
+.recommend-card__info {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  width: 100%;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .recommend-card h3 {
@@ -585,7 +563,9 @@
 
 .recommend-card__apply {
   flex: none;
-  padding: var(--space-2xs) var(--space-sm);
+  align-self: flex-start;
+  margin-top: 5px;
+  padding: var(--space-xs) var(--space-sm);
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--brand-primary);
@@ -671,9 +651,9 @@
 .benefit-detail__hero {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3xl);
+  gap: 20px;
   width: 100%;
-  padding: var(--space-md) var(--screen-margin) var(--space-2xl);
+  padding: 20px var(--screen-margin) 20px;
   background: #f9f1eb;
 }
 
@@ -687,33 +667,19 @@
 
 .benefit-detail__meta-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
   min-width: 0;
-}
-
-/* 추천 카드의 마감 배지와 같은 상태 배지 스타일 */
-.benefit-detail__meta-row > span {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2xs) var(--space-xs);
-  overflow: hidden;
-  border-radius: var(--radius-s);
-  background: #f0d7d7;
-  color: var(--brand-primary);
-  font: 500 11px/1.5 var(--font-asta);
-  white-space: nowrap;
 }
 
 .benefit-detail__meta-row small {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-gray);
-  font: 400 9px/1.5 var(--font-asta);
-  text-align: right;
+  color: #9c6d58;
+  font: 400 11px/1.5 var(--font-asta);
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -723,10 +689,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: var(--card-padding-m) var(--card-padding-m) var(--space-xl);
-  border: 1px solid #ad9f86;
   border-radius: var(--radius-m);
-  background: var(--surface-base);
 }
 
 .benefit-detail__highlight h2 {
@@ -741,6 +704,7 @@
   gap: var(--space-xs);
   width: 100%;
   padding-top: var(--space-sm);
+  padding-bottom: 10px;
   color: var(--text-nav);
   white-space: nowrap;
 }
@@ -754,23 +718,8 @@
   font: 700 24px/1 var(--font-asta);
 }
 
-.benefit-detail__description {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  width: 100%;
-  padding-top: 30px;
-  border-top: 1px solid #e9e4df;
-}
-
-.benefit-detail__description h3 {
-  color: var(--text-nav);
-  font: 600 16px/1.4 var(--font-a2z);
-}
-
-.benefit-detail__description p,
 .benefit-detail__card > p {
-  color: #bba47d;
+  color: #8a806e;
   font: 400 12px/1.4 var(--font-asta);
 }
 
@@ -787,10 +736,6 @@
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
-  padding: var(--card-padding-m);
-  border: 1px solid #e9e4df;
-  border-radius: var(--radius-m);
-  background: var(--surface-base);
 }
 
 .benefit-detail__process .benefit-detail__card {
@@ -798,22 +743,20 @@
 }
 
 .benefit-detail__section h3 {
-  color: var(--text-nav);
-  font: 600 18px/1.35 var(--font-a2z);
+  color: #564335;
+  font: 600 14px/1.35 var(--font-a2z);
 }
 
-/* "조건 N개 일치" — 카드 상단에 따로, 오른쪽 정렬은 그대로 유지 */
+/* "조건 N개 일치" — benefit-detail__meta-row 안에서 왼쪽에 놓인다 */
 .benefit-detail__card-top {
   display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  margin-bottom: var(--space-xs);
+  flex: none;
 }
 
 .benefit-detail__card-top span {
   flex: none;
-  padding: var(--space-2xs) var(--space-sm);
-  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  border-radius: 12px;
   background: var(--brand-primary);
   color: var(--surface-base);
   font: 600 12px/1.5 var(--font-asta);
@@ -844,13 +787,13 @@
   flex: none;
   width: 19px;
   color: var(--brand-primary);
-  font: 600 16px/1 var(--font-asta);
+  font: 600 14px/1 var(--font-asta);
 }
 
 .benefit-detail__process li span {
   min-width: 0;
-  color: var(--text-gray);
-  font: 400 14px/1.4 var(--font-suit);
+  color: #9f8d83;
+  font: 400 13px/1.4 var(--font-suit);
 }
 
 .benefit-detail__notice-card {

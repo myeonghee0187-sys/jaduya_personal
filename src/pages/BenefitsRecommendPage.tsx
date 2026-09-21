@@ -46,19 +46,7 @@ export function BenefitsRecommendPage() {
           </div>
 
           <div className="recommend-banner__conditions">
-            <p>
-              31세 · 경기 성남시
-              <br />
-              자취 5년차 · 직장인
-            </p>
-            <button
-              type="button"
-              className="recommend-banner__edit"
-              onClick={() => setNotice('조건 수정 화면은 준비 중이에요.')}
-            >
-              조건 수정
-              <img src={icon('chevron-right-thin.svg')} alt="" />
-            </button>
+            <p>31세 · 경기 성남시 · 자취 5년차 · 직장인</p>
           </div>
         </section>
 
@@ -80,24 +68,24 @@ export function BenefitsRecommendPage() {
                   <span className="recommend-card__tag recommend-card__tag--method">온라인신청</span>
                 </div>
 
-                <div className="recommend-card__row">
+                <div className="recommend-card__info">
                   <h3>{benefit.title}</h3>
-                  <button
-                    type="button"
-                    className="recommend-card__apply"
-                    onClick={() =>
-                      navigation?.navigate('benefit-detail', {
-                        benefitId: benefit.id,
-                        returnTo: 'benefits-recommend',
-                        returnOptions: navigation.options,
-                      })
-                    }
-                  >
-                    자세히 보기
-                  </button>
+                  <p className="recommend-card__target">{benefit.eligibility}</p>
                 </div>
 
-                <p className="recommend-card__target">{benefit.eligibility}</p>
+                <button
+                  type="button"
+                  className="recommend-card__apply"
+                  onClick={() =>
+                    navigation?.navigate('benefit-detail', {
+                      benefitId: benefit.id,
+                      returnTo: 'benefits-recommend',
+                      returnOptions: navigation.options,
+                    })
+                  }
+                >
+                  자세히 보기
+                </button>
               </article>
             ))}
           </div>
