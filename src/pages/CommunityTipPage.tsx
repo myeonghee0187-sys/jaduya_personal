@@ -16,8 +16,28 @@ import {
   TIP_POSTS,
   mergeOwnPosts,
   postMatchesKeyword,
+  resolveCommunityPostImage,
 } from '../data/communityPosts';
 import { icon } from '../lib/asset';
+
+const tipImageCache = new Map<string, HTMLImageElement>();
+
+/* 게시판 검색과 같은 방식 — 최근 검색어는 이 탭 전용 키로 따로 저장한다 */
+const TIP_RECENT_SEARCHES_KEY = 'jaduya:community:tip-recent-searches';
+const POPULAR_TIP_SEARCHES = ['관리비', '인테리어', '청소'] as const;
+
+function loadRecentSearches(storageKey: string): string[] {
+  try {
+    const saved = window.sessionStorage.getItem(storageKey);
+    if (!saved) return [];
+
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((term): term is string => typeof term === 'string' && term.trim().length > 0).slice(0, 3);
+  } catch {
+    return [];
+  }
+}
 
 /* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
  * ("고정·관리" → "고정" / "관리", "청소·정리" → "청소" / "정리",
@@ -61,8 +81,8 @@ function renderTipLabel(label: string) {
 }
 
 /* 커뮤니티 '자취 꿀팁' — 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을
- * 그대로 쓴다 (카드는 CommunityPostCard, chips 행만 없음). 정렬 필터 대신 이 탭 전용
- * 서브탭(TipTiles, Figma tip 2257:13827)을 둔다. */
+ * 그대로 쓴다 (카드는 CommunityPostCard, 해시태그 칩만 쓰고 카테고리 칩은 뺀다).
+ * 정렬 필터 대신 이 탭 전용 서브탭(TipTiles, Figma tip 2257:13827)을 둔다. */
 export function CommunityTipPage() {
   const navigation = useAppNavigation();
   const [writeOpen, setWriteOpen] = useState(false);
@@ -72,6 +92,7 @@ export function CommunityTipPage() {
   const [keyword, setKeyword] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches(TIP_RECENT_SEARCHES_KEY));
   const { ownPosts } = useCommunityPosts();
   /* 검색어가 서브탭 카테고리 이름(예: "인테리어")과 정확히 일치하면 그 서브탭으로
    * 자동 전환한다 — 이때 원래 보고 있던 카테고리를 기억해뒀다가, 검색어를 지우면
@@ -83,6 +104,17 @@ export function CommunityTipPage() {
     const timer = window.setTimeout(() => setNotice(''), 2400);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    for (const post of TIP_POSTS) {
+      const src = resolveCommunityPostImage(post);
+      if (!src || tipImageCache.has(src)) continue;
+      const image = new Image();
+      image.src = src;
+      tipImageCache.set(src, image);
+      void image.decode().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     const trimmed = keyword.trim();
@@ -107,18 +139,53 @@ export function CommunityTipPage() {
   const toggleLike = (id: string) =>
     setLiked((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]));
 
-  /* 내가 쓴 글 중 같은 서브탭 카테고리 + 게시글종류가 "정보"인 것만 정적 목록 맨 앞에 붙인다.
-   * "질문"으로 쓴 글은 자취 꿀팁 취지(가르쳐주는 글)에 안 맞아 게시판에만
-   * 보이게 두고 여기서는 제외한다. 검색어는 이 서브탭 안에서 제목·미리보기·해시태그로
-   * 한 번 더 좁힌다(카테고리 이름 자체를 검색하면 위 useEffect 가 이미 그 탭으로 옮겨준다). */
-  const visiblePosts = useMemo(
+  const submitSearch = (term: string, saveToRecent: boolean) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    setKeyword(trimmed);
+    if (!saveToRecent) return;
+
+    setRecentSearches((current) => {
+      const next = [trimmed, ...current.filter((savedTerm) => savedTerm !== trimmed)].slice(0, 3);
+      try {
+        window.sessionStorage.setItem(TIP_RECENT_SEARCHES_KEY, JSON.stringify(next));
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 검색 기능은 그대로 동작한다.
+      }
+      return next;
+    });
+  };
+
+  const removeRecentSearch = (term: string) => {
+    setRecentSearches((current) => {
+      const next = current.filter((savedTerm) => savedTerm !== term);
+      try {
+        if (next.length > 0) {
+          window.sessionStorage.setItem(TIP_RECENT_SEARCHES_KEY, JSON.stringify(next));
+        } else {
+          window.sessionStorage.removeItem(TIP_RECENT_SEARCHES_KEY);
+        }
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 삭제 결과는 현재 화면에 반영한다.
+      }
+      return next;
+    });
+  };
+
+  /* 내가 쓴 정보 글을 해당 카테고리 앞에 붙이고 검색어로 좁힌다.
+   * 카테고리별 카드를 계속 마운트해 탭 전환 때 img 요소를 재생성하지 않는다. */
+  const postsByCategory = useMemo(
     () =>
-      mergeOwnPosts(
-        TIP_POSTS.filter((post) => post.tipCategory === category),
-        ownPosts,
-        (post) => post.tipCategory === category && post.category === '정보',
-      ).filter((post) => postMatchesKeyword(post, keyword)),
-    [category, ownPosts, keyword],
+      TIP_CATEGORIES.map((item) => ({
+        id: item.id,
+        posts: mergeOwnPosts(
+          TIP_POSTS.filter((post) => post.tipCategory === item.id),
+          ownPosts,
+          (post) => post.tipCategory === item.id && post.category === '정보',
+        ).filter((post) => postMatchesKeyword(post, keyword)),
+      })),
+    [ownPosts, keyword],
   );
 
   return (
@@ -166,6 +233,10 @@ export function CommunityTipPage() {
           label="자취 꿀팁 검색"
           onChange={setKeyword}
           onClose={() => setSearchOpen(false)}
+          recentSearches={recentSearches}
+          popularSearches={POPULAR_TIP_SEARCHES}
+          onSearch={submitSearch}
+          onRemoveRecentSearch={removeRecentSearch}
         />
         </div>
 
@@ -208,22 +279,24 @@ export function CommunityTipPage() {
           })}
         </div>
 
-        {/* ============ 게시글 목록 — question 과 같은 카드, chips 행만 뺀다 ============ */}
-        <section className="community-feed">
-          <div className="community-feed__list">
-            {visiblePosts.map((post) => (
-              <CommunityPostCard
-                key={post.id}
-                post={post}
-                saved={bookmarks.isSaved(post.id)}
-                liked={liked.includes(post.id)}
-                onToggleSave={() => bookmarks.toggle(post.id)}
-                onToggleLike={() => toggleLike(post.id)}
-                showChips={false}
-              />
-            ))}
-          </div>
-        </section>
+        {/* ============ 게시글 목록 — 숨긴 탭도 유지해 이미지 재생성을 막는다 ============ */}
+        {postsByCategory.map(({ id, posts }) => (
+          <section key={id} className="community-feed" hidden={id !== category}>
+            <div className="community-feed__list">
+              {posts.map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={post}
+                  saved={bookmarks.isSaved(post.id)}
+                  liked={liked.includes(post.id)}
+                  onToggleSave={() => bookmarks.toggle(post.id)}
+                  onToggleLike={() => toggleLike(post.id)}
+                  showCategoryChip={false}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
       </main>
 
       {/* 글쓰기 — 다른 커뮤니티 화면과 같은 위치·동작 */}

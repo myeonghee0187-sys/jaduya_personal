@@ -429,7 +429,7 @@ export function tipCategoryIdForLabel(label: string): string | undefined {
 }
 
 /* 자취 꿀팁 게시글 — Figma tip (2257:13827) 의 내용 그대로, 카드는 community_home·question 과
- * 같은 CommunityPostCard 를 쓴다 (hashtag·category 칩 행만 없음, showChips={false}). */
+ * 같은 CommunityPostCard 를 쓴다 (해시태그 칩만 쓰고 카테고리 칩은 뺀다, showCategoryChip={false}). */
 export const TIP_POSTS: CommunityPost[] = [
   {
     id: 'tip-subscription',

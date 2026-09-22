@@ -59,10 +59,11 @@
   position: relative;
 }
 
-/* 헤더 검색 버튼을 눌렀을 때만 탭 아래에 겹쳐서 열리는 검색 영역. */
+/* 헤더 검색 버튼을 눌렀을 때 community-tabs 까지 덮으면서 열리는 검색 영역 —
+ * anchor(탭 바로 위) 기준 10px 만 띄우고, 탭은 그 아래로 가려진다. */
 .community-search--dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: 10px;
   left: 0;
   right: 0;
   z-index: 55;
@@ -537,7 +538,7 @@
   display: flex;
   justify-content: center;
   gap: 5px;
-  padding: 10px 0;
+  padding: 10px 0 20px;
 }
 
 .tip-category {
@@ -957,6 +958,10 @@
   padding-top: 12px;
 }
 
+.community-feed[hidden] {
+  display: none;
+}
+
 /* 필터 조건에 맞는 게시글이 하나도 없을 때 (지역 후기 필터) */
 .community-feed__empty {
   margin-top: 12px;
@@ -970,9 +975,10 @@
 }
 
 /* ---------- 게시글 카드 (Figma post-card 3907:24875 기준, 이 한 종류만 쓴다) ----------
- * '자취 꿀팁' 화면도 이 카드를 그대로 쓰되 showChips=false 로 hashtag·category 칩 행만 뺀다. */
+ * '자취 꿀팁' 화면도 이 카드를 그대로 쓰되 showCategoryChip=false 로 카테고리 칩만 뺀다. */
 
 .post-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1058,18 +1064,23 @@
   height: 16px;
 }
 
-/* 아이콘을 mask 로 깔고 배경색으로 상태를 바꾼다 (filter 로 색을 흉내내지 않는다) */
+/* 아이콘을 mask 로 깔고 배경색으로 상태를 바꾼다 (filter 로 색을 흉내내지 않는다).
+ * post-card 기준으로 절대 위치를 잡아서, 위쪽은 카드 테두리에 딱 붙고 오른쪽은
+ * 썸네일 오른쪽 끝에 맞춰 이미지 위에 크게 얹힌다. */
 .post-card__bookmark {
+  position: absolute;
+  top: -13px;
+  right: 17px;
   flex: none;
   display: block;
-  width: 19px;
-  height: 19px;
+  width: 35px;
+  height: 43px;
   border: 0;
   padding: 0;
   background-color: var(--cm-icon-off);
   cursor: pointer;
-  mask: url('/assets/icon/community-bookmark.svg') center / 19px 19px no-repeat;
-  -webkit-mask: url('/assets/icon/community-bookmark.svg') center / 19px 19px no-repeat;
+  mask: url('/assets/icon/community-bookmark.svg') center / 35px 43px no-repeat;
+  -webkit-mask: url('/assets/icon/community-bookmark.svg') center / 35px 43px no-repeat;
   transition: background-color 160ms ease;
 }
 
@@ -1095,6 +1106,10 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+}
+
+.post-card__thumb-wrap {
+  flex: none;
 }
 
 .post-card__thumb {
@@ -2010,6 +2025,12 @@
   -webkit-backdrop-filter: blur(2px);
 }
 
+/* 게시글 상세 헤더(.nav-header, 60px 기본값)를 커뮤니티 화면 헤더(.page-header__nav)와
+ * 같은 높이로 맞춘다 — 전역 .nav-header(홈 등)는 그대로 두고 여기서만 덮어쓴다. */
+.post-detail__header .nav-header {
+  height: 50px;
+}
+
 .post-detail__title-button {
   display: flex;
   align-items: center;
@@ -2065,7 +2086,16 @@
 /* 참고 이미지 레이아웃 순서: 카테고리 태그 → 제목 → 작성자 → 구분선 → 본문 → 이미지 */
 .post-detail__tags {
   display: flex;
+  align-items: center;
   gap: 6px;
+}
+
+/* 게시글 상세의 북마크는 post-card 썸네일 위에 겹쳐 얹는 절대 배치가 아니라
+ * 태그 행의 맨 오른쪽에 나란히 붙는다 — position 만 이 안에서 되돌린다. */
+.post-detail__tags .post-card__bookmark {
+  position: static;
+  margin-left: auto;
+  -webkit-mask: url('/assets/icon/community-bookmark.svg') center / 35px 38px no-repeat;
 }
 
 .post-detail__tag {

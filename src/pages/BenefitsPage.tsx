@@ -66,7 +66,6 @@ export function BenefitsPage() {
               </div>
               <button type="button" className="benefits-list__sort">
                 더보기
-                <img src={icon('chevron-right-thin.svg')} alt="" />
               </button>
             </div>
 

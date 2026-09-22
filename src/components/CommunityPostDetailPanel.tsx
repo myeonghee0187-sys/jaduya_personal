@@ -230,6 +230,13 @@ export function CommunityPostDetailPanel({
             <div className="post-detail__tags">
               <span className="post-detail__tag post-detail__tag--hashtag">{post.hashtag}</span>
               <span className="post-detail__tag post-detail__tag--category">{post.category}</span>
+              <button
+                type="button"
+                className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
+                aria-pressed={saved}
+                aria-label={`${post.title} 저장`}
+                onClick={onToggleSave}
+              />
             </div>
 
             <h1 className="post-detail__heading">{post.title}</h1>
@@ -263,13 +270,6 @@ export function CommunityPostDetailPanel({
                   />
                   <span className="post-card__like-count">{post.likes + (liked ? 1 : 0)}</span>
                 </button>
-                <button
-                  type="button"
-                  className={`post-card__bookmark${saved ? ' is-saved' : ''}`}
-                  aria-pressed={saved}
-                  aria-label={`${post.title} 저장`}
-                  onClick={onToggleSave}
-                />
               </div>
             </div>
 

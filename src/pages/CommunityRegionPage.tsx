@@ -17,6 +17,23 @@ import {
   postMatchesKeyword,
 } from '../data/communityPosts';
 
+/* 게시판 검색과 같은 방식 — 최근 검색어는 이 탭 전용 키로 따로 저장한다 */
+const REGION_RECENT_SEARCHES_KEY = 'jaduya:community:region-recent-searches';
+const POPULAR_REGION_SEARCHES = ['원룸', '오피스텔', '소음'] as const;
+
+function loadRecentSearches(storageKey: string): string[] {
+  try {
+    const saved = window.sessionStorage.getItem(storageKey);
+    if (!saved) return [];
+
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((term): term is string => typeof term === 'string' && term.trim().length > 0).slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 /* 커뮤니티 '지역 후기' — Figma local_reviews_v4 (3092:20677).
  * 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을 그대로 쓴다.
  * '필터' 버튼은 다른 정렬·레벨 버튼처럼 누르면 패널이 펼쳐진다 (Figma SearchFilterCard 3107:25279).
@@ -29,6 +46,9 @@ export function CommunityRegionPage() {
   const [keyword, setKeyword] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  const [recentSearches, setRecentSearches] = useState<string[]>(() =>
+    loadRecentSearches(REGION_RECENT_SEARCHES_KEY),
+  );
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [dwelling, setDwelling] = useState<string[]>([]);
@@ -58,6 +78,40 @@ export function CommunityRegionPage() {
 
   const toggleInList = (list: string[], value: string) =>
     list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+
+  const submitSearch = (term: string, saveToRecent: boolean) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    setKeyword(trimmed);
+    if (!saveToRecent) return;
+
+    setRecentSearches((current) => {
+      const next = [trimmed, ...current.filter((savedTerm) => savedTerm !== trimmed)].slice(0, 3);
+      try {
+        window.sessionStorage.setItem(REGION_RECENT_SEARCHES_KEY, JSON.stringify(next));
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 검색 기능은 그대로 동작한다.
+      }
+      return next;
+    });
+  };
+
+  const removeRecentSearch = (term: string) => {
+    setRecentSearches((current) => {
+      const next = current.filter((savedTerm) => savedTerm !== term);
+      try {
+        if (next.length > 0) {
+          window.sessionStorage.setItem(REGION_RECENT_SEARCHES_KEY, JSON.stringify(next));
+        } else {
+          window.sessionStorage.removeItem(REGION_RECENT_SEARCHES_KEY);
+        }
+      } catch {
+        // 저장 공간을 사용할 수 없는 환경에서도 삭제 결과는 현재 화면에 반영한다.
+      }
+      return next;
+    });
+  };
 
   /* 주거별·주변 칩만 실제 필터링에 쓴다. 선택이 없으면 그 기준은 걸지 않는다.
    * 검색어는 지역후기 데이터의 핵심 필드(제목·주거형태 해시태그·주변시설 카테고리)에
@@ -118,6 +172,10 @@ export function CommunityRegionPage() {
           label="지역 후기 검색"
           onChange={setKeyword}
           onClose={() => setSearchOpen(false)}
+          recentSearches={recentSearches}
+          popularSearches={POPULAR_REGION_SEARCHES}
+          onSearch={submitSearch}
+          onRemoveRecentSearch={removeRecentSearch}
         />
         </div>
 
