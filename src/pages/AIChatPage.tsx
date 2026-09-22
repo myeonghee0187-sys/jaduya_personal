@@ -1858,11 +1858,17 @@ export function AIChatPage() {
     ? (isImageLocationQuestion ? imageQuickReplies : attachmentFollowup ? attachmentQuickReplies : diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioReplies.length > 0 ? scenarioReplies : showFallbackSuggestions ? fallbackQuickReplies : [])
     : [];
 
-  const closeChat = () => {
+  /* closeChat(뒤로가기, 원래 화면으로) 와 goHome(X, 항상 홈으로) 은 같은 닫힘 애니메이션을
+   * 쓰고 목적지만 다르다 — closeIntentRef 에 의도를 적어두고 애니메이션이 끝난 뒤에 확인한다. */
+  const closeIntentRef = useRef<'back' | 'home'>('back');
+
+  const startClose = (intent: 'back' | 'home') => {
     if (closeState !== 'open') return;
+    closeIntentRef.current = intent;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      navigation?.closeAIChat();
+      if (intent === 'home') navigation?.navigate('home');
+      else navigation?.closeAIChat();
       return;
     }
 
@@ -1873,9 +1879,13 @@ export function AIChatPage() {
     setCloseState(fabCenterX < pageCenterX ? 'closing-left' : 'closing-right');
   };
 
+  const closeChat = () => startClose('back');
+  const goHome = () => startClose('home');
+
   const finishClose = (event: AnimationEvent<HTMLDivElement>) => {
     if (closeState !== 'open' && event.target === event.currentTarget) {
-      navigation?.closeAIChat();
+      if (closeIntentRef.current === 'home') navigation?.navigate('home');
+      else navigation?.closeAIChat();
     }
   };
 
@@ -1972,15 +1982,14 @@ export function AIChatPage() {
       <StatusBar />
       <header className={`ai-chat-page__header${conversationStarted ? ' is-chat' : ''}`}>
         <div className="ai-chat-page__header-left">
-          {/* 화면 navigation 전용 — 자두AI를 나가 원래 앱 화면으로 돌아간다(닫기와 같은
-            * 동작이지만, 좌상단 '이전 화면' 자리는 항상 노출해 화면 진입 상태와 무관하게
-            * 표준 뒤로가기 위치를 지킨다). 대화 화면 안에서 자두AI '홈'으로만 돌아가는
-            * 것은 아래 conversation 제어 영역의 '처음으로'가 맡는다 — 서로 다른 동작이다. */}
+          {/* 뒤로가기 — resume 화면("다시 만나서 반가워요")에서는 챗봇을 나가지 않고
+            * intro 화면으로만 돌아간다. 그 외에는 자두AI를 나가 원래 화면으로 돌아간다.
+            * X(옆)는 항상 홈 화면으로 — 서로 다른 목적지를 갖는 별개 동작이다. */}
           <button
             type="button"
             className="ai-chat-page__header-back"
             aria-label="이전 화면으로 이동"
-            onClick={closeChat}
+            onClick={isResumeView ? returnToIntro : closeChat}
             disabled={closeState !== 'open'}
           >
             <img src={icon('ai-back-arrow.svg')} alt="" />
@@ -2003,16 +2012,27 @@ export function AIChatPage() {
             </div>
           )}
         </div>
-        {conversationStarted && (
+        <div className="ai-chat-page__header-right">
+          {conversationStarted && (
+            <button
+              type="button"
+              className="ai-chat-page__help"
+              aria-label="자두AI 도움말"
+              onClick={() => sendMessage('자두AI 사용 방법을 알려줘')}
+            >
+              <img src={icon('ai-help.svg')} alt="" />
+            </button>
+          )}
           <button
             type="button"
-            className="ai-chat-page__help"
-            aria-label="자두AI 도움말"
-            onClick={() => sendMessage('자두AI 사용 방법을 알려줘')}
+            className="header-icon-button"
+            aria-label="홈으로 이동"
+            onClick={goHome}
+            disabled={closeState !== 'open'}
           >
-            <img src={icon('ai-help.svg')} alt="" />
+            <img src={icon('gnb-close.svg')} alt="" />
           </button>
-        )}
+        </div>
       </header>
 
       {!conversationStarted && !isResumeView && (

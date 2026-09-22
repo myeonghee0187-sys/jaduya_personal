@@ -146,6 +146,13 @@
   gap: 15px;
 }
 
+.ai-chat-page__header-right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
 .ai-chat-page__profile {
   display: flex;
   align-items: center;
@@ -274,7 +281,14 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ai-chat-page__chip-group::-webkit-scrollbar {
+  display: none;
 }
 
 .ai-chat-page__chip {

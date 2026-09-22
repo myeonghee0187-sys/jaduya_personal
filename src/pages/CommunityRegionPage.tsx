@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { GlyphIcon } from '../components/GlyphIcon';
 import { CommunityWriteFab } from '../components/CommunityWriteFab';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { CommunityPostCard } from '../components/CommunityPostCard';
@@ -133,7 +134,9 @@ export function CommunityRegionPage() {
             }}
           >
             필터
-            <span className="community-filter__button-icon--lg" aria-hidden="true" />
+            <span className="home-action-button__icon community-filter__button-icon--lg">
+              <GlyphIcon file="community-filter.svg" size={18} />
+            </span>
           </button>
           {filterOpen && (
             <RegionFilterPanel
