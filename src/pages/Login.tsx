@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
@@ -22,6 +22,15 @@ const DEMO_ROLE: Record<Persona, string> = {
   beginner: '자취 초보',
   worker: '직장인 자취러',
   pet: '반려동물 자취러',
+};
+
+/* 데모 계정 선택 확인 배너의 설명 문구 — 페르소나별로 다르게 보여준다.
+ * beginner(이서준)는 TEST_ACCOUNTS 안에서 유일하게 항상 signupCta 로 가는 계정이라
+ * "회원가입 후" 문구를 쓴다. */
+const DEMO_CONFIRM_DESC: Record<Persona, string> = {
+  beginner: '회원가입 후 바로 체험해보세요.',
+  worker: '직장인 자취생활을 미리 살펴보세요.',
+  pet: '반려동물과 함께하는 자취생활을 만나보세요.',
 };
 
 /* 데모 배너 프로필 이미지 — public/assets/img/onboarding/ */
@@ -71,6 +80,40 @@ export function Login({ onGoSignup }: LoginProps) {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  /* 데모 계정 선택 안내 배너 — X 로 닫으면 이번 선택에 한해 다시 띄우지 않는다
+   * (다른 계정을 새로 고르면 다시 보여준다: pickDemoAccount 에서 false 로 되돌림).
+   * bannerClosing 은 닫힘 애니메이션이 끝나기 전까지 DOM 에 남겨 두기 위한 과도 상태다. */
+  const [demoBannerDismissed, setDemoBannerDismissed] = useState(false);
+  const [bannerClosing, setBannerClosing] = useState(false);
+  const bannerCloseTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  /* 데모 계정 선택 → 필요할 때만 로그인 버튼까지 스크롤. 버튼의 샤인 스윕 자체는 타이머가
+   * 아니라 "데모 계정이 선택돼 있는 동안" 이라는 상태에 그대로 묶여 있어(아래 pickedAccount
+   * 참고) 계속 반복되다가, 폼을 직접 고치거나 다른 계정으로 바꾸면 자연스럽게 꺼진다. */
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  /* 데모 계정 선택 시 입력창(이메일/비밀번호)이 실제로 채워졌다는 걸 짧게 하이라이트로 알려준다. */
+  const [fieldFlash, setFieldFlash] = useState(false);
+  const fieldFlashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(
+    () => () => {
+      clearTimeout(bannerCloseTimeoutRef.current);
+      clearTimeout(fieldFlashTimeoutRef.current);
+    },
+    [],
+  );
+
+  const closeDemoBanner = () => {
+    setBannerClosing(true);
+    clearTimeout(bannerCloseTimeoutRef.current);
+    bannerCloseTimeoutRef.current = setTimeout(() => {
+      setDemoBannerDismissed(true);
+      setBannerClosing(false);
+    }, 200); // auth-demo-confirm-out 애니메이션 길이와 맞춘다
+  };
+
   /* 데모 패널에서 이서준(가입 전)으로 시작하면 주 버튼이 "회원가입"으로 바뀐다 */
   const location = useLocation();
   const navigate = useNavigate();
@@ -115,29 +158,60 @@ export function Login({ onGoSignup }: LoginProps) {
     ? DEMO_SIGNUP_EMAIL
     : (TEST_ACCOUNTS.find((account) => account.email === email && account.password === password)?.email ?? null);
 
+  /* 이서준(가입 전)도 pickedEmail 로 동일하게 찾는다 — 로그인 폼은 안 채워지지만
+   * "데모 계정을 선택했다"는 사실 자체는 이서준도 똑같이 안내 배너/버튼 인터랙션 대상이다. */
+  const pickedAccount = TEST_ACCOUNTS.find((account) => account.email === pickedEmail);
+
   const pickDemoAccount = (account: MockAccount) => {
     setError('');
-    if (account.email === DEMO_SIGNUP_EMAIL) {
-      setSignupCta(true);
-      setEmail('');
-      setPassword('');
-      return;
-    }
-    setSignupCta(false);
-    setEmail(account.email);
-    setPassword(account.password);
+    const isSignupDemo = account.email === DEMO_SIGNUP_EMAIL;
+    setSignupCta(isSignupDemo);
+    setEmail(isSignupDemo ? '' : account.email);
+    setPassword(isSignupDemo ? '' : account.password);
+
+    setDemoBannerDismissed(false);
+    setBannerClosing(false);
+    clearTimeout(bannerCloseTimeoutRef.current);
+
+    /* 이서준은 폼을 채우는 대신 비우지만(회원가입 유도), "데모 계정을 골랐다"는 신호 자체는
+     * 다른 계정과 똑같이 입력창 하이라이트로 보여준다. */
+    clearTimeout(fieldFlashTimeoutRef.current);
+    setFieldFlash(false);
+    requestAnimationFrame(() => setFieldFlash(true));
+    fieldFlashTimeoutRef.current = setTimeout(() => setFieldFlash(false), 700);
+
+    /* 배너가 끼어들며 레이아웃이 한 번 밀리는 걸 한 프레임 기다린 뒤, 주 버튼("로그인"/
+     * "회원가입" — 이서준이어도 같은 DOM 버튼이라 ref 도 그대로 재사용된다)이 이미 화면에
+     * 안 보일 때만 부드럽게 스크롤한다. 버튼의 샤인 스윕은 pickedAccount 가 있는 동안 계속
+     * 반복되니(아래 className), 스크롤이 끝나는 시점을 따로 잴 필요가 없다. */
+    requestAnimationFrame(() => {
+      const button = loginButtonRef.current;
+      const container = scrollContainerRef.current;
+      if (!button || !container) return;
+
+      const buttonRect = button.getBoundingClientRect();
+      const viewRect = container.getBoundingClientRect();
+      const alreadyVisible = buttonRect.top >= viewRect.top && buttonRect.bottom <= viewRect.bottom;
+
+      if (!alreadyVisible) {
+        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
   };
 
   return (
     <div className="app auth">
       <Header showActions={false} />
-      <div className="auth__body auth__body--login">
+      <div className="auth__body auth__body--login" ref={scrollContainerRef}>
         <section className="auth-hero">
-          <span className="auth-hero__greeting" aria-hidden="true">
-            좋은 하루
-            <br />
-            보내요!
-          </span>
+          <div className="auth-hero__mascot-wrap">
+            <img className="auth-hero__mascot" src={img('auth-onboarding.svg')} alt="" />
+            <span className="auth-hero__greeting" aria-hidden="true">
+              좋은 하루
+              <br />
+              보내요!
+            </span>
+          </div>
           <div className="auth-hero__text">
             <h1 className="auth-hero__title">다시 만나 반가워요</h1>
             <p className="auth-hero__desc">
@@ -146,12 +220,10 @@ export function Login({ onGoSignup }: LoginProps) {
               더 편한 자취 생활을 시작해요!
             </p>
           </div>
-          <img className="auth-hero__mascot" src={img('auth-onboarding.svg')} alt="" />
         </section>
 
         <section className="auth-demo" aria-label="데모 계정">
           <div className="auth-demo__intro">
-            <img className="auth-demo__flask" src={img('onboarding/image 35.png')} width={36} height={36} alt="" />
             <div className="auth-demo__copy">
               <p className="auth-demo__title">데모 계정으로 간편하게 체험해보세요!</p>
               <p className="auth-demo__desc">3명의 자취 라이프로 미리 만나보세요.</p>
@@ -189,12 +261,37 @@ export function Login({ onGoSignup }: LoginProps) {
           </ul>
         </section>
 
+        {pickedAccount && !demoBannerDismissed && (
+          <div className={`auth-demo-confirm${bannerClosing ? ' is-closing' : ''}`} role="status">
+            <img
+              className="auth-demo-confirm__icon"
+              src={img('jaduya_custom_recommendation_36/money_management/image 1.png')}
+              alt=""
+            />
+            <div className="auth-demo-confirm__text">
+              <p className="auth-demo-confirm__title">{pickedAccount.name} 데모 계정을 선택했어요!</p>
+              <p className="auth-demo-confirm__desc">{DEMO_CONFIRM_DESC[pickedAccount.persona]}</p>
+            </div>
+            <button
+              type="button"
+              className="auth-demo-confirm__close"
+              aria-label="데모 계정 선택 안내 닫기"
+              onClick={closeDemoBanner}
+            >
+              <img src={icon('close-sm.svg')} width={14} height={14} alt="" />
+            </button>
+          </div>
+        )}
+
         <form className="auth-form" onSubmit={handleFormSubmit}>
-          <div className="auth-form__fields">
+          <div className={`auth-form__fields${fieldFlash ? ' auth-form__fields--flash' : ''}`}>
             <AuthField
               id="login-email"
               label="이메일"
               leadingIcon={<MailIcon />}
+              trailing={
+                pickedAccount && !signupCta ? <span className="auth-field__demo-badge">데모 계정</span> : undefined
+              }
               type="email"
               autoComplete="email"
               placeholder="이메일을 입력해주세요"
@@ -239,7 +336,13 @@ export function Login({ onGoSignup }: LoginProps) {
 
         <div className="auth-bottom">
           <div className="auth-bottom__actions">
-            <button type="button" className="auth-button" disabled={!canSubmit} onClick={attemptLogin}>
+            <button
+              ref={loginButtonRef}
+              type="button"
+              className={`auth-button${pickedAccount ? ' auth-button--sparkle' : ''}`}
+              disabled={!canSubmit}
+              onClick={attemptLogin}
+            >
               {signupCta ? '회원가입' : '로그인'}
             </button>
 

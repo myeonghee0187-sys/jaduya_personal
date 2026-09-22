@@ -100,6 +100,31 @@
   gap: 12px;
 }
 
+/* 데모 계정을 고르면 이메일/비밀번호 값이 바뀌는데, 입력창 자체엔 그걸 알려주는 신호가
+ * 없었다 — 채워지는 순간 입력창 배경이 브랜드색으로 살짝 번쩍였다 원래 색으로 돌아오게
+ * 해서(브라우저 자동완성 하이라이트와 비슷한 느낌) 눈으로 바로 확인되게 한다.
+ * Login.tsx 가 짧게(700ms) 붙였다 떼는 상태 클래스라 일반 입력에는 영향이 없다. */
+.auth-form__fields--flash .auth-field__input {
+  animation: auth-field-fill-flash 700ms ease-out;
+}
+
+@keyframes auth-field-fill-flash {
+  0% {
+    background: color-mix(in srgb, var(--brand-primary) 14%, #fffdfb);
+    border-color: var(--brand-primary);
+  }
+  100% {
+    background: #fffdfb;
+    border-color: #e0d4c7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-form__fields--flash .auth-field__input {
+    animation: none;
+  }
+}
+
 .auth-form__error {
   font-family: var(--font-suit);
   font-weight: 400;
@@ -203,6 +228,19 @@
   cursor: pointer;
 }
 
+/* 데모 계정으로 채워진 이메일 필드 안쪽에 붙는 상태 배지 (실제 이메일 값은 그대로 두고 옆에 덧붙인다) */
+.auth-field__demo-badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-primary) 12%, #fff);
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--brand-primary);
+  white-space: nowrap;
+}
+
 .auth-field__input::placeholder {
   color: var(--text-muted);
   opacity: 1;
@@ -246,6 +284,7 @@
 
 /* ---------- 기본 버튼 (.auth-button) ---------- */
 .auth-button {
+  position: relative; /* --sparkle 의 샤인 스윕(::after) 위치 기준 */
   height: 44px;
   width: 100%;
   border: none;
@@ -262,6 +301,51 @@
 
 .auth-button:active {
   filter: brightness(0.94);
+}
+
+/* 데모 계정이 선택돼 있는 동안(Login.tsx pickedAccount) 로그인/회원가입 버튼 표면 위로
+ * 은은한 골드 하이라이트 띠가 계속 반복해서 지나간다 — 버튼 자체는 커지거나 흔들리지 않는다.
+ * 화면 밖 대기 구간을 줄이고 그만큼을 실제로 지나가는 구간에 더 써서(3.2s 중 58%) 천천히
+ * 미끄러지듯 보이게 하고, 빛이 부드럽게 감속하며 도착하는 이징(ease-out-quint 류)을 써서
+ * "휙" 지나가지 않고 자연스럽게 흘러가는 느낌을 준다. 나머지 시간은 쉬었다가 다시 지나간다.
+ * overflow: hidden 으로 버튼 둥근 모서리 밖으로는 삐져나가지 않게 자른다. */
+.auth-button--sparkle {
+  overflow: hidden;
+}
+
+.auth-button--sparkle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 55%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 244, 214, 0.14) 38%,
+    rgba(255, 244, 214, 0.85) 50%,
+    rgba(255, 244, 214, 0.14) 62%,
+    transparent 100%
+  );
+  transform: translateX(-150%);
+  pointer-events: none;
+  animation: auth-button-shine 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes auth-button-shine {
+  0% {
+    transform: translateX(-150%);
+  }
+  58%,
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-button--sparkle::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* 로그인 화면 — 비활성이어도 회색이 아니라 옅은 브랜드 레드로 보여 준다(레퍼런스) */
@@ -575,17 +659,16 @@
   color: var(--brand-primary);
 }
 
-/* ---------- 로그인 인트로 (레퍼런스) ---------- */
+/* ---------- 로그인 인트로 (레퍼런스, Figma 마스코트 중앙 배치안) ---------- */
+/* 마스코트 → 제목 → 설명 순으로 세로로 쌓아 가운데 정렬한다(레퍼런스 디자인).
+ * 이전에는 손글씨 인사말이 오른쪽 위에 절대 위치로 떠 있었는데, 그 인사말은
+ * 이 레퍼런스에 없고 가로 배치를 전제로 한 요소라 함께 걷어냈다. */
 .auth-hero {
-  position: relative;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  min-height: 132px;
-}
-
-.auth-hero__text {
-  padding-bottom: 8px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
 }
 
 .auth-hero__title {
@@ -607,18 +690,21 @@
   color: #6b5c53;
 }
 
-.auth-hero__mascot {
-  flex: none;
-  width: 124px;
-  height: auto;
-  margin-right: -6px;
+.auth-hero__mascot-wrap {
+  position: relative;
 }
 
-/* 오른쪽 위 손글씨 인사 */
+.auth-hero__mascot {
+  flex: none;
+  width: 147px;
+  height: auto;
+}
+
+/* 마스코트 오른쪽 위 손글씨 인사 */
 .auth-hero__greeting {
   position: absolute;
-  top: -6px;
-  right: 6px;
+  top: -18px;
+  right: -46px;
   font-family: var(--font-display);
   font-size: 14px;
   line-height: 1.25;
@@ -643,43 +729,38 @@
 .auth-demo__intro {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr;
   align-items: center;
-  column-gap: 12px;
   row-gap: 2px;
   min-width: 0;
-  padding-right: 24px; /* › 버튼 자리 */
 }
 
 .auth-demo__copy {
   display: contents;
 }
 
-/* 플라스크는 제목·설명 두 줄 높이를 차지한다 */
-.auth-demo__flask {
-  grid-row: 1 / 3;
-  object-fit: contain;
-}
-
+/* 제목 위, 설명 아래로 가운데 정렬해서 쌓는다. 좁은 화면에서 잘리지 않도록 nowrap 은 쓰지 않고(balance 로 줄 길이를 맞춘다),
+ * 글자는 문서 스케일(제목 Label L 14px / 설명 Body S 12px) 아래로 줄이지 않는다. */
 .auth-demo__title {
   margin: 0;
   font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 1.35;
+  font-weight: 600; /* Label L */
+  font-size: var(--font-size-body);
+  line-height: 1.4;
   color: var(--brand-primary);
-  white-space: nowrap;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .auth-demo__desc {
-  grid-column: 2;
   margin: 0;
-  white-space: nowrap;
   font-family: var(--font-suit);
   font-weight: 400;
-  font-size: 11px;
+  font-size: var(--font-size-xs); /* Body S */
   line-height: 1.4;
-  color: #7a6a62;
+  color: var(--text-secondary);
+  text-align: center;
+  text-wrap: balance;
 }
 
 .auth-demo__people {
@@ -766,19 +847,22 @@
 
 .auth-demo__name {
   font-family: var(--font-suit);
-  font-weight: 700;
-  font-size: 11px;
+  font-weight: 600; /* Label M */
+  font-size: var(--font-size-xs);
   line-height: 1.3;
-  color: #2f2621;
+  color: var(--text-primary);
 }
 
+/* 역할(자취 초보 등) — 9px 는 읽기 어려워 Body S 12px 로. 세 칸 폭이 좁아 "반려동물 자취러"가 한 줄에 안 들어가면
+ * 두 줄로 균형 있게 줄바꿈한다(nowrap 으로 옆 칸까지 밀고 나가지 않는다). */
 .auth-demo__role {
   font-family: var(--font-suit);
   font-weight: 400;
-  font-size: 9px;
+  font-size: var(--font-size-xs); /* Body S */
   line-height: 1.3;
-  color: #7a6a62;
-  white-space: nowrap;
+  color: var(--text-secondary);
+  text-align: center;
+  text-wrap: balance;
 }
 
 .auth-demo__more {
@@ -802,9 +886,112 @@
   height: 14px;
 }
 
-/* 데모 계정 배너는 모바일 전용 — 웹·태블릿(768px 이상)은 옆 데모 패널(LoginShowcase)이 같은 역할을 한다 */
+/* ---------- 데모 계정 선택 확인 배너 ---------- */
+/* 데모 프로필을 고르면 아래 폼이 채워졌다는 걸 알려주는 안내 — X 로 닫을 수 있고,
+ * 다른 프로필을 새로 고르면 다시 나타난다(Login.tsx pickDemoAccount 참고).
+ * 등장/퇴장 모두 순간적으로 뿅 뜨지 않도록 페이드 + 살짝 슬라이드로 부드럽게 처리한다
+ * (.is-closing 은 Login.tsx 가 실제로 DOM 에서 지우기 전, 닫힘 애니메이션이 끝날 때까지
+ * 붙여 두는 과도 상태 — 지속시간은 closeDemoBanner 의 지연과 맞춰져 있다). */
+.auth-demo-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: #fdeeea;
+  animation: auth-demo-confirm-in 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.auth-demo-confirm.is-closing {
+  animation: auth-demo-confirm-out 200ms ease-in both;
+}
+
+@keyframes auth-demo-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auth-demo-confirm-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-demo-confirm,
+  .auth-demo-confirm.is-closing {
+    animation: none;
+  }
+}
+
+.auth-demo-confirm__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.auth-demo-confirm__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-demo-confirm__title {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 600;
+  font-size: var(--font-size-body);
+  line-height: 1.4;
+  color: var(--brand-primary);
+}
+
+.auth-demo-confirm__desc {
+  margin: 0;
+  font-family: var(--font-suit);
+  font-weight: 400;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.auth-demo-confirm__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.auth-demo-confirm__close:hover,
+.auth-demo-confirm__close:active {
+  opacity: 0.7;
+}
+
+/* 데모 배너는 모바일 전용 — 웹·태블릿(768px 이상)은 옆 데모 패널(LoginShowcase)이 같은 역할을 한다 */
 @media (min-width: 768px) {
-  .auth-demo {
+  .auth-demo,
+  .auth-demo-confirm {
     display: none;
   }
 }
