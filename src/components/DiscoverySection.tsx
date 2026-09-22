@@ -160,10 +160,10 @@ function DiscoveryPage({ day, tip, ad, onOpenRecommendSetup, onOpenAd }: Discove
 /** ③ 자두의 발견 — 정적 콘텐츠 + 추천 설정 진입점 */
 export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySectionProps = {}) {
   const { user } = useAuth();
-  /* 오늘부터 +3일 — 한국 시간 기준 'MM.DD 요일' + 그 날의 꿀팁
-   * (자정이 지나면 네 날짜가 함께 하루씩 밀린다). "자두가 알려드려요"의 페이지 수는
-   * 항상 이 날짜 개수(4)를 그대로 따른다 — 관심 주제를 몇 개 골랐는지와 무관하다. */
+  /* 추천 콘텐츠는 4장으로 유지하되 날짜 라벨은 모두 한국 시간 기준 오늘로 통일한다.
+   * 자정이 지나면 네 장의 날짜가 함께 갱신된다. */
   const days = useSeoulDays(4);
+  const todayDate = days[0].date;
 
   /* 맞춤 추천 설정 여부는 별도 플래그가 아니라 실제 저장값으로 판단한다 —
    * 관심 주제를 한 번이라도 고르면 설정을 마친 것으로 본다. 관심 분야는 더 이상 저장되는
@@ -199,7 +199,12 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
   const pages = days.map((day, index) => {
     const candidate = candidateTopics.length > 0 ? candidateTopics[index % candidateTopics.length] : null;
     const tip = candidate ? (RECOMMENDATION_TIPS[candidate.category][candidate.topic] ?? null) : null;
-    return { id: day.date, day, tip, ad: ads[index % ads.length] };
+    return {
+      id: `${day.date}-${index}`,
+      day: { ...day, date: todayDate },
+      tip,
+      ad: ads[index % ads.length],
+    };
   });
 
   /* 현재 페이지와 이동 목표를 분리한다. activeIndex는 transition 종료 시에만 바뀌므로

@@ -203,9 +203,8 @@ export function HeroNightStars({ leaving = false }: HeroNightLayerProps) {
   );
 }
 
-/** 별똥별 등장 간격 — 매번 이 범위에서 새로 뽑는다(평균 약 25초) */
-const SHOOTING_STAR_MIN_MS = 17_500;
-const SHOOTING_STAR_MAX_MS = 32_500;
+/** 별똥별 등장 간격 — 10초마다 한 번 */
+const SHOOTING_STAR_INTERVAL_MS = 10_000;
 
 /** 별똥별 지속 시간(초) — 기존 속도를 유지한 채 이동 거리를 2배로 늘려 1.6 ~ 2.2 */
 const SHOOTING_STAR_MIN_S = 1.6;
@@ -230,7 +229,7 @@ export function HeroShootingStar({ leaving = false }: HeroNightLayerProps) {
     let timer: number;
     let count = 0;
 
-    /* 고정 interval 이 아니라, 지나갈 때마다 다음 등장 시간을 다시 뽑는 재귀 timeout */
+    /* 별똥별이 지나갈 때마다 10초 뒤 다음 별똥별을 예약한다. */
     const scheduleNext = () => {
       timer = window.setTimeout(() => {
         count += 1;
@@ -241,7 +240,7 @@ export function HeroShootingStar({ leaving = false }: HeroNightLayerProps) {
           offsetY: Math.round(randomBetween(-10, 10)),
         });
         scheduleNext();
-      }, randomBetween(SHOOTING_STAR_MIN_MS, SHOOTING_STAR_MAX_MS));
+      }, SHOOTING_STAR_INTERVAL_MS);
     };
 
     scheduleNext();

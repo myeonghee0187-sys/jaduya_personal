@@ -298,20 +298,39 @@ export const AI_SCENARIOS: Record<string, FlowScenario> = {
   'plumbing-leak': {
     id: 'plumbing-leak', type: 'diagnosis',
     stages: {
-      location: { message: '어디에서 물이 새고 있나요?\n싱크대, 화장실, 세탁기 중 어디에 가까운지 알려주세요.', inputMode: 'hybrid' },
-      'sink-check': { message: '싱크대 누수로 보이네요. 물을 잠그고, 수전 아래 연결부나 배수관 주변이 젖어 있는지 확인할 수 있나요?', inputMode: 'hybrid' },
+      location: { message: '어디에서 물이 새고 있나요?\n싱크대, 화장실, 세탁기 중 어디에 가까운지 알려주세요.', inputMode: 'hybrid', quickReplies: [
+        { label: '싱크대 쪽이에요', value: 'sink' },
+        { label: '화장실 쪽이에요', value: 'bathroom' },
+        { label: '세탁기 쪽이에요', value: 'washer' },
+        { label: '잘 모르겠어요', value: 'unknown' },
+      ] },
+      'sink-check': { message: '싱크대 누수로 보이네요. 물을 잠그고, 수전 아래 연결부나 배수관 주변이 젖어 있는지 확인할 수 있나요?', inputMode: 'hybrid', quickReplies: [
+        { label: '네, 연결부가 젖어 있어요', value: 'fixture-wet' },
+        { label: '배수관 주변이 젖어 있어요', value: 'drain-wet' },
+        { label: '어디서 새는지 모르겠어요', value: 'unknown' },
+        { label: '지금 확인하기 어려워요', value: 'unavailable' },
+      ] },
     },
   },
   'toilet-clog': {
     id: 'toilet-clog', type: 'diagnosis',
     stages: {
-      'water-level': { message: '변기 물이 차오르거나 넘칠 것 같다면 먼저 물을 내리지 말아주세요. 물 높이가 평소보다 높나요?', inputMode: 'hybrid' },
+      'water-level': { message: '변기 물이 차오르거나 넘칠 것 같다면 먼저 물을 내리지 말아주세요. 물 높이가 평소보다 높나요?', inputMode: 'hybrid', quickReplies: [
+        { label: '평소보다 높아요', value: 'high' },
+        { label: '평소와 비슷해요', value: 'normal' },
+        { label: '잘 모르겠어요', value: 'unknown' },
+      ] },
     },
   },
   'power-outage': {
     id: 'power-outage', type: 'diagnosis',
     stages: {
-      scope: { message: '집 전체 전기가 나간 건가요, 아니면 특정 방이나 콘센트만 안 되나요?', inputMode: 'hybrid' },
+      scope: { message: '집 전체 전기가 나간 건가요, 아니면 특정 방이나 콘센트만 안 되나요?', inputMode: 'hybrid', quickReplies: [
+        { label: '집 전체가 안 돼요', value: 'whole-home' },
+        { label: '특정 방만 안 돼요', value: 'room' },
+        { label: '콘센트 일부만 안 돼요', value: 'outlet' },
+        { label: '잘 모르겠어요', value: 'unknown' },
+      ] },
     },
   },
 };

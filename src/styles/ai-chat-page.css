@@ -128,19 +128,16 @@
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   min-height: 54px;
   overflow: hidden;
   padding: 10px var(--screen-margin);
   background: var(--surface-subtle);
 }
 
-.ai-chat-page__header.is-chat .ai-chat-page__header-left {
-  gap: 4px;
-}
-
 .ai-chat-page__header-left {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   align-items: center;
   gap: 15px;
@@ -262,14 +259,6 @@
   background: var(--surface-subtle);
 }
 
-.ai-chat-page__condition-group {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  overflow: hidden;
-}
-
 .ai-chat-page__condition-label {
   flex: none;
   color: #757575;
@@ -278,11 +267,15 @@
 
 .ai-chat-page__chip-group {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -565,13 +558,33 @@
   color: var(--ai-ink);
 }
 
-.ai-chat-page__message--assistant .ai-chat-page__bubble {
-  width: 100%;
+.ai-chat-page__assistant-explanation {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  color: var(--ai-ink);
+  font: 400 16px/24px var(--font-asta);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+/* 행동 단계만 담는 실제 채팅 말풍선. 부모 폭을 채우지 않고 내용에 맞춰 늘어나며,
+ * 긴 해결 방법은 모바일 가독성을 위해 대화 영역의 85%까지만 사용한다. */
+.ai-chat-page__solution-bubble {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 85%;
   box-sizing: border-box;
   border: 1px solid #efe5d6;
-  border-radius: 16px;
-  padding: 18px;
+  border-radius: 4px 16px 16px;
+  padding: 14px 16px;
   background: var(--surface-base);
+  color: var(--ai-ink);
+  font: 400 15px/23px var(--font-suit);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .ai-chat-page__message-attachments {
@@ -632,27 +645,6 @@
 
 .ai-chat-page__attachment-card--file strong { font: 600 14px/1.3 var(--font-suit); }
 .ai-chat-page__attachment-card--file small { margin-top: 3px; }
-
-.ai-chat-page__header-back { display: grid; flex: none; place-items: center; width: 24px; height: 24px; border: 0; padding: 0; background: transparent; cursor: pointer; }
-.ai-chat-page__header-back img { display: block; width: 19.2px; height: 19.2px; }
-
-.ai-chat-page__help {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  padding: 2px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.ai-chat-page__help img {
-  display: block;
-  width: 20px;
-  height: 20px;
-}
 
 /* ---------- conversation 제어 영역 — 개인 설정 칩 줄과 분리된 별도 행 ---------- */
 .ai-chat-page__conversation-controls {
@@ -743,24 +735,26 @@
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
   width: 100%;
   margin-top: 2px;
 }
 
 .ai-chat-page__contact-actions a {
-  display: flex;
-  min-height: 44px;
+  display: inline-flex;
+  min-height: 56px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   box-sizing: border-box;
   border: 1px solid var(--border-warm);
   border-radius: 10px;
+  padding: 16px 18px;
   background: var(--surface-base);
   color: var(--ai-ink);
   font: 600 13px/1.3 var(--font-suit);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .ai-chat-page__contact-actions a::before { font-size: 14px; line-height: 1; }
@@ -892,7 +886,6 @@
 /* 사진 첨부 + 벌레 문구 데모 전용 진단 카드. 실제 Vision 결과와 혼동되지 않도록
  * 카드 값은 AIChatPage의 mock diagnosis에서만 전달된다. */
 .ai-chat-page__pest-diagnosis,
-.ai-chat-page__pest-solution,
 .ai-chat-page__building-info {
   width: 100%;
   box-sizing: border-box;
@@ -938,13 +931,21 @@
 .ai-chat-page__pest-solution {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  color: var(--ai-ink);
 }
 
-.ai-chat-page__pest-solution > div {
+.ai-chat-page__pest-cause,
+.ai-chat-page__pest-solution-bubble {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.ai-chat-page__pest-cause {
+  max-width: 100%;
 }
 
 .ai-chat-page__pest-solution ul,
@@ -1005,10 +1006,12 @@
 }
 
 .ai-chat-page__cta-item {
-  display: grid;
-  flex: 1 1 130px;
-  width: auto;
+  display: flex;
+  flex: none;
+  width: fit-content;
   max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
 }
 
@@ -1028,10 +1031,12 @@
 
 .ai-chat-page__cta {
   display: inline-flex;
+  flex: none;
+  align-self: flex-start;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  width: 100%;
+  width: fit-content;
   max-width: 100%;
   min-height: 46px;
   padding: 10px 14px;
@@ -1080,12 +1085,20 @@
 
 .ai-chat-page__quick-replies {
   display: flex;
+  align-self: flex-start;
   flex-wrap: wrap;
   gap: 8px;
+  max-width: 100%;
   padding: 0;
 }
 
 .ai-chat-page__quick-reply {
+  display: inline-flex;
+  flex: none;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #e8c4c3;
   border-radius: var(--radius-pill);
   padding: 9px 12px;
@@ -2390,7 +2403,7 @@
 .ai-chat-page__sheet-action.is-primary:disabled { background: var(--surface-widget); }
 .ai-chat-page__contact-panel { display: grid; gap: 14px; }
 .ai-chat-page__contact-panel .ai-chat-page__contact-description { margin-bottom: 2px; line-height: 1.55; }
-.ai-chat-page__contact-actions { display: grid; gap: 8px; }
+.ai-chat-page__contact-panel .ai-chat-page__contact-actions { display: grid; gap: 8px; }
 .ai-chat-page__contact-notice { margin: 0; border-radius: var(--radius-s); padding: 10px 12px; background: var(--surface-warm); color: var(--brand-primary); white-space: pre-line; }
 .ai-chat-page__contact-picker-link { justify-self: start; border: 0; padding: 0; background: transparent; color: var(--brand-primary); font: 600 13px/1.4 var(--font-suit); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .ai-chat-page__contact-picker-link:disabled { color: var(--text-secondary); cursor: default; }
