@@ -48,6 +48,10 @@ type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
   content: string;
+  /** AI가 상황과 원인을 설명하는 일반 텍스트. 말풍선 밖에 렌더링한다. */
+  explanation?: string;
+  /** 사용자가 실제로 수행할 단계만 담는 채팅 말풍선. */
+  solutionBubble?: string;
   ctas?: ChatCta[];
   attachments?: ChatAttachment[];
   benefitRecommendations?: BenefitRecommendation[];
@@ -235,16 +239,69 @@ function getVisibleAppShell(): HTMLElement | null {
 
 type ScenarioReply = { content: string; conversation: AIConversationContext; ctas?: readonly ScenarioCta[] };
 
-/* 결과 문구 끝의 CTA 목록은 말풍선 본문과 분리해 실제 액션 버튼으로 렌더링한다.
- * 시나리오/진단의 응답 문자열과 stage 전환은 그대로 유지한다. */
-function splitMessageCtas(content: string): Pick<ChatMessage, 'content' | 'ctas'> {
-  const match = content.match(/\n\n((?:• [^\n]+)(?:\n• [^\n]+)*)$/);
-  if (!match || match.index === undefined) return { content };
+type AssistantMessageBody = Pick<ChatMessage, 'content' | 'explanation' | 'solutionBubble'>;
+
+/* 기존 시나리오 문구의 번호형 해결 단계를 설명과 분리한다. 저장되는 ChatMessage에는
+ * explanation / solutionBubble이 각각 들어가고, content는 이전 저장 데이터 및 CTA
+ * 문맥 호환을 위해 원문을 유지한다. */
+function splitAssistantBody(content: string): AssistantMessageBody {
+  const trimmed = content.trim();
+  const lines = trimmed.split('\n');
+  const firstStep = lines.findIndex((line) => /^\s*(?:\d+\.|STEP\s*\d+)/i.test(line));
+  if (firstStep < 0) return { content: trimmed, explanation: trimmed };
+
+  let lastStep = firstStep;
+  for (let index = firstStep + 1; index < lines.length; index += 1) {
+    if (/^\s*(?:\d+\.|STEP\s*\d+)/i.test(lines[index])) lastStep = index;
+  }
+
+  /* "STEP 1"처럼 제목과 행동 문장이 줄을 나눠 쓰인 형식은 다음 STEP 직전까지 포함한다. */
+  if (/^\s*STEP\s*\d+/i.test(lines[firstStep])) lastStep = lines.length - 1;
+
+  const solutionBubble = lines.slice(firstStep, lastStep + 1).join('\n').trim();
+  const explanation = [...lines.slice(0, firstStep), ...lines.slice(lastStep + 1)]
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
   return {
-    content: content.slice(0, match.index),
+    content: trimmed,
+    ...(explanation ? { explanation } : {}),
+    solutionBubble,
+  };
+}
+
+/* 결과 문구 끝의 CTA 목록은 말풍선 본문과 분리해 실제 액션 버튼으로 렌더링한다.
+ * 시나리오/진단의 응답 문자열과 stage 전환은 그대로 유지한다. */
+function splitMessageCtas(content: string): Pick<ChatMessage, 'content' | 'explanation' | 'solutionBubble' | 'ctas'> {
+  const match = content.match(/\n\n((?:• [^\n]+)(?:\n• [^\n]+)*)$/);
+  if (!match || match.index === undefined) return splitAssistantBody(content);
+
+  return {
+    ...splitAssistantBody(content.slice(0, match.index)),
     ctas: match[1].split('\n').map((line) => ({ label: line.replace(/^•\s*/, '') })),
   };
+}
+
+function assistantBodyFor(message: ChatMessage): AssistantMessageBody {
+  if (message.explanation !== undefined || message.solutionBubble !== undefined) {
+    return {
+      content: message.content,
+      ...(message.explanation ? { explanation: message.explanation } : {}),
+      ...(message.solutionBubble ? { solutionBubble: message.solutionBubble } : {}),
+    };
+  }
+  return splitAssistantBody(message.content);
+}
+
+function AssistantMessageText({ message }: { message: ChatMessage }) {
+  const { explanation, solutionBubble } = assistantBodyFor(message);
+  return (
+    <>
+      {explanation && <p className="ai-chat-page__assistant-explanation">{explanation}</p>}
+      {solutionBubble && <div className="ai-chat-page__solution-bubble">{solutionBubble}</div>}
+    </>
+  );
 }
 
 function stageMessage(scenarioId: string, stage: string, user: ScenarioUserContext): string {
@@ -419,7 +476,7 @@ function getScenarioReply(message: string, conversation: AIConversationContext, 
           conversation: nextScenarioContext(conversation, 'result', 'sinkLeak', 'yes'),
         };
       }
-      if (/안젖|안새|정상|모르겠/.test(answer)) {
+      if (/안젖|안새|정상|모르겠|확인.*어려|지금.*어려/.test(answer)) {
         return {
           content: '눈에 보이는 누수가 없더라도 물을 사용할 때만 새는지 한 번 확인해보세요. 계속 떨어지거나 아래쪽이 젖으면 사용을 줄이고 집주인에게 알려주세요.',
           conversation: nextScenarioContext(conversation, 'result', 'sinkLeak', 'unclear'),
@@ -852,7 +909,7 @@ export function AIChatPage() {
       {
         id: ++messageIdRef.current,
         role: 'assistant',
-        ...(ctas ? { content, ctas } : splitMessageCtas(content)),
+        ...(ctas ? { ...splitAssistantBody(content), ctas } : splitMessageCtas(content)),
         ...(benefitRecommendations ? { benefitRecommendations } : {}),
         ...(benefitCtaText ? { benefitCtaText } : {}),
         ...(pestDiagnosis ? { pestDiagnosis } : {}),
@@ -1497,9 +1554,9 @@ export function AIChatPage() {
             id: ++messageIdRef.current,
             role: 'assistant',
             ...(scenarioReply?.ctas
-              ? { content: assistantContent, ctas: scenarioReply.ctas.map((cta) => ({ ...cta })) }
+              ? { ...splitAssistantBody(assistantContent), ctas: scenarioReply.ctas.map((cta) => ({ ...cta })) }
               : startingStage?.ctas
-                ? { content: assistantContent, ctas: startingStage.ctas.map((cta) => ({ ...cta })) }
+                ? { ...splitAssistantBody(assistantContent), ctas: startingStage.ctas.map((cta) => ({ ...cta })) }
               : splitMessageCtas(assistantContent)),
           },
         ]);
@@ -1570,7 +1627,7 @@ export function AIChatPage() {
           {
             id: ++messageIdRef.current,
             role: 'assistant',
-            content: assistantContent,
+            ...splitAssistantBody(assistantContent),
             pestSolution: solution,
             ctas: [{ label: '건물 생활 정보 보기' }],
           },
@@ -1858,17 +1915,13 @@ export function AIChatPage() {
     ? (isImageLocationQuestion ? imageQuickReplies : attachmentFollowup ? attachmentQuickReplies : diagnosis ? quickRepliesForDiagnosis(diagnosis) : scenarioReplies.length > 0 ? scenarioReplies : showFallbackSuggestions ? fallbackQuickReplies : [])
     : [];
 
-  /* closeChat(뒤로가기, 원래 화면으로) 와 goHome(X, 항상 홈으로) 은 같은 닫힘 애니메이션을
-   * 쓰고 목적지만 다르다 — closeIntentRef 에 의도를 적어두고 애니메이션이 끝난 뒤에 확인한다. */
-  const closeIntentRef = useRef<'back' | 'home'>('back');
-
-  const startClose = (intent: 'back' | 'home') => {
+  /* 닫기 버튼은 진입 전 화면으로 돌아간다. 닫힘 애니메이션이 끝난 뒤 navigation의
+   * 기존 AI 닫기 동작을 호출해 호출한 화면의 문맥을 유지한다. */
+  const startClose = () => {
     if (closeState !== 'open') return;
-    closeIntentRef.current = intent;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      if (intent === 'home') navigation?.navigate('home');
-      else navigation?.closeAIChat();
+      navigation?.closeAIChat();
       return;
     }
 
@@ -1879,13 +1932,11 @@ export function AIChatPage() {
     setCloseState(fabCenterX < pageCenterX ? 'closing-left' : 'closing-right');
   };
 
-  const closeChat = () => startClose('back');
-  const goHome = () => startClose('home');
+  const closeChat = () => startClose();
 
   const finishClose = (event: AnimationEvent<HTMLDivElement>) => {
     if (closeState !== 'open' && event.target === event.currentTarget) {
-      if (closeIntentRef.current === 'home') navigation?.navigate('home');
-      else navigation?.closeAIChat();
+      navigation?.closeAIChat();
     }
   };
 
@@ -1982,18 +2033,6 @@ export function AIChatPage() {
       <StatusBar />
       <header className={`ai-chat-page__header${conversationStarted ? ' is-chat' : ''}`}>
         <div className="ai-chat-page__header-left">
-          {/* 뒤로가기 — resume 화면("다시 만나서 반가워요")에서는 챗봇을 나가지 않고
-            * intro 화면으로만 돌아간다. 그 외에는 자두AI를 나가 원래 화면으로 돌아간다.
-            * X(옆)는 항상 홈 화면으로 — 서로 다른 목적지를 갖는 별개 동작이다. */}
-          <button
-            type="button"
-            className="ai-chat-page__header-back"
-            aria-label="이전 화면으로 이동"
-            onClick={isResumeView ? returnToIntro : closeChat}
-            disabled={closeState !== 'open'}
-          >
-            <img src={icon('ai-back-arrow.svg')} alt="" />
-          </button>
           {conversationStarted ? (
             <button type="button" className="ai-chat-page__new-conversation" onClick={startNewConversation}>
               <img src={icon('ai-plus.svg')} alt="" aria-hidden="true" />
@@ -2013,21 +2052,11 @@ export function AIChatPage() {
           )}
         </div>
         <div className="ai-chat-page__header-right">
-          {conversationStarted && (
-            <button
-              type="button"
-              className="ai-chat-page__help"
-              aria-label="자두AI 도움말"
-              onClick={() => sendMessage('자두AI 사용 방법을 알려줘')}
-            >
-              <img src={icon('ai-help.svg')} alt="" />
-            </button>
-          )}
           <button
             type="button"
             className="header-icon-button"
-            aria-label="홈으로 이동"
-            onClick={goHome}
+            aria-label="자두AI 닫기"
+            onClick={closeChat}
             disabled={closeState !== 'open'}
           >
             <img src={icon('gnb-close.svg')} alt="" />
@@ -2046,16 +2075,14 @@ export function AIChatPage() {
       )}
 
       <div className={`ai-chat-page__chips${conversationStarted ? ' is-chat' : ''}`}>
-        <div className="ai-chat-page__condition-group">
-          <span className="ai-chat-page__condition-label">내 조건</span>
-          <span className="ai-chat-page__chip-group">
-            {userChips.map((chip) => (
-              <span key={chip} className="ai-chat-page__chip">
-                {chip}
-              </span>
-            ))}
-          </span>
-        </div>
+        <span className="ai-chat-page__condition-label">내 조건</span>
+        <span className="ai-chat-page__chip-group">
+          {userChips.map((chip) => (
+            <span key={chip} className="ai-chat-page__chip">
+              {chip}
+            </span>
+          ))}
+        </span>
         <button type="button" className="ai-chat-page__chip-edit" onClick={openAISettings}>
           편집
         </button>
@@ -2114,7 +2141,9 @@ export function AIChatPage() {
                     })())}
                   </div>
                 )}
-                {message.content && <p className="ai-chat-page__bubble">{message.content}</p>}
+                {message.role === 'assistant'
+                  ? <AssistantMessageText message={message} />
+                  : message.content && <p className="ai-chat-page__bubble">{message.content}</p>}
                 {message.role === 'assistant' && message.pestDiagnosis && (
                   <section className="ai-chat-page__pest-diagnosis" aria-label="사진 기반 벌레 진단">
                     <p>{MOCK_PEST_PHOTO_DIAGNOSIS.title}</p>
@@ -2128,11 +2157,11 @@ export function AIChatPage() {
                 {message.role === 'assistant' && message.pestSolution && (
                   <>
                     <section className="ai-chat-page__pest-solution" aria-label="벌레 문제 원인과 해결 방법">
-                      <div>
+                      <div className="ai-chat-page__pest-cause">
                         <h3>왜 생겼을까요?</h3>
                         <ul>{message.pestSolution.causeItems.map((item) => <li key={item}>{item}</li>)}</ul>
                       </div>
-                      <div>
+                      <div className="ai-chat-page__solution-bubble ai-chat-page__pest-solution-bubble">
                         <h3>지금 이렇게 해보세요</h3>
                         <ol>{message.pestSolution.steps.map((step) => <li key={step}>{step}</li>)}</ol>
                       </div>
@@ -2183,7 +2212,7 @@ export function AIChatPage() {
                         <button
                           type="button"
                           className={`ai-chat-page__cta${cta.recommended ? ' ai-chat-page__cta--recommended' : ''}`}
-                          onClick={() => handleCta(cta, message.content)}
+                          onClick={() => handleCta(cta, assistantBodyFor(message).content)}
                         >
                           <span>{cta.label}</span>
                           <span className="ai-chat-page__cta-arrow" aria-hidden="true">→</span>
