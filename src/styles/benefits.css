@@ -755,11 +755,11 @@
 
 .benefit-detail__card-top span {
   flex: none;
-  padding: 8px 16px;
-  border-radius: 12px;
+  padding: 8px;
+  border-radius: 8px;
   background: var(--brand-primary);
   color: var(--surface-base);
-  font: 600 12px/1.5 var(--font-asta);
+  font: 600 10px/1.5 var(--font-asta);
 }
 
 .benefit-detail__process {

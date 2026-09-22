@@ -373,16 +373,10 @@
   -webkit-mask: url('/assets/icon/community-filter-arrow.svg') center / 12px 12px no-repeat;
 }
 
-/* 지역 후기 '필터' 버튼의 필터 아이콘 — 다른 아이콘처럼 mask 로 그려서 칠한다
- * (post-card__bookmark 와 같은 방식). */
+/* 지역 후기 '필터' 버튼의 필터 아이콘 — home-action-button__icon + GlyphIcon 패턴을 쓴다.
+ * 크기는 GlyphIcon(18px)이 잡고, 여기서는 색만 지정한다(glyph-icon__mask 가 currentColor 를 받는다). */
 .community-filter__button-icon--lg {
-  flex: none;
-  display: block;
-  width: 18px;
-  height: 18px;
-  background-color: #b43936;
-  mask: url('/assets/icon/community-filter.svg') center / 18px 18px no-repeat;
-  -webkit-mask: url('/assets/icon/community-filter.svg') center / 18px 18px no-repeat;
+  color: #b43936;
 }
 
 .community-filter__list {
@@ -1137,6 +1131,7 @@
   color: var(--text-nav);
   font: 600 15px/1.3 var(--font-suit);
   letter-spacing: -0.14px;
+  white-space: pre-line;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
