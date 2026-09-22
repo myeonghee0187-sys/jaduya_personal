@@ -26,9 +26,11 @@ export interface RegretCarousel {
   isAnimating: boolean;
   /** 앞 카드가 빠져나가는 가로 방향. -1 왼쪽, 1 오른쪽, 0 이면 빠져나가는 중이 아니다. */
   exitSign: 0 | 1 | -1;
-  /** 순서를 돌린 직후 한 프레임. 맨 뒤로 간 카드가 화면을 가로질러 돌아오지 않게 한다. */
+  /** 순서를 돌린 직후 한 프레임. 위치가 바뀐 카드가 화면을 가로질러 이동하지 않게 한다. */
   isSettling: boolean;
+  settlingDepth: number;
   reduceMotion: boolean;
+  move: (step: -1 | 1) => boolean;
   viewportHandlers: {
     onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
     onPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
@@ -44,14 +46,11 @@ export interface RegretCarousel {
  * 카드는 언제나 세 장 모두 그려져 있고, 이 훅은 "맨 앞이 몇 번 카드인가"(activeIndex)
  * 하나만 들고 있다. 넘기는 동작은 두 단계로 나뉜다.
  *   1) exitSign 을 세워 앞 카드를 옆으로 내보낸다. 이 동안 activeIndex 는 그대로다.
- *   2) EXIT_MS 뒤에 advance() 로 순서를 한 칸 민다. 방금 나간 카드가 맨 뒤 자리를 받는다.
+ *   2) EXIT_MS 뒤에 advance() 로 순서를 한 칸 옮긴다.
  * 두 단계를 나누지 않으면 손을 떼는 순간 앞 카드가 뒤로 순간이동하면서
  * 화면을 가로질러 되돌아가는 것처럼 보인다.
  *
- * 순서와 방향은 서로 다른 책임이다.
- *   순서 = advance() 뿐이다. 언제나 (activeIndex + 1) % count 로, A → B → C → A 한 방향이다.
- *   방향 = exitSign. 앞 카드가 어느 쪽으로 빠져나가 보이는지만 정한다.
- * 그래서 왼쪽으로 넘기든 오른쪽으로 넘기든 다음에 올라오는 카드는 언제나 같다. */
+ * 왼쪽으로 넘기면 다음 카드, 오른쪽으로 넘기면 이전 카드가 올라온다. */
 export function useRegretCarousel(count: number): RegretCarousel {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -59,6 +58,7 @@ export function useRegretCarousel(count: number): RegretCarousel {
   const [isAnimating, setIsAnimating] = useState(false);
   const [exitSign, setExitSign] = useState<0 | 1 | -1>(0);
   const [isSettling, setIsSettling] = useState(false);
+  const [settlingDepth, setSettlingDepth] = useState(count - 1);
   const reduceMotion = useReducedMotion() ?? false;
   const gestureRef = useRef<Gesture | null>(null);
   const lockedRef = useRef(false);
@@ -80,14 +80,14 @@ export function useRegretCarousel(count: number): RegretCarousel {
     }, delay);
   }, []);
 
-  /* 순서를 한 칸 민다 — 이 캐러셀에서 순서를 바꾸는 곳은 여기 하나뿐이다.
-   * 스와이프 방향과 무관하게 언제나 다음 카드가 앞으로 온다.
-   * 맨 뒤로 간 카드는 한 프레임 동안 애니메이션을 끄고 제자리에 가져다 둔 뒤(isSettling),
+  /* 순서를 한 칸 옮긴다 — 이 캐러셀에서 순서를 바꾸는 곳은 여기 하나뿐이다.
+   * 위치가 바뀐 카드는 한 프레임 동안 애니메이션을 끄고 제자리에 가져다 둔 뒤(isSettling),
    * 다음 프레임에 그 자리에서 다시 보이게 한다. */
-  const advance = useCallback(() => {
-    setActiveIndex((index) => (index + 1) % count);
+  const advance = useCallback((step: -1 | 1) => {
+    setActiveIndex((index) => (index + step + count) % count);
     setExitSign(0);
     setDragOffset(0);
+    setSettlingDepth(step === 1 ? count - 1 : 1);
     setIsSettling(true);
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = requestAnimationFrame(() => {
@@ -97,24 +97,23 @@ export function useRegretCarousel(count: number): RegretCarousel {
     });
   }, [count]);
 
-  /* 앞 카드를 exit 방향(-1 왼쪽 / 1 오른쪽)으로 내보내고 순서를 한 칸 민다.
-   * exit 는 보이는 방향일 뿐이고, 어느 쪽이든 결과 순서는 advance() 하나로 같다.
+  /* 다음 카드는 왼쪽, 이전 카드는 오른쪽으로 내보낸 뒤 순서를 옮긴다.
    * 회전을 시작했으면 true. 잠겨 있으면 아무것도 하지 않고 false 를 준다. */
-  const rotate = useCallback((exit: 1 | -1) => {
-    if (lockedRef.current || count < 2) return false;
+  const move = useCallback((step: -1 | 1) => {
+    if (lockedRef.current || gestureRef.current || count < 2) return false;
     // React 가 다시 그리기 전 들어오는 두 번째 이벤트도 같은 잠금을 확인한다.
     lockedRef.current = true;
     setIsAnimating(true);
     if (reduceMotion) {
       // 큰 이동을 만들지 않고 순서만 바꾼다.
-      advance();
+      advance(step);
       unlockAfter(0);
       return true;
     }
-    setExitSign(exit);
+    setExitSign(step === 1 ? -1 : 1);
     exitTimerRef.current = setTimeout(() => {
       exitTimerRef.current = null;
-      advance();
+      advance(step);
       unlockAfter(SETTLE_MS);
     }, EXIT_MS);
     return true;
@@ -159,13 +158,12 @@ export function useRegretCarousel(count: number): RegretCarousel {
     setIsDragging(false);
     // 넘어가는 경우에는 붙잡고 있던 위치에서 그대로 이어서 빠져나가야 한다.
     // dragOffset 은 advance() 에서 0 으로 되돌린다.
-    // 끈 방향은 카드가 나가는 방향에만 쓰고, 다음 카드는 양쪽 모두 똑같이 올라온다.
     // 회전이 시작되지 않았으면(잠금 중) 붙잡고 있던 위치를 제자리로 되돌린다.
-    if (!swiped || !rotate(dx < 0 ? -1 : 1)) setDragOffset(0);
+    if (!swiped || !move(dx < 0 ? 1 : -1)) setDragOffset(0);
     try {
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     } catch { /* 이미 취소된 포인터 */ }
-  }, [rotate]);
+  }, [move]);
 
   const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     // 내부 화살표 버튼의 Enter/Space는 커뮤니티 이동 동작을 그대로 쓴다.
@@ -173,12 +171,11 @@ export function useRegretCarousel(count: number): RegretCarousel {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     if (event.repeat || gestureRef.current) return;
-    // 방향키도 마찬가지다. 나가는 방향만 다르고 다음 카드는 같다.
-    rotate(event.key === 'ArrowRight' ? -1 : 1);
-  }, [rotate]);
+    move(event.key === 'ArrowRight' ? 1 : -1);
+  }, [move]);
 
   return {
-    activeIndex, dragOffset, isDragging, isAnimating, exitSign, isSettling, reduceMotion,
+    activeIndex, dragOffset, isDragging, isAnimating, exitSign, isSettling, settlingDepth, reduceMotion, move,
     viewportHandlers: {
       onPointerDown,
       onPointerMove,

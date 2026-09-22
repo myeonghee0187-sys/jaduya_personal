@@ -199,7 +199,7 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
   const pages = days.map((day, index) => {
     const candidate = candidateTopics.length > 0 ? candidateTopics[index % candidateTopics.length] : null;
     const tip = candidate ? (RECOMMENDATION_TIPS[candidate.category][candidate.topic] ?? null) : null;
-    return { key: day.date, day, tip, ad: ads[index % ads.length] };
+    return { id: day.date, day, tip, ad: ads[index % ads.length] };
   });
 
   /* 현재 페이지와 이동 목표를 분리한다. activeIndex는 transition 종료 시에만 바뀌므로
@@ -370,10 +370,10 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
         >
           <span className="discovery__page-chevron-icon discovery__page-chevron-icon--prev" style={CHEVRON_STYLE} aria-hidden="true" />
         </button>
-        {pages.map(({ key, day }, index) => {
+        {pages.map(({ id, day }, index) => {
           const isActive = index === paginationIndex;
           return (
-            <Fragment key={key}>
+            <Fragment key={id}>
               <button
                 type="button"
                 role="tab"
@@ -385,7 +385,7 @@ export function DiscoverySection({ onOpenRecommendSetup, onOpenAd }: DiscoverySe
                 {String(index + 1).padStart(2, '0')}
               </button>
               <span
-                key={`${key}-${isActive ? progressCycle : 'idle'}`}
+                key={`${id}-${isActive ? progressCycle : 'idle'}`}
                 className={`discovery__page-line${isActive ? ' is-active' : ''}`}
                 style={{ '--discovery-progress-duration': `${DISCOVERY_AUTO_ADVANCE_MS}ms` } as CSSProperties}
                 aria-hidden="true"

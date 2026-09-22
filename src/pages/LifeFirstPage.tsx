@@ -143,10 +143,9 @@ interface RegretCardData {
   readonly tip: string;
   readonly icon: string;
   readonly tone: 'green' | 'pink' | 'cream';
-  readonly color: string;
 }
 
-/* 내용·색·아이콘은 카드 ID에 귀속된다. 순환 위치가 바뀌어도 이 객체는 바꾸지 않는다. */
+/* 내용·톤·아이콘은 카드 ID에 귀속된다. 순환 위치가 바뀌어도 이 객체는 바꾸지 않는다. */
 const REGRETS: readonly RegretCardData[] = [
   {
     id: 'move-in-record',
@@ -156,7 +155,6 @@ const REGRETS: readonly RegretCardData[] = [
     tip: '짐을 풀기 전에 집 상태를 사진이나 영상으로 남겨두세요.',
     icon: 'life-first-tip.svg',
     tone: 'green',
-    color: 'var(--color-green-3)',
   },
   {
     id: 'environment',
@@ -166,7 +164,6 @@ const REGRETS: readonly RegretCardData[] = [
     tip: '낮뿐 아니라 저녁에도 방문해 소음·조명·귀갓길 환경을 확인해보세요.',
     icon: 'life-first-tip.svg',
     tone: 'pink',
-    color: 'var(--color-primary-15)',
   },
   {
     id: 'living',
@@ -176,12 +173,11 @@ const REGRETS: readonly RegretCardData[] = [
     tip: '입주 1~2주 전 인터넷 설치를 예약하고, 첫날 필요한 생필품을 미리 준비해두세요.',
     icon: 'life-first-tip.svg',
     tone: 'cream',
-    color: 'var(--color-cream-4)',
   },
 ];
 
 /* 겹쳐 쌓인 모습만 담당하는 값들. 앞 1 / 가운데 0.97 / 뒤 0.94 로 줄고 한 칸씩 올라간다.
- * 색·내용은 카드 데이터가 정하고, 이 값들은 자리(front/middle/back)만 정한다. */
+ * 톤·내용은 카드 데이터가 정하고, 이 값들은 자리(front/middle/back)만 정한다. */
 const DECK_LIFT = 12;
 const DECK_SHRINK = 0.03;
 /* 빠져나가는 카드의 기울기와, 끌고 있는 동안 따라 붙는 기울기 */
@@ -256,7 +252,7 @@ interface RegretCardProps {
 
 function RegretCard({ card, interactive, onOpenTips }: RegretCardProps) {
   return (
-    <article className={"regret-card regret-card--" + card.tone} style={{ backgroundColor: card.color }}>
+    <article className={"regret-card regret-card--" + card.tone}>
       <div className="regret-card__top">
         <div className="regret-card__meta">
           <span className="regret-card__category">{card.category}</span>
@@ -565,22 +561,23 @@ export function LifeFirstPage() {
             <p>먼저 자취한 사람들의 경험에서 놓치기 쉬운 준비를 확인해요.</p>
           </div>
           {/* 세 DOM을 유지하고 앞·중간·뒤 위치만 회전한다. */}
-          <div
-            className="regret__stack regret__deck"
-            role="group"
-            aria-roledescription="카드 넘기기"
-            aria-label="자취 선배들의 후회"
-            tabIndex={0}
-            {...regret.viewportHandlers}
-            data-animating={regret.isAnimating}
-            data-dragging={regret.isDragging}
-          >
+          <div className="regret__carousel">
+            <div
+              className="regret__stack regret__deck"
+              role="group"
+              aria-roledescription="카드 넘기기"
+              aria-label="자취 선배들의 후회"
+              tabIndex={0}
+              {...regret.viewportHandlers}
+              data-animating={regret.isAnimating}
+              data-dragging={regret.isDragging}
+            >
             {orderedRegrets.map((card, depth) => {
               const isFront = depth === 0;
               /* 앞 카드가 옆으로 빠져나가는 중 — 순서는 아직 그대로다. */
               const isExiting = isFront && regret.exitSign !== 0;
-              /* 순서를 막 돌린 한 프레임 — 방금 나간 카드가 맨 뒤 자리에서 다시 나타난다. */
-              const isSettling = regret.isSettling && depth === REGRETS.length - 1;
+              /* 순서를 막 돌린 한 프레임 — 자리가 바뀐 카드의 이동 애니메이션을 끈다. */
+              const isSettling = regret.isSettling && depth === regret.settlingDepth;
               const drag = isFront && !isExiting ? regret.dragOffset : 0;
               const tilt = regret.reduceMotion
                 ? 0
@@ -614,6 +611,25 @@ export function LifeFirstPage() {
                 </div>
               );
             })}
+            </div>
+            <button
+              type="button"
+              className="regret__nav regret__nav--previous"
+              aria-label="이전 후회 카드"
+              disabled={regret.isAnimating || regret.isDragging}
+              onClick={() => regret.move(-1)}
+            >
+              <img src={icon('chevron-right-secondary.svg')} alt="" draggable={false} />
+            </button>
+            <button
+              type="button"
+              className="regret__nav regret__nav--next"
+              aria-label="다음 후회 카드"
+              disabled={regret.isAnimating || regret.isDragging}
+              onClick={() => regret.move(1)}
+            >
+              <img src={icon('chevron-right-secondary.svg')} alt="" draggable={false} />
+            </button>
           </div>
           <span className="sr-only" aria-live="polite">
             후회 {regret.activeIndex + 1} / 전체 {REGRETS.length}

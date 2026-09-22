@@ -1,4 +1,6 @@
 import type { BenefitCategory, BenefitListItem } from '../data/benefits';
+import { icon } from '../lib/asset';
+import { useBookmarks } from '../bookmarks/BookmarkContext';
 
 /* 혜택·복지 전체 / 주거 / 생활비 / 반려동물 / 의료 탭이 공유하는 카드 —
  * 신청방법 칩, 제목 옆 바로 신청, 대상 요약 한 줄로 구성.
@@ -18,6 +20,9 @@ interface BenefitCardProps {
 }
 
 export function BenefitCard({ item, showCategory = false }: BenefitCardProps) {
+  const { isBenefitSaved, toggleBenefit } = useBookmarks();
+  const saved = isBenefitSaved(item.id);
+
   return (
     <article className="benefit-card">
       <div className="benefit-card__tags">
@@ -27,14 +32,25 @@ export function BenefitCard({ item, showCategory = false }: BenefitCardProps) {
           </span>
         )}
         <span className="benefit-card__tag benefit-card__tag--method">온라인신청</span>
+        <button
+          type="button"
+          className={`benefit-card__bookmark${saved ? ' is-saved' : ''}`}
+          aria-pressed={saved}
+          aria-label={`${item.title} 저장`}
+          onClick={() => toggleBenefit(item.id)}
+        />
       </div>
 
       <div className="benefit-card__row">
         <h3>{item.title}</h3>
-        <button type="button" className="benefit-card__apply">바로 신청</button>
       </div>
 
       <p className="benefit-card__target">{item.target}</p>
+
+      <button type="button" className="benefit-card__apply">
+        바로 신청
+        <img src={icon('chevron-right-thin.svg')} alt="" />
+      </button>
     </article>
   );
 }

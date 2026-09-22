@@ -78,7 +78,7 @@
   grid-template-columns:repeat(2,minmax(0,1fr));
   padding:3px;
   border-radius:20px;
-  background:var(--brand-secondary);
+  background:var(--color-cream-2);
 }
 
 .house-check__segments button {
@@ -94,7 +94,7 @@
 }
 
 .house-check__segments button.is-active {
-  background:var(--brand-orange);
+  background:var(--brand-primary);
   color:#fffdfb;
 }
 
@@ -385,6 +385,12 @@
   min-width:0;
 }
 
+.regret__carousel {
+  position:relative;
+  width:100%;
+  min-width:0;
+}
+
 .regret__stack {
   width:100%;
   min-width:0;
@@ -400,21 +406,24 @@
   min-width:0;
   height:100%;
   padding:20px;
+  border:1px solid var(--brand-green);
   border-radius:12px;
-  background:var(--color-green-3);
+  background:#fffdfb;
   text-align:left;
 }
 
 .regret-card--green {
-  background:var(--color-green-3);
+  background:#fffdfb;
 }
 
 .regret-card--pink {
-  background:var(--color-primary-15,#e8c4c3);
+  background-color:#fffdfb;
+  border:1px solid var(--brand-primary);
 }
 
 .regret-card--cream {
-  background:var(--color-cream-4,#e6d7bd);
+  background-color:#fffdfb;
+  border:1px solid var(--color-cream-7);
 }
 
 .regret-card__meta {
@@ -576,6 +585,34 @@
   overflow:hidden;
   isolation:isolate;
 }
+
+.regret__nav {
+  position:absolute;
+  z-index:4;
+  top:calc(50% + 12px);
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  padding:0;
+  transform:translateY(-50%);
+  border:0;
+  background:transparent;
+  cursor:pointer;
+}
+
+.regret__nav--previous { left:-30px; }
+.regret__nav--next { right:-30px; }
+
+.regret__nav img {
+  display:block;
+  width:18px;
+  height:18px;
+}
+
+.regret__nav--previous img { transform:translateX(-8px) rotate(180deg); }
+.regret__nav--next img { transform:translateX(8px); }
+.regret__nav:disabled { opacity:.4; cursor:default; }
 
 /* 카드 안의 아이콘도 같은 이유로 끌리지 않게 한다 */
 .regret__deck img {
