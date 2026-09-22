@@ -139,6 +139,13 @@ body {
   display: none;
 }
 
+/* 홈은 야간 상태바 아이콘을 별도 마스크(::after)로 그린다(home.css) — 위 두 규칙은
+ * <img class="status-bar__icons"> 만 가려서 이 마스크는 그대로 남아, 실제 기기에서
+ * 밤 시간대에 신호/Wi-Fi/배터리 아이콘이 다시 새어 나왔다. 같은 이유로 함께 가린다. */
+.home .status-bar::after {
+  display: none;
+}
+
 /* tokens.css 의 --header-h(110px)는 상태바 50 + 로고헤더 60 값이다.
  * 실제 기기에서는 상태바가 위 .status-bar 처럼 safe-area 로 바뀌므로, 그 안에 얹혀
  * 실제로 헤더가 차지하는 높이도 같이 다시 계산한다 — 노치 없는 기기는 60px, 노치가
@@ -314,6 +321,10 @@ body {
 
   .status-bar__time,
   .status-bar__icons {
+    display: block;
+  }
+
+  .home .status-bar::after {
     display: block;
   }
 
