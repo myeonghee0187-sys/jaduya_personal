@@ -119,16 +119,30 @@ export function Login({ onGoSignup }: LoginProps) {
   const navigate = useNavigate();
   const [signupCta, setSignupCta] = useState(false);
 
+  /* 데모 계정 선택 시 입력창 하이라이트를 짧게 재생한다 — pickDemoAccount(모바일에서 직접
+   * 프로필을 고를 때) 와, 아래 history state 효과(데스크톱 쇼케이스 CTA 로 넘어올 때) 둘 다
+   * 같은 신호를 써야 해서 함수로 뺐다. */
+  const flashFields = () => {
+    clearTimeout(fieldFlashTimeoutRef.current);
+    setFieldFlash(false);
+    requestAnimationFrame(() => setFieldFlash(true));
+    fieldFlashTimeoutRef.current = setTimeout(() => setFieldFlash(false), 700);
+  };
+
   /* 일회성 신호 — 받자마자 history state 에서 지워, 새로고침하면 기본 "로그인"으로 돌아온다 */
   useEffect(() => {
     const state = location.state as { signupCta?: boolean; prefill?: { email: string; password: string } } | null;
     if (!state?.signupCta && !state?.prefill) return;
-    if (state.signupCta) setSignupCta(true);
+    if (state.signupCta) {
+      setSignupCta(true);
+      flashFields();
+    }
     if (state.prefill) {
       setSignupCta(false);
       setEmail(state.prefill.email);
       setPassword(state.prefill.password);
       setError('');
+      flashFields();
     }
     navigate(location.pathname, { replace: true, state: { ...state, signupCta: undefined, prefill: undefined } });
   }, [location.state, location.pathname, navigate]);
@@ -175,10 +189,7 @@ export function Login({ onGoSignup }: LoginProps) {
 
     /* 이서준은 폼을 채우는 대신 비우지만(회원가입 유도), "데모 계정을 골랐다"는 신호 자체는
      * 다른 계정과 똑같이 입력창 하이라이트로 보여준다. */
-    clearTimeout(fieldFlashTimeoutRef.current);
-    setFieldFlash(false);
-    requestAnimationFrame(() => setFieldFlash(true));
-    fieldFlashTimeoutRef.current = setTimeout(() => setFieldFlash(false), 700);
+    flashFields();
 
     /* 배너가 끼어들며 레이아웃이 한 번 밀리는 걸 한 프레임 기다린 뒤, 주 버튼("로그인"/
      * "회원가입" — 이서준이어도 같은 DOM 버튼이라 ref 도 그대로 재사용된다)이 이미 화면에

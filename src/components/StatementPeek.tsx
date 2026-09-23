@@ -5,6 +5,7 @@ import { NEXT_CARD_PAYMENT } from '../data/moneyFixed';
 import { img } from '../lib/asset';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useDismissOnBack } from '../navigation/useDismissOnBack';
+import { usePrefersReducedMotion } from './homecare/usePrefersReducedMotion';
 
 interface StatementPeekProps {
   /** 이번 달 화면에서만 보인다 */
@@ -45,12 +46,38 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
  * 달력은 처음에 한 줄만 보이고 아래 화살표로 펼치며, 날짜·금액은 고정비·거래 원본에서 계산해 돈관리 화면과 같다. */
 export function StatementPeek({ visible, onViewFixed }: StatementPeekProps) {
   const navigation = useAppNavigation();
+  /* 카드가 사라지는 조건(!visible || !NEXT_CARD_PAYMENT)은 아래 훅들보다 나중에 검사해야 해서
+   * (훅 순서 규칙) 금액은 여기서 미리 안전하게 꺼내 둔다 — 렌더마다 같은 모듈 상수라 값 자체는 항상 같다. */
+  const amount = NEXT_CARD_PAYMENT?.amount ?? 0;
+  const reduceMotion = usePrefersReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const [dragging, setDragging] = useState(false);
   /* 펼치거나 끄는 동안(그리고 다 접힌 직후 잠깐)만 탭 바 위로 올라오게 z-index 를 올려 둔다 */
   const [active, setActive] = useState(false);
   /* 열 때마다 내역을 새로 마운트해 월·선택한 날·보기를 처음 상태로 되돌린다 */
   const [openCount, setOpenCount] = useState(0);
+  /* 카드를 끌어올려 펼칠 때마다("바텀시트 올릴 시") 금액이 0에서 실제 값까지 올라가는
+   * count-up 을 다시 보여준다 — 비상금 탭·예산 진행률과 같은 ease-out cubic·600ms 관례.
+   * 접힌 채 처음 뜰 때(openCount === 0, 아직 한 번도 안 열었을 때)는 재생하지 않는다. */
+  const [amountDisplay, setAmountDisplay] = useState(amount);
+  useEffect(() => {
+    if (openCount === 0) return;
+    if (reduceMotion) {
+      setAmountDisplay(amount);
+      return;
+    }
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 600);
+      const eased = 1 - (1 - t) ** 3;
+      setAmountDisplay(Math.round(amount * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openCount]);
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
@@ -257,7 +284,7 @@ export function StatementPeek({ visible, onViewFixed }: StatementPeekProps) {
   }, [visible]);
 
   if (!visible || !NEXT_CARD_PAYMENT) return null;
-  const { day: payDay, amount } = NEXT_CARD_PAYMENT;
+  const { day: payDay } = NEXT_CARD_PAYMENT;
   const title = `9월 ${payDay}일 카드값`;
 
   /* 시트 안 버튼(고정비 보기 / 예산 설정 / 내 계좌)으로 화면을 옮길 때는 시트를 먼저 접지 않고 바로 이동한다.
@@ -323,7 +350,7 @@ export function StatementPeek({ visible, onViewFixed }: StatementPeekProps) {
                     {title}
                   </span>
                 </p>
-                <p className="statement-sheet__amount">{amount.toLocaleString()}원</p>
+                <p className="statement-sheet__amount">{amountDisplay.toLocaleString()}원</p>
                 <p className="statement-sheet__cards">
                   {NEXT_CARD_PAYMENT.cards.length > 2
                     ? `카드 ${NEXT_CARD_PAYMENT.cards.length}장 · 이번 달 카드 사용액과 같아요`

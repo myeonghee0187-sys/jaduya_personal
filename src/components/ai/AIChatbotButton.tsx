@@ -39,11 +39,15 @@ function readBounds(host: HTMLElement | null): Bounds | null {
   const defaultMaxTop = app.clientHeight - tabBarH - GAP - SIZE;
   /* 돈관리 '이번 달'의 고정 peek 시트는 탭바 위에 실제 높이로 놓인다.
    * 시트 높이를 FAB 코드에 복제하지 않고 현재 DOM 상단을 직접 읽어, 높이가 바뀌어도
-   * 버튼 전체가 항상 시트 밖에서 16px 떨어지도록 이동 범위를 제한한다. */
+   * 버튼 전체가 항상 시트 밖에서 16px 떨어지도록 이동 범위를 제한한다 — 접힌 동안만이다.
+   * 시트를 끌어올려 펼치면(.stmt-overlay.is-expanded) 그 자체가 이미 전체 화면 시트라
+   * 이 좁은 여백 제한은 의미가 없어지고, 버튼이 그 위로 자유롭게(=시트를 덮으며) 움직일
+   * 수 있어야 해서 이때는 기본 범위로 돌아간다. */
   const moneySheet = app.classList.contains('money')
     ? app.querySelector<HTMLElement>('.statement-peek')
     : null;
-  const sheetMaxTop = moneySheet && moneySheet.offsetParent === app
+  const sheetExpanded = !!app.querySelector('.stmt-overlay.is-expanded');
+  const sheetMaxTop = moneySheet && moneySheet.offsetParent === app && !sheetExpanded
     ? moneySheet.offsetTop - MONEY_SHEET_GAP - SIZE
     : defaultMaxTop;
   const maxTop = Math.max(minTop, Math.min(defaultMaxTop, sheetMaxTop));
@@ -193,37 +197,67 @@ export function AIChatbotButton({
     setAppWidth(bounds.width);
   }, [initialLift]);
 
+  /* 돈관리 화면의 시트(.statement-peek/.stmt-overlay)를 지켜보는 옵저버들 — .app 이 바뀔 때마다
+   * (화면 전환) 다시 만들어야 해서 ref 로 들고 있다가 attachMoneyWatchers 에서 매번 새로 건다. */
+  const moneyObserverRef = useRef<MutationObserver | null>(null);
+  const moneySheetResizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  /* settle() 은 "지금 좌표를 다시 범위 안으로 넣는" 1회성 계산이라 .app 이 바뀌어도 그대로 재사용할
+   * 수 있지만, 옵저버는 특정 .app 인스턴스의 DOM 노드에 직접 매달리는 것이라 그렇지 않다.
+   * 전역 FAB는 처음 마운트된 화면(대개 로그인/홈)의 .app 을 기준으로 옵저버를 한 번만 달면, 이후
+   * 돈관리로 이동해도(AIChatbot.tsx 가 host 를 새 .app 으로 옮길 뿐 이 컴포넌트는 다시 마운트되지
+   * 않는다) 옵저버는 여전히 이미 떠난 옛 .app 을 보고 있어 시트를 펼치고/접어도 아무 반응이 없었다
+   * — 버튼을 직접 눌러 끌 때만(그 순간 ref.current 로 새 .app 을 다시 읽으므로) 자리가 맞아
+   * "꾹 눌러야 올라온다"는 증상으로 보였다. settleRef 를 통해 화면이 바뀔 때마다 이 함수도 같이
+   * 불러 옵저버를 현재 .app 기준으로 다시 붙인다. */
+  const attachMoneyWatchers = useCallback(() => {
+    moneyObserverRef.current?.disconnect();
+    moneySheetResizeObserverRef.current?.disconnect();
+    moneyObserverRef.current = null;
+    moneySheetResizeObserverRef.current = null;
+
+    const app = ref.current?.offsetParent as HTMLElement | null;
+    if (!app?.classList.contains('money')) return;
+
+    const resizeObserver = new ResizeObserver(settle);
+    const observeMoneySheet = () => {
+      resizeObserver.disconnect();
+      const sheet = app.querySelector<HTMLElement>('.statement-peek');
+      if (sheet) resizeObserver.observe(sheet);
+      settle();
+    };
+    /* 같은 /money route 안에서 탭을 바꾸면 statement-peek가 mount/unmount된다.
+     * 전역 FAB는 재마운트되지 않으므로 DOM 변화를 감지해 새 시트 상단에 맞춰 다시 배치한다.
+     * 시트를 펼치고/접는 동작은 자식이 늘거나 주는 게 아니라 .stmt-overlay 의 class 만
+     * (is-expanded) 바뀌는 것이라 attributes 도 같이 봐야 펼친 순간 바로 범위가 풀린다. */
+    const mutationObserver = new MutationObserver(observeMoneySheet);
+    mutationObserver.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    observeMoneySheet();
+
+    moneyObserverRef.current = mutationObserver;
+    moneySheetResizeObserverRef.current = resizeObserver;
+  }, [settle]);
+
   /* useLayoutEffect: 첫 페인트 전에 위치를 계산해 확정한다.
    * useEffect(페인트 이후)를 쓰면 기본 위치로 한 프레임 그려졌다가 실제 위치로
    * 튀어 보인다 — 특히 탭마다 전체 화면이 다시 마운트되는 커뮤니티에서 두드러졌다. */
   useLayoutEffect(() => {
     settle();
+    attachMoneyWatchers();
     window.addEventListener('resize', settle);
-    const app = ref.current?.offsetParent as HTMLElement | null;
-    const moneySheetResizeObserver = app?.classList.contains('money')
-      ? new ResizeObserver(settle)
-      : null;
-    const observeMoneySheet = () => {
-      moneySheetResizeObserver?.disconnect();
-      const sheet = app?.querySelector<HTMLElement>('.statement-peek');
-      if (sheet) moneySheetResizeObserver?.observe(sheet);
-      settle();
-    };
-    /* 같은 /money route 안에서 탭을 바꾸면 statement-peek가 mount/unmount된다.
-     * 전역 FAB는 재마운트되지 않으므로 DOM 변화를 감지해 새 시트 상단에 맞춰 다시 배치한다. */
-    const moneyObserver = app?.classList.contains('money')
-      ? new MutationObserver(observeMoneySheet)
-      : null;
-    moneyObserver?.observe(app!, { childList: true, subtree: true });
-    observeMoneySheet();
-    if (settleRef) settleRef.current = settle;
+    if (settleRef) {
+      settleRef.current = () => {
+        settle();
+        attachMoneyWatchers();
+      };
+    }
     return () => {
       window.removeEventListener('resize', settle);
-      moneyObserver?.disconnect();
-      moneySheetResizeObserver?.disconnect();
+      moneyObserverRef.current?.disconnect();
+      moneySheetResizeObserverRef.current?.disconnect();
       if (settleRef) settleRef.current = null;
     };
-  }, [settle, settleRef]);
+  }, [settle, attachMoneyWatchers, settleRef]);
 
   useEffect(
     () => subscribeAiFabDemoMove(() => {

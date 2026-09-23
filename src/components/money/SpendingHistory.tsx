@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import '../../styles/statement-peek.css';
 import { NEXT_CARD_PAYMENT } from '../../data/moneyFixed';
 import {
@@ -22,6 +22,38 @@ import { icon } from '../../lib/asset';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const CURRENT_MONTH = 8; // 0부터 시작 — 9월
 const ROW_HEIGHT = 70; // 달력 한 줄 높이(px) — 숫자 + 수입/지출 두 줄
+
+/* 달력을 펼칠 때 스크롤을 맨 위로 같이 올리는 시간 — .stmt-cal__window 의 CSS 트랜지션
+ * (height 0.25s ease-in-out)과 정확히 맞춘다. 브라우저 기본 scrollTo(smooth)는 거리에 따라
+ * 걸리는 시간과 이징이 제각각이라 달력이 펼쳐지는 리듬과 따로 놀았다 — 직접 애니메이션해서
+ * "스크롤"과 "펼침"이 같은 시간에 같은 곡선으로 끝나는 하나의 동작처럼 보이게 한다. */
+const CAL_EXPAND_MS = 250;
+
+/* "9월 지출 중간 점검" 링 채움 시작까지의 지연 — 시트 자신의 열림 트랜지션(StatementPeek 의
+ * --stmt-p, 480ms)이 끝나고 0.6초를 더 기다린다. SpendingHistory 는 시트가 열리기 "시작"하는
+ * 순간 마운트되므로(key={openCount}), 마운트하자마자 바로 채우면 시트가 올라오는 움직임과
+ * 겹쳐 부산해 보인다 — 사용자가 열린 화면을 먼저 보고 난 다음에 링이 채워지게 한다. */
+const RING_FILL_DELAY_MS = 480 + 600;
+
+function easeInOutQuad(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+}
+
+/** el 을 top 위치까지 duration 동안 ease-in-out으로 스크롤한다. 반환값은 중간에 멈추는 함수. */
+function animateScrollTop(el: HTMLElement, top: number, duration: number): () => void {
+  const start = el.scrollTop;
+  const distance = top - start;
+  if (distance === 0) return () => {};
+  const startTime = performance.now();
+  let rafId = 0;
+  const step = (now: number) => {
+    const t = Math.min(1, (now - startTime) / duration);
+    el.scrollTop = start + distance * easeInOutQuad(t);
+    if (t < 1) rafId = requestAnimationFrame(step);
+  };
+  rafId = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(rafId);
+}
 
 /* 하루치 합계 — 달력 칸 아래에 찍는 값(지출은 "-금액", 수입은 파란색 "+금액"). 그 달 거래 원본에서 그대로 계산한다(동일 데이터 정합). */
 function sumByDay(list: readonly { day: number; amount: number }[]): Record<number, number> {
@@ -67,16 +99,26 @@ const FLOW_TABS: { key: FlowFilter; label: string }[] = [
 /* variant — 'simple'(기본): 결제 예정 시트 안의 간단한 화면(제목 + 한 줄 달력 + 선택한 날 내역).
  *            'full': 수입·지출 화면(/money/expense)의 예전 디자인 — 월 이동 화살표, 수입·지출 합계, 소비 분류 링크,
  *            스크롤하면 접히는 금액 요약, 날짜별 전체 이용 내역. */
-export function SpendingHistory({
-  className,
-  variant = 'simple',
-  onOpenExpensePage,
-}: {
-  className?: string;
-  variant?: 'simple' | 'full' | 'classic';
-  /** simple: "N월 수입·지출" 제목을 누르면 수입·지출 페이지로 이동한다(없으면 제목은 글자만) */
-  onOpenExpensePage?: () => void;
-}) {
+/** variant="full"에서 "월별 소비 분류"(카테고리 목록) 화면으로 들어갔을 때, 부모(MoneyPage)의 페이지 헤더
+ * (SubPageHeader)가 뒤로가기를 이 화면으로 먼저 돌려보낼 수 있도록 노출하는 핸들 */
+export type SpendingHistoryHandle = {
+  /** 내부 하위 화면(카테고리별 이용 내역 → 월별 소비 분류 → 이용 내역)을 한 단계 되돌린다.
+   * 처리했으면 true, 이미 최상위(이용 내역)라 부모가 페이지를 나가야 하면 false를 돌려준다. */
+  goBack: () => boolean;
+};
+
+export const SpendingHistory = forwardRef<
+  SpendingHistoryHandle,
+  {
+    className?: string;
+    variant?: 'simple' | 'full' | 'classic';
+    /** simple: "N월 수입·지출" 제목을 누르면 수입·지출 페이지로 이동한다(없으면 제목은 글자만) */
+    onOpenExpensePage?: () => void;
+    /** full: "월별 소비 분류" 화면에 들어가 있는 동안 부모 페이지 헤더에 보여줄 제목.
+     * 그 화면을 벗어나면 null 로 돌아와 부모가 원래 제목("수입·지출")을 쓰게 한다. */
+    onHeaderTitleChange?: (title: string | null) => void;
+  }
+>(function SpendingHistory({ className, variant = 'simple', onOpenExpensePage, onHeaderTitleChange }, ref) {
   const full = variant === 'full';
   /* classic — 처음 디자인: 월 · 총 지출 · 캡션 아래에 한 달 전체 달력이 늘 펼쳐져 있고, 그 아래 선택한 날의 내역이 나온다. */
   const classic = variant === 'classic';
@@ -96,7 +138,63 @@ export function SpendingHistory({
   const summaryRef = useRef<HTMLDivElement>(null);
   /* full: 날짜 클릭으로 시작한 스크롤 애니메이션 동안 스크롤 → 날짜 동기화를 잠시 멈추는 기준 시각 */
   const ignoreScrollSyncUntil = useRef(0);
+  /* 달력 펼침에 맞춰 맨 위로 스크롤하는 애니메이션 — 연달아 누르면 이전 애니메이션을 멈추고 새로 시작한다 */
+  const cancelExpandScroll = useRef<() => void>(() => {});
   const payDay = NEXT_CARD_PAYMENT?.day ?? null;
+
+  /* "9월 지출 중간 점검" 카테고리 비중 링(simple 변형) — 0 → 1 로 채워지며, 링의 실제 각도·
+   * 퍼센트 숫자가 여기 곱해진다. 같은 시트(StatementPeek) 안 금액 count-up 과 똑같은 리듬
+   * (ease-out cubic, 600ms)을 써서 두 애니메이션이 같은 톤으로 보이게 한다. */
+  const [ringProgress, setRingProgress] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setRingProgress(1);
+      return;
+    }
+    let raf = 0;
+    const startFill = () => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / 600);
+        setRingProgress(1 - (1 - t) ** 3);
+        if (t < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    };
+    const timer = window.setTimeout(startFill, RING_FILL_DELAY_MS);
+    return () => {
+      window.clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  /* "월별 소비 분류" 화면은 이제 자기 제목을 따로 그리지 않고, 부모(MoneyPage)의 페이지
+   * 헤더 제목을 이 텍스트로 바꿔 달라고 알리기만 한다 — 뒤로가기도 부모 헤더 하나로 합친다. */
+  useEffect(() => {
+    onHeaderTitleChange?.(
+      view === 'category' ? '월별 소비 분류' : view === 'detail' ? '카테고리별 이용 내역' : null,
+    );
+  }, [view, onHeaderTitleChange]);
+
+  useEffect(() => () => cancelExpandScroll.current(), []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      goBack: () => {
+        if (view === 'detail') {
+          setView('category');
+          return true;
+        }
+        if (view === 'category') {
+          setView('history');
+          return true;
+        }
+        return false;
+      },
+    }),
+    [view],
+  );
 
   /* ----- 달력 계산 ----- */
   const isCurrent = month === CURRENT_MONTH;
@@ -162,9 +260,12 @@ export function SpendingHistory({
     /* 접힐 때 레이아웃이 줄어 스크롤 위치가 흔들려도 깜빡이지 않게, 접는 기준(24px)과 다시 펼치는 기준(4px)을 다르게 둔다 */
     if (top > 24) setScrolled(true);
     else if (top <= 4) setScrolled(false);
-    if (expanded && top > 12) setExpanded(false);
-    /* 날짜를 눌러 목록이 부드럽게 스크롤되는 동안에는 눌러 둔 날짜를 유지한다 */
-    if (Date.now() < ignoreScrollSyncUntil.current) return;
+    /* 날짜를 눌러 목록이 부드럽게 스크롤되는 동안(ignoreScrollSyncUntil)에는, 아래에서
+     * 맨 위로 스크롤하는 애니메이션 도중 지나가는 중간 스크롤 위치(top > 12)에 걸려 방금
+     * 편 달력이 곧바로 다시 접히는 걸 막아야 한다 — 날짜 동기화와 같은 창을 그대로 쓴다. */
+    const ignoring = Date.now() < ignoreScrollSyncUntil.current;
+    if (!ignoring && expanded && top > 12) setExpanded(false);
+    if (ignoring) return;
     /* 스크롤하면 고정 영역(달력) 바로 아래에 걸쳐 있는 날짜 그룹을 따라 달력이 그 날짜의 주로 이동한다 */
     const body = bodyRef.current;
     const stickyBottom = stickyRef.current?.getBoundingClientRect().bottom;
@@ -241,15 +342,6 @@ export function SpendingHistory({
     </li>
   );
 
-  const subHead = (label: string, onBack: () => void) => (
-    <div className="stmt-subhead">
-      <button type="button" aria-label="뒤로" onClick={onBack}>
-        <img src={icon('chevron-right-thin.svg')} alt="" className="is-flip" />
-      </button>
-      <h3>{label}</h3>
-    </div>
-  );
-
   const verb = isCurrent ? '쓰는 중' : '썼어요';
   const diffText =
     monthDiff === null ? null : monthDiff >= 0 ? (
@@ -266,7 +358,7 @@ export function SpendingHistory({
     <div className={`statement-sheet__body${className ? ` ${className}` : ''}`} ref={bodyRef} onScroll={full ? onBodyScroll : undefined}>
       {view === 'history' && (
         <>
-          <div className="stmt-sticky" ref={stickyRef}>
+          <div className={`stmt-sticky${scrolled ? ' is-scrolled' : ''}`} ref={stickyRef}>
             {classic ? (
               <div className="stmt-classic__head">
                 <span className="stmt-classic__month">{month + 1}월</span>
@@ -314,19 +406,21 @@ export function SpendingHistory({
                     </div>
                   </div>
                 </div>
-                <div className="stmt-flow-tabs" role="tablist" aria-label="수입·지출 구분">
-                  {FLOW_TABS.map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={flow === tab.key}
-                      className={`stmt-flow-tabs__tab${flow === tab.key ? ' is-active' : ''}`}
-                      onClick={() => setFlow(tab.key)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                <div className={`stmt-flow-tabs-wrap${scrolled ? ' is-hidden' : ''}`}>
+                  <div className="stmt-flow-tabs" role="tablist" aria-label="수입·지출 구분">
+                    {FLOW_TABS.map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={flow === tab.key}
+                        className={`stmt-flow-tabs__tab${flow === tab.key ? ' is-active' : ''}`}
+                        onClick={() => setFlow(tab.key)}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             ) : (
@@ -398,7 +492,30 @@ export function SpendingHistory({
                   className="stmt-cal__toggle"
                   aria-expanded={expanded}
                   aria-label={expanded ? '달력 접기' : '달력 펼치기'}
-                  onClick={() => setExpanded((value) => !value)}
+                  onClick={() => {
+                    setExpanded((value) => {
+                      const next = !value;
+                      if (next && bodyRef.current) {
+                        /* 스크롤이 내려가 있는 채로 펼치면 sticky 달력이 그 자리에서 커지며 아래 목록을
+                         * 덮기만 해서 "펼쳐졌다"는 게 잘 안 보인다 — 맨 위로 스크롤해서 펼친 달력이
+                         * 바로 보이게 한다. 브라우저 기본 smooth scroll 대신 달력이 펼쳐지는 CSS
+                         * 트랜지션(.stmt-cal__window, 0.25s ease-in-out)과 정확히 같은 시간·곡선으로
+                         * 직접 스크롤해서, 두 움직임이 하나의 동작처럼 같이 끝나게 한다. 그 도중
+                         * 지나가는 스크롤 위치에 onBodyScroll 의 자동 접힘이 반응해 곧바로 다시 접어
+                         * 버리지 않도록 같은 창(ignoreScrollSyncUntil)으로 막는다. */
+                        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        ignoreScrollSyncUntil.current = Date.now() + (reduceMotion ? 0 : CAL_EXPAND_MS + 60);
+                        cancelExpandScroll.current();
+                        cancelExpandScroll.current = reduceMotion
+                          ? (() => {
+                              bodyRef.current.scrollTop = 0;
+                              return () => {};
+                            })()
+                          : animateScrollTop(bodyRef.current, 0, CAL_EXPAND_MS);
+                      }
+                      return next;
+                    });
+                  }}
                 >
                   <img src={icon('chevron-down-thin.svg')} alt="" className={expanded ? 'is-open' : ''} />
                 </button>
@@ -452,21 +569,32 @@ export function SpendingHistory({
                     const circumference = 2 * Math.PI * 36;
                     return (
                       <li key={meta.key}>
-                        <span className="stmt-check__ring">
-                          <svg viewBox="0 0 88 88" aria-hidden="true">
-                            <circle className="stmt-check__track" cx="44" cy="44" r="36" />
-                            <circle
-                              className={`stmt-check__arc${i === 0 ? ' is-top' : ''}`}
-                              cx="44"
-                              cy="44"
-                              r="36"
-                              strokeDasharray={`${(circumference * pct) / 100} ${circumference}`}
-                              transform="rotate(-90 44 44)"
-                            />
-                          </svg>
-                          <span className="stmt-check__pct">{pct}%</span>
-                        </span>
-                        <span className={`stmt-check__label${i === 0 ? ' is-top' : ''}`}>{meta.label}</span>
+                        <button
+                          type="button"
+                          className="stmt-check__item money-tappable"
+                          aria-label={`${meta.label} ${pct}% — 카테고리별 이용 내역 보기`}
+                          onClick={() => {
+                            setDetailKey(meta.key);
+                            setView('detail');
+                            bodyRef.current?.scrollTo({ top: 0 });
+                          }}
+                        >
+                          <span className="stmt-check__ring">
+                            <svg viewBox="0 0 88 88" aria-hidden="true">
+                              <circle className="stmt-check__track" cx="44" cy="44" r="36" />
+                              <circle
+                                className={`stmt-check__arc${i === 0 ? ' is-top' : ''}`}
+                                cx="44"
+                                cy="44"
+                                r="36"
+                                strokeDasharray={`${(circumference * pct * ringProgress) / 100} ${circumference}`}
+                                transform="rotate(-90 44 44)"
+                              />
+                            </svg>
+                            <span className="stmt-check__pct">{Math.round(pct * ringProgress)}%</span>
+                          </span>
+                          <span className={`stmt-check__label${i === 0 ? ' is-top' : ''}`}>{meta.label}</span>
+                        </button>
                       </li>
                     );
                   })}
@@ -496,7 +624,6 @@ export function SpendingHistory({
 
       {view === 'category' && (
         <section className="stmt-category" aria-label="월별 소비 분류">
-          {subHead('월별 소비 분류', () => setView('history'))}
           {monthNav(true)}
           <p className="stmt-category__total">{total.toLocaleString()}원</p>
           <p className="stmt-category__caption">
@@ -552,7 +679,6 @@ export function SpendingHistory({
 
       {view === 'detail' && detailKey && (
         <section className="stmt-category" aria-label="카테고리별 이용 내역">
-          {subHead('카테고리별 이용 내역', () => setView('category'))}
           <p className="stmt-detail__label">{CATEGORY_META.find((c) => c.key === detailKey)?.label}</p>
           <p className="stmt-category__total">{catTotals[detailKey].toLocaleString()}원</p>
           <div className="stmt-detail__list">
@@ -570,4 +696,4 @@ export function SpendingHistory({
       )}
     </div>
   );
-}
+});

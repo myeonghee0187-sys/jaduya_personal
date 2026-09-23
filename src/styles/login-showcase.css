@@ -464,6 +464,26 @@
   padding: 18px 16px 16px;
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(180, 57, 54, 0.09), rgba(180, 57, 54, 0.03));
+  /* 탭을 바꾸면 AnimatePresence 가 이 카드를 key={email} 로 새로 마운트한다 — 그 순간마다
+   * 자동으로 한 번 재생되는 하이라이트로 "다른 계정 정보로 바뀌었다"는 걸 알려준다.
+   * 앱(모바일) 쪽 입력창 자동 채움 하이라이트와 같은 역할. opacity/transform 은 이미
+   * framer-motion 이 직접 다루므로 겹치지 않게 box-shadow 만 애니메이션한다. */
+  animation: login-showcase-profile-flash 700ms ease-out;
+}
+
+@keyframes login-showcase-profile-flash {
+  0% {
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--brand-primary) 45%, transparent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-showcase__profile {
+    animation: none;
+  }
 }
 
 .login-showcase__profile-avatar {
@@ -504,6 +524,7 @@
 
 /* CTA — 패널 폭을 압도하지 않는 적당한 크기의 pill 버튼. Label L 역할: SUIT SemiBold */
 .login-showcase__cta {
+  position: relative; /* --sparkle 의 샤인 스윕(::after) 위치 기준 */
   width: 100%;
   height: 46px;
   display: flex;
@@ -531,6 +552,38 @@
 .login-showcase__cta:active {
   filter: brightness(0.94);
   box-shadow: none;
+}
+
+/* 탭으로 데모 계정을 한 번이라도 고르면(Login.tsx pickedAccount 와 같은 개념의
+ * hasPickedAccount) CTA 위로 계속 반복되는 샤인 스윕 — 앱(모바일) 로그인/회원가입 버튼과
+ * 똑같은 리듬(auth.css 의 auth-button-shine 키프레임 재사용)을 쓴다. */
+.login-showcase__cta--sparkle {
+  overflow: hidden;
+}
+
+.login-showcase__cta--sparkle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 55%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 244, 214, 0.14) 38%,
+    rgba(255, 244, 214, 0.85) 50%,
+    rgba(255, 244, 214, 0.14) 62%,
+    transparent 100%
+  );
+  transform: translateX(-150%);
+  pointer-events: none;
+  animation: auth-button-shine 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-showcase__cta--sparkle::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .login-showcase__new-link {

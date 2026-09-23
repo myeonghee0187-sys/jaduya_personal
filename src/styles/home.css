@@ -1655,6 +1655,71 @@ a { text-decoration: none; color: inherit; }
   box-shadow: 0 8px 18px rgba(33, 25, 20, 0.18);
 }
 
+/* 코치마크 "메뉴를 자유롭게 바꿔보세요" 단계 전용 — 첫 타일이 옆 칸까지 실제로 옮겨졌다
+ * 제자리로 돌아오는 배치 데모(AIChatbotButton.tsx 의 이동 데모와 같은 원리). 이동 레이어는
+ * 실제 드래그와 같은 li(.menu-slot) — 이동 거리를 그리드 칸 폭(--menu-cell-w)+간격
+ * (--widget-gap) 그대로 써서 화면 크기가 달라져도 항상 옆 칸에 정확히 맞는다. 한 단계에
+ * 들어설 때마다 한 번만 재생하고(both), 반복하지 않는다. */
+.menu-slot.is-demo-move {
+  z-index: 6;
+  animation: menu-slot-demo-move 2400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.menu-slot.is-demo-move .menu-widget,
+.menu-slot.is-demo-move .widget-asset {
+  box-shadow: 0 10px 22px rgba(33, 25, 20, 0.22);
+}
+
+@keyframes menu-slot-demo-move {
+  0%, 14% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(calc(var(--menu-cell-w) + var(--widget-gap)), 0) scale(1.05);
+  }
+  86%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-slot.is-demo-move {
+    animation: none;
+  }
+}
+
+/* 이동하는 타일 모서리에 얹는 손 커서 — ai-fab__drag-hint 와 같은 아이콘·톤. 타일(li)의
+ * 자식이라 위 is-demo-move 의 이동 transform 을 그대로 같이 탄다. */
+.menu-slot__demo-hint {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(43, 33, 29, 0.35));
+  animation: menu-slot-demo-hint 2400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes menu-slot-demo-hint {
+  0% { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+  14% { opacity: 1; transform: scale(1) rotate(-8deg); }
+  50% { transform: scale(0.86) rotate(-8deg); }
+  86% { opacity: 1; transform: scale(1) rotate(-8deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-slot__demo-hint {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* 삭제(-) 버튼 — 위젯 좌상단 모서리에 얹는다(레이아웃에 자리를 차지하지 않는다).
  * 보이는 원은 20px, 누를 수 있는 영역은 28px. */
 .menu-slot__remove {

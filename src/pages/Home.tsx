@@ -192,14 +192,21 @@ export function Home() {
     setCoachmarkOpen(false);
     /* 투어 때문에 강제로 올렸던 시트를 원래 진입 모습(peek)으로 되돌린다 */
     sheet.apply('peek');
+    /* "건너뛰기"/마지막 "완료"는 onCoachmarkStepChange 를 거치지 않고 바로 여기로 오므로,
+     * 'menu-edit' 단계에 있던 도중 끝내도 편집 모드가 켜진 채로 남지 않게 한 번 더 끈다. */
+    setMenuEditing(false);
   };
-  /* 3·4단계 타겟(위젯 추가 슬롯, AI 챗봇)은 peek 상태에선 시트 아래로 가려 안 보인다 —
+  /* 3·4·5단계 타겟(위젯 추가 슬롯, AI 챗봇)은 peek 상태에선 시트 아래로 가려 안 보인다 —
    * 해당 단계에 들어서면 시트를 강제로 올리고, 1·2단계로 돌아오면 다시 내린다. */
   const onCoachmarkStepChange = (step: CoachmarkStep) => {
     if (step.sheetState && step.sheetState !== sheet.state) sheet.apply(step.sheetState);
     /* "자두는 원하는 곳으로 이동할 수 있어요" 단계 — 말로 설명하는 대신 버튼이 실제로
      * 반대쪽까지 갔다 돌아오는 모습을 보여준다(AIChatbotButton.tsx 가 재생). */
     if (step.key === 'move') triggerAiFabDemoMove();
+    /* "메뉴를 자유롭게 바꿔보세요" 단계 — 말로 설명하는 대신 실제 편집 모드(삭제 배지·
+     * + 추가 타일)를 그대로 띄워서 보여준다. 이 단계를 벗어나면(다음/이전 어느 방향이든)
+     * 바로 꺼서 다른 단계에 편집 모드가 남아있지 않게 한다. */
+    setMenuEditing(step.key === 'menu-edit');
   };
 
   /* 강조할 실제 DOM — 좌표를 하드코딩하지 않고 Coachmark 가 매 단계 실측한다 */
@@ -229,6 +236,16 @@ export function Home() {
       radius: 16,
       /* peek 상태에선 내 메뉴 위젯이 시트 아래로 가려 안 보인다 */
       sheetState: 'expanded',
+    },
+    {
+      key: 'menu-edit',
+      title: '메뉴를 자유롭게 바꿔보세요',
+      body: '꾹 눌러 옮기거나,\n+ 로 새 메뉴를 추가할 수 있어요.',
+      targetRef: menuGridRef,
+      radius: 16,
+      sheetState: 'expanded',
+      /* 말로 설명하지 않고 실제 편집 모드(삭제 배지·+ 추가 타일·손 커서 힌트)를 그대로
+       * 띄워서 보여준다 — onCoachmarkStepChange 가 이 key 를 보고 menuEditing 을 켠다. */
     },
     {
       key: 'chatbot',
@@ -318,6 +335,11 @@ export function Home() {
           <MyLifeSection
             widgets={menuWidgets}
             editing={menuEditing}
+            /* 코치마크의 "메뉴를 자유롭게 바꿔보세요" 단계 동안만 손 커서 힌트를 보여준다.
+             * 투어 중엔 탭 캐처가 화면 전체를 덮어 실제 사용자가 직접 길게 눌러 편집
+             * 모드를 켤 수 없으므로, coachmarkOpen 이 true 인 동안의 menuEditing 은 항상
+             * 이 코치마크 단계가 켠 것이다(AIChatbotButton.tsx 의 demoMove 힌트와 같은 패턴). */
+            showDragHint={coachmarkOpen && menuEditing}
             onOpenWidget={openMenuWidget}
             onManageMenu={() => navigation?.navigate('widget-gallery')}
             onEnterEdit={() => setMenuEditing(true)}
