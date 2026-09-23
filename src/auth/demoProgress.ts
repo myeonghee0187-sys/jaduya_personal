@@ -7,7 +7,7 @@
  *   1) 온보딩(첫 맞춤 설정) 완료 여부  — AuthUser.onboarded
  *   2) 자취 프로필 설정               — jaduya.livingProfile.<email>
  *   3) 냉장고 재료 진행 상태          — jaduya.life-eat.*:<email>
- *   4) 홈 코치마크(4단계 가이드) 시청 — coachmarkProgress.ts / jaduya.demo.coachmarkSeen.<email>
+ *   4) 홈 코치마크(5단계 가이드) 시청 — coachmarkProgress.ts / jaduya.demo.coachmarkSeen.<email>
  *   5) MY 메뉴 구성                   — jaduya.menuWidgets.<email> (지우면 persona 최초 추천 구성으로 돌아간다)
  *
  * onboarded 는 MOCK_USERS 에 true 로 박혀 있어 login() 이 매번 true 로 되돌린다.

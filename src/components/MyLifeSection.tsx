@@ -19,6 +19,10 @@ interface MyLifeSectionProps {
   /** 홈에 놓인 위젯 — order 순서로 그려진다 */
   widgets: SelectedMenuWidget[];
   editing: boolean;
+  /** 코치마크의 "메뉴를 자유롭게 바꿔보세요" 단계 전용 — 첫 번째 타일이 옆 칸까지 실제로
+   * 옮겨졌다 돌아오는 배치 데모를 재생한다(AIChatbotButton.tsx 의 이동 데모와 같은 역할).
+   * 기본은 안 보여준다. */
+  showDragHint?: boolean;
   onOpenWidget: (item: SelectedMenuWidget) => void;
   /** 상세 메뉴 관리 화면으로 이동 — 홈의 편집 mode를 직접 켜지 않는다. */
   onManageMenu: () => void;
@@ -40,6 +44,7 @@ interface MyLifeSectionProps {
 export function MyLifeSection({
   widgets,
   editing,
+  showDragHint = false,
   onOpenWidget,
   onManageMenu,
   onEnterEdit,
@@ -131,7 +136,7 @@ export function MyLifeSection({
             aria-hidden="true"
           />
         )}
-        {renderIds.map((id) => {
+        {renderIds.map((id, index) => {
           const item = byId.get(id);
           if (!item) return null;
           const placement = placementByAssetId.get(item.assetId);
@@ -146,6 +151,8 @@ export function MyLifeSection({
               editing={editing}
               dragging={draggingId === item.assetId}
               previewAssetId={draggingId === item.assetId ? expandedPreviewAssetId ?? undefined : undefined}
+              /* 코치마크 전용 — 첫 번째 타일만 옆 칸까지 실제로 옮겨졌다 돌아오는 배치 데모를 재생한다 */
+              demoMove={showDragHint && index === 0}
               onOpen={onOpenWidget}
               onRemove={onRemoveWidget}
             />

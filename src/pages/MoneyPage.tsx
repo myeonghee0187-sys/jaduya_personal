@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useAppNavigation } from '../navigation/AppNavigation';
 import { useAuth } from '../auth/AuthContext';
 import { greetingName } from '../data/personaHome';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { StatementPeek } from '../components/StatementPeek';
-import { SpendingHistory } from '../components/money/SpendingHistory';
+import { SpendingHistory, type SpendingHistoryHandle } from '../components/money/SpendingHistory';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { EmergencyFundCard } from '../components/money/EmergencyFundCard';
 import { FundAmountSheet } from '../components/money/FundAmountSheet';
@@ -118,6 +118,9 @@ interface MoneyMenuItem {
   image?: string;
   /** assets/icon/ 기준 아이콘 — image 대신 쓴다 */
   icon?: string;
+  /** 이 아이콘 그림에서 가장 두드러지는 색 — 타일 보더·배경을 이 색으로 옅게 물들인다
+   * (color-mix, .money-menu__tile 참고) */
+  accent: string;
   /** 같은 화면 안 탭으로 이동 */
   tab?: Tab;
   view?: 'calendar' | 'list';
@@ -126,22 +129,32 @@ interface MoneyMenuItem {
 }
 
 const MONEY_MENU_POOL: MoneyMenuItem[] = [
-  { key: 'income', label: '수입', image: 'jaduya_custom_recommendation_36/money_management/image 360.png', go: 'money-expense' },
-  { key: 'expense', label: '지출', image: 'jaduya_custom_recommendation_36/money_management/image 359.png', go: 'money-expense' },
-  { key: 'fixed', label: '고정비', image: 'jaduya_custom_recommendation_36/money_management/image 361.png', go: 'money-fixed' },
-  { key: 'fund', label: '비상금', image: 'jaduya_custom_recommendation_36/money_management/image 362.png', go: 'money-fund' },
-  { key: 'budget', label: '예산 설정', image: 'jaduya_custom_recommendation_36/money_management/image 363.png', go: 'money-budget' },
-  { key: 'accounts', label: '내 계좌', image: 'jaduya_custom_recommendation_36/money_management/image 364.png', go: 'money-accounts' },
-  { key: 'benefit', label: '혜택', image: 'jaduya_custom_recommendation_36/money_management/image 365.png', go: 'benefits-recommend' },
+  { key: 'income', label: '수입', image: 'jaduya_custom_recommendation_36/money_management/image 360.png', accent: 'var(--color-primary-4)', go: 'money-expense' },
+  { key: 'expense', label: '지출', image: 'jaduya_custom_recommendation_36/money_management/image 359.png', accent: 'var(--brand-green)', go: 'money-expense' },
+  { key: 'fixed', label: '고정비', image: 'jaduya_custom_recommendation_36/money_management/image 361.png', accent: 'var(--brand-orange)', go: 'money-fixed' },
+  { key: 'fund', label: '비상금', image: 'jaduya_custom_recommendation_36/money_management/image 362.png', accent: 'var(--color-secondary-6)', go: 'money-fund' },
+  { key: 'budget', label: '예산 설정', image: 'jaduya_custom_recommendation_36/money_management/image 363.png', accent: 'var(--brand-primary)', go: 'money-budget' },
+  { key: 'accounts', label: '내 계좌', image: 'jaduya_custom_recommendation_36/money_management/image 364.png', accent: 'var(--color-green-7)', go: 'money-accounts' },
+  { key: 'benefit', label: '혜택', image: 'jaduya_custom_recommendation_36/money_management/image 365.png', accent: 'var(--color-cream-8)', go: 'benefits-recommend' },
 ];
 const DEFAULT_MENU_KEYS = ['income', 'expense', 'fixed', 'fund', 'budget'];
 const MENU_STORAGE_KEY = 'money-menu-keys';
+
+/* 배너/혜택 카드마다 내용에 맞는 보더 색 — 카드 배경이 전부 같은 톤(연분홍)이라 보더로
+ * 내용을 구분한다: 지출/결제(레드 계열) · 절약/비상금(그린 계열) · 반려동물 혜택(오렌지). */
+type MoneyAccent = 'pink' | 'orange' | 'green';
+const MONEY_ACCENT_COLOR: Record<MoneyAccent, string> = {
+  pink: 'var(--color-primary-3)',
+  orange: 'var(--color-orange-4)',
+  green: 'var(--brand-green)',
+};
 
 interface MoneyBanner {
   id: string;
   label: string;
   main: string;
   aria: string;
+  accent: MoneyAccent;
   /** assets/img/ 기준 이미지 */
   image?: string;
   /** assets/icon/ 기준 아이콘 — image 대신 쓴다 */
@@ -307,6 +320,10 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
   const activeScreen: 'fixed' | 'fund' | 'expense' | undefined =
     screen ??
     (requestedTab === '고정비' ? 'fixed' : requestedTab === '비상금' ? 'fund' : requestedTab === '수입·지출' ? 'expense' : undefined);
+  /* 수입·지출 화면 안에서 "월별 소비 분류" 하위 화면에 들어가 있는 동안, 그 화면 자체의 제목을
+   * 따로 그리지 않고 이 페이지 헤더 제목을 바꿔치기한다 — SpendingHistory의 onHeaderTitleChange 참고 */
+  const [expenseSubTitle, setExpenseSubTitle] = useState<string | null>(null);
+  const spendingHistoryRef = useRef<SpendingHistoryHandle>(null);
   const [tab, setTab] = useState<Tab>(() =>
     activeScreen === 'fixed'
       ? '고정비'
@@ -367,18 +384,6 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       return next;
     });
   };
-  /* 예산 카드의 더보기 메뉴 — 수입·지출 탭의 정렬 드롭다운(flow-sort)과 같은 방식으로
-   * 바깥을 누르면 닫는다. */
-  const [budgetMenuOpen, setBudgetMenuOpen] = useState(false);
-  const budgetMenuRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!budgetMenuOpen) return;
-    const onOutside = (event: PointerEvent) => {
-      if (!budgetMenuRef.current?.contains(event.target as Node)) setBudgetMenuOpen(false);
-    };
-    document.addEventListener('pointerdown', onOutside);
-    return () => document.removeEventListener('pointerdown', onOutside);
-  }, [budgetMenuOpen]);
   /* 고정비 탭 — 리스트 UI. 정적 목록(FIXED_EXPENSES)에 사용자가 추가한 항목을 합쳐서 보여준다.
    * 토글(자동결제 on/off)은 항목별 override 로 관리하고, 없으면 데이터의 기본값(enabled)을 쓴다. */
   const [fixedAddSheetOpen, setFixedAddSheetOpen] = useState(false);
@@ -415,6 +420,7 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       label: `${NEXT_FIXED_PAYMENT.days === 1 ? '내일' : `${NEXT_FIXED_PAYMENT.days}일 뒤`} ${NEXT_FIXED_PAYMENT.item.label}`,
       main: `${amountsHidden ? hiddenAmount : `${NEXT_FIXED_PAYMENT.item.amount.toLocaleString()}원`} 결제 예정`,
       aria: '결제 예정 안내',
+      accent: 'pink',
       image: FIXED_ITEM_IMAGE[NEXT_FIXED_PAYMENT.item.key] ?? 'money-flow-icons.png',
       onView: () => navigation?.navigate('money-fixed'),
     },
@@ -423,6 +429,8 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       label: `지출 ${CONSUME_CHANGE_PERCENT}% ${CONSUME_DIFF >= 0 ? '감소' : '증가'}`,
       main: `${amountsHidden ? hiddenAmount : `${Math.abs(CONSUME_DIFF).toLocaleString()}원`} ${CONSUME_DIFF >= 0 ? '아꼈어요' : '더 나갔어요'}`,
       aria: '지출 비교 안내',
+      /* 지난달보다 덜 썼으면(감소) 절약 신호로 그린, 더 썼으면(증가) 지출 신호로 핑크 */
+      accent: CONSUME_DIFF >= 0 ? 'green' : 'pink',
       image: 'money-flow-expense-badge.png',
       onView: goToIncomeExpenseList,
     },
@@ -431,6 +439,7 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       label: `비상금 ${fundPercentForBanner}% 달성`,
       main: `${amountsHidden ? hiddenAmount : `${fundRemainingForBanner.toLocaleString()}원`} 남았어요`,
       aria: '비상금 안내',
+      accent: 'green',
       image: 'money-fund-guide-badge.png',
       onView: () => navigation?.navigate('money-fund'),
     },
@@ -444,6 +453,7 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
       id: 'benefit-recommend',
       image: BENEFIT_RECOMMEND_ART,
       lines: [`내 조건에 맞는 혜택 ${RECOMMENDED_BENEFIT_IDS.length}개`] as readonly string[],
+      accent: 'pink' as MoneyAccent,
       onView: () => navigation?.navigate('benefits-recommend', { returnTo: 'money' }),
     },
     ...BENEFITS.map((benefit) => {
@@ -458,6 +468,8 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
               `최대 ${formatLoanAmount(maxAmount)}${dday ? ` · ${dday}` : ''}`,
             ]
           : [`${BENEFIT_SHORT_TITLE[benefit.id] ?? benefit.title} · 조건 ${benefit.matchCount}개 일치`]) as readonly string[],
+        /* 반려동물 혜택은 오렌지, 그 외(청년 포인트 등 일반 복지)는 그린 */
+        accent: (benefit.id === 'seongnam-pet-medical' ? 'orange' : 'green') as MoneyAccent,
         onView: () => navigation?.navigate('benefit-detail', { benefitId: benefit.id, returnTo: 'money' }),
       };
     }),
@@ -761,7 +773,7 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
             aria-pressed={item.go ? undefined : active}
             onClick={() => pressMenuItem(item, active)}
           >
-            <span className="money-menu__tile">
+            <span className="money-menu__tile" style={{ '--money-menu-accent': item.accent } as CSSProperties}>
               <img src={menuImageOf(item)} alt="" />
             </span>
             <span className="money-menu__label">{item.label}</span>
@@ -780,15 +792,18 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
             : activeScreen === 'fund'
               ? '비상금'
               : activeScreen === 'expense'
-                ? '수입·지출'
+                ? (expenseSubTitle ?? '수입·지출')
                 : '돈 관리'
         }
         backLabel={activeScreen ? '돈관리로' : '홈으로'}
-        onBack={() => navigation?.goBack(activeScreen ? 'money' : 'home')}
+        onBack={() => {
+          if (activeScreen === 'expense' && spendingHistoryRef.current?.goBack()) return;
+          navigation?.goBack(activeScreen ? 'money' : 'home');
+        }}
       />
 
       <main
-        className={`money__scroll${tab === '이번 달' ? ' money__scroll--peek' : ''}${tab === '수입·지출' ? ' money__scroll--fill' : ''}`}
+        className={`money__scroll${tab === '이번 달' ? ' money__scroll--peek' : ''}${tab === '수입·지출' ? ' money__scroll--fill' : ''}${tab === '고정비' ? ' money__scroll--fixed-cta' : ''}`}
         ref={scrollRef}
       >
         {tab !== '이번 달' && !activeScreen && renderMoneyMenu()}
@@ -798,7 +813,12 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
             {/* 알림 배너(레퍼런스) — 위에서부터 하나씩 보여주고, 오른쪽 ×로 닫으면 다음 알림이
              * 이어서 나온다. 문구는 고정비·소비·비상금 원본에서 그대로 가져온다. */}
             {activeBanner && (
-              <section key={activeBanner.id} className="money-banner" aria-label={activeBanner.aria}>
+              <section
+                key={activeBanner.id}
+                className="money-banner"
+                aria-label={activeBanner.aria}
+                style={{ '--money-banner-accent': MONEY_ACCENT_COLOR[activeBanner.accent] } as CSSProperties}
+              >
                 <span className="money-banner__icon" aria-hidden="true">
                   <img src={activeBanner.icon ? icon(activeBanner.icon) : img(activeBanner.image ?? '')} alt="" />
                 </span>
@@ -859,35 +879,21 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
                       '내 생활통장'
                     )}
                   </span>
-                  <div className="money-budget__menu-wrap" ref={budgetMenuRef}>
-                    <button
-                      type="button"
-                      className="money-budget__kebab"
-                      aria-label="더보기"
-                      aria-haspopup="menu"
-                      aria-expanded={budgetMenuOpen}
-                      onClick={() => setBudgetMenuOpen((open) => !open)}
-                    >
-                      <span />
-                      <span />
-                      <span />
-                    </button>
-                    {budgetMenuOpen && (
-                      <div className="money-budget__menu" role="menu">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className="money-budget__menu-item"
-                          onClick={() => {
-                            setAmountsHidden((v) => !v);
-                            setBudgetMenuOpen(false);
-                          }}
-                        >
-                          {amountsHidden ? '금액 보기' : '금액 가리기'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    className="money-budget__eye"
+                    aria-label={amountsHidden ? '금액 보기' : '금액 가리기'}
+                    aria-pressed={amountsHidden}
+                    onClick={() => setAmountsHidden((v) => !v)}
+                  >
+                    <span
+                      className="money-budget__eye-icon"
+                      style={{
+                        WebkitMaskImage: `url(${icon(amountsHidden ? 'eye-slash.svg' : 'eye.svg')})`,
+                        maskImage: `url(${icon(amountsHidden ? 'eye-slash.svg' : 'eye.svg')})`,
+                      }}
+                    />
+                  </button>
                 </div>
 
                 <p key={String(amountsHidden)} className="money-budget__amount budget-setup__pulse">
@@ -962,7 +968,15 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
 
             {/* 혜택 배너(레퍼런스) — 큰 문구 두 줄 + 오른쪽 캐릭터, 왼쪽 아래에 일시정지 버튼과 진행 점.
              * 옆으로 넘기거나 자동으로 넘어가고(4초), 내용은 혜택 원본(data/benefits.ts)에서 가져온다. */}
-            <section className="money-promo" aria-label="혜택 안내">
+            <section
+              className="money-promo"
+              aria-label="혜택 안내"
+              style={
+                {
+                  '--money-promo-accent': MONEY_ACCENT_COLOR[benefitSlides[promoIndex]?.accent ?? 'pink'],
+                } as CSSProperties
+              }
+            >
               <div className="money-promo__track" ref={promoTrackRef} onScroll={handlePromoScroll}>
                 {benefitSlides.map((slide) => (
                   <button key={slide.id} type="button" className="money-promo__slide" onClick={slide.onView}>
@@ -1164,7 +1178,14 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
         )}
 
         {/* 수입·지출 화면(/money/expense) — 결제 예정 시트의 카드 아래 내용(월 이동 · 소비 분류 · 달력 · 이용 내역)을 그대로 쓴다. */}
-        {tab === '수입·지출' && <SpendingHistory variant="full" className="spending-history--page" />}
+        {tab === '수입·지출' && (
+          <SpendingHistory
+            ref={spendingHistoryRef}
+            variant="full"
+            className="spending-history--page"
+            onHeaderTitleChange={setExpenseSubTitle}
+          />
+        )}
 
         {tab === '고정비' && (
           <>
@@ -1336,14 +1357,16 @@ export function MoneyPage({ screen }: MoneyPageProps = {}) {
               </div>
             </section>
 
-            <button
-              type="button"
-              className="money-fixed-add-cta money-tappable"
-              onClick={() => setFixedAddSheetOpen(true)}
-            >
-              <img src={icon('plus-add.svg')} alt="" />
-              고정비 추가하기
-            </button>
+            <div className="money-fixed-add-bar">
+              <button
+                type="button"
+                className="money-fixed-add-cta money-tappable"
+                onClick={() => setFixedAddSheetOpen(true)}
+              >
+                <img src={icon('plus-add.svg')} alt="" />
+                고정비 추가하기
+              </button>
+            </div>
           </>
         )}
 

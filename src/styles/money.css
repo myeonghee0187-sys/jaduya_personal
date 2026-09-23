@@ -26,6 +26,14 @@
   padding-bottom: calc(var(--tab-bar-h) + 104px + var(--space-xl));
 }
 
+/* 고정비 탭 — "+ 고정비 추가하기"를 감싸는 .money-fixed-add-bar 가 이 컨테이너의 마지막
+ * 자식이면서 탭바 회피용 여백까지 자기 padding-bottom 안에 이미 포함하고 있다(money.css의
+ * .money-fixed-add-bar 참고). 기본 .money__scroll의 padding-bottom을 그대로 더하면 두 번
+ * 잡혀 여백이 이상해지니 여기서는 0으로 비운다. */
+.money__scroll--fixed-cta {
+  padding-bottom: 0;
+}
+
 .money__scroll::-webkit-scrollbar {
   display: none;
 }
@@ -153,7 +161,7 @@
 .money-menu {
   display: flex;
   gap: var(--space-sm);
-  margin: 18px var(--screen-margin) 0;
+  margin: var(--space-xl) var(--screen-margin) 0;
   padding: 0;
   overflow-x: auto;
   /* 자석 — 손을 떼면 가장 가까운 아이콘의 왼쪽 끝이 영역 왼쪽 가장자리에 딱 붙는다(왼쪽 아이콘이 반쯤
@@ -183,7 +191,7 @@
 }
 
 .money-menu--below {
-  margin-top: 12px;
+  margin-top: var(--space-xl);
 }
 
 /* 한 화면에 5개가 온전히 들어간다 — 절반만 보이는 아이콘 없이 끝이 잘리지 않는다. 6번째부터는 옆으로 넘기면
@@ -211,17 +219,33 @@
    * 첫 타일·다섯 번째 타일이 위아래 카드의 좌우 끝(342px 콘텐츠 라인)보다 1.4px 안쪽에 앉았다 */
   width: 100%;
   aspect-ratio: 1;
-  border: 2px solid transparent;
+  /* 홈 "내 메뉴" 위젯(.menu-widget, home.css)과 같은 방식 — 고정 색 토큰 대신
+   * color-mix 로 색을 옅게 섞어 진하지 않고 자연스러운 보더·배경을 만든다. 색 자체는
+   * 타일마다 다르다 — MoneyPage.tsx 가 각 아이콘 그림에서 가장 두드러지는 색을
+   * --money-menu-accent 로 심어줘서(수입=로즈, 지출=그린, 고정비=오렌지…) 타일끼리
+   * 한눈에 구분된다("+" 추가 슬롯처럼 accent 가 없으면 브랜드 레드로 대체). 기본
+   * (18%/5%) → 호버(35%/--color-primary-05, 아래) → 선택(솔리드 레드, .is-active) 순으로
+   * 점점 진해지는 3단계라, 선택 상태는 색이 달라도 항상 뚜렷하게 구분된다. */
+  border: 2px solid color-mix(in srgb, var(--money-menu-accent, var(--brand-primary)) 22%, transparent);
   border-radius: var(--radius-l);
-  background: var(--surface-widget);
-  transition: border-color 0.2s ease-in-out;
+  background: color-mix(in srgb, var(--money-menu-accent, var(--brand-primary)) 9%, var(--surface-base));
+  transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
-/* 새 아이콘(200×199)은 여백이 거의 없는 그림이라 28px 로는 작아 보였다 — 타일(56px) 안쪽을 거의 채우게 40px 로 통일 */
+/* 타일(약 58.8px) 안에서 여백 없이 꽉 차 보여 "+" 등 다른 아이콘과 크기가 안 맞았다 — 28px 로 줄여
+ * 타일 테두리 안쪽에 여백을 두고 통일감 있게 보이도록 한다 */
 .money-menu__tile img {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
+}
+
+/* "+" 추가 슬롯은 accent 가 없어 기본값(브랜드 레드 9%)이 그대로 적용돼 다른 타일처럼
+ * 옅은 핑크로 보였다 — 실제 바로가기가 아니라 "추가" 동작이라는 걸 색으로도 구분하기 위해
+ * 흰 타일 + 중립 보더로 둔다(호버 시 다른 타일과 같은 레드 강조는 그대로 유지). */
+.money-menu__item--add .money-menu__tile {
+  border-color: var(--border-warm);
+  background: var(--surface-base);
 }
 
 .money-menu__item--add .money-menu__tile img {
@@ -248,6 +272,20 @@
 
 .money-menu__item.is-active .money-menu__label {
   color: var(--brand-primary);
+}
+
+/* 호버 가능한 입력장치(마우스)에서만 — 터치 기기는 탭 후에도 호버가 눌러붙어 남는 문제가
+ * 있어 제외한다(다른 화면의 :hover 패턴과 동일). 이미 선택된 항목(.is-active)은 테두리가
+ * 이미 브랜드색이라 덧칠하지 않는다. */
+@media (hover: hover) {
+  .money-menu__item:not(.is-active):hover .money-menu__tile {
+    border-color: color-mix(in srgb, var(--brand-primary) 35%, transparent);
+    background: var(--color-primary-05);
+  }
+
+  .money-menu__item:not(.is-active):hover .money-menu__label {
+    color: var(--brand-primary);
+  }
 }
 
 /* 바로가기 편집 시트 — 항목 목록. 선택된 행은 Red 테두리 + 체크(선택 상태 기본 규칙). */
@@ -323,11 +361,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin: 18px var(--screen-margin) 0;
+  margin: var(--space-xl) var(--screen-margin) 0;
   padding: 16px 20px;
+  /* 배경은 항상 같은 연분홍이라 색만으로는 내용(결제/지출/비상금) 구분이 안 됐다 — 보더
+   * 색으로 구분한다. MoneyPage.tsx 가 banner.accent 에 맞춰 --money-banner-accent 를
+   * 심어준다(결제·지출증가=핑크, 지출감소·비상금=그린). */
+  border: 1px solid var(--money-banner-accent, var(--color-primary-3));
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--color-gray-0) 0%, var(--color-primary-05) 100%);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
+  background: linear-gradient(135deg, var(--color-gray-0) 0%, var(--color-primary-1) 100%);
   /* 다음 알림으로 바뀔 때 — 위에서 살짝 내려오며 나타난다(key 가 바뀌면 다시 마운트되어 재생) */
   animation: money-banner-in 0.25s ease-in-out;
 }
@@ -404,12 +445,24 @@
   padding: 0 14px;
   border: none;
   border-radius: var(--radius-m);
-  background: var(--color-primary-05);
+  background: var(--brand-primary);
   font-family: var(--font-suit);
   font-weight: 600;
   font-size: 14px;
-  color: var(--color-primary-6);
+  color: var(--color-primary-0);
   cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+@media (hover: hover) {
+  .money-banner__btn:hover {
+    background: var(--color-primary-6);
+  }
+}
+
+.money-banner__btn:focus-visible {
+  outline: 2px solid var(--color-primary-6);
+  outline-offset: 2px;
 }
 
 /* 닫기(×) — 카드 오른쪽 위 모서리에 걸친 24px 흰 원. 터치 영역은 ::before 로 40px 까지 넓힌다. */
@@ -448,7 +501,7 @@
  * 접으면 제목 줄 + 계좌명·금액만 남는다. */
 .money-budget {
   position: relative;
-  margin: 12px var(--screen-margin) 0;
+  margin: var(--space-xl) var(--screen-margin) 0;
   border-radius: var(--radius-xl);
   background: linear-gradient(
     to bottom,
@@ -545,6 +598,7 @@
 /* 흰 패널 — 접히면 아래쪽 여백을 채워 계좌명·금액만 남은 카드가 답답하지 않게 한다. */
 .money-budget__panel {
   padding: 20px 0 0;
+  border: 1px solid var(--color-cream-6);
   border-radius: var(--radius-xl);
   background: var(--color-gray-0);
   color: var(--color-gray-9);
@@ -585,23 +639,17 @@
   color: var(--brand-primary);
 }
 
-.money-budget__menu-wrap {
-  position: relative;
-  flex: none;
-}
-
-/* 세로 점 3개 */
-.money-budget__kebab {
+/* 금액 가리기/보기 토글 — 메뉴를 열지 않고 눈 아이콘 클릭 한 번으로 즉시 전환한다 */
+.money-budget__eye {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  /* 누르는 영역은 44px(tap target) — 안의 5px 점이 오른쪽 20px 패딩선에 맞도록 오른쪽으로 20px 밀어내고,
-   * 헤더 높이가 늘지 않게 위아래는 -12px 로 상쇄한다 */
+  flex: none;
+  /* 누르는 영역은 44px(tap target) — 오른쪽은 밀어내지 않아 위 "예산" 접기 버튼과 같은 20px 안쪽 선에
+   * 맞춘다. 헤더 높이가 늘지 않게 위아래만 -12px 로 상쇄한다 */
   width: 44px;
   height: 44px;
-  margin: -12px -20px -12px 0;
+  margin: -12px 0 -12px 0;
   padding: 0;
   border: none;
   border-radius: var(--radius-m);
@@ -610,76 +658,32 @@
   transition: background-color 0.2s ease-in-out;
 }
 
-/* 점 — 연한 회색(#919191, 흰 배경 대비 3.2:1) 4px 라 잘 안 보였다. 한 단계 진한 Gray 5(#757575, 4.6:1) 5px 로 */
-.money-budget__kebab span {
+/* 원본 SVG는 흰색 stroke(#FFFDFB)라 흰 카드 위에서 안 보인다 — mask 로 모양만 가져오고 색을 다시 칠한다.
+ * 계좌명 옆 "님의 생활통장" 이름 강조와 같은 브랜드 레드(--brand-primary)를 써서 회색 아이콘보다
+ * 눈에 띄게 하고, 다른 accent 요소와 톤을 맞춘다 */
+.money-budget__eye-icon {
   display: block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-gray-5);
+  width: 20px;
+  height: 20px;
+  background-color: var(--brand-primary);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 @media (hover: hover) {
-  .money-budget__kebab:hover {
+  .money-budget__eye:hover {
     background: var(--surface-widget);
   }
 }
 
-.money-budget__kebab[aria-expanded='true'],
-.money-budget__kebab:focus-visible {
+.money-budget__eye:focus-visible {
   background: var(--surface-widget);
   outline: none;
-}
-
-.money-budget__kebab:focus-visible {
   box-shadow: 0 0 0 2px var(--color-primary-2);
-}
-
-/* 열린 메뉴 — 흰 카드 위에 흰 상자라 경계가 안 보였다(그림자 4%). 테두리 + 뚜렷한 그림자로 떠 보이게 한다 */
-.money-budget__menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 5;
-  min-width: 132px;
-  padding: 6px;
-  border: 1px solid var(--color-gray-1);
-  border-radius: var(--radius-l);
-  background: var(--color-gray-0);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-gray-10) 14%, transparent);
-}
-
-/* 메뉴 항목 — Label L(SUIT 600 14px), 진한 글자, 44px 터치 영역 */
-.money-budget__menu-item {
-  display: block;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 var(--space-sm);
-  border: none;
-  border-radius: var(--radius-m);
-  background: none;
-  font-family: var(--font-suit);
-  font-weight: 600;
-  font-size: var(--font-size-body);
-  text-align: left;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-}
-
-/* 호버·키보드 포커스 — 따뜻한 서피스 + 브랜드 레드 글자(레드 글자 대 서피스 5.2:1) */
-@media (hover: hover) {
-  .money-budget__menu-item:hover {
-    background: var(--surface-widget);
-    color: var(--brand-primary);
-  }
-}
-
-.money-budget__menu-item:focus-visible {
-  background: var(--surface-widget);
-  color: var(--brand-primary);
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--color-primary-2);
 }
 
 /* 큰 금액 — 왼쪽 정렬 */
@@ -850,11 +854,16 @@
  * 슬라이드는 옆으로 스냅 스크롤. 바깥 반지름·여백은 다른 카드와 같은 20px. */
 .money-promo {
   position: relative;
-  margin: 12px var(--screen-margin) 0;
+  margin: var(--space-xl) var(--screen-margin) 0;
+  /* 배경(--color-primary-05)은 슬라이드 3장이 전부 같지만, 슬라이드마다 혜택 종류가 달라
+   * .money-banner 와 같은 원칙으로 보더를 구분한다 — MoneyPage.tsx 가 현재 보이는 슬라이드
+   * (promoIndex)의 accent 로 --money-promo-accent 를 심어준다(추천=핑크, 반려동물=오렌지,
+   * 청년 포인트=그린). 스크롤로 슬라이드가 바뀌면 같이 바뀐다. */
+  border: 1px solid var(--money-promo-accent, var(--color-primary-3));
   border-radius: var(--radius-xl);
   background: var(--color-primary-05);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
   overflow: hidden;
+  transition: border-color 0.2s ease-in-out;
 }
 
 .money-promo__track {
@@ -983,19 +992,22 @@
 .money-assets {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin: 12px var(--screen-margin) 0;
+  gap: var(--space-md);
+  margin: var(--space-xl) var(--screen-margin) 0;
 }
 
 .money-asset-card {
   overflow: hidden;
+  /* 계좌/대출/카드 · 9월 지출·카드값 · 신용점수, 세 카드가 전부 같은 클래스라 따뜻한
+   * 크림 보더(--color-cream-6)를 쓰면 세로로 3번 반복돼 무거워 보였다 — 배너류의
+   * 갈색 계열과 구분되는 중립 회색으로 가볍게 낮춘다. */
+  border: 1px solid var(--color-gray-3);
   border-radius: var(--radius-xl);
   background: var(--color-gray-0);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-gray-10) 3%, transparent);
 }
 
 .money-asset-body {
-  padding: 20px;
+  padding: var(--space-xl) var(--space-lg);
 }
 
 .money-asset-list {
@@ -1151,11 +1163,11 @@
 }
 
 .money-asset-foot__links button {
-  padding: 13px 20px;
+  padding: var(--space-md) var(--space-lg);
 }
 
 .money-asset-foot__more {
-  padding: 13px 0;
+  padding: var(--space-md) 0;
 }
 
 /* 선택된 종류(계좌/대출/카드)는 진하게 */
@@ -1187,7 +1199,7 @@
 
 .money-asset-foot__links--even button {
   flex: 1 1 0;
-  padding: 13px 0;
+  padding: var(--space-md) 0;
 }
 
 /* 비상금 묶음 제목 줄 */
@@ -1256,7 +1268,7 @@
 .money-asset-credit__thumb {
   position: absolute;
   top: 50%;
-  width: 22px;
+  width: 28px;
   height: auto;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -2970,20 +2982,20 @@
  * --brand-primary 배경 + 흰 글자로, 그 화면의 대표 액션임을 확실히 드러낸다 — 이 버튼만
  * 옅은 톤이라 같은 "돈관리" 안에서 톤이 안 맞았다. 나머지 두 버튼과 같은 스타일로
  * 맞춘다(흰 텍스트 대 brand-primary 배경 대비 5.87:1, WCAG AA 통과).
- * 스크롤해도 계속 보이게 — .flow-list__add 와 같은 이유로 position: fixed 대신 sticky를
- * 쓴다(뷰포트 기준인 fixed는 데스크톱 IPhoneFrame 프리뷰 밖으로 삐져나온다). 이 버튼이
- * 속한 스크롤 컨테이너(.money__scroll)가 이미 탭바를 피해 padding-bottom을 확보해 둬서
- * bottom: 0 만으로 그 안쪽 바닥에 붙는다. */
+ * 화면에 고정된 채 안 움직이는 버튼이 아니라 스크롤을 따라오다 바닥에서 붙어야 하는
+ * 버튼이라 position: absolute(항상 같은 자리에 고정)가 아니라 sticky를 쓴다. 다만
+ * sticky는 자기 박스만 고정하고 margin은 고정하지 않아서, 버튼 위/아래 여백이 불투명하지
+ * 않으면 그 틈으로 목록 마지막 줄이 비쳐 보인다 — 여백까지 포함한 바(.money-fixed-add-bar)
+ * 전체를 sticky + 불투명 배경으로 감싸 이 틈을 없앤다. 스크롤 컨테이너 자신의 하단
+ * padding(탭바 회피용)까지 이 바의 padding-bottom 안에 흡수시켜서(.money__scroll--fixed-cta
+ * 참고), 스크롤이 끝에 닿아 바가 살짝 밀려 올라가는 순간에도 그 뒤로 드러날 투명한
+ * 틈 자체가 남지 않게 한다. */
 .money-fixed-add-cta {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: calc(100% - var(--screen-margin) * 2);
-  margin: var(--space-lg) var(--screen-margin) var(--space-2xl);
+  width: 100%;
   height: 48px;
   border: none;
   border-radius: var(--radius-m);
@@ -2993,6 +3005,16 @@
   font-size: 14px;
   color: var(--color-gray-0);
   cursor: pointer;
+}
+
+.money-fixed-add-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  /* 탭바 위 여백은 기본 회피분(--space-xl)이면 충분하다 — 버튼의 원래 margin-bottom이던
+   * --space-2xl까지 더하면 탭바와 버튼 사이가 지나치게 벌어져 뺐다. */
+  padding: var(--space-lg) var(--screen-margin) calc(var(--tab-bar-h) + var(--space-xl));
+  background: var(--surface-page);
 }
 
 .money-fixed-add-cta img {
@@ -5090,14 +5112,18 @@ button.fund-card__remaining--tap:focus-visible {
 }
 
 /* 진행 막대 + 진행률 문구 — 예산 설정하기 버튼(.budget-setup__submit) 바로 위 하단에 고정. 스크롤되는 내용이 뒤로 비쳐
- * 글자와 겹치지 않도록 페이지 배경색으로 받치고 위쪽만 살짝 페이드한다. absolute 인 이유는 버튼과 같다(프레임 밖으로 안 삐져나오게). */
+ * 글자와 겹치지 않도록 페이지 배경색으로 받치고 위쪽만 살짝 페이드한다. absolute 인 이유는 버튼과 같다(프레임 밖으로 안 삐져나오게).
+ * 이 배경판의 bottom 을 버튼 위(예전 값)에서 탭바 위로 늘려, 버튼 아래 여백(space-xl)과 버튼 자신의 둥근 모서리
+ * 뒤까지 이어서 막는다 — 안 그러면 스크롤 내용이 짧아 안 스크롤될 때 그 내용이 버튼 바로 뒤에 그대로 남아 있다가
+ * 버튼의 둥근 모서리 바깥쪽 네 귀퉁이로 살짝 비쳐 보였다. 늘어난 만큼은 아래 padding 으로 흡수해 위쪽 실제
+ * 콘텐츠(진행 막대·라벨) 위치는 그대로 둔다. */
 .budget-setup__dock {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(var(--tab-bar-h) + var(--space-xl) + 44px);
+  bottom: var(--tab-bar-h);
   z-index: 29;
-  padding: var(--space-md) var(--screen-margin) var(--space-sm);
+  padding: var(--space-md) var(--screen-margin) calc(var(--space-sm) + var(--space-xl) + 44px);
   background: linear-gradient(to bottom, transparent, var(--surface-page) var(--space-md));
 }
 
@@ -5214,8 +5240,8 @@ button.fund-card__remaining--tap:focus-visible {
 .budget-setup__progress-thumb {
   position: absolute;
   top: 50%;
-  left: clamp(11px, var(--p, 0%), calc(100% - 11px));
-  width: 22px;
+  left: clamp(14px, var(--p, 0%), calc(100% - 14px));
+  width: 28px;
   height: auto;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -5255,13 +5281,20 @@ button.fund-card__remaining--tap:focus-visible {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-sm);
-  /* 오른쪽 64px 는 전역 AI 챗봇 버튼(오른쪽 아래에 떠 있다)이 덮는 자리 — 안내 문구가 그 밑에 가려지지 않게 비운다 */
   margin: 8px 0 0;
-  padding-right: 64px;
   font-family: var(--font-asta);
   font-weight: 400;
   font-size: var(--font-size-body);
   color: var(--text-secondary);
+}
+
+/* "진행률 N% · 예산 초과/거의 다 썼어요" — 오른쪽 힌트가 없을 때도 문구가 길어지면 줄바꿈되어
+ * 막대 아래 두 줄로 밀려 보였다. 한 줄로 고정하고, 정말 안 들어가는 극단적인 경우에만 말줄임한다. */
+.budget-setup__progress-status-row {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* 자두를 끌 수 있다는 안내 — 눈에 띄는 색 없이 보조 정보로만 */
@@ -5285,14 +5318,14 @@ button.fund-card__remaining--tap:focus-visible {
 
 .budget-setup__today {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   margin-top: var(--space-lg);
   padding-top: var(--space-md);
   border-top: 1px solid var(--border-warm);
   font-family: var(--font-suit);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 16px;
   color: var(--text-primary);
   transition: background-color 200ms ease;
 }
@@ -5306,11 +5339,14 @@ button.fund-card__remaining--tap:focus-visible {
   background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
 }
 
+/* "오늘 쓸 수 있는 금액" — 이 화면에서 가장 눈에 들어와야 하는 숫자라 라벨보다 눈에 띄게 크게,
+ * 초록(카테고리 텍스트에도 쓰는 --color-green-7, 흰 배경 대비 5.86:1)으로 포인트를 준다.
+ * 예산 초과(is-negative) 상태는 기존처럼 경고색(brand-primary red)을 그대로 쓴다. */
 .budget-setup__today-value {
   font-family: var(--font-asta);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--color-green-7);
 }
 
 .budget-setup__today.is-negative .budget-setup__today-value {
@@ -6973,6 +7009,14 @@ button.fund-card__remaining--tap:focus-visible {
   justify-content: flex-start;
 }
 
+/* .money-accounts__scroll 이 이미 좌우 30px(--screen-margin)를 padding 으로 주는데,
+ * money__tabs-row 는 돈관리 메인(.money__scroll, 좌우 여백을 자기가 안 주는 화면)에 맞춰
+ * margin 0 var(--screen-margin) 을 자기도 갖고 있어서 여기서는 30+30=60px 로 두 번 줄어들어
+ * 보였다 — 이 화면에서는 부모 padding 하나만 쓰도록 margin 을 지운다. */
+.money-accounts__scroll .money__tabs-row {
+  margin: 0;
+}
+
 /* ---------- "내 계좌 N개" + 계좌 연결하기 ---------- */
 .money-accounts__section-head {
   display: flex;
@@ -7018,8 +7062,8 @@ button.fund-card__remaining--tap:focus-visible {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--border-warm), 0 1px 3px rgba(59, 51, 46, 0.08);
 }
@@ -7161,8 +7205,8 @@ button.fund-card__remaining--tap:focus-visible {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--border-warm), 0 1px 3px rgba(59, 51, 46, 0.08);
   transition: box-shadow 0.2s ease-in-out;

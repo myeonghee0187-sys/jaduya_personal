@@ -39,8 +39,11 @@ const BUDGET_TWEEN_MS = 380;
 /* 화면에 처음 들어올 때 숫자가 0에서 올라가는 시간 */
 const INTRO_MS = 900;
 /* 진행 바의 자두를 끌어서 정할 수 있는 예산 상한 — 바는 "쓴 금액 ÷ 예산"이라 맨 왼쪽 끝이 이 값에 해당한다
- * (그보다 더 크게·작게는 −/+ 나 직접 입력으로 바꾼다) */
-const BUDGET_DRAG_MAX = 3_000_000;
+ * (그보다 더 크게·작게는 −/+ 나 직접 입력으로 바꾼다). 고정값 300만원이면 이번 달 쓴 금액이 그 상당한
+ * 비율(예: 73만원 → 24%)일 때 왼쪽 끝이 이미 24% 지점이라, 끝까지 끌어도 자두가 막대 왼쪽 끝에 닿지
+ * 못하고 중간에 멈춰 있는 것처럼 보였다 — 쓴 금액의 20배로 늘려서 왼쪽 끝(이 값)이 항상 5% 언저리
+ * 이하가 되게 하고, 지출이 아주 적은 달에도 상한이 너무 작아지지 않도록 최소값은 그대로 둔다. */
+const BUDGET_DRAG_MAX = Math.max(3_000_000, CURRENT_USED * 20);
 
 /* 버튼을 누르고 있는 동안 onStep 을 반복한다. 마우스·터치는 pointerdown 으로 시작하고,
  * 키보드(Enter/Space)는 click(detail 0)으로 한 번만 처리해 두 번 실행되지 않게 한다. */
@@ -436,7 +439,7 @@ export function MoneyBudgetPage() {
           />
         </div>
         <p className="budget-setup__progress-label">
-          <span>
+          <span className="budget-setup__progress-status-row">
             진행률{' '}
             <span key={pulseKey} className="budget-setup__pulse">
               {shown(percentUsed)}%
@@ -448,9 +451,13 @@ export function MoneyBudgetPage() {
               </span>
             )}
           </span>
-          <span className="budget-setup__progress-hint" aria-hidden="true">
-            자두를 끌어 조절해요
-          </span>
+          {/* 초과·거의 다 씀 안내가 뜨면 그 문구만으로도 자리가 빠듯해 이 장식용 힌트까지 있으면
+           * 두 줄로 밀려 나갔다 — 안내 문구가 있을 때는 덜 중요한 힌트를 숨긴다. */}
+          {!isOverBudget && !isNearLimit && (
+            <span className="budget-setup__progress-hint" aria-hidden="true">
+              자두를 끌어 조절해요
+            </span>
+          )}
         </p>
 
       </div>

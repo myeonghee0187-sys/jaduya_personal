@@ -36,11 +36,26 @@ interface MenuWidgetSlotProps {
   editing: boolean;
   dragging: boolean;
   previewAssetId?: string;
+  /** 코치마크의 "메뉴를 자유롭게 바꿔보세요" 단계 전용 — 이 타일이 옆 칸까지 실제로
+   * 옮겨졌다 제자리로 돌아오는 데모를 재생하고, 손 커서 힌트를 함께 띄운다(한 번 재생). */
+  demoMove?: boolean;
   onOpen: (item: SelectedMenuWidget) => void;
   onRemove: (id: string) => void;
 }
 
-export function MenuWidgetSlot({ item, slotIndex, row, col, span, editing, dragging, previewAssetId, onOpen, onRemove }: MenuWidgetSlotProps) {
+export function MenuWidgetSlot({
+  item,
+  slotIndex,
+  row,
+  col,
+  span,
+  editing,
+  dragging,
+  previewAssetId,
+  demoMove = false,
+  onOpen,
+  onRemove,
+}: MenuWidgetSlotProps) {
   const menu = MENU_CATALOG.flatMap((section) => section.items).find((entry) => entry.id === item.menuId);
   const asset = item.size === '2x2' ? MENU_WIDGET_ASSETS.find((entry) => entry.id === item.assetId) : null;
   const previewAsset = previewAssetId ? MENU_WIDGET_ASSETS.find((entry) => entry.id === previewAssetId) : null;
@@ -54,7 +69,7 @@ export function MenuWidgetSlot({ item, slotIndex, row, col, span, editing, dragg
 
   return (
     <li
-      className={`menu-slot menu-slot--${slotColorOf(slotIndex)}${dragging ? ' is-dragging' : ''}${previewAsset ? ' is-preview-2x2' : ''}`}
+      className={`menu-slot menu-slot--${slotColorOf(slotIndex)}${dragging ? ' is-dragging' : ''}${previewAsset ? ' is-preview-2x2' : ''}${demoMove ? ' is-demo-move' : ''}`}
       data-widget-id={item.assetId}
       data-order={item.order}
       data-slot={slotIndex}
@@ -84,6 +99,21 @@ export function MenuWidgetSlot({ item, slotIndex, row, col, span, editing, dragg
           aria-label={`${menu.label} 삭제`}
           onClick={() => onRemove(item.assetId)}
         />
+      )}
+      {/* AIChatbotButton.tsx 의 이동 데모 힌트와 같은 손 커서 — 이 타일(li)의 자식이라
+       * 위 is-demo-move 의 이동 transform 을 그대로 같이 탄다. */}
+      {demoMove && (
+        <span className="menu-slot__demo-hint" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"
+              fill="#FFFFFF"
+              stroke="#2B211D"
+              strokeWidth="0.75"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
       )}
     </li>
   );

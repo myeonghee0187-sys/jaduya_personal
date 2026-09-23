@@ -165,10 +165,24 @@
 }
 
 .statement-sheet__grip span {
-  width: 36px;
+  /* --stmt-p(0=접힘, 1=펼침)를 그대로 물려받아 끌어올리는 만큼 손잡이도 조금씩 길어진다 —
+   * "지금 이 카드가 반응하고 있다"는 걸 손잡이 하나로도 느끼게 한다. */
+  width: calc(36px + 16px * var(--stmt-p, 0));
   height: 4px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-gray-10) 28%, transparent);
+  transition: width 0.2s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+/* 실제로 끌고 있는 동안엔 더 진하고 도톰하게 — 놓으면 다시 원래 톤으로 가라앉는다 */
+.stmt-overlay.is-dragging .statement-sheet__grip span {
+  background: color-mix(in srgb, var(--color-gray-10) 55%, transparent);
+  transform: scaleY(1.4);
+}
+
+/* 끌기 전, 손끝이 카드에 닿은 순간부터 먼저 살짝 반응한다(눌림 피드백) */
+.statement-sheet__card:active .statement-sheet__grip span {
+  background: color-mix(in srgb, var(--color-gray-10) 45%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -419,8 +433,7 @@
   margin-top: 4px;
 }
 
-.stmt-month button,
-.stmt-subhead button {
+.stmt-month button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -432,8 +445,7 @@
   cursor: pointer;
 }
 
-.stmt-month button img,
-.stmt-subhead button img {
+.stmt-month button img {
   width: 14px;
   height: 14px;
 }
@@ -659,21 +671,27 @@
   color: var(--color-gray-4);
 }
 
-/* 월별 소비 분류 / 카테고리별 이용 내역 */
-.stmt-subhead {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding-top: 16px;
-  margin-left: -8px;
+/* "월별 소비 분류" / "카테고리별 이용 내역" 화면 전환 — 탭을 바꾸듯 그냥 나타나지 않고, 오른쪽에서
+ * 나타나 왼쪽으로 자리 잡으며 들어온다(다음 화면으로 파고드는 느낌의 push 전환). */
+@keyframes stmt-category-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.stmt-subhead h3 {
-  margin: 0;
-  font-family: var(--font-a2z);
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--color-gray-10);
+.stmt-category {
+  animation: stmt-category-in 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stmt-category {
+    animation: none;
+  }
 }
 
 .stmt-category__total {
@@ -884,6 +902,19 @@
 .spending-history--page {
   padding-left: var(--screen-margin);
   padding-right: var(--screen-margin);
+}
+
+/* .statement-sheet__body 의 기본 padding-top(8px)을 취소한다 — position:sticky 는 top 오프셋을
+ * 스크롤 컨테이너의 padding 안쪽 가장자리 기준으로 재는데, 이 8px 는 스크롤해도 절대 밀려나지
+ * 않고 sticky 로 고정된 .stmt-sticky 위에 항상 남아, 그 틈으로 스크롤된 목록 내용이 계속
+ * 비쳐 보였다(9월 달력 위쪽). .stmt-sticky 자신의 padding-top(16px)이 같은 자리에 이미
+ * 시각적 여백을 주므로 없애도 위쪽 공백은 그대로 남는다.
+ * class 두 개를 함께 걸어(.statement-sheet__body.spending-history--page) 우선순위를 올린다 —
+ * 파일 아래쪽의 `.statement-sheet__body { padding-top: 8px; }`(글꼴 크기 정리 구간)가 단일
+ * 클래스라 소스 순서상 이 규칙보다 나중에 나오면 그쪽이 이겨서, padding-top:0 을 여기 그냥
+ * 적어두면 조용히 무시됐다. */
+.statement-sheet__body.spending-history--page {
+  padding-top: 0;
 }
 
 .spending-history--page .stmt-sticky {
@@ -1197,12 +1228,6 @@
   font-size: 14px;
 }
 
-/* 월별 소비 분류 / 카테고리별 이용 내역 */
-.stmt-subhead h3 {
-  font-weight: 600; /* Heading 4 */
-  font-size: 16px;
-}
-
 .stmt-category__total {
   font-weight: 700; /* Heading 1 */
   font-size: 24px;
@@ -1253,6 +1278,13 @@
 
 .stmt-head {
   margin-bottom: 16px;
+}
+
+/* 내역을 스크롤해 요약(.stmt-summary-wrap)·탭(.stmt-flow-tabs-wrap)이 접히면, 이 margin-bottom
+ * 이 그대로 "9월" 제목과 한 줄로 접힌 달력 사이 간격이 된다 — 펼친 상태(16px)는 그대로 두고
+ * 접힌 상태에서만 더 좁힌다. */
+.stmt-sticky.is-scrolled .stmt-head {
+  margin-bottom: 0;
 }
 
 .stmt-cal {
@@ -1713,10 +1745,31 @@
 .stmt-check__rings li {
   display: flex;
   flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 링을 누르면 그 카테고리의 "카테고리별 이용 내역"으로 바로 들어간다(월별 소비 분류
+ * 목록 행과 같은 동작) — 레이아웃은 이전에 li 에 있던 것을 그대로 옮겨 왔다. */
+.stmt-check__item {
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  width: 100%;
   min-width: 0;
+  padding: 8px 4px;
+  border: none;
+  border-radius: var(--radius-l);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) {
+  .stmt-check__item:hover {
+    background: color-mix(in srgb, var(--color-gray-0) 8%, transparent);
+  }
 }
 
 .stmt-check__ring {
@@ -1776,6 +1829,24 @@
 .stmt-check__label.is-top {
   font-weight: 600; /* Label L */
   color: var(--color-gray-0);
+}
+
+/* 수입·지출 화면 — 전체 / 수입 / 지출 탭을 감싸는 래퍼. 금액 요약(.stmt-summary-wrap)과 같은
+ * grid-template-rows 트릭으로, 내역을 스크롤해 요약이 접힐 때 이 탭도 같이 부드럽게 접힌다. */
+.stmt-flow-tabs-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.stmt-flow-tabs-wrap.is-hidden {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.stmt-flow-tabs-wrap > .stmt-flow-tabs {
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* 수입·지출 화면 — 전체 / 수입 / 지출 탭. 고정비 카테고리 탭(.money-fixed-category-tab)과 같은 패딩·라운드·색을 쓴다 */

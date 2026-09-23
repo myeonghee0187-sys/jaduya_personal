@@ -46,14 +46,20 @@ function loadStoredUser(): AuthUser | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AuthUser>;
     if (!parsed.email) return null;
-    /* onboarded 도입 전에 저장된 사용자는 이미 Home 을 쓰던 사용자로 본다 */
+    const key = parsed.email.trim().toLowerCase();
+    /* 목업 계정(이서준·김하린·조아영)은 onboarded 의 "진짜" 값이 항상 MOCK_USERS + 대기
+     * 플래그로 정해진다(login/loginDemo 의 toAuthenticatedUser 와 같은 기준). 저장된
+     * onboarded 값을 그냥 믿으면, 예전에 한 번이라도 false 로 저장된 적이 있는 계정은
+     * 새로고침/재진입할 때마다 계속 온보딩으로 가버린다 — 여기서도 같은 기준으로
+     * 다시 계산해서 로그인했을 때와 항상 같은 결과(바로 Home)가 나오게 한다. */
+    const mockAccount = MOCK_USERS[key];
     return {
-      name: parsed.name ?? '',
+      name: parsed.name ?? mockAccount?.name ?? '',
       email: parsed.email,
-      persona: parsed.persona ?? 'beginner',
+      persona: parsed.persona ?? mockAccount?.persona ?? 'beginner',
       profileImage: parsed.profileImage,
-      onboarded: parsed.onboarded ?? true,
-      preferences: parsed.preferences ?? MOCK_USERS[parsed.email.trim().toLowerCase()]?.preferences ?? null,
+      onboarded: mockAccount ? mockAccount.onboarded && !isOnboardingPending(key) : (parsed.onboarded ?? true),
+      preferences: parsed.preferences ?? mockAccount?.preferences ?? null,
     };
   } catch {
     return null;
