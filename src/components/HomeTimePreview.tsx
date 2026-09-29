@@ -58,13 +58,6 @@ export function HomeTimePreview({ value, onChange }: HomeTimePreviewProps) {
         </svg>
       </button>
 
-      <div className="home-time-preview__hint" aria-hidden="true">
-        <p className="home-time-preview__hint-title">시간대 미리보기</p>
-        <p className="home-time-preview__hint-description">
-          원하는 시간을 설정해<br />홈 화면을 미리 볼 수 있어요.
-        </p>
-      </div>
-
       {open && (
         <div className="home-time-preview__popover" role="menu" aria-label="시간대 미리보기 선택">
           <p className="home-time-preview__title">시간대 미리보기</p>

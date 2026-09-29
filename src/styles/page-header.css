@@ -111,6 +111,17 @@
   height: 12px;
   border-radius: var(--radius-pill);
   background: rgba(255, 61, 61, 0.2);
+  /* 헤더에서 유일하게 움직이는 요소 — 점만 은은하게 커졌다 작아진다 */
+  animation: header-badge-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes header-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-icon-button__badge { animation: none; }
 }
 
 .header-icon-button__badge::after {

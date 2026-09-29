@@ -79,7 +79,9 @@ export function LoginShowcase() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   /* 앱(모바일) 로그인 화면과 같은 인터랙션 언어 — 탭으로 데모 계정을 한 번이라도 고르면
    * CTA 에 샤인 스윕이 계속 반복된다(Login.tsx 의 auth-button--sparkle 과 동일한 개념).
-   * 처음 진입 시(0번 계정이 기본 선택)엔 아직 아무것도 고른 게 아니므로 켜지 않는다. */
+   * 처음 진입 시(0번 계정이 기본 선택)엔 아직 아무것도 고른 게 아니므로 켜지 않는다.
+   * 샤인은 가입/로그인을 유도하는 "회원가입하기" CTA 에만 쓴다 — 계정이 정해진
+   * "이 계정으로 시작하기 / 계속 보기 / 변경하기"는 정적인 primary 버튼이다. */
   const [hasPickedAccount, setHasPickedAccount] = useState(false);
 
 
@@ -273,7 +275,7 @@ export function LoginShowcase() {
             * 없음: 시작하기 / 다른 계정: 변경하기 / 현재 계정: 계속 보기 */}
           <button
             type="button"
-            className={`login-showcase__cta${hasPickedAccount ? ' login-showcase__cta--sparkle' : ''}`}
+            className={`login-showcase__cta${hasPickedAccount && isPendingSignupAccount ? ' login-showcase__cta--sparkle' : ''}`}
             onClick={() => handleUseAccount(activeAccount)}
           >
             {isPendingSignupAccount

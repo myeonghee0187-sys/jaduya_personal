@@ -20,7 +20,8 @@ import {
 import { resolveConversationInput } from '../data/resolveConversationInput';
 import type { AIConversationContext, ScenarioCta, ScenarioUserContext } from '../data/aiScenarios';
 import { AI_FIRST_SCREEN_PROMPTS } from '../data/aiPersonaPrompts';
-import type { AIPersonaPrompt } from '../data/aiPersonaPrompts';
+import { GOV24_MOVE_IN_URL, GUIDED_BENEFIT_PAGES, guidedStep, parseGuidedAction } from '../data/aiGuidedFlows';
+import type { GuidedFlowId, GuidedOption } from '../data/aiGuidedFlows';
 import { HOUSING_TYPES, loadLivingProfile, saveLivingProfile } from '../data/livingProfile';
 import { loadAIChatSettings, saveAIChatSettings } from '../data/aiChatSettings';
 import type { AILocation } from '../data/aiChatSettings';
@@ -121,6 +122,8 @@ type ChatCta = {
   copyText?: string;
   action?: string;
   recommended?: boolean;
+  /** 버튼 아래에 작게 붙는 안내 (예: 외부 링크 이동) */
+  note?: string;
 };
 
 type PestSolution = {
@@ -817,6 +820,8 @@ export function AIChatPage() {
   const [locationNotice, setLocationNotice] = useState('');
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const locationLookupRef = useRef(0);
+  /* 실행형 수리 안내의 "다른 지역에서 찾기"로 연 지역 모달인지 — 저장하면 검색 안내 없이 지도를 바로 연다. */
+  const guidedRepairRegionRef = useRef(false);
   const [isRepairLocationModalOpen, setIsRepairLocationModalOpen] = useState(false);
   /* 이 지역 검색 모달은 수리업체 지역 설정과 pre-move-check 의 "새 집 주소" 확인 둘 다에서
    * 쓴다 — 입력/검색/선택 UI는 그대로 재사용하고, 확인 버튼을 눌렀을 때의 동작(수리 검색
@@ -1009,6 +1014,7 @@ export function AIChatPage() {
   };
 
   const closeRepairLocationModal = () => {
+    guidedRepairRegionRef.current = false;
     locationLookupRef.current += 1;
     setIsLocationLoading(false);
     setIsRepairLocationModalOpen(false);
@@ -1025,6 +1031,16 @@ export function AIChatPage() {
     setLocationQuery('');
     setLocationResults([]);
     setLocationNotice('');
+    if (guidedRepairRegionRef.current) {
+      guidedRepairRegionRef.current = false;
+      setRepairTarget(locationDraft);
+      queueGuidedReply(
+        null,
+        async () => ({ content: `좋아요!\n설정한 ${locationDraft.displayName} 기준으로\n가까운 수리업체를 보여드릴게요.` }),
+        openRepairMap,
+      );
+      return;
+    }
     startRepairSearch(locationDraft.displayName, 'new', locationDraft);
   };
 
@@ -1107,7 +1123,114 @@ export function AIChatPage() {
     if (result !== 'cancelled') setRepairContactNotice(shop.name);
   };
 
+  /* ---------- 첫 화면 추천 카드의 실행형 안내 흐름 (aiGuidedFlows.ts) ----------
+   * 선택지가 다음 목적지를 action 문자열로 들고 있어 별도 진행 상태가 없다. 다음 단계로
+   * 넘어갈 때 이전 메시지의 추천 강조를 걷어내 항상 최신 단계에만 추천이 1개 남는다. */
+  const withoutRecommendation = (list: ChatMessage[]): ChatMessage[] => list.map((message) => ({
+    ...message,
+    ...(message.ctas?.some((cta) => cta.recommended)
+      ? { ctas: message.ctas.map(({ recommended: _recommended, ...cta }) => cta) }
+      : {}),
+  }));
+
+  /* 사용자 선택을 말풍선으로 남기고, 잠깐 입력 중 표시를 거쳐 다음 안내를 붙인다. */
+  const queueGuidedReply = (
+    userText: string | null,
+    build: () => Promise<Pick<ChatMessage, 'ctas'> & { content: string }>,
+    afterReply?: () => void,
+  ) => {
+    if (isTyping) return;
+    setAiView('chat');
+    setIsTerminalResult(false);
+    setMessages((current) => [
+      ...withoutRecommendation(current),
+      ...(userText ? [{ id: ++messageIdRef.current, role: 'user' as const, content: userText }] : []),
+    ]);
+    setIsTyping(true);
+    responseTimerRef.current = window.setTimeout(() => {
+      void build().then(({ content, ...extra }) => {
+        setMessages((current) => [
+          ...current,
+          { id: ++messageIdRef.current, role: 'assistant', ...splitAssistantBody(content), ...extra },
+        ]);
+        afterReply?.();
+      }).finally(() => {
+        setIsTyping(false);
+        responseTimerRef.current = null;
+      });
+    }, 500);
+  };
+
+  const showGuidedStep = (flow: GuidedFlowId, stepId: string, userText: string | null, param?: string) => {
+    const next = guidedStep(flow, stepId, { location: effectiveLocation, param });
+    if (!next) return;
+    const ctas: GuidedOption[] = next.options;
+    queueGuidedReply(userText, async () => ({ content: next.message, ...(ctas.length ? { ctas: ctas.map((option) => ({ ...option })) } : {}) }));
+  };
+
+  const startGuidedFlow = (flow: GuidedFlowId, label: string) => {
+    if (isTyping) return;
+    setDiagnosis(null);
+    setShowFallbackSuggestions(false);
+    /* 수리업체 검색 종류(repairKindFor)만 남기고 진단 시나리오 상태는 쓰지 않는다. */
+    setConversation({ ...EMPTY_CONVERSATION, answers: flow === 'repair' ? { repairKind: 'plumbing' } : {} });
+    showGuidedStep(flow, 'start', label);
+  };
+
+  /* 챗봇은 여기까지만 — 업체 탐색은 기존 수리업체 지도 창(openRepairMap: 로딩 → Leaflet 지도 +
+   * 업체 목록 + 수리기사 연결)이 맡는다. 설정 지역과 수리 종류(conversation.answers.repairKind)를
+   * 그대로 넘긴다. */
+  const openGuidedRepairMap = (label: string) => {
+    const area = effectiveLocation;
+    if (!area) return;
+    setRepairTarget(resolvedLocation ?? { displayName: area });
+    queueGuidedReply(
+      label,
+      async () => ({ content: '좋아요!\n현재 설정된 지역을 기준으로\n가까운 수리업체를 보여드릴게요.' }),
+      openRepairMap,
+    );
+  };
+
+  const handleGuidedAction = (cta: ChatCta) => {
+    const action = cta.action ?? '';
+    const stepAction = parseGuidedAction(action);
+    if (stepAction) {
+      showGuidedStep(stepAction.flow, stepAction.step, cta.label, stepAction.param);
+      return;
+    }
+    const [, effect, param] = action.split(':');
+    switch (effect) {
+      case 'shops':
+        openGuidedRepairMap(cta.label);
+        return;
+      case 'region':
+        guidedRepairRegionRef.current = true;
+        openRepairLocationModal();
+        return;
+      case 'gov24':
+        /* 외부 사이트라 새 탭으로 연다 — 자두AI 대화는 그대로 남는다. */
+        window.open(GOV24_MOVE_IN_URL, '_blank', 'noopener,noreferrer');
+        queueGuidedReply(cta.label, async () => ({
+          content: '정부24 전입신고 페이지를 새 탭에서 열었어요.\n신청을 마치면 이 대화로 돌아와주세요.',
+        }));
+        return;
+      case 'benefits': {
+        const page = GUIDED_BENEFIT_PAGES[param];
+        if (page) navigation?.navigate(page, { returnTo: navigation.page, reopenAIChat: true });
+        return;
+      }
+      case 'settings':
+        openAISettings();
+        return;
+      default:
+    }
+  };
+
   const handleCta = (cta: ChatCta, source: string) => {
+    if (cta.action?.startsWith('guided')) {
+      handleGuidedAction(cta);
+      return;
+    }
     switch (cta.action ?? cta.label) {
       /* pre-move-check — 정보 제공에서 끝나지 않고 전입신고 준비까지 대화 안에서 이어간다.
        * 아래 네 케이스가 그 실행형 플로우다(overview → address-check → address-confirm →
@@ -1465,7 +1588,6 @@ export function AIChatPage() {
     content: string,
     expectedStage?: string,
     pendingAttachments: ChatAttachment[] = [],
-    forcedScenario?: AIPersonaPrompt['scenario'],
   ) => {
     const question = content.trim();
     if ((!question && pendingAttachments.length === 0) || isTyping) return;
@@ -1473,11 +1595,9 @@ export function AIChatPage() {
     const activeStage = isImageLocationQuestion ? 'image-location' : (attachmentFollowup ? `attachment-${attachmentFollowup}` : (diagnosis?.stage ?? conversation.stage));
     if (expectedStage && activeStage !== expectedStage) return;
     /* 보일러 진단은 기존 diagnosis state가 단계 문맥을 소유하므로 그대로 넘긴다. */
-    const inputResolution = forcedScenario
-      ? { type: 'scenario' as const, intent: forcedScenario }
-      : diagnosis
-        ? { type: 'answer' as const }
-        : resolveConversationInput(question, conversation);
+    const inputResolution = diagnosis
+      ? { type: 'answer' as const }
+      : resolveConversationInput(question, conversation);
 
     /* 최종 결과 뒤에 직접 새 질문을 입력하면 exit action은 새 응답이 올 때까지 숨긴다. */
     setIsTerminalResult(false);
@@ -2201,14 +2321,14 @@ export function AIChatPage() {
                   </div>
                 )}
                 {message.role === 'assistant' && message.ctas && (
-                  <div className={`ai-chat-page__ctas${message.benefitCtaText ? ' ai-chat-page__ctas--benefit' : ''}`} aria-label="다음 행동">
+                  <div className={`ai-chat-page__ctas${message.benefitCtaText ? ' ai-chat-page__ctas--benefit' : ''}${message.ctas.some((cta) => cta.action?.startsWith('guided')) ? ' ai-chat-page__ctas--stack' : ''}`} aria-label="다음 행동">
                     {message.benefitCtaText && <p className="ai-chat-page__benefit-cta-copy">{message.benefitCtaText}</p>}
                     {message.ctas.map((cta, index) => (
                       <div
                         key={`${cta.label}-${index}`}
                         className={`ai-chat-page__cta-item${cta.recommended ? ' is-recommended' : ''}`}
                       >
-                        {cta.recommended && <span className="ai-chat-page__cta-recommend-label">자두 추천</span>}
+                        {cta.recommended && <span className="ai-chat-page__cta-recommend-label">자두 추천!</span>}
                         <button
                           type="button"
                           className={`ai-chat-page__cta${cta.recommended ? ' ai-chat-page__cta--recommended' : ''}`}
@@ -2217,6 +2337,7 @@ export function AIChatPage() {
                           <span>{cta.label}</span>
                           <span className="ai-chat-page__cta-arrow" aria-hidden="true">→</span>
                         </button>
+                        {cta.note && <span className="ai-chat-page__cta-note">{cta.note}</span>}
                       </div>
                     ))}
                   </div>
@@ -2291,7 +2412,7 @@ export function AIChatPage() {
                   <button
                     type="button"
                     className="ai-chat-page__prompt"
-                    onClick={() => sendMessage(prompt.label, undefined, [], prompt.scenario)}
+                    onClick={() => startGuidedFlow(prompt.guidedFlow, prompt.label)}
                   >
                     <img src={icon(`chatbot/${prompt.icon}`)} alt="" aria-hidden="true" />
                     <span className="ai-chat-page__prompt-copy">

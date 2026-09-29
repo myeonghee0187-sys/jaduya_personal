@@ -1,10 +1,11 @@
-import type { ScenarioIntent } from './aiScenarios';
+import type { GuidedFlowId } from './aiGuidedFlows';
 
 export type AIPersonaPrompt = {
   category: string;
   icon: 'home.svg' | 'procedure.svg' | 'boon.svg';
   label: string;
-  scenario: NonNullable<ScenarioIntent>;
+  /** 카드를 누르면 시작하는 실행형 안내 흐름 (aiGuidedFlows.ts) */
+  guidedFlow: GuidedFlowId;
 };
 
 /**
@@ -16,18 +17,18 @@ export const AI_FIRST_SCREEN_PROMPTS: readonly AIPersonaPrompt[] = [
     category: '집 · 수리',
     icon: 'home.svg',
     label: '싱크대 밑에서 물이 새는데 어떻게 해야 돼?',
-    scenario: { scenarioId: 'plumbing-leak', stage: 'sink-check' },
+    guidedFlow: 'repair',
   },
   {
     category: '행정 · 절차',
     icon: 'procedure.svg',
     label: '전입신고 처음인데 뭐부터 어떻게 해야 할지 순서 알려줘.',
-    scenario: { scenarioId: 'moveIn', stage: 'move-stage' },
+    guidedFlow: 'moveIn',
   },
   {
     category: '혜택 · 지원금',
     icon: 'boon.svg',
     label: '내 조건에 맞는 지원금이나 받을 수 있는 혜택은 어떤 게 있어?',
-    scenario: { scenarioId: 'support', stage: 'category' },
+    guidedFlow: 'support',
   },
 ];

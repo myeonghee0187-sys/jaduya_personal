@@ -58,6 +58,9 @@ a { text-decoration: none; color: inherit; }
   --sheet-pad-top: 18px;
   --sheet-section-gap: 50px;
   --my-life-gap: 16px;
+  /* 펼친 시트 하단 Dock(.home-benefit-banner--fixed) 높이 = 위 12 + 아이콘 40 + 아래 30 + border 1 + safe-area.
+   * 시트 스크롤 하단 여백이 이 값을 그대로 쓴다 — Dock padding 을 바꾸면 여기도 함께 바꾼다. */
+  --home-dock-h: calc(83px + env(safe-area-inset-bottom, 0px));
 }
 
 .app[data-sheet-state="expanded"] {
@@ -626,71 +629,6 @@ a { text-decoration: none; color: inherit; }
 
 .home-time-preview__trigger {
   border-radius: var(--radius-pill);
-  transition: background-color 120ms ease;
-}
-
-.home-time-preview__trigger:active {
-  background: rgba(59, 51, 46, 0.08);
-}
-
-.home.is-night .home-time-preview__trigger:active {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.home-time-preview__hint {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
-  width: 196px;
-  padding: 12px 14px;
-  border: 1px solid rgba(145, 145, 145, 0.38);
-  border-radius: var(--radius-l);
-  background: var(--surface-primary, #fffdf9);
-  box-shadow: 0 10px 28px rgba(59, 51, 46, 0.14);
-  color: var(--text-body);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-4px);
-  pointer-events: none;
-  transition: opacity 150ms ease, transform 150ms ease, visibility 0s linear 150ms;
-}
-
-.home-time-preview__hint-title,
-.home-time-preview__hint-description {
-  margin: 0;
-  font-family: var(--font-suit);
-}
-
-.home-time-preview__hint-title {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 20px;
-}
-
-.home-time-preview__hint-description {
-  margin-top: 4px;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 17px;
-  color: var(--text-secondary);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .home-time-preview__trigger:hover {
-    background: rgba(59, 51, 46, 0.06);
-  }
-
-  .home.is-night .home-time-preview__trigger:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .home-time-preview:not(.is-open):hover .home-time-preview__hint {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-    transition-delay: 0s;
-  }
 }
 
 .home-time-preview__popover {
@@ -753,25 +691,25 @@ a { text-decoration: none; color: inherit; }
   opacity: 1;
 }
 
-.home .status-bar {
+.home > .header .status-bar {
   position: relative;
 }
 
-.home.is-night .status-bar__time {
+.home.is-night > .header .status-bar__time {
   color: var(--color-gray-05);
 }
 
 /* 밤에는 어두운 기본 상태바 아이콘(img)을 밝은 마스크 아이콘(::after)으로 바꾼다.
  * 둘 다 항상 있고 opacity 만 서로 교차하므로 전환 중에 아이콘이 툭 나타나거나 사라지지 않는다. */
-.home .status-bar__icons {
+.home > .header .status-bar__icons {
   transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing);
 }
 
-.home.is-night .status-bar__icons {
+.home.is-night > .header .status-bar__icons {
   opacity: 0;
 }
 
-.home .status-bar::after {
+.home > .header .status-bar::after {
   content: '';
   position: absolute;
   top: 18.5px;
@@ -786,7 +724,7 @@ a { text-decoration: none; color: inherit; }
   transition: opacity var(--hero-time-transition-duration) var(--hero-time-transition-easing);
 }
 
-.home.is-night .status-bar::after {
+.home.is-night > .header .status-bar::after {
   opacity: 1;
 }
 
@@ -1158,7 +1096,7 @@ a { text-decoration: none; color: inherit; }
   /* 아래 padding 을 --tab-bar-h 와 똑같이 두면 끝까지 스크롤했을 때 마지막 콘텐츠가
    * 탭바 상단에 여백 0px 로 딱 붙는다(계산상 안 잘리지만 눈으로 보기엔 붙어 보인다) —
    * 12px 여유를 더해 탭바 위에 항상 살짝 뜬 여백이 남게 한다. */
-  padding: var(--sheet-pad-top) var(--screen-margin) calc(var(--tab-bar-h) + 12px);
+  padding: var(--sheet-pad-top) var(--screen-margin) calc(max(var(--tab-bar-h), var(--home-dock-h)) + 12px);
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
