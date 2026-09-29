@@ -238,57 +238,7 @@
   background: var(--brand-primary);
 }
 
-/* ---------- 헤더 종 반짝임 ---------- */
-
-/* 종 버튼 레이아웃에는 영향을 주지 않는다 — 크기 0 의 절대 배치 레이어다 */
-.header-icon-button__sparkle {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.header-icon-button__sparkle i {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  background: var(--brand-primary);
-  /* 네 꼭짓점이 오목한 반짝이 모양 */
-  clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
-  opacity: 0;
-  animation: header-bell-sparkle 800ms ease-out 1;
-}
-
-.header-icon-button__sparkle i:first-child {
-  top: 4px;
-  left: 3px;
-}
-
-.header-icon-button__sparkle i:last-child {
-  right: 2px;
-  bottom: 6px;
-  animation-delay: 140ms;
-}
-
-@keyframes header-bell-sparkle {
-  0% {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .header-icon-button__sparkle {
-    display: none;
-  }
-
   .notification-card {
     transition: none;
   }

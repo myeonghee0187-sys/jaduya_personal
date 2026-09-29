@@ -1056,17 +1056,26 @@
   background: #fef5d6;
 }
 
+/* 추천 버튼은 채우지 않고 테두리만 Primary 로 강조한다 — "자두 추천!" 라벨은 버튼 바깥 위에 둔다. */
 .ai-chat-page__cta.ai-chat-page__cta--recommended {
   border-color: var(--brand-primary);
-  background: var(--brand-primary);
-  color: var(--surface-base);
 }
 
 .ai-chat-page__cta.ai-chat-page__cta--recommended:hover,
 .ai-chat-page__cta.ai-chat-page__cta--recommended:active {
   border-color: #922e2c;
-  background: #922e2c;
-  color: var(--surface-base);
+}
+
+/* 실행형 안내의 선택지 — 추천 라벨이 붙어도 버튼 시작선이 어긋나지 않게 세로로 쌓는다. */
+.ai-chat-page__ctas--stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ai-chat-page__cta-note {
+  color: var(--text-secondary);
+  font: 500 11px/1.35 var(--font-suit);
 }
 
 .ai-chat-page__cta:focus-visible {
@@ -2465,6 +2474,20 @@
   background: #fffaf5;
 }
 
+/* 맨 위 safe-area 띠는 헤더와 같은 색 — 헤더가 시작하기 전 노출되는 배경도 이어 보이게 한다.
+ * 배경색은 그대로 두고 띠(이미지)만 얹는다. `.ai-chat-page.app` 의 background 보다 세다. */
+.ai-chat-page.app.ai-chat-page--settings {
+  background-image: linear-gradient(var(--brand-secondary), var(--brand-secondary));
+  background-position: top;
+  background-repeat: no-repeat;
+  background-size: 100% env(safe-area-inset-top, 0px);
+}
+
+/* 데스크톱 기기 프리뷰의 목업 상태바 — 바로 아래 헤더(.ai-chat-page__settings-header)와 같은 배경. */
+.ai-chat-page--settings > .status-bar {
+  background: var(--brand-secondary);
+}
+
 .ai-chat-page--settings .ai-chat-page__settings-header {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
@@ -2472,6 +2495,7 @@
   gap: 8px;
   min-height: 64px;
   padding: 10px var(--screen-margin);
+  background: var(--brand-secondary);
 }
 
 .ai-chat-page--settings .ai-chat-page__settings-header > button {
