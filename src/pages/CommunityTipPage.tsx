@@ -39,47 +39,6 @@ function loadRecentSearches(storageKey: string): string[] {
   }
 }
 
-/* 서브탭 라벨을 좁은 화면에서 정확히 지정된 지점으로 두 줄로 나눈다
- * ("고정·관리" → "고정" / "관리", "청소·정리" → "청소" / "정리",
- * "인테리어" → "인테" / "리어", "생활문제" → "생활" / "문제").
- * '·' 가 있으면 그 자리에서, 공백이 있으면 마지막 공백에서, 둘 다 없으면(인테리어·
- * 생활문제처럼 구분자 없이 붙은 라벨) 글자 수 절반에서 나눈다. 넓은 화면에서는
- * CSS 로 구분자(·)만 보이고 줄바꿈은 숨긴다 — TIP_CATEGORIES 라벨 순서를 그대로
- * 유지한다. */
-function renderTipLabel(label: string) {
-  const dotIndex = label.indexOf('·');
-  if (dotIndex !== -1) {
-    return (
-      <>
-        {label.slice(0, dotIndex)}
-        <span className="tip-category__label-dot" aria-hidden="true">
-          ·
-        </span>
-        <br className="tip-category__label-break" />
-        {label.slice(dotIndex + 1)}
-      </>
-    );
-  }
-  const spaceIndex = label.lastIndexOf(' ');
-  if (spaceIndex !== -1) {
-    return (
-      <>
-        {label.slice(0, spaceIndex)}{' '}
-        <br className="tip-category__label-break" />
-        {label.slice(spaceIndex + 1)}
-      </>
-    );
-  }
-  const midIndex = Math.ceil(label.length / 2);
-  return (
-    <>
-      {label.slice(0, midIndex)}
-      <br className="tip-category__label-break" />
-      {label.slice(midIndex)}
-    </>
-  );
-}
-
 /* 커뮤니티 '자취 꿀팁' — 헤더·탭바·글쓰기 버튼·게시글 카드는 question 화면과 같은 레이아웃을
  * 그대로 쓴다 (카드는 CommunityPostCard, 해시태그 칩만 쓰고 카테고리 칩은 뺀다).
  * 정렬 필터 대신 이 탭 전용 서브탭(TipTiles, Figma tip 2257:13827)을 둔다. */
@@ -273,7 +232,7 @@ export function CommunityTipPage() {
                     aria-hidden="true"
                   />
                 </span>
-                <span className="tip-category__label">{renderTipLabel(item.label)}</span>
+                <span className="tip-category__label">{item.label}</span>
               </button>
             );
           })}

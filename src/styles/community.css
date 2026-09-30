@@ -534,20 +534,22 @@
 /* ================= 자취 꿀팁 전용 서브탭 (Figma tip 2257:13827 TipTiles) ================= */
 /* '자취 꿀팁' 탭에서만 쓰는 카테고리 선택 UI라 이 탭의 화면(community-tip.css 역할)에서만 참조한다. */
 
+/* 배치는 게시판 서브탭(.board-type-filter)과 같게 둔다 — 5칸을 같은 폭으로 나눠
+ * 어느 화면 폭에서도 두 탭의 아이콘 위치·간격이 같다. */
 .tip-categories {
   display: flex;
-  justify-content: center;
-  gap: 5px;
+  align-items: flex-start;
+  justify-content: space-between;
   padding: 10px 0 20px;
 }
 
 .tip-category {
-  flex: none;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 64px;
   border: 0;
   padding: 0;
   background: none;
@@ -601,29 +603,17 @@
   background-color: #ffffff;
 }
 
+/* 게시판 서브탭처럼 한 줄로 둔다 — 가장 긴 라벨(약 44px)도 320px 화면의 칸 폭(약 49px)에 들어가,
+ * 두 줄로 나뉘어 이 줄만 높아지는 일이 없다. */
 .tip-category__label {
   color: var(--text-nav);
   font: 400 11px/1.4 var(--font-suit);
   text-align: center;
+  white-space: nowrap;
 }
 
-/* 라벨은 CommunityTipPage 의 renderTipLabel 이 "구분자 + 줄바꿈"을 항상
- * 같이 렌더링해둔다 — 넓은 화면은 구분자(·)만 보이는 한 줄, 좁은 화면은
- * 줄바꿈만 살아나는 지정된 두 줄이 되도록 여기서 토글한다. */
-.tip-category__label-break {
-  display: none;
-}
-
-/* 5개 타일이 화면 폭에 딱 맞게 짜여 있어 여유가 거의 없다 — 좁은 화면에서
- * 밀려나지 않도록 402px(이 앱 기본 프레임) 아래에서는 단계적으로 줄인다.
- * 라벨은 align-items: center 라 기본은 내용 폭만큼만 차지해 타일 폭을 넘어
- * 옆 타일과 겹칠 수 있다 — 이 구간부터는 라벨을 타일 폭에 맞추고, 지정된
- * 지점에서 두 줄로 나눈다 (구분자는 숨기고 줄바꿈을 켠다). */
+/* 좁은 화면에서는 게시판 서브탭과 같은 단계로 아이콘만 줄인다 */
 @media (max-width: 401px) {
-  .tip-category {
-    width: 60px;
-  }
-
   .tip-category__circle {
     width: 56px;
     height: 56px;
@@ -633,27 +623,11 @@
     width: 26px;
     height: 26px;
   }
-
-  .tip-category__label {
-    width: 100%;
-  }
-
-  .tip-category__label-dot {
-    display: none;
-  }
-
-  .tip-category__label-break {
-    display: block;
-  }
 }
 
 @media (max-width: 389px) {
   .tip-categories {
     gap: 4px;
-  }
-
-  .tip-category {
-    width: 56px;
   }
 
   .tip-category__circle {

@@ -9,7 +9,7 @@
 
 .life-first.app {
   --screen-margin:30px;
-  background:var(--surface-subtle);
+  background:var(--surface-page);
 }
 
 .life-first__scroll {
@@ -91,6 +91,7 @@
   font:700 15px/1.4 var(--font-suit);
   letter-spacing:-.3px;
   cursor:pointer;
+  transition:background-color 220ms ease,color 220ms ease;
 }
 
 .house-check__segments button.is-active {
@@ -649,6 +650,7 @@
 }
 
 @media (prefers-reduced-motion:reduce) {
+  .house-check__segments button,
   .house-check__track span,
   .check-circle__ring,
   .check-circle__mark,
