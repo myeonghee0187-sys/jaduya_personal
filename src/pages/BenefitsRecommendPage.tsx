@@ -71,25 +71,24 @@ export function BenefitsRecommendPage() {
               const saved = isBenefitSaved(benefit.id);
               return (
               <article key={benefit.id} className="recommend-card">
-                <div className="recommend-card__tags">
-                  <span className="recommend-card__tag recommend-card__tag--deadline">
-                    {benefit.deadline}
-                  </span>
-                  <span className="recommend-card__tag recommend-card__tag--method">온라인신청</span>
-                  <button
-                    type="button"
-                    className={`recommend-card__bookmark${saved ? ' is-saved' : ''}`}
-                    aria-pressed={saved}
-                    aria-label={`${benefit.title} 저장`}
-                    onClick={() => toggleBenefit(benefit.id)}
-                  />
-                </div>
+                <div className="recommend-card__body">
+                  <div className="recommend-card__tags">
+                    <span className="recommend-card__tag">{benefit.deadline}</span>
+                    <span className="recommend-card__match">조건 {benefit.matchCount}개 일치</span>
+                    <button
+                      type="button"
+                      className={`recommend-card__bookmark${saved ? ' is-saved' : ''}`}
+                      aria-pressed={saved}
+                      aria-label={`${benefit.title} 저장`}
+                      onClick={() => toggleBenefit(benefit.id)}
+                    />
+                  </div>
 
-                <div className="recommend-card__row">
-                  <h3>{benefit.title}</h3>
+                  <div className="recommend-card__title-group">
+                    <h3>{benefit.title}</h3>
+                    <p className="recommend-card__desc">{benefit.description}</p>
+                  </div>
                 </div>
-
-                <p className="recommend-card__target">{benefit.eligibility}</p>
 
                 <button
                   type="button"

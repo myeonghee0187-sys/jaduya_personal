@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBookmarks } from '../bookmarks/BookmarkContext';
 import { SubPageHeader } from '../components/SubPageHeader';
 import { getBenefitById } from '../data/benefits';
 import { icon } from '../lib/asset';
@@ -6,6 +7,7 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 
 export function BenefitDetailPage() {
   const navigation = useAppNavigation();
+  const { isBenefitSaved, toggleBenefit } = useBookmarks();
   const [notice, setNotice] = useState('');
   const benefit = getBenefitById(navigation?.options.benefitId);
   const returnTo = navigation?.options.returnTo ?? 'benefits-recommend';
@@ -34,6 +36,7 @@ export function BenefitDetailPage() {
     );
   }
 
+  const saved = isBenefitSaved(benefit.id);
   const meta = benefit.frequency
     ? `${benefit.frequency} / 주관  ${benefit.organizer}`
     : `주관  ${benefit.organizer}`;
@@ -49,27 +52,44 @@ export function BenefitDetailPage() {
       <main className="benefit-detail__scroll">
         <section className="benefit-detail__hero">
           <div className="benefit-detail__headline">
-            <div className="benefit-detail__meta-row">
-              <small>지원 금액 · {meta}</small>
+            <div className="benefit-detail__context">
+              <span>혜택 상세</span>
+              <button
+                type="button"
+                className={`benefit-detail__bookmark${saved ? ' is-saved' : ''}`}
+                aria-pressed={saved}
+                aria-label={`${benefit.title} 저장`}
+                onClick={() => toggleBenefit(benefit.id)}
+              />
+            </div>
+
+            <div className="benefit-detail__highlight">
+              <div className="benefit-detail__meta-row">
+                <span className="benefit-detail__status">
+                  {benefit.status}  ·  {benefit.deadline}
+                </span>
+                <small>지원 금액 · {meta}</small>
+              </div>
+              <h2>{benefit.title}</h2>
+              <div className="benefit-detail__amount">
+                <span>{benefit.amountLabel}</span>
+                <strong>{benefit.amount}</strong>
+              </div>
             </div>
           </div>
 
-          <div className="benefit-detail__highlight">
-            <h2>{benefit.title}</h2>
-            <div className="benefit-detail__amount">
-              <span>{benefit.amountLabel}</span>
-              <strong>{benefit.amount}</strong>
-            </div>
-          </div>
-
-          <div className="benefit-detail__card-top">
-            <span>조건 {benefit.matchCount}개 일치</span>
+          <div className="benefit-detail__summary">
+            <h3>지원 내용</h3>
+            <p>{benefit.description}</p>
           </div>
         </section>
 
         <section className="benefit-detail__section benefit-detail__eligibility">
           <div className="benefit-detail__card">
-            <h3>신청 대상</h3>
+            <div className="benefit-detail__card-head">
+              <h3>신청 대상</h3>
+              <span>조건 {benefit.matchCount}개 일치</span>
+            </div>
             <p>{benefit.eligibility}</p>
           </div>
         </section>
@@ -97,7 +117,7 @@ export function BenefitDetailPage() {
 
         <section className="benefit-detail__notice-card">
           <div>
-            <img src={icon('info-warn.svg')} alt="" />
+            <img src={icon('benefit-notice-bulb.svg')} alt="" />
             <h3>유의사항</h3>
           </div>
           {benefit.notices.map((item) => <p key={item}>{item}</p>)}

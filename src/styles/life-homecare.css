@@ -17,7 +17,7 @@
   --screen-margin: 30px;
   width: 100%;
   max-width: 402px;
-  background: var(--surface-subtle);
+  background: var(--surface-page);
 }
 
 /* ================= 하위 탭 ================= */
@@ -77,9 +77,9 @@ span.dc-tabs__tab {
 }
 
 /* 생활의 두 탭만 적용한다. SavedPage가 사용하는 공통 dc-tabs는 유지한다. */
+/* 위 여백은 기본 .dc-tabs 의 padding-top(20px)을 그대로 써서 커뮤니티 탭(margin-top 20px)과 맞춘다 */
 .dc-tabs--life {
   align-items: stretch;
-  padding-top: 0;
   border-bottom: 0;
 }
 
@@ -91,7 +91,7 @@ span.dc-tabs__tab {
   min-width: 0;
   min-height: 44px;
   padding: 12px 14px 14px;
-  border-bottom: 1px solid #737373;
+  border-bottom: 1px solid var(--border-warm);
   color: #737373;
 }
 
